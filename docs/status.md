@@ -1,6 +1,6 @@
 # Fortsetzbarer Arbeitsstand
 
-Stand: 28. Oktober 2026. Aktueller Kandidat ist **ShowerNow `0.1.0 (3)`**, Bundle-ID **`de.linolaske.showernow`**, Team `J2DU2P47XW`. Umbenennung, gezielter Simulatorbuild, signiertes Release-Archiv und lokaler Export sind erfolgreich; neue explizite ID durch tatsächliches Distributionsprofil bestätigt. Noch kein Upload für die neue Identität. Der Nutzer hat die Umstellung seines ASC-App-Datensatzes auf die neue ID bestätigt (keine direkte Portalabfrage). Projekt/Module heißen technisch weiter Weather.
+Stand: 28. Oktober 2026, 17:52 Uhr MEZ. **ShowerNow `0.1.0 (3)`**, Bundle-ID **`de.linolaske.showernow`**, Team `J2DU2P47XW`, wurde aus dem veröffentlichten Quellencheckpoint `2e500fca7be7df05bbe21882127d574189a5a0d1` genau einmal erfolgreich hochgeladen. Uploadabschluss um 17:51:38 Uhr MEZ: Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded` und Apples `UPLOAD SUCCEEDED with no errors`. Letzter Serverzustand **`PROCESSING`**; abgeschlossene Verarbeitung und interne Verfügbarkeit sind nicht belegt. Die offiziellen AppsService-Antwortdaten bestätigen `name=ShowerNow`, `bundleId=de.linolaske.showernow`, `removed=false`. Projekt/Module heißen technisch weiter Weather.
 
 Historie unter `de.linolaske.weather`: Build 1 wurde mit `90474` abgelehnt; Build 2 zu Checkpoint `0f48cb5` wurde mit Exit 0 angenommen (`PROCESSING`, 17:35:36 Uhr MEZ). Zusätzlich berichtet der Nutzer einen Namenskonflikt mit Weather. Dies bestätigt keinen nutzbaren internen TestFlight-Build; [historische Uploadbefunde](testflight-upload.md) bleiben erhalten.
 
@@ -32,13 +32,15 @@ Dies ist ein früher Prototyp, keine fertige Version 1. Ein installierbarer inte
 
 ## Aktuelle Aufgabe und Übergabe
 
-- Identity-Umbenennung und unabhängiges Review sind ohne offene P1-/P2-Befunde abgeschlossen. Der Nutzer bestätigt den ASC-Datensatz auf neuer ID; kein weiterer neuer Datensatz als Blocker.
-- Ergänzende tatsächliche IPA-Prüfung fand `CFBundleDisplayName=ShowerNow`, aber noch `CFBundleName=Weather`. Gezielte Korrektur in `Configuration/Info.plist`: beide Felder verwenden `WEATHER_DISPLAY_NAME`; Executable/Produktname/Swift-Modul bleiben Weather. Neues isoliertes Release-Archiv und lokaler ASC-Export sind erfolgreich; tatsächliches Archiv und IPA bestätigen beide Namen als ShowerNow, neue ID und `0.1.0 (3)`. Kein Upload.
-- Metadaten-Worker änderte ausschließlich `Configuration/Info.plist`, `docs/status.md` und `docs/signing.md`; Buildslot nach Prüfung wieder frei. Keine Datenlogik-, Backend- oder Designänderung.
-- Quellencheckpoint `0f48cb5` und die dortigen 12 Datentests/2 UI-Flows bleiben historische geprüfte Grundlage. Der aktuelle Quellencheckpoint enthält die freigegebene ShowerNow-Umbenennung samt finalem Bundle-Name-Nachweis; Commit/Push sind autorisiert. Upload erfolgt separat.
-- Keine volle Testsuite für die reine Pliständerung. ASC-Name, Bundle-Displayname und Bundle-Name sind getrennte Felder; der lokale Fix beweist keine Lösung des berichteten ASC-Namenskonflikts, siehe [signing.md](signing.md).
+- Identity-Review und finaler Bundle-Name-Nachweis sind abgeschlossen, ohne offene P1-/P2-Befunde. Tatsächliche finale IPA: beide Namensfelder ShowerNow, neue ID und `0.1.0 (3)`; alle 24 kopierten Quellen-/Projekt-/Konfigurationsdateien bytegleich. Details in [signing.md](signing.md).
+- Quellencheckpoint `2e500fc` ist veröffentlicht und Grundlage des erfolgreichen offiziellen Build-3-Uploads. Kein Namenskonflikt- oder Bundle-Validierungsfehler im aktuellen Upload. Alle Versuche und die unveränderte Weather-Historie stehen in [testflight-upload.md](testflight-upload.md).
+- Zwölf Datentests und zwei UI-Flows waren am funktionalen Prototyp grün. Für Identity-/Metadatenänderungen wurden Simulatorbuild und Archiv-/IPA-Metadaten geprüft; keine volle Unit-/UI-Suite erneut ausgeführt. Der Uploadauftrag startete keine neuen Builds, Tests oder zusätzlichen lokalen Exporte.
+- Keine App-Datensätze, Rollen, Gruppen, Tester oder Einladungen durch Agents verändert. Kein weiterer unterstützter authentifizierter Statuszugang verfügbar; kein Wiederholungsupload und kein fortlaufendes Polling.
+- Abschluss dieses Schritts: ausschließlich Dokumentation abgeglichen; Diff-, Link-, Index-/Privacy- und Ignore-Prüfung, keine neuen Builds/Tests/Exporte/Uploads.
 
-## Bisherige Prüfungen dieses Schritts
+## Bisherige Prüfungen des Prototyps und der Release-Schritte
+
+Die folgenden Nachweise gehören zu den jeweils genannten Schritten; damalige Angaben „kein Upload“ beschreiben den Stand der lokalen Prüfung vor dem später dokumentierten Upload.
 
 - Datenkern und Testquellen mit Swift 6 typgeprüft.
 - Simulator-Build der ersten integrierten App erfolgreich.
@@ -62,15 +64,14 @@ Dies ist ein früher Prototyp, keine fertige Version 1. Ein installierbarer inte
 
 ## Signing und App Store Connect
 
-- Aktuelle Identität: ShowerNow / `de.linolaske.showernow`, Team `J2DU2P47XW`, `0.1.0 (3)`; spezifischer neuer Profilnachweis ist in [signing.md](signing.md) festgehalten. Die alte explizite Weather-ID belegt die neue ID nicht.
-- Nutzer bestätigt die Umstellung seines ASC-App-Datensatzes auf die neue ID. Keine direkte Portal-/Auswahllistenprüfung erfolgt. Apples allgemeine Bundle-ID-Änderungsbeschränkung nach einem Upload wird nur bedingt erklärt; siehe [signing.md](signing.md). ASC-Name und lokale Bundle-Namensfelder bleiben getrennt.
-- Universal-Familie `[1,2]`, vier iPad-/drei iPhone-Orientierungen, Radar-AppIcon und begründetes Compliance `false` bleiben erhalten. Keine eigenständige iPad-Freigabe.
-- Identity-Review ohne offene P1-/P2-Befunde und ergänzender Bundle-Name-Nachweis abgeschlossen; frischer Quellencheckpoint vor separatem Upload. Noch kein Upload von Build 3. Keine App-Datensätze, Rollen, Gruppen oder Tester durch Agents ändern.
+- Aktuelle Identität: ShowerNow / `de.linolaske.showernow`, Team `J2DU2P47XW`, `0.1.0 (3)`; explizites IPA-Profil `J2DU2P47XW.de.linolaske.showernow`, beide strikten Signaturen und native Radar-Assets bestätigt. [Signingnachweis](signing.md).
+- Nutzerbestätigung des passenden ASC-Eintrags wird durch die offiziellen AppsService-Antwortdaten im Upload ergänzt: ShowerNow / neue ID / nicht entfernt. Kein Namenskonflikt im Build-3-Upload.
+- Universal-Familie `[1,2]`, vier iPad-/drei iPhone-Orientierungen und Compliance `false` bleiben erhalten. Keine eigenständige iPad-Freigabe.
+- Upload angenommen; letzter Serverstand `PROCESSING`, keine interne Verfügbarkeit oder Gruppenzuordnung belegt.
 
 ## Nächste Schritte bis zum ersten internen iPhone-Test
 
-1. Aktuellen Quellencheckpoint veröffentlichen; Identity-Review und ergänzender tatsächlicher Bundle-Name-Nachweis sind abgeschlossen. Neue explizite ID und Nutzerbestätigung des ASC-Match liegen vor.
-2. Separaten autorisierten Uploadauftrag für das neue geprüfte ShowerNow-Archiv ausführen. Annahme, Verarbeitung und interne Verfügbarkeit getrennt belegen.
-3. Nach tatsächlicher interner Verfügbarkeit auf dem physischen iPhone anhand [internal-testing.md](internal-testing.md) testen.
+1. In App Store Connect **ShowerNow → TestFlight** Build **`0.1.0 (3)`** prüfen. Erst wenn Apple ihn als fertig verarbeitet anzeigt, den vorhandenen internen Testern zuordnen. Interne Tester benötigen ASC-Appzugriff; das gilt auch für den Vater. Keine automatischen Einladungen.
+2. Nach tatsächlicher interner Verfügbarkeit auf dem physischen iPhone anhand [internal-testing.md](internal-testing.md) testen.
 
-Danach Widgets/Watch und angepasste iPad-/Mac-Oberflächen gemäß Plan. Regenendeformulierungen, Cache-/Energiegrenzen und breitere NoData-/Zellrandfälle bleiben Qualitätsarbeit. Keine privaten Standorte öffentlich dokumentieren.
+Danach Widgets/Watch, Push und angepasste iPad-/Mac-Oberflächen gemäß Plan. Regenendeformulierungen, Cache-/Energiegrenzen und breitere NoData-/Zellrandfälle bleiben Qualitätsarbeit. Bekannte Provider-Kachelfehler und zeitweise fehlende Punktprognosen bleiben transparent; keine privaten Standorte öffentlich dokumentieren.

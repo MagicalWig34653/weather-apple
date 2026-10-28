@@ -4,17 +4,17 @@ Stand: 28. Oktober 2026. Aktueller Kandidat: **ShowerNow `0.1.0 (3)`**, `de.lino
 
 ## Aktuelle Einordnung
 
-Der frühe iPhone-Prototyp hat 12 grüne Datentests und 2 grüne UI-Flows aus den bisherigen gezielten QA-Läufen, ein natives Radar-Icon und korrigierte Universal-Metadaten. Keine Funktionsänderung durch die Umbenennung; keine volle Testsuite dafür wiederholen.
+Der frühe iPhone-Prototyp hat 12 grüne Datentests und 2 grüne UI-Flows aus den bisherigen gezielten QA-Läufen, ein natives Radar-Icon und korrigierte Universal-Metadaten. Diese Testergebnisse stammen vom funktionalen Prototyp. Für die Umbenennung wurden Simulatorbuild und Metadaten geprüft; keine volle Unit-/UI-Suite erneut ausgeführt.
 
 | Schritt | Aktueller Stand | Noch erforderlich |
 |---|---|---|
-| Produktidentität | ShowerNow / `de.linolaske.showernow`, `0.1.0 (3)` bestätigt; unabhängiges Identity-Review ohne offene P1/P2 | Finalen Metadaten-/Quellencheckpoint abschließen |
+| Produktidentität | ShowerNow / `de.linolaske.showernow`, `0.1.0 (3)` und beide IPA-Namensfelder bestätigt; Identity-Review ohne offene P1/P2 | Kein weiterer Metadatenfix für diesen Upload nötig |
 | Bundle-ID/Signing | Neue explizite ID durch tatsächliches spezifisches Distributionsprofil belegt | Nachweis in [signing.md](signing.md); kein zusätzliches Signing-Gate |
-| Aktueller ASC-App-Datensatz | Nutzer bestätigt die geänderte Bundle-ID im Connecteintrag | Kein weiterer neuer Datensatz erforderlich |
-| Review/Checkpoint | Historischer Quellencheckpoint `0f48cb5`; neues Identity-Review grün | Finalen Quellencheckpoint veröffentlichen |
+| Aktueller ASC-App-Datensatz | Nutzerbestätigung und offizielle AppsService-Antwort: ShowerNow / neue ID / `removed=false` | Kein weiterer neuer Datensatz erforderlich |
+| Review/Checkpoint | Aktueller Quellencheckpoint `2e500fc` veröffentlicht; Identity-Review grün | Kein weiterer Quellencheckpoint für diesen Upload nötig |
 | Icon/Packaging | Radar-AppIcon, Universal-Familie `[1,2]`, vier iPad-/drei iPhone-Orientierungen bleiben erhalten | Neue IPA-Metadaten/Signaturen und native Assets geprüft; Homescreen auf physischem iPhone prüfen |
 | Export-Compliance | Begründetes `ITSAppUsesNonExemptEncryption=false` bleibt erhalten | Bei Kryptografie-/SDK-Änderung erneut bewerten |
-| Upload/TestFlight | Neue Identität noch nicht hochgeladen | Nach finalem Quellencheckpoint separaten Upload, Verarbeitung und interne Verfügbarkeit belegen |
+| Upload/TestFlight | Genau ein Build-3-Upload erfolgreich angenommen; letzter Zustand `PROCESSING` (17:51:38 Uhr MEZ) | Verarbeitung und interne Verfügbarkeit in ASC prüfen |
 
 Historisch: Build 1 unter `de.linolaske.weather` wurde mit `90474` abgelehnt; Build 2 wurde angenommen (`PROCESSING`). Nutzer meldet zusätzlich Weather-Namenskonflikt. Dies belegt keinen nutzbaren TestFlight-Build.
 
@@ -30,7 +30,7 @@ Die lokale Hilfe des installierten `xcodebuild` bestätigt:
 - `method=app-store-connect`, automatische Signierung und `-allowProvisioningUpdates`.
 - `testFlightInternalTestingOnly=true` für einen absichtlich nur intern verteilbaren Build. Dieser konkrete Build kann anschließend nicht extern oder im App Store verteilt werden; spätere Builds können anders konfiguriert werden.
 
-Vorgeschlagene Exportoptionen für einen nach QA freigegebenen internen Build:
+Beim erfolgreichen internen Upload verwendete Exportoptionen:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -47,7 +47,7 @@ Vorgeschlagene Exportoptionen für einen nach QA freigegebenen internen Build:
 </dict></plist>
 ```
 
-Späterer ausführender Release-Agent nutzt eigene lokale Archiv-/Exportpfade und den abgestimmten Buildslot. Das folgende Kommando ist eine Vorbereitung, kein bereits ausgeführter Upload:
+Für künftige Releases nutzt der ausführende Release-Agent eigene lokale Archiv-/Exportpfade und den abgestimmten Buildslot. Das folgende Kommando zeigt den beim dokumentierten Upload verwendeten Weg; lokale Pfade bleiben privat:
 
 ```sh
 xcodebuild -exportArchive \
@@ -77,8 +77,10 @@ Nach erfolgreicher Verarbeitung muss der konkrete Build der internen Gruppe zuge
 
 Gelegentliche transparent gemeldete Kachelfehler, breitere NoData-/Zellrandfalltests, Energie-/Cachemessungen und präzisere Regenendeformulierungen bleiben Qualitätsarbeit. Der korrigierte Retry und der Kernablauf müssen vor Upload funktionieren; verbleibende Grenzen gehören in die Testhinweise. Widgets, Watch, angepasste iPad-/Mac-Oberflächen, Backend und automatische Regenwarnungen sind keine Voraussetzung dieses ersten internen iPhone-Builds.
 
-Der lokale Displayname ShowerNow, `CFBundleName` und das ASC-Feld Name sind getrennt. Apple beschreibt Einschränkungen für die Bundle-ID eines ASC-Eintrags mit bereits zugeordnetem Upload; dies betrifft die historische Einordnung. Der Nutzer bestätigt die geänderte Bundle-ID im aktuellen Connecteintrag; dieser gilt für `de.linolaske.showernow` als bestätigt. Kein weiterer neuer App-Datensatz wird verlangt. Keine direkte Portalabfrage wurde durchgeführt. [Apple: Bundle-ID ändern](https://developer.apple.com/documentation/xcode/changing-the-bundle-identifier), [ASC-App-Informationen](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information), geprüft am 28. Oktober 2026.
+Der lokale Displayname ShowerNow, `CFBundleName` und das ASC-Feld Name sind getrennt. Apple beschreibt Einschränkungen für die Bundle-ID eines ASC-Eintrags mit bereits zugeordnetem Upload; dies betrifft die historische Einordnung. Der Nutzer bestätigt die geänderte Bundle-ID im aktuellen Connecteintrag; dieser gilt für `de.linolaske.showernow` als bestätigt. Kein weiterer neuer App-Datensatz wird verlangt. Keine direkte Portalabfrage wurde durchgeführt; beim nachfolgenden Build-3-Upload bestätigen die offiziellen AppsService-Antwortdaten den Namen ShowerNow, die neue ID und `removed=false`. [Apple: Bundle-ID ändern](https://developer.apple.com/documentation/xcode/changing-the-bundle-identifier), [ASC-App-Informationen](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information), geprüft am 28. Oktober 2026.
 
-## Konkreter nächster Auftrag
+## Konkreter nächster Schritt
 
-Build-/Profilnachweis und unabhängiges Identity-Review sind erfolgreich; der Nutzer hat den aktuellen ASC-Eintrag auf neuer ID bestätigt. Den gezielten finalen Metadatenfix für `CFBundleName=ShowerNow` mit dem aktuellen Archiv-/Exportbeleg im Quellencheckpoint veröffentlichen. Danach führt der separate Release-Agent den autorisierten Upload ausschließlich mit dem aktuellen geprüften ShowerNow-Archiv aus. Alte Archive nicht erneut versuchen. „Upload angenommen“, „Verarbeitung abgeschlossen“ und „intern verfügbar“ bleiben getrennt zu belegen.
+Quellencheckpoint `2e500fc`, Identity-/Metadatenreview und genau ein offizieller Build-3-Upload sind abgeschlossen. Der Upload wurde mit Exit 0 und Apples `UPLOAD SUCCEEDED with no errors` angenommen; kein Namenskonflikt-/Validierungsfehler. Letzter Serverzustand am 28. Oktober 2026 um 17:51:38 Uhr MEZ ist `PROCESSING`, siehe [Uploadbefund](testflight-upload.md).
+
+Der Nutzer prüft in App Store Connect **ShowerNow → TestFlight** Build **`0.1.0 (3)`**. Erst wenn Apple ihn als fertig verarbeitet anzeigt, vorhandenen internen Testern zuordnen; diese benötigen ASC-Appzugriff. Keine Gruppen, Tester, Rollen oder Einladungen wurden geändert. Kein weiterer unterstützter authentifizierter Statuszugang verfügbar; kein erneuter Upload erforderlich. Danach [physischer iPhone-Test](internal-testing.md).

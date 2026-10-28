@@ -48,3 +48,27 @@ Nächster Schritt: Den vorhandenen Build `0.1.0 (2)` in App Store Connect nach a
 ## Nachfolgeidentität: ShowerNow, noch kein Upload
 
 Die obigen Versuche gehören unverändert zu `de.linolaske.weather`. Der Nutzer berichtet zusätzlich einen Namenskonflikt mit Weather; der Transport-/PROCESSING-Befund bestätigt keinen nutzbaren TestFlight-Build. Aktueller neuer Kandidat ist **ShowerNow**, `de.linolaske.showernow`, `0.1.0 (3)`, Team `J2DU2P47XW`. Der Nutzer hat die Änderung der Bundle-ID im aktuellen ASC-Eintrag auf `de.linolaske.showernow` bestätigt; ein weiterer neuer Datensatz ist keine Voraussetzung. Der finale Quellencheckpoint geht dem separaten Upload voraus. Für diese Identität wurde im Umbenennungsauftrag kein Upload ausgeführt. Aktueller Signingnachweis in [signing.md](signing.md).
+
+
+## ShowerNow Build 3: passender ASC-Datensatz und Upload angenommen
+
+Stand: 28. Oktober 2026, 17:52 Uhr MEZ. Der Nutzer hat bestätigt, die Bundle-ID im vorhandenen Connecteintrag geändert zu haben; dieser passende Datensatz wurde für den Upload freigegeben. Nach unabhängigem Identity-/Release-Review und veröffentlichtem Quellencheckpoint `2e500fca7be7df05bbe21882127d574189a5a0d1` wurde **genau ein Uploadversuch des endgültigen ShowerNow-Archivs** ausgeführt, von **17:50:14 bis 17:51:38 Uhr MEZ**. Die vorläufigen Artefakte mit noch technischem Bundle-Namen und sämtliche alten Weather-Archive wurden nicht verwendet.
+
+Vor dem Start bestätigte die tatsächliche finale IPA den SHA-256 `07a33550538cd9dadbed6ff61f2d0677d78ef47365303f69a992d6ebb32f9215`, `CFBundleName=ShowerNow`, `CFBundleDisplayName=ShowerNow`, `de.linolaske.showernow` und `0.1.0 (3)`. Team `J2DU2P47XW`, explizites Distributionsprofil, strikte Signaturen, native Radar-Assets und korrigiertes Universal-Packaging waren unabhängig freigegeben. Technisches Projekt/Modul und Archivname bleiben Weather; daraus folgt keine alte Produktidentität.
+
+Der offizielle `xcodebuild -exportArchive`-Upload verwendete den vorhandenen Xcode-Account und die oben dokumentierten internen Uploadoptionen, insbesondere `destination=upload`, `testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false` und `uploadSymbols=true`. Die installierte Toolhilfe bestätigte diese Optionen. Keine neuen Builds, Tests oder zusätzlichen lokalen Exporte; keine App-Datensätze, Rollen, Gruppen oder Tester verändert und keine Zugangsdaten aus Keychain oder Browser gelesen.
+
+**Der passende App-Store-Connect-Datensatz ist durch Antwortdaten belegt:** Die offizielle AppsService-Abfrage mit Bundle-ID-Filter `de.linolaske.showernow` lieferte einen Datensatz mit `bundleId=de.linolaske.showernow`, `name=ShowerNow` und `removed=false`. Der Nachweis beruht damit auf dem Antwortinhalt, nicht allein auf HTTP 200. Im Build-3-Upload trat kein Namenskonflikt- oder Bundle-Validierungsfehler auf. Der frühere vom Nutzer berichtete Weather-Namenskonflikt und die historischen Uploadbefunde bleiben davon getrennt.
+
+`xcodebuild` endete mit **Exitcode 0**, **`EXPORT SUCCEEDED`** und **`Upload succeeded`**. Apples ContentDelivery-Protokoll bestätigt **`UPLOAD SUCCEEDED with no errors`**. Letzter konkreter Serverzustand am 28. Oktober 2026 um **17:51:38 Uhr MEZ**: **`PROCESSING`**, `Uploaded package is processing.`
+
+| Zustand ShowerNow Build 3 | Tatsächlicher Beleg |
+|---|---|
+| ASC-App-Matching | Antwortdatensatz für ShowerNow / `de.linolaske.showernow`, nicht entfernt |
+| Uploadannahme | Erfolgreich, Exit 0; Apple bestätigt Upload ohne Fehler |
+| Apple-Buildverarbeitung | `PROCESSING` um 17:51:38 Uhr MEZ; Abschluss nicht belegt |
+| Interne TestFlight-Verfügbarkeit | Noch nicht bestätigt; keine Gruppen-/Testeränderung |
+
+Die begrenzte Statusprüfung wertete den offiziellen Uploadabschluss und den zurückgemeldeten Verarbeitungszustand aus. Ein authentifizierter separater Status-/Browserzugang stand diesem Auftrag nicht zur Verfügung; kein zusätzlicher API-Schlüssel oder undokumentierter Tokenzugriff wurde eingeführt. Kein Wiederholungsupload. Private Artefakte, Uploadoptionen und Rohlogs bleiben außerhalb des Repos.
+
+Nächster Schritt: ShowerNow `0.1.0 (3)` nach abgeschlossener Verarbeitung in App Store Connect auf tatsächliche interne TestFlight-Verfügbarkeit und bestehende Gruppenzuordnung prüfen. Uploadannahme und passender App-Datensatz sind belegt; ein installierbarer interner Build bleibt gesondert zu bestätigen.
