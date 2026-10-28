@@ -72,3 +72,19 @@ Der offizielle `xcodebuild -exportArchive`-Upload verwendete den vorhandenen Xco
 Die begrenzte Statusprüfung wertete den offiziellen Uploadabschluss und den zurückgemeldeten Verarbeitungszustand aus. Ein authentifizierter separater Status-/Browserzugang stand diesem Auftrag nicht zur Verfügung; kein zusätzlicher API-Schlüssel oder undokumentierter Tokenzugriff wurde eingeführt. Kein Wiederholungsupload. Private Artefakte, Uploadoptionen und Rohlogs bleiben außerhalb des Repos.
 
 Nächster Schritt: ShowerNow `0.1.0 (3)` nach abgeschlossener Verarbeitung in App Store Connect auf tatsächliche interne TestFlight-Verfügbarkeit und bestehende Gruppenzuordnung prüfen. Uploadannahme und passender App-Datensatz sind belegt; ein installierbarer interner Build bleibt gesondert zu bestätigen.
+
+
+## ShowerNow Build 4: geprüfter Kandidat und einmaliger interner Upload
+
+Stand: 28. Oktober 2026, 18:17 Uhr MEZ. Quellencheckpoint `6750d0e954de900cb8bcf6f52b3faf1fc2d769d9` ist veröffentlicht und unabhängig ohne offene P1-/P2-Befunde geprüft. Darauf basieren das neue signierte Build-4-Archiv und der lokale IPA-Export; alle 24 Projekt-/Konfigurations-/App-/Test-/Ressourcendateien sind bytegleich. Reale Archiv-/IPA-Metadaten und strikte Signaturen sowie das explizite Distributionsprofil sind geprüft, siehe [signing.md](signing.md). Der lokale IPA-SHA-256 lautet `ec9d4acf35684e7f7aed1d5561f1fa7f97fbc0354ce2586573d50d5fb46ccc28`.
+
+Genau ein autorisierter Upload des neuen Archivs wurde über den vorhandenen offiziellen Xcode-Account gestartet. Die installierte Toolhilfe bestätigt die Optionen: `destination=upload`, `testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`, automatische Signierung und Team `J2DU2P47XW`. Keine App-Datensätze, Rollen, Gruppen oder Tester verändert; keine Zugangsdaten extrahiert. Tests für unveränderten Code nicht wiederholt. Der Uploadexport lief von **18:16:03 bis 18:17:29 Uhr MEZ** und endete mit **Exitcode 0**, **`EXPORT SUCCEEDED`** und **`Upload succeeded`**. Apples offizielles ContentDelivery-Protokoll bestätigt **`UPLOAD SUCCEEDED with no errors`**. Letzter konkreter Zustand: **`PROCESSING`**, `Uploaded package is processing.` Kein Wiederholungsupload und keine separate fortlaufende Statusabfrage.
+
+| Zustand Build 4 | Tatsächlicher Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich; Metadaten, strikte Signaturen, Profil und Quellenbytegleichheit geprüft |
+| Uploadannahme | Erfolgreich, Exit 0; Apple bestätigt Upload ohne Fehler |
+| Verarbeitung | `PROCESSING` um 18:17:29 Uhr MEZ; Abschluss nicht belegt |
+| Interne TestFlight-Verfügbarkeit | Für Build 4 noch offen; keine Gruppen-/Testeränderungen |
+
+Build 3 funktioniert inzwischen laut Nutzer intern über TestFlight. Dies ist kein Nachweis für die neue Build-4-Verarbeitung. Nächster Schritt: Build `0.1.0 (4)` nach Verarbeitung im bestehenden ShowerNow-TestFlight-Eintrag auf Installierbarkeit prüfen und im Alltag Radar-Nachladen, Zeitslider und optionale Einordnung testen. Echte lokale Modellgeneration bleibt ungeprüft. Private Artefakte, Optionen und Rohlogs bleiben außerhalb des Repos.

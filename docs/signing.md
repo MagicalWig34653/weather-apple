@@ -1,6 +1,12 @@
 # Apple-Signing und Bundle-ID
 
-Stand: 28. Oktober 2026. Aktuelle Identität ist **ShowerNow**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, Version **`0.1.0 (3)`**. Gezielter Simulatorbuild, signiertes Release-Archiv und lokaler Export erfolgreich. Der Nutzer hat die Umstellung seines ASC-App-Datensatzes auf die neue ID bestätigt. Build 3 wurde aus Quellencheckpoint `2e500fc` genau einmal erfolgreich hochgeladen; letzter Serverstand am 28. Oktober 2026 um 17:51:38 Uhr MEZ: `PROCESSING`. Verarbeitung und interne Verfügbarkeit sind offen.
+Stand: 28. Oktober 2026. Aktueller geprüfter Release-Kandidat ist **ShowerNow `0.1.0 (4)`**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, aus veröffentlichtem Quellencheckpoint `6750d0e954de900cb8bcf6f52b3faf1fc2d769d9`. Signiertes Release-Archiv und lokaler Export erfolgreich. Genau ein interner Upload wurde um 18:17:29 Uhr MEZ mit Exit 0 angenommen; letzter Serverstand `PROCESSING`, Build-4-TestFlight-Verfügbarkeit noch offen. Build 3 ist inzwischen durch den Nutzer als intern über TestFlight nutzbar bestätigt. Historische Build-3-Nachweise bleiben unten erhalten.
+
+## Build 4: geprüfte tatsächliche Artefakte
+
+`ARCHIVE SUCCEEDED` und lokales `EXPORT SUCCEEDED`. Archiv und tatsächliche IPA bestätigen beide Namensfelder ShowerNow, Bundle-ID `de.linolaske.showernow`, Version `0.1.0`, Build `4`, Familie `[1,2]`, drei iPhone-/vier iPad-Orientierungen, Compliance `false` und AppIcon für beide Familien. Native Assets enthalten IconImageStack und IconGroup. Beide Apps bestehen `codesign --verify --deep --strict`.
+
+Das tatsächliche IPA-Profil bestätigt `J2DU2P47XW.de.linolaske.showernow`, Team `J2DU2P47XW`, `get-task-allow=false` und keine Geräteliste. IPA-SHA-256: `ec9d4acf35684e7f7aed1d5561f1fa7f97fbc0354ce2586573d50d5fb46ccc28`. Alle 24 Projekt-/Konfigurations-/App-/Test-/Ressourcendateien der isolierten Archivkopie sind bytegleich zum veröffentlichten Quellencheckpoint `6750d0e`. Keine Tests wiederholt; bestehende 26 Tests, UI-Prüfungen und unabhängiges Review gelten für unveränderten Code. Keine neue physische Prüfung oder echte Modellgeneration.
 
 ## Aktueller Nachweis und klare Grenzen
 
