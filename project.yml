@@ -1,0 +1,57 @@
+name: Weather
+options:
+  minimumXcodeGenVersion: 2.46.0
+  deploymentTarget:
+    iOS: '27.0'
+  createIntermediateGroups: true
+  developmentLanguage: de
+  knownRegions: [de, en, Base]
+configFiles:
+  Debug: Configuration/Base.xcconfig
+  Release: Configuration/Base.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: '1'
+targets:
+  Weather:
+    type: application
+    platform: iOS
+    sources: [Weather]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID)
+        PRODUCT_NAME: Weather
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Configuration/Info.plist
+    scheme:
+      testTargets: [WeatherTests, WeatherUITests]
+      gatherCoverageData: false
+  WeatherTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WeatherTests
+        excludes: [Fixtures]
+      - path: WeatherTests/Fixtures
+        buildPhase: resources
+        type: folder
+    dependencies:
+      - target: Weather
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).tests
+        GENERATE_INFOPLIST_FILE: YES
+  WeatherUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [WeatherUITests]
+    dependencies:
+      - target: Weather
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Weather

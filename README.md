@@ -1,25 +1,50 @@
 # Weather — Apple-App
 
-Planungsrepository für eine native, datensparsame Regen-App. Arbeitsname und technische Kennungen sind vorläufig.
+Native, datensparsame Regen-App mit SwiftUI und MapKit. Arbeitsname und technische Kennungen sind vorläufig.
 
-Native Swift-/SwiftUI-App für iOS, iPadOS, macOS und watchOS; später tvOS und visionOS. Keine WebView-Hauptoberfläche. Geräteoberflächen gezielt anpassen. Wettermodelle und Auswertung nach Bedarf gemeinsam nutzen, aber noch keine Package-Struktur erfinden.
+## Aktueller Stand
 
-## Status
+Der erste iPhone-Prototyp enthält Radarkarte und Zeitleiste, direkte DWD-Ortsprognose, lokale Orte, Ortssuche und optionalen Standortzugriff bei Nutzung. Es gibt kein eigenes Backend, keine Benutzerkonten und keine Werbung. Datenalter, Messung/Vorhersage sowie fehlende Daten werden unterschieden.
 
-Dieses Repository enthält bewusst zunächst Dokumentation, keinen Anwendungscode und keine Build- oder Deployment-Konfiguration. Es ist noch kein ausführbares Projekt. Die Entwicklung ist freigegeben; aktueller Einstieg ist die Validierung der DWD-Datenkette gemäß [Entwicklungsplan](docs/plan.md).
+Der Stand ist noch keine vollständige Version 1 und noch nicht in TestFlight veröffentlicht. Widgets, Watch, angepasste iPad-/Mac-Oberflächen und Push folgen gemäß [Entwicklungsplan](docs/plan.md). Tatsächlich ausgeführte Prüfungen und offene Punkte stehen im [Arbeitsstatus](docs/status.md).
 
-## Einstieg
+## Projekt öffnen und prüfen
 
-- [Entwicklungsplan](docs/plan.md)
+Voraussetzungen: Xcode 27.1 mit iOS-Simulator und XcodeGen 2.46.0. Die Deployment-Mindestversion ist iOS 27.0. Die folgenden Befehle werden im Repository-Verzeichnis ausgeführt:
+
+```sh
+xcodegen generate
+open Weather.xcodeproj
+```
+
+Das generierte Xcode-Projekt ist eingecheckt; nach Änderungen an `project.yml` erneut generieren. Simulator-Build ohne Signing:
+
+```sh
+xcodebuild -project Weather.xcodeproj -scheme Weather \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/weather-derived CODE_SIGNING_ALLOWED=NO build
+```
+
+Unit- und UI-Tests auf einem installierten iPhone-18-Pro-Simulator:
+
+```sh
+xcodebuild -project Weather.xcodeproj -scheme Weather \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
+  -derivedDataPath /tmp/weather-derived CODE_SIGNING_ALLOWED=NO test
+```
+
+Bei anderem Simulator dessen vorhandenen Namen einsetzen. UI-Tests legen nur eigene zufällig benannte Testorte an und entfernen diese gezielt. Signierte Gerätebuilds und Bundle-ID-Registrierung sind im [Signing-Status](docs/signing.md) getrennt dokumentiert. Keine Signing-Dateien oder lokalen Pfade committen.
+
+## Dokumentation
 
 - [Arbeitsstand und nächste Schritte](docs/status.md)
+- [Entwicklungsplan](docs/plan.md)
+- [Aktuelle Entscheidungen](docs/decisions.md)
+- [DWD-Datenvertrag und Grenzen](docs/data-contract.md)
+- [Ursprüngliches Konzept](docs/concept-v2.md)
+- [Anweisungen für Agents](AGENTS.md), [Claude Code](CLAUDE.md)
 
-- [Aktuelle Entscheidungen und Roadmap](docs/decisions.md)
-- [Ursprüngliches Konzept v2](docs/concept-v2.md)
-- [Arbeitsanweisungen für Coding-Agenten](AGENTS.md)
-- [Claude-Code-Einstieg](CLAUDE.md)
-
-Die Apple-App wird zuerst entwickelt und intern über TestFlight erprobt. Der Pushdienst folgt danach. Geplantes Schwesterrepository: `weather-backend`.
+Die private lokale Zuordnung zum Schwesterrepository steht optional in der ignorierten `LOCAL_WORKSPACE.md`; die öffentliche Vorlage enthält keine persönlichen Pfade. Schwesterrepository: [weather-backend](https://github.com/MagicalWig34653/weather-backend).
 
 ## Lizenz
 

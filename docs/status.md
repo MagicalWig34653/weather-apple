@@ -1,49 +1,71 @@
 # Fortsetzbarer Arbeitsstand
 
-Stand: 28. Oktober 2026.
+Stand: 28. Oktober 2026. Der geprüfte erste Implementierungsstand wird als Code-/Dokumentationscheckpoint veröffentlicht. Icon-Design und TestFlight-Upload bleiben getrennte offene Schritte.
 
-## Auftrag und Freigabe
+## Freigabe und Arbeitsweise
 
-Entwicklung ist nach Beantwortung aller drei Einstiegsfragen freigegeben. Gemäß `plan.md` mit DWD-Datenvalidierung und App beginnen. Backend folgt nach nutzbarer App. Noch kein Anwendungscode vorhanden.
+Entwicklung ist freigegeben. App zuerst, Backend nach einer nutzbaren App. Zuerst ein brauchbarer interner iPhone-TestFlight-Build, Widgets und Watch danach; größere Plattform-Roadmap in `plan.md`.
 
-## Repository
+Der Hauptagent koordiniert ausschließlich. Neue abgegrenzte Aufgaben erhalten frische Agents; unabhängige Arbeit läuft mit klaren Dateizuständigkeiten parallel. Verbindliche Details stehen in `AGENTS.md` und `team.md`. Entscheidungen, Ergebnisse und nächste Schritte bleiben im Repo; Sessions dürfen keinen Chatverlauf voraussetzen.
 
-- Dieses Repository: https://github.com/MagicalWig34653/weather-apple
-- Schwesterrepository: https://github.com/MagicalWig34653/weather-backend
-- Beide lokalen Arbeitsordner heißen `weather`; die private Zuordnung der absoluten Pfade steht in der ignorierten `LOCAL_WORKSPACE.md`. Vorlage für neue Rechner: `LOCAL_WORKSPACE.example.md`. Fachliche Entscheidungen bleiben versioniert.
-- Die ursprünglich im Konzeptordner vorbereiteten Kopien sind nur Einrichtungsvorlagen. Dieses Zielrepository ist der aktive Arbeitsstand.
+## Repository und lokale Konfiguration
 
-## Erledigt
+- Dieses Repo: https://github.com/MagicalWig34653/weather-apple
+- Schwesterrepo: https://github.com/MagicalWig34653/weather-backend
+- Private lokale Pfade ausschließlich in der ignorierten `LOCAL_WORKSPACE.md`; öffentliche Vorlage `LOCAL_WORKSPACE.example.md`.
+- Die ursprünglichen Einrichtungskopien sind keine aktiven Arbeitsverzeichnisse. Fachliche Entscheidungen und Fortschritte bleiben versioniert.
 
-- Ursprüngliches Konzept unverändert übernommen und aktuelle Plattform-/Produktentscheidungen separat dokumentiert.
-- README, Ignore-Regeln, AGENTS.md und Claude-Code-Einstieg eingerichtet.
-- Verbindliche Kostensparsamkeit, Agent-Nutzung und vollständig aus dem Repo fortsetzbare Sessions festgehalten.
-- Unabhängiger Agent hat die Prozessregeln und minimale Übergabedokumentation geprüft; Ergebnisse integriert.
-- Repository an den gewünschten lokalen Zielpfad übertragen; initiale Git-Historie vorhanden.
+## Implementierter iPhone-Prototyp
 
-## Prüfungen
+- XcodeGen-Projekt mit relativen Dateireferenzen, Swift 6, iOS 27 und zentraler vorläufiger Identität in `Configuration/Base.xcconfig`.
+- Native MapKit-Radarkarte mit expliziten DWD-Datenläufen, tatsächlichen vergangenen Analyseframes, Vorhersage, Play/Pause und farblich sichtbarer Zeitgrenze.
+- Direkte DWD-Punktprognose als kleine JSON-Serie; kein eigener Server und kein HDF5-Download auf dem Gerät. Datenvertrag in `data-contract.md`.
+- Datenalter, fehlende Daten, Netzfehler und Messung/Vorhersage getrennt. Texte altern regelmäßig mit; alte Daten dürfen keine aktuelle Trocken-Zusage erzeugen.
+- Ortssuche, Kartenpunktauswahl, lokale Ortsnamen, Speichern, Umbenennen und Löschen. Optionaler Standort nur bei Nutzung, keine Hintergrundortung.
+- Swift Charts für den Niederschlagsverlauf, Detailansicht und verständliche Quellen-/Datenschutzhinweise.
+- Punktprognosen/Index im Speicher, Radar-Tiles im begrenzten Memorycache. Alte Overlay-Requests werden bei Wechsel abgebrochen. Kein Festplatten-Netzwerkcache für Punktanfragen.
+- Ortswechsel invalidiert alte Anfragen synchron; manueller Refresh kann auch bei identischem Datenlauf fehlgeschlagene Tiles erneut laden. Die Review-Fixes sind kompiliert; Ortsablauf und abschließende Light-/Dark-Sichtprüfung sind erfolgreich abgeschlossen. Ein frisches unabhängiges Review bestätigt beide Korrekturen ohne offene P1-/P2-Befunde.
 
-- Originalkonzept byteweise mit der Quelle verglichen: identisch.
-- Initiale Git-Objekte geprüft und initiale Arbeitsbäume sauber.
-- Einrichtungsskript auf zsh-Syntax geprüft.
-- GitHub-CLI erfolgreich authentifiziert; gewünschte GitHub-Namen waren zum Zeitpunkt der Einrichtung noch nicht vorhanden.
-- Build-/Laufzeittests nicht ausgeführt: noch keine Anwendung und keine Testkonfiguration vorhanden.
+Dies ist ein früher Prototyp, keine fertige Version 1 und noch kein TestFlight-Upload.
 
-## Veröffentlichung
+## Laufende Aufgaben und Zuständigkeiten
 
-Repository am 28. Oktober 2026 öffentlich auf GitHub erstellt. `main` wurde erfolgreich gepusht und verfolgt `origin/main`. Dokumentationsänderungen mit `git diff --check` geprüft. Remote-Sichtbarkeit und synchroner Git-Stand werden beim Abschluss geprüft.
+| Ergebnisaufgabe | Dateibesitz / Verantwortung | Stand |
+|---|---|---|
+| Technische Integration | Xcode-Projekt, README, Status/Entscheidungen; ein Simulator-Testslot | Gezielter Orts-CRUD-Rerun und Light-/Dark-Sichtprüfung abgeschlossen; Buildslot frei, nächste Integration nach Icon-Auswahl |
+| Lokaler Löschflow | `PlacesSheet.swift`, dazugehöriger UI-Test | Explizite deutsche destruktive Swipe-Aktion implementiert; echter Löschablauf im Simulator erfolgreich |
+| Vorläufiges Icon / Release-Vorbereitung | Vom technischen Lead getrennt vergeben | Nach Übergabe mit dem nächsten Build integrieren; kein Upload vor Readiness-Prüfung |
 
-## Aktueller Schritt und nächste Aufgaben
+Koordinatoren führen keine technischen Änderungen aus. Abgeschlossene Detailbefunde stehen in den verlinkten Dokumenten; weitere Aufgaben erst mit klarer Dateizuständigkeit beginnen.
 
-1. Entwicklungsplan in `plan.md` angelegt und unabhängig durch einen Agent auf Reihenfolge und Abnahmekriterien geprüft.
-2. Alle drei Einstiegsfragen beantwortet; Geräte/Versionen, iPhone-first-TestFlight und vorläufige Identität in `decisions.md` dokumentiert.
-3. DWD-Datenvalidierung im Apple-Repo begonnen: realer RV-Lauf mit25Frames untersucht; reproduzierbares Forschungsskript und Bericht unter `docs/research/`. Agent hat WMS-Punktserie erfolgreich abgefragt; alle25Werte einer nassen Zelle gegen Rohdaten abgeglichen. Direkter kleiner Datenweg ist für diesen Fall bestätigt; Einheiten-/NoData-/Aktualitätsrandfälle bleiben offen. Phase1 bleibt offen. Backend wartet auf die nutzbare App.
-4. Lizenz und spätere endgültige Identität bleiben offen, blockieren die lokale Datenvalidierung nicht.
+## Bisherige Prüfungen dieses Schritts
 
-Lokale Entwicklungsumgebung geprüft: Xcode 27.1, Swift 6.4, iOS-27- und watchOS-27-Simulatoren vorhanden; Apple Silicon. Noch keine App-Builds durchgeführt.
+- Datenkern und Testquellen mit Swift 6 typgeprüft.
+- Simulator-Build der ersten integrierten App erfolgreich.
+- Zwölf Datentests einschließlich UTC-/Millisekunden-Regressionsprüfung erfolgreich, null Fehler.
+- UI-Smoke für Quellen-/Datenschutznavigation erfolgreich.
+- Orts-CRUD-Smoke nach gezielten Korrekturen erfolgreich: echte Kartenpunktauswahl auf freier Fläche, Speichern, Umbenennen, Auswahl, Persistenz nach Relaunch und Löschen. Der abschließende gezielte Lauf bestand mit null Fehlern in 41.4 Sekunden. Insgesamt sind zwölf Datentests und beide UI-Smokes grün; die Ergebnisse stammen aus dem Gesamtlauf und den jeweils notwendigen gezielten Wiederholungen, nicht aus einem nachträglich erfundenen vollständigen Grünlauf.
+- Begrenzte Liveprüfung nach Zeitformatfix: expliziter Lauf 15:45 UTC am öffentlichen Beispielpunkt Berlin, 37 Radarzeiten und HTTP-200-JSON mit 25 Samples. Die frühere Referenzzeit ohne Millisekunden lieferte eine WMS-Fehlermeldung; exaktes `.000Z` ist jetzt getestet.
+- Sichtprüfung im iPhone-18-Pro-Simulator in Light und Dark Mode: MapKit-Karte, Radarüberlagerung, Zeitleiste und zunächst frische Ortsprognose sichtbar. Bei der abschließenden Sichtprüfung waren Teil-Kachelfehler und eine vorübergehend fehlende Ortsprognose sichtbar; diese werden transparent gemeldet und bleiben eine bekannte Live-Grenze. Keine Verfügbarkeitsgarantie daraus ableiten. MapKit-Attribution ist oberhalb des Prognosepanels sichtbar.
+- Lokaler Xcode-Dateikoordinationshänger vor Buildbeginn durch temporäre Kopie relativer Quellen umgangen; keine globalen Dienste geändert. Details und Befehle in `build-and-test.md`.
+- Unabhängiges abschließendes Review: Ortsrequest-Race und Radar-Reload korrekt behoben; keine offenen P1-/P2-Befunde oder erkannten Geheimnis-/Pfadlecks.
+- Checkpoint: ausschließlich geprüfter Code und Dokumentation; laufende Icon-Artefakte und private lokale Dateien bleiben ausgeschlossen. Keine neuen Builds oder Tests für diesen Git-/Dokumentationsschritt.
+- `git diff --check` bisher ohne Fehler. Build-/Testlogs und xcresult-Dateien bleiben außerhalb des öffentlichen Repos.
 
-Prüfung dieses Schritts: realer Archivbericht auf25Frames, ACRR,1200×1100 und Vorläufe0..120/5 geprüft. Noch kein App-Build, keine iPhone-Performanceaussage.
+## Signing und App Store Connect
 
-Agent-Prüfung abgeschlossen: Planreihenfolge, WMS-Abfrage und Forschungsskript geprüft. Numerische WMS-Property im geprüften Lauf als5-Minuten-Akkumulation erkannt; nicht ungeprüft als mm/h ausgeben. Nächster technischer Schritt im Apple-Repo: weitere Zellen/NoData und Aktualität prüfen, Datenadapter samt Fixtures/gezielten Tests beginnen; danach iPhone-Projekt aufbauen. `git diff --check` bestanden; noch keine App kompiliert oder nach TestFlight geladen.
+- Apple-Team durch signierten Gerätebuild bestätigt.
+- Release-Archive und lokaler App-Store-Connect-Export erfolgreich. Spezifisches Distributionsprofil bestätigt die explizite ID `de.linolaske.weather`; Details in `signing.md`.
+- Nutzer wurde über die ID informiert und hat den App-Store-Connect-App-Eintrag anschließend selbst angelegt. Kein App-Datensatz durch Agents erstellt.
+- Begründeter Export-Compliance-Schlüssel für ausschließlich systemeigene Verschlüsselung gesetzt; Primärquelle und aktuelle Codeverwendung geprüft, Plist syntaktisch validiert.
+- Bisher kein Upload und keine serverseitige TestFlight-Verarbeitung. Ein lokaler Export ist keine vollständige App-Store-Validierung.
 
-Lokale Repo-Zuordnung eingerichtet und durch Agent geprüft: `LOCAL_WORKSPACE.md` enthält private Pfade und wird ignoriert; öffentliche Vorlage enthält Platzhalter. `git check-ignore` bestätigt den Ausschluss, die private Datei ist nicht versioniert, der Git-Index enthält keine absoluten Benutzerpfade. `git diff --check` bestanden. Claude-Code-Status auf freigegebene Entwicklung korrigiert.
+## Nächste Schritte bis zum ersten internen iPhone-TestFlight-Build
+
+1. Abgeschlossene QA-/Refresh-Fixes mit dem nächsten Icon-/Release-Build integrieren; finalen Simulatorzustand und Release-Artefakt prüfen.
+2. Vorläufiges App-Icon und verbleibende Release-/Metadatenanforderungen mit einem begrenzten Readiness-Schritt erfüllen.
+3. Kartenfehler/Retry und Bedienabläufe auf dem physischen iPhone prüfen; Datenalter und Ausfallzustände nachvollziehbar halten.
+4. Den tragfähigen Release-Stand validieren und für den vorhandenen App-Store-Connect-Eintrag intern über TestFlight bereitstellen. Zugang/Verarbeitung tatsächlich prüfen, keinen Erfolg vorwegnehmen.
+5. Alltagserfahrung des Nutzers und seines Vaters sammeln; keine privaten Standorte in öffentliche Fehlerberichte schreiben.
+
+Danach Widgets/Watch und angepasste iPad-/Mac-Oberflächen gemäß Plan. Regenende-/Ereignisformulierungen, verlässliche Cache-/Energiegrenzen und breitere NoData-/Zellrandfälle bleiben weitere Qualitätsarbeit. Automatische Warnungen, Unterwegs-Ortung und zusätzliche Wetterkarten gehören nicht in diesen ersten Prototypschritt.

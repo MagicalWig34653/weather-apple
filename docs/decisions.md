@@ -60,3 +60,19 @@ Ein direkter DWD-WMS-GetFeatureInfo-Request kann25Zeitpunkte als kleine JSON-Ser
 ## Private lokale Repository-Zuordnung
 
 Absolute lokale Repository-Pfade werden ausschließlich in der ignorierten `LOCAL_WORKSPACE.md` gespeichert. Öffentliche Dateien enthalten nur die Vorlage und GitHub-Verweise. `AGENTS.md` weist neue Sessions auf die optionale lokale Zuordnung hin. Diese Rechnerkonfiguration ist die Ausnahme zur versionierten Dokumentation; Produktentscheidungen, Prüfergebnisse und Arbeitsstände bleiben im Repo. Vor Veröffentlichung Ignore-Regel und Ausschluss aus dem Git-Index prüfen.
+
+## App-Store-Connect-Aufteilung
+
+Nutzer möchte benachrichtigt werden, sobald die vorläufige Bundle-ID registriert und in App Store Connect auswählbar ist. Den App-Datensatz legt der Nutzer selbst an. Kein App-Datensatz durch Agents anlegen. Registrierung/Signing-Zustand nur nach tatsächlicher Prüfung als erledigt melden; Projektkonfiguration allein ist keine Registrierung.
+
+## Erster Implementierungsstand und App-Eintrag
+
+Der erste native iPhone-Prototyp verwendet den direkt abgeglichenen WMS-Punktdatenweg ohne eigenes Backend. Abfragen verwenden explizite Datenläufe und exakt UTC-Zeitstempel mit Millisekunden (`.000Z`), da der Live-Dienst die kürzere Form bei Punktabfragen ablehnte. Das ist ein beobachteter Schnittstellenbefund, keine allgemeine Datumsformatannahme.
+
+Der Hauptagent koordiniert ausschließlich; technische Arbeit wird an neue abgegrenzte Agents vergeben. Details in `team.md` und `AGENTS.md`.
+
+Die explizite Bundle-ID wurde über ein spezifisches Distributionsprofil bestätigt. Nach der Mitteilung hat der Nutzer den App-Store-Connect-App-Eintrag selbst angelegt. Noch kein TestFlight-Upload. Release-Archive und lokaler Export ersetzen die serverseitige Validierung nicht.
+
+## Export-Compliance des aktuellen Prototyps
+
+`ITSAppUsesNonExemptEncryption=false` ist für den geprüften Stand gesetzt: ausschließlich systemeigene HTTPS-Verbindungen und Dateischutz, keine eigene oder fremde Kryptografieimplementierung. Apples Primärdokumentation und Codebefund wurden vor der Änderung geprüft; Quelle und Grenzen in `testflight-readiness.md`. Bei zusätzlichen SDKs oder eigener Kryptografie erneut bewerten. Dies ist keine pauschale Aussage zu sämtlichen späteren Funktionen.

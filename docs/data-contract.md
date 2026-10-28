@@ -1,0 +1,37 @@
+# Direkter DWD-Datenvertrag der ersten iPhone-Version
+
+Stand: 28. Oktober 2026. Implementierung: `Weather/Data/`. Kein eigener Server und keine externen Swift-Abhängigkeiten.
+
+## Datenweg
+
+1. Der offizielle RV-Verzeichnisindex wird nach datierten `composite_rv_YYYYMMDD_HHMM.tar`-Einträgen gelesen. Die neueste vorhandene Referenz wird ausgewählt; keine TAR-Datei wird auf dem Gerät geladen. Der langsamere und beim Versuch veraltete WMS-Capabilities-Default wird nicht als aktuell ausgegeben.
+2. Zeitparameter werden explizit als UTC mit Millisekunden erzeugt (`YYYY-MM-DDTHH:mm:ss.SSSZ`, z. B. `2026-10-28T15:15:00.000Z`). Im Livevergleich desselben Laufs lieferte `DIM_REFERENCE_TIME` ohne Millisekunden eine XML-Fehlermeldung trotz HTTP200, während `.000Z` erfolgreich war. GetMap-PNG allein beweist keine Punktabfrageverfügbarkeit. Dieser lexikalische Unterschied wird deshalb exakt getestet; kein Verfügbarkeitsfallback wird daraus abgeleitet.
+3. Ein expliziter WMS-GetFeatureInfo-Request am Layer `dwd:Niederschlagsradar` fordert genau 25 Zeiten von Referenz bis +120 Minuten an. WMS 1.3.0 und EPSG:4326 verlangen Breite/Länge im BBOX. Ein symmetrisches 3×3-Pixel-Bild mit Abfrage am Mittelpunkt wird verwendet.
+4. Genau 25 lückenlose Fünf-Minuten-Schritte und übereinstimmende `REFERENCE_TIME` werden vorausgesetzt. Ein Ersatzlauf, doppelte Zeiten, Lücken, XML-Fehlermeldungen und unbekannte Antwortformate werden abgelehnt.
+5. `RV_ANALYSIS` entspricht im abgeglichenen Kontrolllauf einer Fünf-Minuten-Akkumulation. `amountMM` ist diese Menge; `rateMMPerHour` ist deren zwölfmaliger Wert als Intervallmittel, keine unabhängige Momentanmessung.
+
+Primärquellen und realer 25-Werte-Abgleich: [WMS-Befund](research/wms-point-query.md), [Rohdatenbefund](research/dwd-validation.md). Der Produktdatenweg ist damit für den ersten Prototyp begründet; allgemeine Verfügbarkeit und alle NoData-Randfälle sind nicht garantiert.
+
+## Unbekannt, trocken und Aktualität
+
+- Der durch Rohdatenvergleich bestätigte Undetect-Wert `−0.001` wird ausschließlich innerhalb absoluter Toleranz `1e-8` zu null umgerechnet. Andere negative Werte, null, nicht endliche Zahlen und Werte über 100 mm pro fünf Minuten bleiben unbekannt. Die obere Grenze ist eine konservative Plausibilitätsregel, keine DWD-Spezifikation; sie verhindert insbesondere die Interpretation skalierter uint32-NoData-Werte als Starkregen.
+- Eine vollständig unbekannte Serie wird abgelehnt. Bei einzelnen unbekannten Werten darf die Zusammenfassung keinen durchgängig trockenen Zeitraum behaupten.
+- Vorläufige konservative Produktregel: maximal 20 Minuten alter Datenlauf; eine mehr als 60 Sekunden in der Zukunft liegende Referenz wird ebenfalls abgelehnt. Diese Schwellen sind explizit konfiguriert und getestet, nicht als Anbieterzusage zu verstehen.
+- Die Prognose reicht bis Referenz +120 Minuten. Bei einem zehn Minuten alten Lauf verbleiben ungefähr 110 Minuten, nicht automatisch zwei Stunden ab Abruf.
+- Die textliche Regenanzeige verwendet vorläufig 0.1 mm/h als messbaren Regen. Das ist eine UI-Schwelle, noch keine Push-Ereignisdefinition.
+
+## Radar und Cache
+
+`radarTimeline()` gibt tatsächlich im Index vorhandene Analyseläufe der letzten 60 Minuten sowie die 25 Vorhersagezeitpunkte des neuesten Laufs zurück. Historische Frames müssen mit ihrer eigenen Referenz abgefragt werden; ab neuester Referenz ist immer deren Referenz zu verwenden.
+
+`DWDRequest.tileURL` konstruiert GetMap-Abfragen für 256-Pixel-Kacheln, EPSG:3857 und WMS 1.1.1 mit x/y-Achsenfolge. Die UI muss die passende Referenz wählen und Datenalter zeigen.
+
+Der Client verwendet eine ephemeral URLSession ohne URLCache und mit 20 Sekunden Request-/30 Sekunden Ressourcenlimit. Keine URL-, Standort- oder Fehler-Rohdaten werden geloggt. Index und bis zu 20 Ortsprognosen bleiben ausschließlich im Speicher, jeweils höchstens fünf Minuten. Gleichzeitige Indexanfragen werden zusammengeführt. Eine persistente lokale Prognosekopie kann die UI separat speichern und muss ihr Alter anzeigen.
+
+Die unterstützte Koordinatenhülle ist vorläufig 45–56.5°N und 0–20°E; sie ist keine Garantie tatsächlicher Radar-Abdeckung. Fehlende Daten bleiben auch innerhalb dieser Hülle unbekannt.
+
+## Prüfungen und offene Grenzen
+
+`WeatherTests/DWDDataTests.swift` prüft die reale WMS-Fixture, Einheitenumrechnung, Sentinelwerte, null, fremde/alte/zukünftige Läufe, Zeitlücken, Projektion/Achsenfolge sowie Request-Zusammenführung und Cache. Fixture enthält einen öffentlichen Wetterpunkt, keine Nutzerposition.
+
+Offen bleiben allgemeine Zellgrenzen-/NoData-Verifikation, Quellenänderungen, Ausfallverhalten im Alltag und iPhone-Energieverbrauch. Die Tests sind offline und ersetzen keine regelmäßig begrenzte Live-Prüfung. Build-/Testausführung dokumentiert die koordinierende Instanz im Arbeitsstatus.
