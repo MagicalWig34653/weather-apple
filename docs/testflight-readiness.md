@@ -4,16 +4,16 @@ Stand: 28. Oktober 2026. Begrenzte Quellen-/Konfigurationsprüfung; keine Builds
 
 ## Aktuelle Einordnung
 
-Der erste iPhone-Prototyp ist ein sinnvoller Kandidat für einen frühen internen Alltagstest, sobald die laufende QA und Icon-Integration abgeschlossen sind. Er ist keine vollständige v1. Der Nutzer hat den App-Store-Connect-App-Eintrag selbst angelegt. Explizite Bundle-ID und lokaler Distributionsweg sind in [signing.md](signing.md) belegt; daraus folgt noch kein erfolgreicher Upload.
+Der erste iPhone-Prototyp ist ein sinnvoller Kandidat für einen frühen internen Alltagstest, nach abgeschlossener QA, Radar-Icon-Integration und unabhängigem Release-Review. Er ist keine vollständige v1. Der Nutzer hat den App-Store-Connect-App-Eintrag selbst angelegt. Explizite Bundle-ID und lokaler Distributionsweg sind in [signing.md](signing.md) belegt; daraus folgt noch kein erfolgreicher Upload.
 
 | Schritt | Stand bei dieser Prüfung | Vor dem ersten internen Build |
 |---|---|---|
-| App-Eintrag, Bundle-ID und Team | Vom Nutzer angelegt; spezifisches Profil bestätigt | Im neuen Archiv dieselbe ID und dasselbe Team prüfen |
-| Bedienabläufe und Refresh-Fixes | Zwölf Datentests, Info-Smoke und abschließender CRUD-Rerun grün; unabhängiges Review ohne offene P1/P2 | Finale Icon-/Release-Integration prüfen |
-| App-Icon | Eigener Icon-Composer-Auftrag läuft | Finales `.icon` im App-Target integrieren, generiertes Icon im Release-Archiv prüfen |
+| App-Eintrag, Bundle-ID und Team | Vom Nutzer angelegt; spezifisches Profil bestätigt | Im aktuellen Radar-Archiv und Export bestätigt |
+| Bedienabläufe und Refresh-Fixes | Zwölf Datentests, Info-Smoke und abschließender CRUD-Rerun grün; unabhängiges Review ohne offene P1/P2 | Unabhängiges Release-Review ohne offene P1/P2 oder erkannte Uploadblocker abgeschlossen |
+| App-Icon | Gewähltes Radar-`.icon` als einziges natives AppIcon integriert; Archiv-/Export-Assets und PNG geprüft | Homescreen auf physischem iPhone prüfen; Simulator-GUI nicht gesichtet |
 | Version/Buildnummer | Konfiguration `0.1.0` / `1` | Eindeutigkeit für den ersten Upload prüfen; spätere Uploads kontrolliert erhöhen |
 | Export-Compliance | `ITSAppUsesNonExemptEncryption=false` begründet gesetzt und Plist geprüft | Bei Änderungen an Kryptografie/SDKs erneut bewerten |
-| Neues Release-Archiv | Bisheriger Export liegt vor späteren QA-/Icon-Änderungen | Den tatsächlich freizugebenden finalen Stand neu archivieren |
+| Neues Release-Archiv | Aktueller QA-/Radar-Stand erfolgreich archiviert und lokal exportiert; Signaturen, explizites Profil, Identität und Compliance unabhängig bestätigt | Nur dieses aktuelle Archiv verwenden; Upload/Servervalidierung noch offen |
 | Servervalidierung und Verarbeitung | Noch nicht ausgeführt | Tatsächliches Upload-/Verarbeitungsergebnis dokumentieren |
 | Interne Gruppe/Tester | Nicht geprüft | Berechtigte App-Store-Connect-Nutzer und Build-Zuordnung prüfen |
 
@@ -80,4 +80,4 @@ Die vorläufige Identität ist ausdrücklich auch für TestFlight freigegeben. W
 
 ## Konkreter nächster Auftrag
 
-Nach grünem CRUD-/Integrationsstand und fertig integriertem Icon einen frischen Release-Agent einsetzen: gesetzten Compliance-Schlüssel im finalen Archiv prüfen, eindeutige Buildnummer bestätigen, finalen Stand archivieren, Icon/Signatur/Identität prüfen und den autorisierten internen Upload ausführen. Ergebnis als „Upload angenommen“, „Verarbeitung abgeschlossen“ und „für interne Gruppe verfügbar“ getrennt belegen. Falls nur der letzte Portal-/Gruppenschritt nicht zugänglich ist, genau diesen verbleibenden Nutzer-Schritt nennen; lokalen Export nicht als TestFlight-Erfolg ausgeben.
+CRUD-/Integrationsstand, Radar-Icon und aktuelles Archiv sind geprüft; das unabhängige Release-Review fand keine offenen P1-/P2-Befunde oder erkannten Uploadblocker. Nach dem Quellencheckpoint führt ein separater Release-Agent den autorisierten internen Upload mit genau diesem Archiv aus. Buildnummer-Eindeutigkeit serverseitig und Uploadberechtigung bleiben im Uploadschritt zu bestätigen. Ergebnis als „Upload angenommen“, „Verarbeitung abgeschlossen“ und „für interne Gruppe verfügbar“ getrennt belegen. Falls nur der letzte Portal-/Gruppenschritt nicht zugänglich ist, genau diesen verbleibenden Nutzer-Schritt nennen; lokalen Export nicht als TestFlight-Erfolg ausgeben.

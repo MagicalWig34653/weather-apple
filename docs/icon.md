@@ -13,7 +13,7 @@ Beide neuen Entwürfe verwenden dieselbe eigene abstrakte Kartenbasis: wenige he
 
 Variante B verwendet Blau und Grün mit einem kleinen gelben Niederschlagskern. Straßen bleiben unter den transparenten Regenflächen erkennbar. Die Motive sind frei entworfen; keine echten Kartenscreenshots, Apple-Kartenkacheln, fremden Marken oder externen Bild-Assets wurden übernommen.
 
-**Stand der Auswahl:** Der Nutzer hat Variante B (Radar) ausgewählt. Variante A bleibt als Vergleichsentwurf dokumentiert. Noch keine neue Variante in das App-Target integriert. Das ältere `Weather/Resources/Icon/AppIcon.icon` ist weiterhin der verworfene technische Ausgangsentwurf und darf nicht versehentlich verwendet werden.
+**Stand der Auswahl:** Der Nutzer hat Variante B (Radar) ausgewählt. Das vollständige Package ist jetzt als `Weather/Resources/Icon/AppIcon.icon` integriert; der verworfene technische Ausgangsentwurf wurde vollständig ersetzt. Variante A und beide editierbaren Designquellen bleiben unverändert als Vergleich und Original erhalten.
 
 ## Echtes Icon-Composer-Format und Bearbeitung
 
@@ -55,11 +55,22 @@ icon_tool="$(xcode-select -p)/../Applications/Icon Composer.app/Contents/Executa
 
 Für Dark `--rendition Dark` verwenden. Für die dokumentierte Beispiel-Tönung `--rendition TintedDark --tint-color 0.52 --tint-strength 0.8`; Kleinansicht mit `--width 60 --height 60`. Vorschauen sind abgeleitete Artefakte; die SVG- und `.icon`-Quellen bleiben maßgeblich.
 
-## Übergabe an Integration
+## App-Integration und Release-Nachweis
 
-Das vom Nutzer ausgewählte Package `Radar.icon` vollständig als `Weather/Resources/Icon/AppIcon.icon` übernehmen; nur ein aktives App-Icon-Package im App-Target verwenden. Der App-Icon-Name muss zum Dateinamen passen: `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`. Die Entwurfsvarianten unter `design/` liegen absichtlich außerhalb der App-Quellen und sollen nicht zusätzlich ins App-Bundle gelangen.
+Das ausgewählte `Radar.icon` wurde byteidentisch als `Weather/Resources/Icon/AppIcon.icon` übernommen. XcodeGen referenziert genau dieses Package explizit als Datei in der Ressourcenphase; das generierte Projekt verwendet `wrapper.icon`. `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` passt zum Dateinamen. Die Entwurfsvarianten unter `design/` bleiben außerhalb des App-Targets. Keine vorgerenderte Squircle oder zusätzliche Maske wurde eingebaut.
 
-Der Integrations-Agent besitzt Projektgenerator und Buildslot. Er muss die tatsächliche `.icon`-/Asset-Verarbeitung, das fertige App-Bundle und den nächsten Release-Export prüfen. Die gültige Dokument-/Renderprüfung hier ersetzt keinen App-Build oder App-Store-Uploadnachweis. Projekt- und Buildsettings wurden in diesem Auftrag nicht geändert.
+Für den finalen Codecheckpoint samt ausgewähltem Icon am 28. Oktober 2026 ausgeführt:
+
+- XcodeGen 2.46.0 generiert das Projekt; gezielter Xcode-27.1-Simulatorbuild für iPhone 18 Pro / iOS 27 erfolgreich. Installation und App-Launch erfolgreich; die Oberfläche mit Karte und Zeitleiste sichtbar. Bereits bekannte Live-Kachelfehler werden weiterhin transparent angezeigt.
+- Buildlog belegt `CompileAssetCatalogVariant`, `actool --app-icon AppIcon` und `LinkAssetCatalog` für das native `.icon`-Package. Das Icon wird kompiliert, nicht als unbearbeiteter Ordner kopiert.
+- Simulator-, Archiv- und exportiertes App-Bundle enthalten `Assets.car`, `AppIcon60x60@2x.png` und `AppIcon76x76@2x~ipad.png`. `CFBundleIcons/CFBundlePrimaryIcon/CFBundleIconName` ist `AppIcon`.
+- `assetutil --info` am exportierten `Assets.car` bestätigt `IconImageStack` / `Icon Image` namens `AppIcon`, `IconGroup` namens `AppIcon/Group` und den Vektor `AppIcon_Assets/map-weather`. Damit bleiben native Composer-Daten im kompilierten Asset erhalten.
+- Generiertes Simulator-Icon und für die Sichtprüfung deoptimiertes exportiertes Icon visuell mit der Radar-Kleinpreview verglichen: Karte, Fluss und blaue/grüne Radarflächen mit gelbem Kern vorhanden. Archiv und Export besitzen byteidentische generierte Icon-PNGs. Die von Apple erzeugte Rundung ist keine zweite Quellmaske.
+- Homescreen-Sichtprüfung nicht abgeschlossen: AppleScript konnte Simulator nicht ansprechen; die Simulator-GUI-App fehlt am erwarteten Xcode-Pfad. Keine globalen Dienste oder Simulatorinhalte geändert. Der geprüfte Bundle-Iconvergleich ersetzt ausdrücklich keine echte Homescreen-Sichtung.
+- Neues signiertes Release-Archiv und lokaler `app-store-connect`-Export mit automatischem Signing und `-allowProvisioningUpdates` erfolgreich. Beide App-Signaturen bestehen `codesign --verify --deep --strict`; exportiertes Profil bestätigt `J2DU2P47XW.de.linolaske.weather`, Team `J2DU2P47XW`, `get-task-allow=false` und keine Geräteliste.
+- Archiv und IPA: Bundle-ID `de.linolaske.weather`, Version `0.1.0`, Build `1`, `ITSAppUsesNonExemptEncryption=false`. Ausschließlich lokaler Export mit `destination=export`; kein Upload, keine App-Anlage oder Testeränderung.
+
+Build und Export liefen entsprechend [build-and-test.md](build-and-test.md) aus einer isolierten temporären Quellenkopie ohne Git-/private lokale Konfiguration, mit eigenen DerivedData. Artefakte und Rohlogs liegen ausschließlich außerhalb des Repos. Frühere Archive ohne dieses Icon dürfen nicht für den nächsten Upload verwendet werden. Die bestehenden zwölf Datenprüfungen und zwei UI-Flows wurden wegen der reinen Ressourcen-/Buildsettingänderung nicht erneut ausgeführt. Das frische unabhängige begrenzte Release-Review hat Quellenkopiegleichheit, Icon-Metadaten/PNG, Signaturen, explizites Profil, Version/Build und Compliance-Schlüssel bestätigt; keine offenen P1-/P2-Befunde oder erkannten Uploadblocker. Nach diesem geprüften Quellencheckpoint folgt der separate autorisierte Uploadauftrag; lokale Signatur-/Exportprüfung ist noch keine serverseitige Validierung.
 
 ## Primärquellen
 

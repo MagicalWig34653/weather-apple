@@ -76,3 +76,9 @@ Die explizite Bundle-ID wurde über ein spezifisches Distributionsprofil bestät
 ## Export-Compliance des aktuellen Prototyps
 
 `ITSAppUsesNonExemptEncryption=false` ist für den geprüften Stand gesetzt: ausschließlich systemeigene HTTPS-Verbindungen und Dateischutz, keine eigene oder fremde Kryptografieimplementierung. Apples Primärdokumentation und Codebefund wurden vor der Änderung geprüft; Quelle und Grenzen in `testflight-readiness.md`. Bei zusätzlichen SDKs oder eigener Kryptografie erneut bewerten. Dies ist keine pauschale Aussage zu sämtlichen späteren Funktionen.
+
+## Ausgewähltes App-Icon und aktueller Release-Kandidat
+
+Der Nutzer hat Variante B (Radar) aus dem Designcheckpoint `fd601e1` gewählt. Nur dieses vollständige native Icon-Composer-Package ist als `AppIcon.icon` im App-Target aktiv. Beide editierbaren Originalvarianten und die SVG-Kompositionen bleiben unter `design/Icon/` erhalten. Der verworfene ältere Entwurf wurde vollständig ersetzt.
+
+Die Integration ist mit Apples Asset-Kompilierung, Bundle-Metadaten und dem aktuellen signierten lokalen Release-Export belegt; Details und die Grenze der nicht möglichen Homescreen-GUI-Sichtung in [icon.md](icon.md). Noch kein Upload. Für die nächste Freigabe ausschließlich das neue Archiv mit Radar-Icon verwenden; das unabhängige begrenzte Release-Review ist ohne offene P1-/P2-Befunde oder erkannte Uploadblocker abgeschlossen. Der geprüfte Quellencheckpoint geht dem separaten Uploadauftrag voraus.

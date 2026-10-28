@@ -12,6 +12,7 @@
 		4F9D9E40C3F059C9A00DE6F2 /* Fixtures in Resources */ = {isa = PBXBuildFile; fileRef = AA76D542667074A3AA33EFA0 /* Fixtures */; };
 		776A1E417B65F359D480C74F /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D547F6AB1F520F3FE1F00BB /* DWDClient.swift */; };
 		86B36E4BDF49626AAF532EB6 /* WeatherSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */; };
+		B030A0A201C54569AC941360 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = FB0B59D778801F65B8630D2F /* AppIcon.icon */; };
 		B6EED9533FE194244F58F804 /* DWDResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72CFC446C21AB47F0E3115CD /* DWDResponse.swift */; };
 		BBCAFC6177CAE2EE714406F2 /* InformationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEB273A74F0043348EF420D /* InformationSheet.swift */; };
 		CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */; };
@@ -57,6 +58,7 @@
 		B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDDataTests.swift; sourceTree = "<group>"; };
 		D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSmokeTests.swift; sourceTree = "<group>"; };
 		EBEB273A74F0043348EF420D /* InformationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformationSheet.swift; sourceTree = "<group>"; };
+		FB0B59D778801F65B8630D2F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -74,6 +76,14 @@
 				A2E378685B6423E6A54BB754 /* WeatherApp.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		3A15995D1DE20A517ED8506A /* Icon */ = {
+			isa = PBXGroup;
+			children = (
+				FB0B59D778801F65B8630D2F /* AppIcon.icon */,
+			);
+			path = Icon;
 			sourceTree = "<group>";
 		};
 		3BC6695B55BD513AD1892B65 /* WeatherTests */ = {
@@ -118,9 +128,18 @@
 				E3DB3311C1865F179DCA6175 /* Data */,
 				6D74AB06AA4AFA7E4EB5980F /* Map */,
 				FD0C0E1BC0970EED5C111B49 /* Models */,
+				932CC6413882D948A00BAE9D /* Resources */,
 				51A3C79697AE9BE8FF7E3A68 /* Views */,
 			);
 			path = Weather;
+			sourceTree = "<group>";
+		};
+		932CC6413882D948A00BAE9D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3A15995D1DE20A517ED8506A /* Icon */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		980CE069C9D8D6DF46D5BEA0 = {
@@ -190,6 +209,7 @@
 			buildConfigurationList = 7ABCB454428DFDCCE1513E99 /* Build configuration list for PBXNativeTarget "Weather" */;
 			buildPhases = (
 				180F8B77734C82C147B6B367 /* Sources */,
+				EE177338D2AADFDCDBD9F2B6 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -271,6 +291,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F9D9E40C3F059C9A00DE6F2 /* Fixtures in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EE177338D2AADFDCDBD9F2B6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B030A0A201C54569AC941360 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

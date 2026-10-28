@@ -1,0 +1,36 @@
+{
+  "fill": {
+    "solid": "srgb:0.79608,0.85490,0.74118,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "map-weather.svg",
+          "name": "Full-bleed map \u2014 radar",
+          "glass": false,
+          "fill": "automatic",
+          "opacity": 1,
+          "hidden": false
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}
