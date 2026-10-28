@@ -1,6 +1,6 @@
 # Readiness: erster interner iPhone-TestFlight-Build
 
-Stand: 28. Oktober 2026. Begrenzte Quellen-/Konfigurationsprüfung; keine Builds, Uploads, Portaländerungen oder Compliance-Antworten durch diesen Readiness-Auftrag.
+Stand: 28. Oktober 2026. Aktualisiert nach dem ersten abgewiesenen Upload und dem gezielten Packaging-Fix für Build `2`. Ursprünglicher Serverbefund in [testflight-upload.md](testflight-upload.md); keine Portaländerungen oder zusätzlichen Compliance-Antworten.
 
 ## Aktuelle Einordnung
 
@@ -11,17 +11,17 @@ Der erste iPhone-Prototyp ist ein sinnvoller Kandidat für einen frühen interne
 | App-Eintrag, Bundle-ID und Team | Vom Nutzer angelegt; spezifisches Profil bestätigt | Im aktuellen Radar-Archiv und Export bestätigt |
 | Bedienabläufe und Refresh-Fixes | Zwölf Datentests, Info-Smoke und abschließender CRUD-Rerun grün; unabhängiges Review ohne offene P1/P2 | Unabhängiges Release-Review ohne offene P1/P2 oder erkannte Uploadblocker abgeschlossen |
 | App-Icon | Gewähltes Radar-`.icon` als einziges natives AppIcon integriert; Archiv-/Export-Assets und PNG geprüft | Homescreen auf physischem iPhone prüfen; Simulator-GUI nicht gesichtet |
-| Version/Buildnummer | Konfiguration `0.1.0` / `1` | Eindeutigkeit für den ersten Upload prüfen; spätere Uploads kontrolliert erhöhen |
+| Version/Buildnummer | Neuer Kandidat `0.1.0` / `2`; Build `1` wurde serverseitig abgelehnt | Nur neues Archiv verwenden; neuer Upload bleibt offen |
 | Export-Compliance | `ITSAppUsesNonExemptEncryption=false` begründet gesetzt und Plist geprüft | Bei Änderungen an Kryptografie/SDKs erneut bewerten |
-| Neues Release-Archiv | Aktueller QA-/Radar-Stand erfolgreich archiviert und lokal exportiert; Signaturen, explizites Profil, Identität und Compliance unabhängig bestätigt | Nur dieses aktuelle Archiv verwenden; Upload/Servervalidierung noch offen |
-| Servervalidierung und Verarbeitung | Noch nicht ausgeführt | Tatsächliches Upload-/Verarbeitungsergebnis dokumentieren |
+| Neues Release-Archiv | Build `2` nach Packaging-Fix erfolgreich archiviert/lokal exportiert; IPA-Metadaten, Signaturen und explizites Profil geprüft | Frischer unabhängiger Quellen-/Metadatencheckpoint erfolgreich; separater Upload und Servervalidierung offen |
+| Servervalidierung und Verarbeitung | Build `1`: Apple `90474`, fehlendes PortraitUpsideDown für iPad-Multitasking; keine abgeschlossene Verarbeitung | Build `2` nach Quellencheckpoint separat hochladen; Annahme und Verarbeitung getrennt belegen |
 | Interne Gruppe/Tester | Nicht geprüft | Berechtigte App-Store-Connect-Nutzer und Build-Zuordnung prüfen |
 
 Apple nennt das App-Icon ausdrücklich als Bestandteil der Uploadvalidierung. Icon Composer ist dafür ein unterstützter Weg; eine bloß im Repo liegende, nicht im Target verwendete Datei genügt nicht. [Vorbereitung der Distribution](https://help.apple.com/xcode/mac/current/en.lproj/dev91fe7130a.html), [App-Icon in App Store Connect](https://developer.apple.com/help/app-store-connect/manage-app-information/add-an-app-icon/).
 
 ## Unterstützter Uploadweg ohne neuen API-Schlüssel
 
-Der bereits erfolgreich signierte lokale Export belegt einen brauchbaren Xcode-Account-/Signing-Zugang. Apples Uploaddokumentation erlaubt Xcode als Uploadwerkzeug; ein zusätzlicher App-Store-Connect-API-Schlüssel ist dafür nicht grundsätzlich nötig. Ob der vorhandene Account auch diesen konkreten Upload mit passenden Rollen ausführen kann, ist erst durch den tatsächlichen Upload bestätigt. Ein fehlender separater API-Schlüssel ist allein kein Blocker. [Apple: Upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/).
+Der bereits erfolgreich signierte lokale Export belegt einen brauchbaren Xcode-Account-/Signing-Zugang. Apples Uploaddokumentation erlaubt Xcode als Uploadwerkzeug; ein zusätzlicher App-Store-Connect-API-Schlüssel ist dafür nicht grundsätzlich nötig. Der erste tatsächliche Versuch erreichte App-Abfrage (HTTP 200), Transport und Apple-Servervalidierung ohne Authentifizierungsfehler; er scheiterte am Bundle mit `90474`, nicht am Login. Ein fehlender separater API-Schlüssel ist allein kein Blocker. [Apple: Upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/).
 
 Die lokale Hilfe des installierten `xcodebuild` bestätigt:
 
@@ -80,4 +80,10 @@ Die vorläufige Identität ist ausdrücklich auch für TestFlight freigegeben. W
 
 ## Konkreter nächster Auftrag
 
-CRUD-/Integrationsstand, Radar-Icon und aktuelles Archiv sind geprüft; das unabhängige Release-Review fand keine offenen P1-/P2-Befunde oder erkannten Uploadblocker. Nach dem Quellencheckpoint führt ein separater Release-Agent den autorisierten internen Upload mit genau diesem Archiv aus. Buildnummer-Eindeutigkeit serverseitig und Uploadberechtigung bleiben im Uploadschritt zu bestätigen. Ergebnis als „Upload angenommen“, „Verarbeitung abgeschlossen“ und „für interne Gruppe verfügbar“ getrennt belegen. Falls nur der letzte Portal-/Gruppenschritt nicht zugänglich ist, genau diesen verbleibenden Nutzer-Schritt nennen; lokalen Export nicht als TestFlight-Erfolg ausgeben.
+Build `1` wurde wegen unvollständiger iPad-Orientierungen abgelehnt. Der minimale Fix erhält die tatsächlich konfigurierte Gerätefamilie `1,2`, ergänzt `UISupportedInterfaceOrientations~ipad` vollständig und erhöht die Buildnummer auf `2`. Der Projektwert `TARGETED_DEVICE_FAMILY=1` wurde im generierten Projekt durch XcodeGen-Targetdefaults `1,2` überschrieben; kein Gerätefamilienwechsel oder `UIRequiresFullScreen` zur Validierungsumgehung.
+
+Neues Release-Archiv und lokaler `destination=export`-Export mit Automatic Signing sind erfolgreich. Assertions an der tatsächlichen IPA bestätigen `0.1.0 (2)`, `UIDeviceFamily=[1,2]`, alle vier iPad-Orientierungen, unveränderte drei iPhone-Orientierungen, Compliance `false` und `CFBundleIconName=AppIcon` für beide Gerätefamilien; native Assets enthalten IconImageStack/IconGroup. Archiv-/IPA-App bestehen `codesign --verify --deep --strict`. Das Distributionsprofil enthält die explizite ID `J2DU2P47XW.de.linolaske.weather`, `get-task-allow=false` und keine Geräteliste. Quellenkopiegleichheit und `plutil` geprüft; keine volle Unit-/UI-Suite für den reinen Packaging-Fix wiederholt. iPad-kompatible Metadaten, auf iPhone validierter Prototyp; keine eigenständige iPad-Freigabe.
+
+Der frische unabhängige Checkpoint bestätigt zusätzlich die IPA-Prüfsumme und bytegleiche `Info.plist`/`Base.xcconfig` zur Archivquellenkopie; keine offenen P1/P2 im begrenzten Konfigurationsreview. Keine Builds, Exporte oder Tests dafür wiederholt.
+
+Nach Veröffentlichung des neuen Quellencheckpoints führt ein separater Release-Agent den autorisierten internen Upload mit dem neuen Archiv `0.1.0 (2)` aus. „Upload angenommen“, „Verarbeitung abgeschlossen“ und „für interne Gruppe verfügbar“ bleiben getrennt zu belegen. Lokaler Export ist keine Apple-Serverfreigabe.
