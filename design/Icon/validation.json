@@ -1,0 +1,44 @@
+{
+  "tool": "Apple Icon Composer ictool27.1",
+  "scope": "Document rendering only; no application build or upload performed.",
+  "checks": [
+    {
+      "variant": "Cloud",
+      "native_document_json_valid": true,
+      "svg_xml_valid": true,
+      "full_canvas_viewbox": [
+        0,
+        0,
+        1024,
+        1024
+      ],
+      "active_artwork_layers": 1,
+      "modes_rendered": [
+        "Default",
+        "Dark",
+        "TintedDark"
+      ],
+      "small_preview_pixels": 60,
+      "default_repeat_byte_identical": true
+    },
+    {
+      "variant": "Radar",
+      "native_document_json_valid": true,
+      "svg_xml_valid": true,
+      "full_canvas_viewbox": [
+        0,
+        0,
+        1024,
+        1024
+      ],
+      "active_artwork_layers": 1,
+      "modes_rendered": [
+        "Default",
+        "Dark",
+        "TintedDark"
+      ],
+      "small_preview_pixels": 60,
+      "default_repeat_byte_identical": true
+    }
+  ]
+}

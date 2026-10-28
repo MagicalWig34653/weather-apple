@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+
+  <g id="map-base">
+    <rect width="1024" height="1024" fill="#cbdabd"/>
+    <path d="M-40-40H405C360 137 250 191 207 335S53 489-40 465Z" fill="#a5c394"/>
+    <path d="M730 766C829 683 935 702 1060 607V1060H610C602 921 650 847 730 766Z" fill="#abc89a"/>
+    <path d="M210-110C232 72 407 168 432 331S318 563 387 719S581 958 549 1133" fill="none" stroke="#e1e4d6" stroke-width="149"/>
+    <path d="M210-110C232 72 407 168 432 331S318 563 387 719S581 958 549 1133" fill="none" stroke="#83cbd4" stroke-width="128"/>
+    <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M-89 757C123 815 267 720 431 639S803 460 1114 506" stroke="#bbc9b4" stroke-width="49"/>
+      <path d="M-89 757C123 815 267 720 431 639S803 460 1114 506" stroke="#faf9ee" stroke-width="34"/>
+      <path d="M-70 230L267 328 591 238 1091 155" stroke="#b8c7b0" stroke-width="35"/>
+      <path d="M-70 230L267 328 591 238 1091 155" stroke="#f9f8ec" stroke-width="24"/>
+      <path d="M604-70L602 248 702 532 765 1103" stroke="#b9c9b1" stroke-width="34"/>
+      <path d="M604-70L602 248 702 532 765 1103" stroke="#f9f8ed" stroke-width="23"/>
+      <path d="M120 1024L191 816 143 599 250 325" stroke="#f6f6e9" stroke-width="13"/>
+      <path d="M1024 802L762 792 597 900 334 948" stroke="#f5f6e9" stroke-width="13"/>
+      <path d="M786 0L795 207 1014 325" stroke="#f5f6e9" stroke-width="12"/>
+      <path d="M0 454L153 502 321 465" stroke="#f5f6e9" stroke-width="12"/>
+    </g>
+    <path d="M371 647L423 622" stroke="#fdf9e9" stroke-width="43" stroke-linecap="butt"/>
+  </g>
+
+  <defs>
+    <linearGradient id="cloud-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e9f4f8"/>
+    </linearGradient>
+  </defs>
+  <g id="cloud-shadow" opacity="0.15">
+    <path d="M299 629C237 629 199 588 199 535C199 481 242 443 294 443C310 368 366 319 435 319C503 319 556 364 575 421C595 411 616 405 637 405C699 405 748 453 751 513C798 516 831 549 831 590C831 635 797 668 751 668H302Z" fill="#28485c"/>
+  </g>
+  <g id="cloud">
+    <path d="M298 605C237 605 197 565 197 511C197 457 240 419 292 419C308 344 364 295 433 295C501 295 554 340 573 397C593 387 614 381 635 381C697 381 746 429 749 489C796 492 829 525 829 566C829 611 795 644 749 644H301Z" fill="url(#cloud-shade)"/>
+  </g>
+  <g id="rain" fill="none" stroke="#138ab0" stroke-width="25" stroke-linecap="round">
+    <path d="M351 716L323 763"/>
+    <path d="M512 710L483 760"/>
+    <path d="M673 707L645 755"/>
+  </g>
+
+</svg>

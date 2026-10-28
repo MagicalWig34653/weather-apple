@@ -1,6 +1,6 @@
 # Fortsetzbarer Arbeitsstand
 
-Stand: 28. Oktober 2026. Der geprüfte erste Implementierungsstand wird als Code-/Dokumentationscheckpoint veröffentlicht. Icon-Design und TestFlight-Upload bleiben getrennte offene Schritte.
+Stand: 28. Oktober 2026. Der geprüfte erste Implementierungsstand ist als Code-/Dokumentationscheckpoint veröffentlicht. Zwei geprüfte Icon-Vorschläge werden separat als Designcheckpoint bereitgestellt; Variante B (Radar) ist vom Nutzer ausgewählt; App-Integration und TestFlight-Upload bleiben offen.
 
 ## Freigabe und Arbeitsweise
 
@@ -34,7 +34,7 @@ Dies ist ein früher Prototyp, keine fertige Version 1 und noch kein TestFlight-
 |---|---|---|
 | Technische Integration | Xcode-Projekt, README, Status/Entscheidungen; ein Simulator-Testslot | Gezielter Orts-CRUD-Rerun und Light-/Dark-Sichtprüfung abgeschlossen; Buildslot frei, nächste Integration nach Icon-Auswahl |
 | Lokaler Löschflow | `PlacesSheet.swift`, dazugehöriger UI-Test | Explizite deutsche destruktive Swipe-Aktion implementiert; echter Löschablauf im Simulator erfolgreich |
-| Vorläufiges Icon / Release-Vorbereitung | Vom technischen Lead getrennt vergeben | Nach Übergabe mit dem nächsten Build integrieren; kein Upload vor Readiness-Prüfung |
+| Icon-Vorschläge / Release-Vorbereitung | Designcheckpoint: nur `design/Icon/`, `docs/icon.md` und dieser Status | Zwei vollflächige Kartenentwürfe samt acht geprüften Vorschauen bereit; [Details und Grenzen](icon.md). Nutzer hat Variante B (Radar) gewählt; noch kein neuer App-Default, Integration und Upload offen |
 
 Koordinatoren führen keine technischen Änderungen aus. Abgeschlossene Detailbefunde stehen in den verlinkten Dokumenten; weitere Aufgaben erst mit klarer Dateizuständigkeit beginnen.
 
@@ -49,7 +49,7 @@ Koordinatoren führen keine technischen Änderungen aus. Abgeschlossene Detailbe
 - Sichtprüfung im iPhone-18-Pro-Simulator in Light und Dark Mode: MapKit-Karte, Radarüberlagerung, Zeitleiste und zunächst frische Ortsprognose sichtbar. Bei der abschließenden Sichtprüfung waren Teil-Kachelfehler und eine vorübergehend fehlende Ortsprognose sichtbar; diese werden transparent gemeldet und bleiben eine bekannte Live-Grenze. Keine Verfügbarkeitsgarantie daraus ableiten. MapKit-Attribution ist oberhalb des Prognosepanels sichtbar.
 - Lokaler Xcode-Dateikoordinationshänger vor Buildbeginn durch temporäre Kopie relativer Quellen umgangen; keine globalen Dienste geändert. Details und Befehle in `build-and-test.md`.
 - Unabhängiges abschließendes Review: Ortsrequest-Race und Radar-Reload korrekt behoben; keine offenen P1-/P2-Befunde oder erkannten Geheimnis-/Pfadlecks.
-- Checkpoint: ausschließlich geprüfter Code und Dokumentation; laufende Icon-Artefakte und private lokale Dateien bleiben ausgeschlossen. Keine neuen Builds oder Tests für diesen Git-/Dokumentationsschritt.
+- App-Checkpoint `42e46bf`: ausschließlich geprüfter Code und Dokumentation; Icon-Artefakte waren ausgeschlossen. Separater Designcheckpoint: zwei native `.icon`-Packages, Generator und Vorschauen unter `design/Icon/`, dokumentiert in [icon.md](icon.md). Vorhandene Renderprüfungen übernommen; für die Veröffentlichung nur Datei-/Indexprüfung und `git diff --check`, keine neuen Renderings, Builds oder Tests. Der verworfene Altentwurf unter `Weather/Resources/Icon/` bleibt unversioniert und ist kein gewählter App-Default; private lokale Dateien bleiben ausgeschlossen.
 - `git diff --check` bisher ohne Fehler. Build-/Testlogs und xcresult-Dateien bleiben außerhalb des öffentlichen Repos.
 
 ## Signing und App Store Connect
