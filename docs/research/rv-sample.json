@@ -1,0 +1,1360 @@
+{
+  "archive_sha256": "4176fe903034b4df16e9f6a6ffa380946becc19110d2e479364f894592ef8087",
+  "archive_bytes": 3921920,
+  "hdf5_member_bytes": 3898055,
+  "elapsed_seconds": 0.787,
+  "process_peak_rss_bytes_macos": 396607488,
+  "note": "Pixel indices only; no geographic cell assignment verified. Timing is on development Mac, not iPhone.",
+  "frames": [
+    {
+      "file": "composite_rv_20261028_1515_000-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:10:00+00:00",
+      "period_end": "2026-10-28T15:15:00+00:00",
+      "lead_minutes": 0,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 1875,
+          "state": "value",
+          "amount_mm": 1.8739998721568842,
+          "period_average_mm_per_hour": 22.48799846588261
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_005-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:15:00+00:00",
+      "period_end": "2026-10-28T15:20:00+00:00",
+      "lead_minutes": 5,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 1316,
+          "state": "value",
+          "amount_mm": 1.3149999102915169,
+          "period_average_mm_per_hour": 15.779998923498203
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_010-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:20:00+00:00",
+      "period_end": "2026-10-28T15:25:00+00:00",
+      "lead_minutes": 10,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_015-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:25:00+00:00",
+      "period_end": "2026-10-28T15:30:00+00:00",
+      "lead_minutes": 15,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_020-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:30:00+00:00",
+      "period_end": "2026-10-28T15:35:00+00:00",
+      "lead_minutes": 20,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 3,
+          "state": "value",
+          "amount_mm": 0.001999999863561243,
+          "period_average_mm_per_hour": 0.023999998362734917
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_025-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:35:00+00:00",
+      "period_end": "2026-10-28T15:40:00+00:00",
+      "lead_minutes": 25,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_030-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:40:00+00:00",
+      "period_end": "2026-10-28T15:45:00+00:00",
+      "lead_minutes": 30,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_035-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:45:00+00:00",
+      "period_end": "2026-10-28T15:50:00+00:00",
+      "lead_minutes": 35,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_040-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:50:00+00:00",
+      "period_end": "2026-10-28T15:55:00+00:00",
+      "lead_minutes": 40,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_045-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T15:55:00+00:00",
+      "period_end": "2026-10-28T16:00:00+00:00",
+      "lead_minutes": 45,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_050-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:00:00+00:00",
+      "period_end": "2026-10-28T16:05:00+00:00",
+      "lead_minutes": 50,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_055-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:05:00+00:00",
+      "period_end": "2026-10-28T16:10:00+00:00",
+      "lead_minutes": 55,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_060-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:10:00+00:00",
+      "period_end": "2026-10-28T16:15:00+00:00",
+      "lead_minutes": 60,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_065-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:15:00+00:00",
+      "period_end": "2026-10-28T16:20:00+00:00",
+      "lead_minutes": 65,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_070-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:20:00+00:00",
+      "period_end": "2026-10-28T16:25:00+00:00",
+      "lead_minutes": 70,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_075-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:25:00+00:00",
+      "period_end": "2026-10-28T16:30:00+00:00",
+      "lead_minutes": 75,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_080-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:30:00+00:00",
+      "period_end": "2026-10-28T16:35:00+00:00",
+      "lead_minutes": 80,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_085-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:35:00+00:00",
+      "period_end": "2026-10-28T16:40:00+00:00",
+      "lead_minutes": 85,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_090-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:40:00+00:00",
+      "period_end": "2026-10-28T16:45:00+00:00",
+      "lead_minutes": 90,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_095-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:45:00+00:00",
+      "period_end": "2026-10-28T16:50:00+00:00",
+      "lead_minutes": 95,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_100-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:50:00+00:00",
+      "period_end": "2026-10-28T16:55:00+00:00",
+      "lead_minutes": 100,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_105-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T16:55:00+00:00",
+      "period_end": "2026-10-28T17:00:00+00:00",
+      "lead_minutes": 105,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_110-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T17:00:00+00:00",
+      "period_end": "2026-10-28T17:05:00+00:00",
+      "lead_minutes": 110,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_115-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T17:05:00+00:00",
+      "period_end": "2026-10-28T17:10:00+00:00",
+      "lead_minutes": 115,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    },
+    {
+      "file": "composite_rv_20261028_1515_120-hd5",
+      "reference_time": "2026-10-28T15:15:00+00:00",
+      "period_start": "2026-10-28T17:10:00+00:00",
+      "period_end": "2026-10-28T17:15:00+00:00",
+      "lead_minutes": 120,
+      "quantity": "ACRR",
+      "shape": [
+        1200,
+        1100
+      ],
+      "dtype": "uint32",
+      "gain": 0.0009999999317806213,
+      "offset": -0.0009999999317806213,
+      "nodata": 4294967295,
+      "undetect": 0,
+      "projection": "+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543196.83521776402 +y_0=3622588.8619310022 +units=m +a=6378137 +b=6356752.3142451802 +no_defs",
+      "xscale": 1000.0,
+      "yscale": 1000.0,
+      "samples": [
+        {
+          "row": 0,
+          "column": 0,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 600,
+          "column": 550,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        },
+        {
+          "row": 1199,
+          "column": 1099,
+          "raw": 4294967295,
+          "state": "missing",
+          "amount_mm": null,
+          "period_average_mm_per_hour": null
+        },
+        {
+          "row": 297,
+          "column": 320,
+          "raw": 0,
+          "state": "undetect",
+          "amount_mm": 0.0,
+          "period_average_mm_per_hour": 0.0
+        }
+      ]
+    }
+  ]
+}
