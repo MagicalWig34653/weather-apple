@@ -1,6 +1,12 @@
 # Apple-Signing und Bundle-ID
 
-Stand: 28. Oktober 2026. Aktueller geprüfter Release-Kandidat ist **ShowerNow `0.1.0 (4)`**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, aus veröffentlichtem Quellencheckpoint `6750d0e954de900cb8bcf6f52b3faf1fc2d769d9`. Signiertes Release-Archiv und lokaler Export erfolgreich. Genau ein interner Upload wurde um 18:17:29 Uhr MEZ mit Exit 0 angenommen; letzter Serverstand `PROCESSING`, Build-4-TestFlight-Verfügbarkeit noch offen. Build 3 ist inzwischen durch den Nutzer als intern über TestFlight nutzbar bestätigt. Historische Build-3-Nachweise bleiben unten erhalten.
+Stand: 28. Oktober 2026. Aktueller geprüfter Release-Kandidat ist **ShowerNow `0.1.0 (5)`**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, aus veröffentlichtem Quellencheckpoint `c4748931c14ce9bf79a7f6e97e024a27da3c27a8`. Signiertes Release-Archiv und lokaler Export erfolgreich; genau ein interner Upload wurde um **19:14:17 Uhr MEZ** mit Exit 0 angenommen (`PROCESSING`). Die Nutzerregression von Build 4 und die begrenzten P0-Korrekturen stehen im [P0-Befund](performance-regression-build4.md) und [Schlussreview](reviews/p0-build5.md). Kaltes Radar bleibt variabel; keine Instant-Garantie oder neue physische Abnahme.
+
+## Build 5: geprüfte tatsächliche Artefakte
+
+`ARCHIVE SUCCEEDED` und lokales `EXPORT SUCCEEDED`. Archiv und tatsächliche IPA bestätigen beide Namensfelder ShowerNow, Bundle-ID `de.linolaske.showernow`, Version `0.1.0`, Build `5`, Familie `[1,2]`, drei iPhone-/vier iPad-Orientierungen, Compliance `false` und AppIcon für beide Familien. Native Assets enthalten IconImageStack und IconGroup. Beide Apps bestehen `codesign --verify --deep --strict`.
+
+Das tatsächliche IPA-Profil bestätigt `J2DU2P47XW.de.linolaske.showernow`, Team `J2DU2P47XW`, `get-task-allow=false` und keine Geräteliste. IPA-SHA-256: `1faaacd552a2b432aebea46eea48d9c595f63c013c9cfa7d49731a820de95b11`. Alle 24 Projekt-/Konfigurations-/App-/Test-/Ressourcendateien der isolierten Archivkopie sind bytegleich zum veröffentlichten Quellencheckpoint `c474893`. Keine Live-Netzmatrix für den Release wiederholt. Der zusätzlich beauftragte vollständige aktuelle `WeatherTests`-Lauf gegen exakt `c474893` bestand um 19:14:21 Uhr MEZ mit **41 Tests, null Fehlern, 2,760 s** (33 DWD/Map, acht Einordnung); keine UI-Tests wiederholt. Die gezielten UI-/Live-Nachweise und Grenzen bleiben im Schlussreview konsolidiert. Keine neue physische Prüfung oder echte Modellgeneration.
 
 ## Build 4: geprüfte tatsächliche Artefakte
 
