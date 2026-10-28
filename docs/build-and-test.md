@@ -50,3 +50,7 @@ Beim Integrationslauf wartete Xcode vor dem Build in `NSFileCoordinator` beim Le
 ## Noch keine Release-Abnahme
 
 Ein grüner Simulatorlauf ersetzt weder Tests auf dem physischen iPhone noch eine vollständige Accessibility-/Energieprüfung. Die erste interne TestFlight-Veröffentlichung benötigt zusätzlich eine bestätigte explizite Bundle-ID, den vom Nutzer angelegten App-Store-Connect-Datensatz, App-Icon und einen erfolgreich validierten Release-Stand. Signing und Registrierung werden getrennt in `signing.md` dokumentiert.
+
+## Verbesserungskandidat Build 4
+
+Der integrierte Simulator-Snapshot bestand 26 Daten-/Logiktests (18 DWD/Cache/Store, acht Einordnung) mit null Fehlern. Dazu drei UI-Flows und nach Einordnungsintegration ein gezielter Radar-/Detailsflow; Details in [UI-Prüfstand](app-glass.md) und [Cache-Prüfstand](performance.md). Ein Bytevergleich bestätigt unveränderte App-/Test-/Ressourcenquellen gegenüber diesem Snapshot. Der zusätzliche gezielte Simulatorbuild nach Projektaufnahme und Buildnummer 4 war erfolgreich. Bundlemetadaten bestätigen ShowerNow / `de.linolaske.showernow`, Version `0.1.0`, Build `4`, Familie `[1,2]`, drei iPhone-/vier iPad-Orientierungen und Compliance `false`. Alle 24 Quellen-/Projekt-/Konfigurations-/Ressourcendateien der sauberen Buildkopie sind bytegleich zum Repository; die unveränderte Testlogik wurde nicht nochmals ausgeführt. `plutil`, lokale Markdownlinks, Diff-/vorläufige Privacy-/Ignoreprüfung ohne Befund. Build-4-Archivierung, Signaturprüfung und Upload sind davon getrennte nachfolgende Schritte.

@@ -9,9 +9,13 @@ Stand: 28. Oktober 2026. Nach Klärung der drei Einstiegsfragen ist der Beginn f
 - Swift/SwiftUI, MapKit und CoreLocation. Keine Konten, Werbung oder Analyse-SDKs. Karte unabhängig vom eigenen Backend.
 - Zielgeräte: iPhone 17 Pro und 18 Pro, Apple Watch Ultra und Apple-Silicon-Macs; Betriebssysteme jeweils 27er-Versionen. Zunächst keine ältere Systemunterstützung. Konkrete iPad-Testhardware noch nicht benannt; Simulatorprüfung vorsehen.
 - Erster interner TestFlight-Build: brauchbare iPhone-App. Widgets und Watch direkt danach ergänzen; keine Voraussetzung für den ersten Build.
-- Verbindliche aktuelle Identität: ShowerNow, Haupt-Bundle-ID `de.linolaske.showernow`, Team `J2DU2P47XW`, Version `0.1.0 (3)`. Technisches Projekt/Module und Ordner dürfen Weather/weather bleiben. Frühere Freigaben der Weather-Identität sind überholt. Der Nutzer hat die neue Bundle-ID im aktuellen App-Store-Connect-Eintrag bestätigt. Nach finalem Quellencheckpoint folgt der separate Upload.
+- Verbindliche aktuelle Identität: ShowerNow, Haupt-Bundle-ID `de.linolaske.showernow`, Team `J2DU2P47XW`, aktueller Kandidat `0.1.0 (4)`. Technisches Projekt/Module und Ordner dürfen Weather/weather bleiben. Frühere Freigaben der Weather-Identität sind überholt. Der Nutzer hat die neue Bundle-ID im aktuellen App-Store-Connect-Eintrag bestätigt. Build 3 ist inzwischen durch den Nutzer als intern über TestFlight funktionsfähig bestätigt. Build 4 ist der nächste Kandidat; Review und Release-Prüfung stehen aus.
 
-## 1. Datenkette validieren — aktueller Arbeitsschritt
+## Aktueller Verbesserungsschritt nach dem ersten Alltagstest
+
+Der Nutzer bestätigt die interne TestFlight-Nutzbarkeit von Build 3 und berichtet langsames Laden. Die gezielten Cache-/Ladeverbesserungen, kompakte native Glass-Zeitleiste und optionale lokale Foundation-Models-Einordnung sind integriert und im Simulator geprüft; Belege und Grenzen stehen in `status.md` sowie den dort verlinkten Fachbefunden. Erst nach Integration und unabhängigem Review einen neuen internen Kandidaten erstellen. Backend und Originalkonzept bleiben unverändert. Dateibesitz und Prüfressourcen stehen in `status.md`.
+
+## 1. Datenkette validieren — bisheriger Arbeitsschritt
 
 Offizielle DWD-Karten- und Rohdatenprodukte recherchieren: Erreichbarkeit, Zeitauflösung, Prognosehorizont, räumliche Abdeckung, Projektion, Dateiformate, Nutzungsbedingungen und Attribution. Quellen und Abrufdatum unter docs/research/ dokumentieren.
 

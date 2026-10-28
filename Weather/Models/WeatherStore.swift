@@ -26,13 +26,18 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     var radarReloadRevision = 0
     var lastRefresh: Date?
 
-    @ObservationIgnored private let client = DWDClient()
+    @ObservationIgnored private let client: DWDClient
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var waitingForLocation = false
     @ObservationIgnored private var forecastPlaceID: UUID?
 
-    override init() {
+    override convenience init() {
+        self.init(client: DWDClient())
+    }
+
+    init(client: DWDClient) {
+        self.client = client
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
@@ -113,18 +118,29 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         forecastError = nil
         radarError = nil
         // Each source can fail independently: a point error must not disable the map.
-        async let newTimeline = loadTimeline()
-        async let newForecast = loadForecast(at: place.coordinate)
-        let (mapResult, pointResult) = await (newTimeline, newForecast)
+        async let mapUpdate: Void = refreshTimeline(requestID: requestID, placeID: place.id)
+        async let pointUpdate: Void = refreshForecast(requestID: requestID, place: place)
+        _ = await (mapUpdate, pointUpdate)
         guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
-        switch mapResult {
+        lastRefresh = Date()
+    }
+
+    private func refreshTimeline(requestID: UUID, placeID: UUID) async {
+        let result = await loadTimeline()
+        guard generation == requestID, selectedPlace.id == placeID, !Task.isCancelled else { return }
+        switch result {
         case .success(let value):
             timeline = value
             selectedFrame = value.dates.firstIndex(of: value.referenceTime) ?? 0
         case .failure(let error):
             radarError = error.localizedDescription
         }
-        switch pointResult {
+    }
+
+    private func refreshForecast(requestID: UUID, place: SavedPlace) async {
+        let result = await loadForecast(at: place.coordinate)
+        guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
+        switch result {
         case .success(let value):
             forecast = value
             forecastPlaceID = place.id
@@ -132,7 +148,6 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             if forecastPlaceID != place.id { forecast = nil }
             forecastError = error.localizedDescription
         }
-        lastRefresh = Date()
     }
 
     private func loadTimeline() async -> Result<RadarTimeline, Error> {

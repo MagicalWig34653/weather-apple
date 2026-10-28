@@ -1,0 +1,23 @@
+# Unabhängiges Review des Build-4-Kandidaten
+
+Stand: 28. Oktober 2026. Review des integrierten Arbeitsstands gegen den veröffentlichten HEAD, vor Quellencheckpoint und signiertem Release. **Keine offenen P1-/P2-Befunde; der geprüfte Quellenstand ist für den nächsten Release-Schritt geeignet.** Keine Codeänderungen durch dieses Review.
+
+## Geprüfte Risiken
+
+- `DWDClient`: Punktanfragen sind nach Koordinate und Datenlauf getrennt. Ein Verbraucherabbruch beendet den vom Client gehaltenen gemeinsamen Task nicht; jeder Verbraucher prüft vor Rückgabe seine eigene Cancellation. Abgeschlossene Antworten bleiben begrenzt im Speicher. Laufprüfung erfolgt vor Cacheverwendung, URLCache ist deaktiviert. Der bestehende Index-Task bleibt gemeinsam nutzbar.
+- `WeatherStore`: Radar- und Punktresultate werden unabhängig veröffentlicht und jeweils gegen Requestgeneration, Orts-ID und Cancellation geprüft. Ein später Punktabschluss kann weder einen ausgewählten anderen Ort noch einen neuen Refresh überschreiben.
+- `RadarMap`/`TileRequests`: Zusammenführung gilt innerhalb eines Overlays. Ein Overlaywechsel beendet nur dessen Registry; ein anderes Overlay teilt diesen abbrechbaren Task nicht. Die beim Join verworfene zusätzliche URLSession-Aufgabe hat eine andere Request-ID und kann die registrierten Consumer nicht entfernen. Completion und Abbruch entnehmen die Callbacks unter demselben Lock, Aufruf und Taskabbruch erfolgen außerhalb des Locks. Beide Consumer erhalten genau einen Abschluss. Cacheidentität enthält weiterhin Lauf und Frame.
+- Einordnung: Snapshot enthält Lauf, vollständige Samplewerte, verbleibende Zeitintervalle und geprüfte Fakten. Fehler, veraltete oder fehlende Werte erlauben keine Modellfakten. Anzeige und Herkunftslabel erfordern Snapshotgleichheit; Kontextwechsel und Ansichtsschluss invalidieren die Requestidentität und brechen den Task ab. Ein verspäteter Modellabschluss bleibt dadurch unsichtbar. Zeitfortschritt wird alle 30 Sekunden neu bewertet. Prompt enthält ausschließlich erlaubte Fakt-IDs und fest hinterlegte Texte, keine Ortsnamen, Koordinaten oder freien Nutzereingaben. Nur nachvalidierte Fakten werden angezeigt.
+- UI: native Glass-APIs, beschriftete native Steuerelemente, Touchflächen, Dynamik der unteren Kartenmarge und weiterhin erreichbare Details geprüft. Die vier versionierten Aufnahmen zeigen den öffentlichen Beispielort Berlin; Light/Dark und Accessibility-Aufnahme haben freie Kartenattribution, lesbare Fehler und bedienbare Timeline. Keine anderen Apps oder privaten Orte sichtbar.
+
+## Unabhängig abgeglichene Belege
+
+Vorhandene echte Testlogs geprüft: **18 DWD-/Cache-/Storetests und acht Einordnungstests, insgesamt 26 Tests ohne Fehler**. Darunter angehaltene Punktantwort bei bereits veröffentlichter Timeline, geteilter Punktabruf mit abgebrochenem Verbraucher, Refreshabbruch mit Wiederanfrage, Cacheablauf, Tile-Fanout/Abbruch, Snapshotänderung und verspätete bzw. abgebrochene Modellantwort. Der abschließende Radar-/Details-/Einordnungs-UIflow bestand mit null Fehlern in 15,512 Sekunden. Der anschließende gezielte Build-4-Simulatorbuild endet mit `BUILD SUCCEEDED`. Keine Suite für dieses Review erneut gestartet.
+
+Projektänderung enthält die beiden neuen Appdateien und die neue Testdatei; die zentrale Buildnummer ist 4. Gezielter unabhängiger Dateiabgleich mit der Integrationskopie ohne Unterschiede. `plutil` für das Xcode-Projekt und `git diff --check` erfolgreich. Geänderte Quellen/Bereichsdokumente auf lokale Nutzerpfade und offensichtliche Geheimnisse geprüft; kein Befund. `LOCAL_WORKSPACE.md` ist ignoriert und nicht im Git-Index. Die dokumentierten generischen temporären Buildziele sind reproduzierbare Befehlsbeispiele, keine privaten Rechnerzuordnungen.
+
+## Grenzen und Übergabe
+
+Kein neuer Build, Simulatorlauf, Netzwerkabruf, Archiv, Export, Upload oder Commit durch dieses Review. Kein vollständiger Thread-Stresstest und keine VoiceOver-Geräteabnahme. Echte lokale Modellgenerierung auf bereiter Hardware sowie ein konkreter Simulator-Availabilitygrund bleiben unbelegt; die trockene Beispielprognose sparte den Modellaufruf, der generische Unavailablepfad ist injiziert getestet. Physische iPhone-Latenz und Provider-Kachelverfügbarkeit bleiben Alltagsprüfungen. Diese Grenzen sind keine durch die Prüfung bestätigten Funktionsfehler.
+
+Nächster Schritt: abschließende Privacy-/Indexprüfung und autorisierter Quellencheckpoint, danach signiertes Build-4-Archiv samt tatsächlichen IPA-/Signing-/Metadatenprüfungen und autorisiertem internen Upload. Build-/Simulatorressourcen sind freigegeben. Keine Tester-, Rollen- oder Kontenänderungen.

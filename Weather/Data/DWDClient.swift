@@ -6,6 +6,11 @@ actor DWDClient {
     private let clock: @Sendable () -> Date
     private var cachedRuns: (fetchedAt: Date, dates: [Date])?
     private var pendingRuns: Task<[Date], Error>?
+    private struct PointKey: Hashable {
+        let coordinate: WeatherCoordinate
+        let reference: Date
+    }
+    private var pendingPoints: [PointKey: Task<RainForecast, Error>] = [:]
     private var pointCache: [WeatherCoordinate: (fetchedAt: Date, forecast: RainForecast)] = [:]
 
     init(transport: Transport? = nil, clock: @escaping @Sendable () -> Date = { Date() }) {
@@ -29,19 +34,43 @@ actor DWDClient {
 
     func forecast(at coordinate: WeatherCoordinate) async throws -> RainForecast {
         guard coordinate.isSupported else { throw DWDDataError.unsupportedLocation }
+        // Resolve the current run first: a still-fresh point must not hide a newer run.
+        let dates = try await runs()
+        try Task.checkCancellation()
+        guard let reference = dates.last else { throw DWDDataError.unavailable }
         let now = clock()
         if let cached = pointCache[coordinate], now.timeIntervalSince(cached.fetchedAt) < 300,
-           !cached.forecast.isStale(at: now) {
+           cached.forecast.referenceTime == reference, !cached.forecast.isStale(at: now) {
             return cached.forecast
         }
-        let dates = try await runs()
-        guard let reference = dates.last else { throw DWDDataError.unavailable }
-        let data = try await fetch(DWDRequest.pointURL(at: coordinate, referenceTime: reference))
-        let forecast = try DWDResponse.forecast(from: data, expectedReference: reference, now: clock())
-        // Bounded, memory-only cache. Never persist coordinate-bearing request URLs to disk.
-        if pointCache.count >= 20 { pointCache.removeAll() }
-        pointCache[coordinate] = (clock(), forecast)
-        return forecast
+        let key = PointKey(coordinate: coordinate, reference: reference)
+        if let pending = pendingPoints[key] {
+            let forecast = try await pending.value
+            try Task.checkCancellation()
+            return forecast
+        }
+        // The shared task belongs to the client. Cancelling one consumer must not cancel another.
+        let task = Task {
+            let data = try await fetch(DWDRequest.pointURL(at: coordinate, referenceTime: reference))
+            return try DWDResponse.forecast(from: data, expectedReference: reference, now: clock())
+        }
+        pendingPoints[key] = task
+        do {
+            let forecast = try await task.value
+            pendingPoints[key] = nil
+            // Bounded, memory-only cache. Never persist coordinate-bearing request URLs to disk.
+            if pointCache.count >= 20 {
+                if let oldest = pointCache.min(by: { $0.value.fetchedAt < $1.value.fetchedAt })?.key {
+                    pointCache[oldest] = nil
+                }
+            }
+            pointCache[coordinate] = (clock(), forecast)
+            try Task.checkCancellation()
+            return forecast
+        } catch {
+            pendingPoints[key] = nil
+            throw error
+        }
     }
 
     func radarTimeline() async throws -> RadarTimeline {

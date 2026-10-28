@@ -147,6 +147,114 @@ final class DWDDataTests: XCTestCase {
         let requests = await counter.count
         XCTAssertEqual(requests, 2)
     }
+
+    func testConcurrentPointRequestsShareOneTransportAndCancelledConsumerDoesNotPoisonCache() async throws {
+        let gate = SuspendedPointTransport(fixture: try fixture())
+        let fixedNow = reference
+        let client = DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow })
+        let point = WeatherCoordinate(latitude: 53.56, longitude: 6.74)
+        let first = Task { try await client.forecast(at: point) }
+        await gate.waitForPoint()
+        let second = Task { try await client.forecast(at: point) }
+        // Keep the response suspended while both consumers reach the actor.
+        for _ in 0..<100 { await Task.yield() }
+        first.cancel()
+        await gate.releasePoints()
+        do { _ = try await first.value; XCTFail("Cancelled consumer returned a forecast") }
+        catch { XCTAssertTrue(error is CancellationError) }
+        let secondForecast = try await second.value
+        XCTAssertEqual(secondForecast.samples.count, 25)
+        _ = try await client.forecast(at: point)
+        let counts = await gate.counts
+        XCTAssertEqual(counts.index, 1)
+        XCTAssertEqual(counts.point, 1)
+    }
+
+    func testRadarPublishesBeforeSuspendedPointForecast() async throws {
+        let gate = SuspendedPointTransport(fixture: try fixture())
+        let fixedNow = reference
+        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }))
+        let refresh = Task { await store.refresh() }
+        await gate.waitForPoint()
+        for _ in 0..<100 where store.timeline == nil { await Task.yield() }
+        XCTAssertNotNil(store.timeline, "A slow point response must not hold back the radar")
+        XCTAssertNil(store.forecast)
+        XCTAssertTrue(store.isLoading)
+        await gate.releasePoints()
+        await refresh.value
+        XCTAssertNotNil(store.forecast)
+        XCTAssertFalse(store.isLoading)
+    }
+
+    func testCancelledRefreshDoesNotPublishDelayedPointResult() async throws {
+        let gate = SuspendedPointTransport(fixture: try fixture())
+        let fixedNow = reference
+        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }))
+        let refresh = Task { await store.refresh() }
+        await gate.waitForPoint()
+        refresh.cancel()
+        await gate.releasePoints()
+        await refresh.value
+        XCTAssertNil(store.forecast)
+        XCTAssertFalse(store.isLoading)
+        // A later request may reuse the completed shared response without being poisoned by cancellation.
+        await store.refresh()
+        XCTAssertNotNil(store.forecast)
+    }
+
+    func testPointCacheExpiresAndRejectsStaleForecast() async throws {
+        let data = try fixture()
+        let counter = RequestCounter(fixture: data)
+        let clock = TestClock(reference)
+        let client = DWDClient(transport: { try await counter.respond(to: $0) }, clock: { clock.now })
+        let point = WeatherCoordinate(latitude: 53.56, longitude: 6.74)
+        _ = try await client.forecast(at: point)
+        clock.advance(301)
+        _ = try await client.forecast(at: point)
+        let requests = await counter.count
+        XCTAssertEqual(requests, 4, "Both expired index and point must be fetched again")
+        clock.advance(901)
+        do { _ = try await client.forecast(at: point); XCTFail("Stale run accepted") }
+        catch { XCTAssertEqual(error as? DWDDataError, .staleData) }
+    }
+
+    func testTileRequestsCoalesceAndCancelEveryConsumerExactlyOnce() {
+        let requests = TileRequests()
+        let url = URL(string: "https://example.invalid/public-weather-tile")!
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.invalidateAndCancel() }
+        let first = UUID()
+        let calls = LockedResults()
+        XCTAssertEqual(requests.add(session.dataTask(with: url), url: url, id: first,
+                                    result: { _, error in calls.append(error) }), .start)
+        XCTAssertEqual(requests.add(session.dataTask(with: url), url: url, id: UUID(),
+                                    result: { _, error in calls.append(error) }), .joined)
+        requests.cancelAll()
+        requests.cancelAll()
+        XCTAssertEqual(calls.errors.count, 2)
+        XCTAssertTrue(calls.errors.allSatisfy { ($0 as? URLError)?.code == .cancelled })
+        XCTAssertTrue(requests.finished(url: url, id: first).isEmpty)
+        XCTAssertEqual(requests.add(session.dataTask(with: url), url: url, id: UUID(), result: { _, _ in }), .cancelled)
+    }
+
+    func testCompletedTileFansOutAndNextAttemptCanRetry() {
+        let requests = TileRequests()
+        let url = URL(string: "https://example.invalid/public-weather-tile")!
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.invalidateAndCancel() }
+        let id = UUID()
+        let calls = LockedResults()
+        _ = requests.add(session.dataTask(with: url), url: url, id: id, result: { _, error in calls.append(error) })
+        _ = requests.add(session.dataTask(with: url), url: url, id: UUID(), result: { _, error in calls.append(error) })
+        XCTAssertTrue(requests.finished(url: url, id: UUID()).isEmpty)
+        let callbacks = requests.finished(url: url, id: id)
+        callbacks.forEach { $0(nil, URLError(.timedOut)) }
+        requests.cancelAll()
+        XCTAssertEqual(calls.errors.count, 2)
+        let retry = TileRequests()
+        XCTAssertEqual(retry.add(session.dataTask(with: url), url: url, id: UUID(), result: { _, _ in }), .start)
+    }
+
 }
 
 private actor RequestCounter {
@@ -160,6 +268,62 @@ private actor RequestCounter {
         let data = url.host == "opendata.dwd.de"
             ? Data("composite_rv_20261028_1510.tar composite_rv_20261028_1515.tar".utf8)
             : fixture
+        return (data, HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+    }
+}
+
+
+private final class TestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var date: Date
+    init(_ date: Date) { self.date = date }
+    var now: Date { lock.withLock { date } }
+    func advance(_ seconds: TimeInterval) { lock.withLock { date = date.addingTimeInterval(seconds) } }
+}
+
+private final class LockedResults: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [Error?] = []
+    var errors: [Error?] { lock.withLock { values } }
+    func append(_ error: Error?) { lock.withLock { values.append(error) } }
+}
+
+private actor SuspendedPointTransport {
+    let fixture: Data
+    var counts = (index: 0, point: 0)
+    private var started = false
+    private var observers: [CheckedContinuation<Void, Never>] = []
+    private var responses: [CheckedContinuation<Void, Never>] = []
+    private var released = false
+    init(fixture: Data) { self.fixture = fixture }
+
+    func waitForPoint() async {
+        if started { return }
+        await withCheckedContinuation { observers.append($0) }
+    }
+
+    func releasePoints() {
+        released = true
+        let pending = responses
+        responses.removeAll()
+        pending.forEach { $0.resume() }
+    }
+
+    func respond(to request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let url = request.url!
+        let data: Data
+        if url.host == "opendata.dwd.de" {
+            counts.index += 1
+            data = Data("composite_rv_20261028_1510.tar composite_rv_20261028_1515.tar".utf8)
+        } else {
+            counts.point += 1
+            started = true
+            let pending = observers
+            observers.removeAll()
+            pending.forEach { $0.resume() }
+            if !released { await withCheckedContinuation { responses.append($0) } }
+            data = fixture
+        }
         return (data, HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
 }

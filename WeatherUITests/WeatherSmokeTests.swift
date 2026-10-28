@@ -24,6 +24,31 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(information.waitForExistence(timeout: 5))
     }
 
+    func testRadarControlsOpenDetailsAndReturnToCurrentFrame() throws {
+        let app = launchApp()
+        let slider = app.sliders["Radarzeitpunkt"]
+        guard slider.waitForExistence(timeout: 25) else {
+            throw XCTSkip("Der Live-Kartendienst hat keine Radarzeitpunkte geliefert.")
+        }
+        slider.adjust(toNormalizedSliderPosition: 1)
+        XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
+        app.buttons["Jetzt"].tap()
+        XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
+        app.buttons["Radaranimation starten"].tap()
+        XCTAssertTrue(app.buttons["Animation pausieren"].waitForExistence(timeout: 2))
+        app.buttons["Animation pausieren"].tap()
+        let details = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "DWD ·")).firstMatch
+        XCTAssertTrue(details.waitForExistence(timeout: 5))
+        details.tap()
+        XCTAssertTrue(app.buttons["Fertig"].waitForExistence(timeout: 5))
+        let interpretation = app.staticTexts["Einordnung"]
+        for _ in 0..<5 where !interpretation.isHittable { app.swipeUp() }
+        XCTAssertTrue(interpretation.isHittable)
+        XCTAssertTrue(app.staticTexts["Einordnung vorhandener Radardaten; keine zusätzliche Vorhersage oder amtliche Warnung."].exists)
+        app.buttons["Fertig"].tap()
+        XCTAssertTrue(slider.waitForExistence(timeout: 5))
+    }
+
     func testNewMapPlaceCanBeSavedRenamedPersistedAndDeleted() throws {
         let app = launchApp()
         let suffix = UUID().uuidString.prefix(8)

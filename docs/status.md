@@ -1,6 +1,6 @@
 # Fortsetzbarer Arbeitsstand
 
-Stand: 28. Oktober 2026, 17:52 Uhr MEZ. **ShowerNow `0.1.0 (3)`**, Bundle-ID **`de.linolaske.showernow`**, Team `J2DU2P47XW`, wurde aus dem veröffentlichten Quellencheckpoint `2e500fca7be7df05bbe21882127d574189a5a0d1` genau einmal erfolgreich hochgeladen. Uploadabschluss um 17:51:38 Uhr MEZ: Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded` und Apples `UPLOAD SUCCEEDED with no errors`. Letzter Serverzustand **`PROCESSING`**; abgeschlossene Verarbeitung und interne Verfügbarkeit sind nicht belegt. Die offiziellen AppsService-Antwortdaten bestätigen `name=ShowerNow`, `bundleId=de.linolaske.showernow`, `removed=false`. Projekt/Module heißen technisch weiter Weather.
+Stand: 28. Oktober 2026, nach unabhängigem Review und Quellencheckpoint-Prüfung. **ShowerNow `0.1.0 (3)`**, Bundle-ID **`de.linolaske.showernow`**, Team `J2DU2P47XW`, wurde aus dem veröffentlichten Quellencheckpoint `2e500fca7be7df05bbe21882127d574189a5a0d1` genau einmal erfolgreich hochgeladen. Uploadabschluss um 17:51:38 Uhr MEZ: Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded` und Apples `UPLOAD SUCCEEDED with no errors`. Der damalige Uploadserverzustand war **`PROCESSING`**. **Neue Nutzerbestätigung: Build 3 funktioniert intern über TestFlight und wurde im Alltag verwendet.** Dies belegt die interne Nutzbarkeit durch Nutzerfeedback; eine neue direkte ASC-Abfrage wurde nicht durchgeführt. Die offiziellen AppsService-Antwortdaten bestätigen `name=ShowerNow`, `bundleId=de.linolaske.showernow`, `removed=false`. Projekt/Module heißen technisch weiter Weather.
 
 Historie unter `de.linolaske.weather`: Build 1 wurde mit `90474` abgelehnt; Build 2 zu Checkpoint `0f48cb5` wurde mit Exit 0 angenommen (`PROCESSING`, 17:35:36 Uhr MEZ). Zusätzlich berichtet der Nutzer einen Namenskonflikt mit Weather. Dies bestätigt keinen nutzbaren internen TestFlight-Build; [historische Uploadbefunde](testflight-upload.md) bleiben erhalten.
 
@@ -28,9 +28,23 @@ Der Hauptagent koordiniert ausschließlich. Neue abgegrenzte Aufgaben erhalten f
 - Punktprognosen/Index im Speicher, Radar-Tiles im begrenzten Memorycache. Alte Overlay-Requests werden bei Wechsel abgebrochen. Kein Festplatten-Netzwerkcache für Punktanfragen.
 - Ortswechsel invalidiert alte Anfragen synchron; manueller Refresh kann auch bei identischem Datenlauf fehlgeschlagene Tiles erneut laden. Die Review-Fixes sind kompiliert; Ortsablauf und abschließende Light-/Dark-Sichtprüfung sind erfolgreich abgeschlossen. Ein frisches unabhängiges Review bestätigt beide Korrekturen ohne offene P1-/P2-Befunde.
 
-Dies ist ein früher Prototyp, keine fertige Version 1. Ein installierbarer interner ShowerNow-TestFlight-Build bleibt zu bestätigen.
+Dies ist ein früher Prototyp, keine fertige Version 1. Die interne TestFlight-Nutzbarkeit von Build 3 ist inzwischen durch den Nutzer bestätigt.
 
-## Aktuelle Aufgabe und Übergabe
+## Aktuelle Aufgabe: Alltag, Ladezeit, Glass und lokale Einordnung
+
+Nutzerfeedback vom 28. Oktober 2026: ShowerNow funktioniert intern über TestFlight, lädt aber eher langsam. Freigegeben sind gezieltes Caching, eine konkrete Simulatorprüfung und ein kompakterer schwebender Liquid-Glass-Zeitslider mit weniger Text. Eine dezente lokale Einordnung mit Apple Foundation Models soll bei belegter Machbarkeit umgesetzt werden. Das ursprüngliche Konzept bleibt erhalten; Backendänderungen gehören nicht zu dieser Aufgabe.
+
+Die drei Ergebnisaufgaben sind integriert: Radar-Timeline wird unabhängig von der Punktprognose veröffentlicht; parallele identische Punkt-/Tileanfragen werden zusammengeführt, vorhandene Speichergrenzen und Aktualitätsregeln bleiben erhalten. Zwei kompakte schwebende native Glasflächen ersetzen das große untere Panel. Eine manuelle lokale Einordnung in den Details priorisiert ausschließlich validierte Wetterfakten; Standardtext und Hauptprognose sind unabhängig vom Modell.
+
+- [Performancebefund und Regressionen](performance.md): synthetische parallele Punktabfragen vorher 2, jetzt 1; Radarstart mit angehaltener Punktantwort geprüft. Kein Diskcache, kein pauschales Frame-Prefetch und keine Standort-/URLhistory.
+- [UI-Umsetzung, Apple-Quellen und sichere Vorher-/Nachheraufnahmen](app-glass.md): Light/Dark und Accessibility Extra Large geprüft; Attribution bleibt frei.
+- [Lokale Einordnung und Grenzen](research/foundation-models.md): echte Foundation-Models-API integriert, acht gezielte Tests bestanden. Live-Beispiel trocken/ein Fakt: Standardtext sichtbar, Modellrequest gespart. Echte Modellgeneration und konkreter Simulator-Availabilitygrund sind nicht belegt; generischer Unavailablepfad injiziert getestet.
+- Integrierter iPhone-18-Pro-Simulatorstand: **26 Daten-/Logiktests, null Fehler** (18 DWD/Cache/Store, acht Einordnung). Drei UI-Flows (Datenschutz, Orts-CRUD, Radarbedienung) erfolgreich; nach KI-Integration betroffenen Radar-/Detailsflow gezielt erneut bestanden. Kein nachträglich behaupteter kompletter gemeinsamer UI-Grünlauf.
+- Quellen-/Testdateien des finalen UI-Prüfsnapshots stimmen bytegleich mit dem integrierten Stand überein. Anschließender gezielter Build nach Projektaufnahme und Buildnummeränderung erfolgreich; keine redundante Wiederholung der unveränderten Tests.
+
+**Aktueller Kandidat: ShowerNow `0.1.0 (4)`**. XcodeGen hat die neuen Einordnungs-/Testdateien ins eingecheckte Projekt aufgenommen; Version, Bundle-ID, Team, Icon und bestehende Gerätefamilien-/Orientierungsmetadaten bleiben erhalten. Gezielter Simulatorbuild mit Buildnummer 4 erfolgreich. Das gebaute Bundle bestätigt ShowerNow / `de.linolaske.showernow`, `0.1.0 (4)`, Familie `[1,2]`, drei iPhone-/vier iPad-Orientierungen und Compliance `false`. Alle 24 kopierten Quellen-/Projekt-/Konfigurations-/Ressourcendateien stimmen bytegleich überein. `plutil`, lokale Markdownlinks, `git diff --check` sowie vorläufige Text-Privacy-/Ignore-Prüfung ohne Befund; `LOCAL_WORKSPACE.md` ist ignoriert und nicht im Index. [Unabhängiges Review](review-build4.md) abgeschlossen: keine offenen P1-/P2-Befunde. Kontextwechsel/Freshness der Einordnung, gemeinsame Request-Abbrüche und UI-/Privacy-Grenzen wurden geprüft. Abschließende Diff-, Link-, Privacy-/Index- und Ignore-Prüfung ohne Befund; keine Builds oder Tests für den Quellencheckpoint wiederholt. Alle schreibenden Agents sind fertig. Nächster Schritt nach Veröffentlichung dieses Quellencheckpoints: aus genau diesem Git-Stand signierten Build 4 archivieren, tatsächliche IPA-/Signing-/Metadaten prüfen und offiziell intern hochladen. Noch kein Build-4-Archiv, Export oder Upload.
+
+## Vorheriger abgeschlossener Schritt und Übergabe
 
 - Identity-Review und finaler Bundle-Name-Nachweis sind abgeschlossen, ohne offene P1-/P2-Befunde. Tatsächliche finale IPA: beide Namensfelder ShowerNow, neue ID und `0.1.0 (3)`; alle 24 kopierten Quellen-/Projekt-/Konfigurationsdateien bytegleich. Details in [signing.md](signing.md).
 - Quellencheckpoint `2e500fc` ist veröffentlicht und Grundlage des erfolgreichen offiziellen Build-3-Uploads. Kein Namenskonflikt- oder Bundle-Validierungsfehler im aktuellen Upload. Alle Versuche und die unveränderte Weather-Historie stehen in [testflight-upload.md](testflight-upload.md).
@@ -64,14 +78,15 @@ Die folgenden Nachweise gehören zu den jeweils genannten Schritten; damalige An
 
 ## Signing und App Store Connect
 
-- Aktuelle Identität: ShowerNow / `de.linolaske.showernow`, Team `J2DU2P47XW`, `0.1.0 (3)`; explizites IPA-Profil `J2DU2P47XW.de.linolaske.showernow`, beide strikten Signaturen und native Radar-Assets bestätigt. [Signingnachweis](signing.md).
+- Zuletzt signiert und hochgeladen: ShowerNow / `de.linolaske.showernow`, Team `J2DU2P47XW`, `0.1.0 (3)`; explizites IPA-Profil `J2DU2P47XW.de.linolaske.showernow`, beide strikten Signaturen und native Radar-Assets bestätigt. [Signingnachweis](signing.md).
 - Nutzerbestätigung des passenden ASC-Eintrags wird durch die offiziellen AppsService-Antwortdaten im Upload ergänzt: ShowerNow / neue ID / nicht entfernt. Kein Namenskonflikt im Build-3-Upload.
 - Universal-Familie `[1,2]`, vier iPad-/drei iPhone-Orientierungen und Compliance `false` bleiben erhalten. Keine eigenständige iPad-Freigabe.
-- Upload angenommen; letzter Serverstand `PROCESSING`, keine interne Verfügbarkeit oder Gruppenzuordnung belegt.
+- Build 3 wurde angenommen; interne TestFlight-Nutzbarkeit ist jetzt durch den Nutzer bestätigt. Keine direkte neue ASC- oder Gruppenabfrage.
 
-## Nächste Schritte bis zum ersten internen iPhone-Test
+## Nächste Schritte nach bestätigtem internen iPhone-Test
 
-1. In App Store Connect **ShowerNow → TestFlight** Build **`0.1.0 (3)`** prüfen. Erst wenn Apple ihn als fertig verarbeitet anzeigt, den vorhandenen internen Testern zuordnen. Interne Tester benötigen ASC-Appzugriff; das gilt auch für den Vater. Keine automatischen Einladungen.
-2. Nach tatsächlicher interner Verfügbarkeit auf dem physischen iPhone anhand [internal-testing.md](internal-testing.md) testen.
+1. Aus dem veröffentlichten geprüften Build-4-Quellencheckpoint signiertes Archiv erzeugen, tatsächliche IPA-/Signing-/Metadaten prüfen und über den vorhandenen autorisierten offiziellen Weg intern hochladen. Keine Tester-/Rollenänderungen.
+2. Uploadannahme und Verarbeitung getrennt dokumentieren; keine interne Verfügbarkeit ohne Beleg behaupten.
+3. Auf physischem iPhone Nachladen und Regenereignisse ohne private Standortlogs beobachten; echte lokale Einordnung nur auf modellbereitem Gerät prüfen.
 
-Danach Widgets/Watch, Push und angepasste iPad-/Mac-Oberflächen gemäß Plan. Regenendeformulierungen, Cache-/Energiegrenzen und breitere NoData-/Zellrandfälle bleiben Qualitätsarbeit. Bekannte Provider-Kachelfehler und zeitweise fehlende Punktprognosen bleiben transparent; keine privaten Standorte öffentlich dokumentieren.
+Widgets/Watch, Push und angepasste iPad-/Mac-Oberflächen folgen gemäß Plan. Bekannte Provider-Kachelfehler und zeitweise fehlende Punktprognosen bleiben transparent; keine privaten Standorte öffentlich dokumentieren.

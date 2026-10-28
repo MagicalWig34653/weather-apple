@@ -5,6 +5,7 @@ struct RadarScreen: View {
     @Bindable var store: WeatherStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var sheet: Sheet?
     @State private var showSave = false
     @State private var placeName = ""
@@ -27,11 +28,12 @@ struct RadarScreen: View {
                      onTileError: { tileFailed = true })
                 .ignoresSafeArea()
                 .accessibilityLabel("Regenradar für \(store.selectedPlace.name)")
+                .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
             VStack(spacing: 10) {
                 header
                 if let message = statusMessage {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption).padding(12)
+                        .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityAddTraits(.updatesFrequently)
@@ -40,13 +42,13 @@ struct RadarScreen: View {
                     Spacer()
                     VStack(spacing: 14) {
                         Button { store.requestLocation() } label: {
-                            Image(systemName: "location.fill").frame(width: 46, height: 46)
+                            Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
                         }.accessibilityLabel("Aktuellen Standort verwenden")
                         Button { sheet = .information } label: {
-                            Image(systemName: "info.circle").frame(width: 46, height: 46)
+                            Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
                         }.accessibilityLabel("Datenquellen und Datenschutz")
                     }
-                    .background(.regularMaterial, in: Capsule())
+                    .glassEffect(.regular, in: Capsule())
                     .buttonStyle(.plain)
                     .font(.title3)
                 }
@@ -55,13 +57,16 @@ struct RadarScreen: View {
             .padding(.top, 8)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 12) {
-                timeline
-                forecastCard
+            GlassEffectContainer(spacing: 6) {
+                VStack(spacing: 10) {
+                    forecastCard
+                    timeline
+                }
             }
-            .padding(16)
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapBottomInset = $0 }
-            .background(.regularMaterial, in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
         }
         .sheet(item: $sheet) { item in
             switch item {
@@ -108,12 +113,14 @@ struct RadarScreen: View {
                     Image(systemName: "cloud.rain.fill").font(.title2).foregroundStyle(.cyan)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(store.selectedPlace.name).font(.headline).lineLimit(1)
-                        Text("Regenradar").font(.caption).foregroundStyle(.secondary)
+                        if !dynamicTypeSize.isAccessibilitySize {
+                            Text("Regenradar").font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                     Image(systemName: "chevron.down").font(.caption.bold())
                 }
                 .padding(.horizontal, 16).padding(.vertical, 11)
-                .background(.regularMaterial, in: Capsule())
+                .glassEffect(.regular, in: Capsule())
             }.buttonStyle(.plain).accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
             Spacer(minLength: 0)
             Button {
@@ -123,42 +130,41 @@ struct RadarScreen: View {
             } label: {
                 Group {
                     if store.isLoading { ProgressView() }
-                    else { Image(systemName: "arrow.clockwise") }
+                    else { Image(systemName: "arrow.clockwise").font(.system(size: 20)) }
                 }.frame(width: 46, height: 46)
-                    .background(.regularMaterial, in: Circle())
+                    .glassEffect(.regular.interactive(), in: Circle())
             }.buttonStyle(.plain).disabled(store.isLoading).accessibilityLabel("Wetterdaten aktualisieren")
         }
     }
 
     private var timeline: some View {
-        VStack(spacing: 8) {
-            HStack {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
                 Button { store.isPlaying.toggle() } label: {
                     Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
-                        .frame(width: 42, height: 42)
-                        .background(.quaternary, in: Circle())
+                        .font(.system(size: 18, weight: .semibold))
+                        .frame(width: 44, height: 44)
                 }
+                .buttonStyle(.plain)
                 .disabled(store.timeline == nil)
                 .accessibilityLabel(store.isPlaying ? "Animation pausieren" : "Radaranimation starten")
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(store.isForecastFrame ? "VORHERSAGE" : "MESSUNG")
-                            .foregroundStyle(store.isForecastFrame ? .orange : .cyan)
-                        if let date = store.frameDate { Text(date, style: .time).foregroundStyle(.primary) }
-                    }.font(.caption.bold()).monospacedDigit()
-                    if let reference = store.timeline?.referenceTime {
-                        Text("DWD · Lauf \(reference.formatted(date: .omitted, time: .shortened)) · \(age(reference))")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    } else {
-                        Text("Daten: Deutscher Wetterdienst").font(.caption2).foregroundStyle(.secondary)
+                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout(spacing: 6))) {
+                    if let date = store.frameDate {
+                        Text(date, style: .time).font(.headline).monospacedDigit()
                     }
+                    Text(store.isForecastFrame ? "Vorhersage" : "Messung")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(store.isForecastFrame ? .orange : .cyan)
                 }
-                Spacer()
-                if store.timeline != nil {
+                .accessibilityElement(children: .combine)
+                Spacer(minLength: 0)
+                if let timeline = store.timeline {
                     Button("Jetzt") {
                         store.isPlaying = false
-                        store.selectedFrame = store.timeline?.dates.firstIndex(of: store.timeline!.referenceTime) ?? 0
-                    }.font(.subheadline.bold())
+                        store.selectedFrame = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minWidth: 44, minHeight: 44)
                 }
             }
             if let timeline = store.timeline, timeline.dates.count > 1 {
@@ -167,62 +173,71 @@ struct RadarScreen: View {
                     store.selectedFrame = Int($0)
                 }), in: 0...Double(timeline.dates.count - 1), step: 1)
                 .accessibilityLabel("Radarzeitpunkt")
-                .accessibilityValue(store.frameDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt")
+                .accessibilityValue("\(store.frameDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(store.isForecastFrame ? "Vorhersage" : "Messung")")
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
                         Color.cyan.frame(width: geometry.size.width * boundary)
                         Color.orange
                     }.clipShape(Capsule())
-                    Rectangle().fill(.primary).frame(width: 2, height: 9)
-                        .offset(x: max(0, geometry.size.width * boundary - 1), y: -3)
-                }.frame(height: 3).accessibilityLabel("Grenze zwischen Messung und Vorhersage")
+                    Rectangle().fill(.primary).frame(width: 2, height: 7)
+                        .offset(x: max(0, geometry.size.width * boundary - 1), y: -2)
+                }
+                .frame(height: 3)
+                .accessibilityLabel("Grenze zwischen Messung und Vorhersage")
                 HStack {
                     Text(timeline.dates.first!, style: .time)
                     Spacer()
-                    Text("Messung · Vorhersage").foregroundStyle(.secondary)
-                    Spacer()
                     Text(timeline.dates.last!, style: .time)
-                }.font(.caption2).monospacedDigit()
+                }
+                .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                .padding(.top, 6)
             } else {
                 Text(store.isLoading ? "Radar wird geladen …" : "Keine Radarzeitpunkte verfügbar")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(.secondary).padding(.bottom, 6)
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28))
     }
 
     private var forecastCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                Button { sheet = .details } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(forecastHeadline).font(.headline).foregroundStyle(.primary)
-                        if let forecast = store.forecast {
-                            TimelineView(.periodic(from: .now, by: 60)) { _ in
-                                Text("Datenstand \(forecast.referenceTime.formatted(date: .omitted, time: .shortened)) · \(age(forecast.referenceTime))")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        } else {
-                            Text("Kurzfristige Ortsprognose").font(.caption).foregroundStyle(.secondary)
-                        }
+        HStack(spacing: 8) {
+            Button { sheet = .details } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(forecastHeadline)
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold)).foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }.buttonStyle(.plain).accessibilityHint("Öffnet den Niederschlagsverlauf")
-                Button {
-                    placeName = store.selectedPlace.name
-                    showSave = true
-                } label: {
-                    Image(systemName: store.places.contains(where: { $0.id == store.selectedPlace.id }) ? "bookmark.fill" : "bookmark")
-                        .frame(width: 40, height: 40)
-                }.accessibilityLabel("Ausgewählten Ort speichern oder umbenennen")
+                    if let reference = store.forecast?.referenceTime ?? store.timeline?.referenceTime {
+                        Text("DWD · \(reference.formatted(date: .omitted, time: .shortened)) · \(age(reference))")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    } else {
+                        Text("Kurzfristige Ortsprognose").font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
-            if let forecast = store.forecast {
-                RainChart(forecast: forecast, compact: true).frame(height: 54)
-                    .onTapGesture { sheet = .details }
+            .buttonStyle(.plain)
+            .accessibilityHint("Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise")
+            Button {
+                placeName = store.selectedPlace.name
+                showSave = true
+            } label: {
+                Image(systemName: store.places.contains(where: { $0.id == store.selectedPlace.id }) ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 20))
+                    .frame(width: 44, height: 44)
             }
-            Text("Vorhersagen können abweichen. Lange auf die Karte drücken, um einen Ort zu wählen.")
-                .font(.caption2).foregroundStyle(.secondary)
+            .accessibilityLabel("Ausgewählten Ort speichern oder umbenennen")
         }
+        .padding(.leading, 16).padding(.trailing, 8).padding(.vertical, 6)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
     }
 
     private var forecastHeadline: String {
@@ -238,7 +253,7 @@ struct RadarScreen: View {
     private var statusMessage: String? {
         if let message = store.locationMessage { return message }
         if let message = store.storageMessage { return message }
-        if tileFailed { return "Radarkacheln konnten nicht vollständig geladen werden. Bitte aktualisieren." }
+        if tileFailed { return "Radar unvollständig. Bitte aktualisieren." }
         if let error = store.radarError { return "Radar: \(error)" }
         if let error = store.forecastError { return "Ortsprognose: \(error)" }
         return nil
@@ -297,6 +312,8 @@ struct ForecastDetails: View {
                             Label("Die Prognose ist nicht aktuell bestätigt.", systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
                         }
+                        ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastError != nil)
+                        Text("Lange auf die Karte drücken, um einen Ort zu wählen.")
                         Text("Radarprognosen beschreiben die erwartete Entwicklung. Gerade bei entstehenden oder sich auflösenden Schauern können Beginn, Ende und Intensität abweichen.")
                         Text("Datenbasis: Deutscher Wetterdienst. Niederschlagswerte umgerechnet und als Ortsprognose aufbereitet.")
                             .font(.footnote).foregroundStyle(.secondary)

@@ -134,9 +134,10 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
         let registry = requests
         let id = UUID()
         let task = Self.session.dataTask(with: url) { data, response, error in
-            registry.finished(id)
+            let callbacks = registry.finished(url: url, id: id)
+            guard !callbacks.isEmpty else { return }
             if let error {
-                result(nil, error)
+                callbacks.forEach { $0(nil, error) }
                 if (error as? URLError)?.code != .cancelled {
                     Task { @MainActor in notify() }
                 }
@@ -144,15 +145,20 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
             }
             guard let response = response as? HTTPURLResponse, response.statusCode == 200,
                   let data, data.starts(with: [137, 80, 78, 71, 13, 10, 26, 10]) else {
-                result(nil, URLError(.cannotDecodeContentData))
+                callbacks.forEach { $0(nil, URLError(.cannotDecodeContentData)) }
                 Task { @MainActor in notify() }
                 return
             }
             Self.cache.insert(data, for: url)
-            result(data, nil)
+            callbacks.forEach { $0(data, nil) }
         }
-        if registry.add(task, id: id) { task.resume() }
-        else { result(nil, URLError(.cancelled)) }
+        switch registry.add(task, url: url, id: id, result: result) {
+        case .start: task.resume()
+        case .joined: task.cancel()
+        case .cancelled:
+            task.cancel()
+            result(nil, URLError(.cancelled))
+        }
     }
 }
 
@@ -164,19 +170,41 @@ private final class TileMemoryCache: @unchecked Sendable {
     func insert(_ data: Data, for url: URL) { cache.setObject(data as NSData, forKey: url as NSURL, cost: data.count) }
 }
 
-// Every mutable field is protected by lock; cancellation never runs while holding it.
-private final class TileRequests: @unchecked Sendable {
+// Every mutable field is protected by lock; callbacks and cancellation run outside it.
+// Coalesce MapKit requests for the same tile while retaining per-overlay cancellation.
+final class TileRequests: @unchecked Sendable {
+    typealias ResultHandler = @Sendable (Data?, Error?) -> Void
+    enum Registration: Equatable { case start, joined, cancelled }
+    private struct Entry {
+        let id: UUID
+        let task: URLSessionDataTask
+        var callbacks: [ResultHandler]
+    }
     private let lock = NSLock()
-    private var tasks: [UUID: URLSessionDataTask] = [:]
+    private var tasks: [URL: Entry] = [:]
     private var cancelled = false
-    func add(_ task: URLSessionDataTask, id: UUID) -> Bool {
+
+    func add(_ task: URLSessionDataTask, url: URL, id: UUID,
+             result: @escaping ResultHandler) -> Registration {
         lock.withLock {
-            guard !cancelled else { return false }
-            tasks[id] = task
-            return true
+            guard !cancelled else { return .cancelled }
+            if tasks[url] != nil {
+                tasks[url]?.callbacks.append(result)
+                return .joined
+            }
+            tasks[url] = Entry(id: id, task: task, callbacks: [result])
+            return .start
         }
     }
-    func finished(_ id: UUID) { _ = lock.withLock { tasks.removeValue(forKey: id) } }
+
+    func finished(url: URL, id: UUID) -> [ResultHandler] {
+        lock.withLock {
+            guard let entry = tasks[url], entry.id == id else { return [] }
+            tasks[url] = nil
+            return entry.callbacks
+        }
+    }
+
     func cancelAll() {
         let pending = lock.withLock {
             cancelled = true
@@ -184,7 +212,10 @@ private final class TileRequests: @unchecked Sendable {
             tasks.removeAll()
             return pending
         }
-        pending.forEach { $0.cancel() }
+        for entry in pending {
+            entry.task.cancel()
+            entry.callbacks.forEach { $0(nil, URLError(.cancelled)) }
+        }
     }
     deinit { cancelAll() }
 }
