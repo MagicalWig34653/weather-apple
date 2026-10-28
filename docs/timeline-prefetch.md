@@ -1,0 +1,41 @@
+# Budgetiertes Timeline-Vorladen
+
+Stand: 28. Oktober 2026. Implementierung und unabhängiger Code-Review abgeschlossen; endgültige kontrollierte Tests und bytegleicher Produktionsbuild erfolgreich. Keine neuen Builds, Simulatorläufe, GetMap-Requests oder Uploads durch diese Dokumentationsaufgabe.
+
+## Nutzerauftrag und Abnahme
+
+Nach Nutzerfeedback funktioniert der aktuelle Geräteabruf mit ungefähr 100 KB pro Zeitslot. Gewünscht ist unauffälliges Vorladen vom ausgewählten Slot aus abwechselnd nach links und rechts, mit maximal 50 MB Cache. Das ist keine gemessene maximale Slotgröße und kein Nachweis eines DWD-Kontingents. Die frühere Prefetch-Zurückstellung ist für diesen neuen Auftrag ersetzt; der Schutz der DWD-API bleibt verbindlich.
+
+- RAM-Bildcache mit harter Grenze **50.000.000 Byte** gespeicherter validierter PNG-Nutzdaten; Byteanzahl vor Einfügung begrenzen und passende Einträge verdrängen. MapKit, dekodierte Bilder, Metadaten und laufende Responsepuffer zählen nicht zu diesem Bilddatenlimit. Kein Diskcache oder Cache über Appstarts.
+- Ausgewählten Frame vollständig bedienen; danach Reihenfolge `selected − 1`, `selected + 1`, `selected − 2`, `selected + 2` usw., mit vorhandenen Nachbarn an Grenzen. Schrittweise über alle geeigneten Slots, soweit Quelle und Budgets dies zulassen, kein blindes 50-MB-Auffüllen.
+- Aktuelle Nachfrage priorisieren; bei Scrub, Ort, Zoom und inaktiver Szene überholte Arbeit abbrechen. Abbrüche dürfen keine negativen Tilefehler oder Fehleranzeige des neuen sichtbaren Frames erzeugen. Low Data und Low Power unterbinden optionales Vorladen.
+- Zusätzliches Requestbudget, kleine Parallelität, Mindestabstand zwischen Netzstarts und Pause bei Quellproblemen. Diese Werte sind appseitige Schutzentscheidungen, keine von DWD veröffentlichten Nutzerkontingente. Keine periodischen Vorlade-/Refreshschleifen.
+- Identität enthält tatsächliche Referenzzeit, Framezeit, Layer-/Darstellungsparameter und Tilekoordinaten/Zoom. Historische Analyseframes behalten ihren eigenen Referenzlauf; aktuelle Zukunftsframes ihren zugehörigen Lauf. Keine Wiederverwendung unter falschem Datenzeitpunkt. Bestehende 20-Minuten-Frische und P0-Fehlerbudgets bleiben erhalten.
+- Refreshring nur für sichtbare Nachfrage; keine Prefetch-Fortschrittsfläche. Angezeigte Radar-Gesamtbytes müssen echte abgeschlossene Prefetch-Responsebytes korrekt einschließen; Cachetreffer zählen nicht als Download. Keine erfundenen Prozentwerte.
+
+32 Tiles × 37 ungesehene Slots entsprechen bereits 1.184 GetMap-Requests ohne Retries. Deshalb ist 50 MB allein kein API-Schutz. Das Beispiel ist eine Rechnung, keine neue Lastmessung. Ein warmer Nachbar soll einen echten Cachetreffer ohne zusätzlichen Netzstart ermöglichen; das muss eine kontrollierte Prüfung belegen. Vollständige Vorwärmung und sofortiges kaltes Laden sind keine Garantie.
+
+## Implementierter und unabhängig gelesener Architekturstand
+
+Der Implementierungsauftrag konkretisiert das appseitige Prefetchbudget auf eine Sekunde Leerlauf vor Beginn, höchstens eine spekulative Netzoperation gleichzeitig und mindestens 500 ms zwischen Prefetch-Netzstarts. Zusätzlich sind 120 Prefetchrequests je 60 Sekunden und 8.000.000 empfangene Prefetchbytes je festem 60-Sekunden-Fenster umgesetzt; das Budget bleibt über Frame-/Ort-/Zoomwechsel bestehen. Die Bytezahl ist eine Stopgrenze nach vollständiger Antwort: eine bereits gestartete Antwort kann sie überschreiten. Sie ist keine harte Socket-Transfergrenze. Sichtbare Nachfrage bleibt vom Prefetchbudget unabhängig und unterbricht optionale Arbeit.
+
+Für Quellfehler ist eine 120-Sekunden-Pause je Referenzlauf vorgesehen, ohne Prefetchretries. Kein periodischer Blindrefresh. Low Data, teure Netzwerkverbindung, Low Power und inaktive Szene sperren Vorladung. Historische Frames sollen ihre tatsächliche Analyse-Referenz `min(frameDate, timelineReference)` verwenden; Zukunftsframes bleiben beim Timeline-Referenzlauf. Die 20-Minuten-Frischeguards verwenden den aktuellen Timeline-Quelllauf, nicht die absichtlich ältere Analyse-Referenz historischer Frames. Der fertige Code ist unabhängig gelesen; dies ersetzt noch keinen bestandenen Funktions-/Lastnachweis.
+
+## Primärquellenprüfung
+
+Am 28. Oktober 2026 wurden folgende offizielle Apple-Seiten einschließlich ihrer Markdownfassungen gelesen; der Webreader lieferte zunächst nur JavaScript-Hinweise, die Markdownfassungen wurden gezielt per HTTPS gelesen:
+
+- [NSCache.totalCostLimit](https://developer.apple.com/documentation/foundation/nscache/totalcostlimit): Apple garantiert keine harte Grenze oder Verdrängungsreihenfolge. Ein auf 50 MB gesetztes `NSCache`-Kostenlimit allein erfüllt deshalb den Auftrag nicht; die App muss die gespeicherten PNG-Bytes selbst begrenzen.
+- [URLSessionConfiguration.allowsConstrainedNetworkAccess](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/allowsconstrainednetworkaccess): steuert Zugriff bei Low Data Mode. Apple empfiehlt, optionalen Netzwerkbedarf bis zu einer geeigneten Verbindung aufzuschieben. Das unterstützt getrennte Regeln für ausdrückliche Nutzeranfrage und Vorladung. Ob auf Konfiguration oder Request umgesetzt wird, muss zum gemeinsamen Deduplizierungs-/Prioritätsmodell passen; nutzerinitiierte Nachfrage nicht versehentlich global sperren.
+- [URLSessionTask.cancel()](https://developer.apple.com/documentation/foundation/urlsessiontask/cancel()): Abbruch wird sofort markiert, aber Delegate-Mitteilungen können noch folgen. Daher alte Generationen unabhängig vom tatsächlichen Transportabschluss filtern; Cancellation nicht als Providerfehler behandeln.
+- [ProcessInfo.isLowPowerModeEnabled](https://developer.apple.com/documentation/foundation/processinfo/islowpowermodeenabled): aktuellen Zustand abfragen und bei `NSProcessInfoPowerStateDidChange` erneut prüfen. Optionales Vorladen reduzieren beziehungsweise stoppen; beim Start nicht allein auf eine spätere Notification vertrauen.
+
+Die bereits geprüfte [DWD-Anleitung zur WMS-Einbindung](https://www.dwd.de/DE/wetter/warnungen_aktuell/objekt_einbindung/einbindung_karten_geodienste.pdf?__blob=publicationFile&v=14) empfiehlt regelmäßige Auffrischungen nicht unter fünf Minuten. Das betrifft Refresh, kein explizites Tile-/Timeline-Kontingent. Der erneute Webabruf dieser PDF wurde mit HTTP 403 abgewiesen; die bestehende Quellenbewertung aus [near-instant-radar.md](research/near-instant-radar.md) wurde deshalb nicht als neu verifizierter PDF-Inhalt ausgegeben. Keine zusätzlichen DWD-Bildanfragen, kein WMTS-Recheck und keine Lastprobe für diesen Auftrag.
+
+## Übergabe und noch offene Nachweise
+
+Produktionscode und ursprüngliche QA sind fertig und freigegeben. Der [frische unabhängige Review](reviews/prefetch-build6.md) hat vier konkrete P2-Grenzen gefunden, nach Korrektur erneut gelesen und keine offenen P1/P2 im geprüften Diff. Der Integrations-/Buildowner hat 16 kontrollierte neue Tests und anschließend einmalig die vollständige aktuelle Logiksuite mit 57 Tests, jeweils null Fehlern, ausgeführt; Quellencheckpoint-/Dokumentationsowner prüft anschließend Diff, Privacy, Links, Ignore und Index. Root und technischer Lead koordinieren. Keine 37-Slot-DWD-Matrix.
+
+32 beobachtete Tiles × 37 Slots würden ohne Cachewiederverwendung 1.184 Requests bedeuten und bei 120/min ungefähr zehn Minuten Budgetzeit benötigen. Quieszenz, Antwortzeiten und Nachfrage verlängern diese Rechnung. Neue Fünf-Minuten-Läufe können ferne Slots vor vollständiger Erwärmung neu verankern; keine vollständige Warmcachegarantie. Die Coverage enthält mögliche MapKit-Puffertiles und ist keine exakt vermessene sichtbare Fläche. Identische ältere positive Bildkeys bleiben innerhalb des RAM-Budgets wiederverwendbar.
+
+16 gezielte Tests (0,484 s) und der vollständige einmalige Logiklauf mit 57 Tests (3,244 s) sind erfolgreich. Der abschließende normale Produktionsbuild ist erfolgreich und alle 28 geprüften Dateien sind bytegleich. Die isolierte Testhost-Abweichung und die Grenzen der Prüfung stehen im Integrationsnachweis. Offen sind der geprüfte Quellencheckpoint und der Build-6-Upload. [Integration](prefetch-integration.md) und [Tests](prefetch-tests.md) halten geplante und ausgeführte Prüfungen getrennt. Apple-Serverannahme (`PROCESSING`) bleibt von interner Installierbarkeit getrennt.

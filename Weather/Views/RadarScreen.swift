@@ -24,6 +24,7 @@ struct RadarScreen: View {
             RadarMap(place: store.selectedPlace, date: store.frameDate,
                      referenceTime: store.frameReference, centerRevision: store.centerRevision,
                      reloadRevision: store.radarReloadRevision,
+                     timeline: store.timeline, prefetchActive: scenePhase == .active && !store.isPlaying,
                      bottomInset: mapBottomInset,
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
                      onLoadState: { state in
@@ -167,17 +168,23 @@ struct RadarScreen: View {
         if let error = store.radarError { return "Radar konnte nicht aktualisiert werden: \(error). Erneut versuchen." }
         guard let state = currentRadarLoadState else { return "Radar wartet auf Kartendaten" }
         let bytes = ByteCountFormatter.string(fromByteCount: state.receivedBodyBytes, countStyle: .file)
+        let prefetched = ByteCountFormatter.string(fromByteCount: state.prefetchedBodyBytes, countStyle: .file)
+        let preloadStatus = " Vorladen in dieser Sitzung: \(prefetched)."
         if state.failed > 0 { return "\(state.failed) Radarkacheln fehlen, \(state.succeeded) geladen. \(bytes) empfangen. Erneut versuchen." }
         if state.pending > 0 { return "Radar lädt. \(state.succeeded) Kacheln empfangen, \(state.pending) Anfragen offen. \(bytes) empfangen." }
         if state.requested == 0 && state.isViewportIdle { return "Für diesen Kartenausschnitt wurden keine neuen Radarkacheln angefordert." }
         if state.requested == 0 { return "Radar wartet auf Kachelanfragen" }
         let pointStatus = store.isForecastLoading ? "lädt noch" : store.forecastError != nil ? "nicht aktualisiert" : store.forecast != nil ? "verfügbar" : "nicht verfügbar"
         let cacheStatus = state.receivedBodyBytes == 0 && state.cacheHits > 0 && state.cacheHits == state.succeeded ? " Aus dem Zwischenspeicher, kein neuer Radar-Download." : " \(bytes) empfangen."
-        return "\(state.succeeded) angeforderte Radarkacheln geladen.\(cacheStatus) Ortsprognose \(pointStatus)."
+        return "\(state.succeeded) angeforderte Radarkacheln geladen.\(cacheStatus) Ortsprognose \(pointStatus)." + preloadStatus
     }
 
     private var radarTransferLabel: String {
         guard let state = currentRadarLoadState else { return "Radar" }
+        if state.prefetchedBodyBytes > 0 {
+            let total = ByteCountFormatter.string(fromByteCount: state.prefetchedBodyBytes, countStyle: .file)
+            return "Radar · Vorladen \(total)"
+        }
         if state.isSettled && state.failed == 0 && state.cacheHits > 0 && state.cacheHits == state.succeeded && state.receivedBodyBytes == 0 { return "Radar · Cache" }
         guard state.receivedBodyBytes > 0 else { return "Radar" }
         if state.receivedBodyBytes < 100_000 {

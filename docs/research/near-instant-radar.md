@@ -1,8 +1,12 @@
 # Nahezu sofortiges Radar bei begrenzter API-Last
 
-Stand: 28. Oktober 2026. Rechercheauftrag, keine Implementierung oder zusätzliche Lastmessung. Die laufende P0-Fehlerbehebung und echte Bedienbarkeit haben Vorrang. Nutzeranforderung: möglichst sofort laden, ohne die DWD-API zu überstrapazieren.
+Stand: 28. Oktober 2026. Die ursprüngliche Recherche galt vor Abschluss der P0-Korrektur von Build 5. **Neue verbindliche Nutzerentscheidung:** ausgewählten Slot zuerst und danach abwechselnde Nachbarn links/rechts unauffällig innerhalb der aktiven App vorladen; bis zu 50 MB RAM-Cache. Die früheren Empfehlungen gegen Prefetch und für einen späteren Diskcache sind damit für den neuen Auftrag überholt. Kein Diskcache beauftragt. Nutzeranforderung bleibt: möglichst sofort laden, ohne die DWD-API zu überstrapazieren.
 
-## Konkrete Empfehlung
+## Aktuell freigegebener Umfang
+
+Harte Grenze von **50.000.000 Byte validierter PNG-Nutzdaten im RAM**, kein Speicherfüllziel und keine Aussage über den gesamten App-Arbeitsspeicher. Sichtbare Nachfrage vollständig bedienen, anschließend schrittweise geeignete Nachbarn wärmen; Benutzeraktion unterbricht/repriorisiert. Nur aktive App, keine Low-Data-/Low-Power-Vorladung. Kleines Parallelitätslimit, Requestbudget, Startabstände und Fehlerpause sind zusätzlich zum Bytebudget erforderlich. Ziel sind alle geeigneten Slots nach und nach, soweit Nutzung und Quelle dies zulassen. Referenz-/Frame-/Tileidentität und Frische bleiben unverändert; kein zusätzliches Polling. [Ausführlicher Auftrag und aktuelle Apple-Quellen](../timeline-prefetch.md). Umsetzung und Tests laufen; hier kein neuer Leistungsnachweis.
+
+## Historische Empfehlung vor dem neuen Prefetch-Auftrag
 
 1. **Jetzt P0 abschließen:** gültiges vorhandenes Overlay beim Refresh erhalten, Memorycache wiederverwenden, ungültiges HTTP-200-XML nie cachen, alte Generationen abbrechen und Fehler korrekt zuordnen. Ein warmer identischer Bildausschnitt benötigt dann keine neuen Wetterbildrequests. Das ist keine Zusage sofortiger Darstellung nach einem kalten Appstart.
 2. **Nächster kleiner, gesondert zu beauftragender Schritt:** begrenzter lokaler PNG-Cache für bereits erfolgreich geladene Wetterkacheln über Appstarts. Kein automatisches Vorladen, kein neuer Dienst. Er spart bei wiederverwendbaren identischen Kacheln Requests statt sie zu erhöhen. Zuerst isolierten Relaunch-A/B-Nachweis mit Requestzahl und tatsächlichem First Paint liefern; keine Geschwindigkeitsgarantie aus der Architektur ableiten.
@@ -14,7 +18,7 @@ Historischer Zwischenstand eines früheren P0-Prüfsnapshots, keine finale Build
 
 Rechenbeispiel, keine gemessene Last: 32 verschiedene Tiles × 37 noch ungesehene Frames = **1.184 GetMap-Requests** ohne Wiederholungen. Bei gleicher kleiner Beispielgröße entspräche das nur rund 5 MB; wenig übertragene Bytes bedeutet daher nicht geringe Serverlast. Zoomwechsel, neue Ausschnitte und Retry können weitere Requests erzeugen, Cachetreffer reduzieren sie. Die aktuelle Implementierung begrenzt parallele Verbindungen pro Host auf vier; dies begrenzt Parallelität, aber nicht Gesamtzahl. Bei laufweit fehlenden Daten sollte die weitere Strategie ein geteiltes Lauf-/Fehlerbudget statt unbegrenzter unabhängiger Wiederholungen betrachten. Der aktuelle P0-Fix bleibt separat zu prüfen.
 
-## Cachevertrag für einen kleinen Folgeauftrag
+## Historischer Vorschlag für einen nicht beauftragten Diskcache
 
 - Nur tatsächlich dekodier-/validierbare erfolgreiche PNG-Antworten speichern. WMS-XML, HTTP-Fehler, Abbrüche und reine Cachetreffer erzeugen keine neuen Downloadbytes. HTTP-Cachevorgaben respektieren; kein pauschales URLCache-Einschalten für alle Wetteranfragen.
 - Identität enthält Anbieter-/Darstellungsversion, Layer, Stil, Projektion, Auflösung, tatsächlichen Referenzlauf, Framezeit und Tilekoordinaten einschließlich gegebenenfalls relevanter Skalierung. Neuer Lauf ist ein anderer Schlüssel; kein `latest`-Alias im persistenten Key.
@@ -30,8 +34,8 @@ Die am Abrufdatum gelesene offizielle [DWD-WMTS-Capabilities](https://maps.dwd.d
 
 Die offizielle [DWD-Anleitung zur WMS-Einbindung](https://www.dwd.de/DE/wetter/warnungen_aktuell/objekt_einbindung/einbindung_karten_geodienste.pdf?__blob=publicationFile&v=14) empfiehlt regelmäßige Auffrischungen nicht unter fünf Minuten und weist auf fehlenden Verfügbarkeitsanspruch hin. Das ist eine Refresh-Empfehlung, kein veröffentlichtes numerisches Kontingent pro Kachel, Animation oder Nutzer. Unser Indexcache von fünf Minuten passt dazu; kein zusätzliches Polling. Bestehende Zeit-/Laufidentität und 20-Minuten-Aktualitätsgrenze bleiben erhalten.
 
-## Bewusst zurückgestellt
+## Historisch zurückgestellt, inzwischen teilweise neu beauftragt
 
-Keine 37-Frame-Vorladung, kein Hintergrundpolling, keine zusätzliche Infrastruktur, keine Kauf-API, kein Rohdaten-/HDF5-Systemwechsel. Ein intentbasiertes Vorladen höchstens eines nächsten Frames würde im Beispiel bis zu 32 zusätzliche Requests verursachen und benötigt deshalb erst einen nachgewiesenen Nutzen samt Budget; derzeit nicht aktivieren. Größere räumliche Kacheln könnten Anfragen näherungsweise um Faktor vier reduzieren, wenn die Tilegeografie wirklich zusammengelegt wird; bloß WIDTH/HEIGHT auf 512 zu setzen erhöht nur Auflösung. Renderqualität, Dienstkosten, Zoomgrenzen und Cancellation müssten vor einem Wechsel gezielt gemessen werden.
+Für Build 5 galt: keine 37-Frame-Vorladung. Der neue Auftrag erlaubt jetzt schrittweises Vorladen innerhalb der aktiven App unter Ressourcen-/Requestbudget; kein Hintergrundpolling, keine zusätzliche Infrastruktur, keine Kauf-API, kein Rohdaten-/HDF5-Systemwechsel. Ein intentbasiertes Vorladen höchstens eines nächsten Frames würde im Beispiel bis zu 32 zusätzliche Requests verursachen und benötigte deshalb einen gesonderten Auftrag samt Budget; dieser Auftrag liegt inzwischen für das beschriebene aktive Timeline-Vorladen vor. Größere räumliche Kacheln könnten Anfragen näherungsweise um Faktor vier reduzieren, wenn die Tilegeografie wirklich zusammengelegt wird; bloß WIDTH/HEIGHT auf 512 zu setzen erhöht nur Auflösung. Renderqualität, Dienstkosten, Zoomgrenzen und Cancellation müssten vor einem Wechsel gezielt gemessen werden.
 
-Ausgeführt: gezielte Code-/Dokumentationssichtung, aktuelle Primärquellenprüfung und ein WMTS-Capabilitiesabruf. Nicht ausgeführt: Codeänderungen, Build, Simulatorbedienung, neue Bild-/Punktrequests, Lasttests, Cacheimplementierung oder Performanceversprechen. Nächster Schritt: P0 und UI unabhängig abschließen; danach kleiner frischer Cacheauftrag nur bei bestätigter Priorität.
+Ausgeführt: gezielte Code-/Dokumentationssichtung, aktuelle Primärquellenprüfung und ein WMTS-Capabilitiesabruf. Nicht ausgeführt: Codeänderungen, Build, Simulatorbedienung, neue Bild-/Punktrequests, Lasttests, Cacheimplementierung oder Performanceversprechen. Damals nächster Schritt: P0 und UI abschließen. Aktueller Schritt: den nun freigegebenen RAM-/Prefetchauftrag implementieren und ohne zusätzliche DWD-Lastmatrix deterministisch prüfen.

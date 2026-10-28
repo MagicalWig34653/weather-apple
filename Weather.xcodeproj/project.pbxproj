@@ -17,12 +17,14 @@
 		B030A0A201C54569AC941360 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = FB0B59D778801F65B8630D2F /* AppIcon.icon */; };
 		B6EED9533FE194244F58F804 /* DWDResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72CFC446C21AB47F0E3115CD /* DWDResponse.swift */; };
 		BBCAFC6177CAE2EE714406F2 /* InformationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEB273A74F0043348EF420D /* InformationSheet.swift */; };
+		C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */; };
 		CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */; };
 		D2A91364788C1F526A607365 /* PlacesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36810EBB689143D24E645BAD /* PlacesSheet.swift */; };
 		D38FAC7702DE3A5C0B2EB57E /* WeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E378685B6423E6A54BB754 /* WeatherApp.swift */; };
 		D491729D707221D3DF027EDD /* DWDRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE19E74BAAAE195B28694A9 /* DWDRequest.swift */; };
 		D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */; };
 		DFFFA7BE418E3D0B142CE4B3 /* RainForecast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6208E34C71F4CA9DBAA42C13 /* RainForecast.swift */; };
+		FC53F4ADAD5AE068572020BE /* RadarPrefetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */; };
 		FE729001EDD401716B119CC1 /* RadarMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */; };
 /* End PBXBuildFile section */
 
@@ -45,6 +47,8 @@
 
 /* Begin PBXFileReference section */
 		13499096928B9127E2E1D224 /* WeatherTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WeatherTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPrefetchTests.swift; sourceTree = "<group>"; };
+		18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPrefetch.swift; sourceTree = "<group>"; };
 		23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherStore.swift; sourceTree = "<group>"; };
 		278042B07E146BB0A122BD1C /* Weather.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Weather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		36810EBB689143D24E645BAD /* PlacesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacesSheet.swift; sourceTree = "<group>"; };
@@ -98,6 +102,7 @@
 				B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */,
 				AA76D542667074A3AA33EFA0 /* Fixtures */,
 				A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */,
+				16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */,
 			);
 			path = WeatherTests;
 			sourceTree = "<group>";
@@ -125,6 +130,7 @@
 			isa = PBXGroup;
 			children = (
 				62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */,
+				18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */,
 			);
 			path = Map;
 			sourceTree = "<group>";
@@ -334,6 +340,7 @@
 				BBCAFC6177CAE2EE714406F2 /* InformationSheet.swift in Sources */,
 				D2A91364788C1F526A607365 /* PlacesSheet.swift in Sources */,
 				FE729001EDD401716B119CC1 /* RadarMap.swift in Sources */,
+				C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */,
 				CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */,
 				DFFFA7BE418E3D0B142CE4B3 /* RainForecast.swift in Sources */,
 				D38FAC7702DE3A5C0B2EB57E /* WeatherApp.swift in Sources */,
@@ -347,6 +354,7 @@
 			files = (
 				3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */,
 				D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */,
+				FC53F4ADAD5AE068572020BE /* RadarPrefetchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

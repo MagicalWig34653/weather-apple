@@ -7,6 +7,8 @@ struct RadarMap: UIViewRepresentable {
     let referenceTime: Date?
     let centerRevision: Int
     let reloadRevision: Int
+    let timeline: RadarTimeline?
+    let prefetchActive: Bool
     let bottomInset: CGFloat
     let onSelect: (CLLocationCoordinate2D) -> Void
     let onLoadState: @MainActor @Sendable (RadarLoadState) -> Void
@@ -34,6 +36,7 @@ struct RadarMap: UIViewRepresentable {
     func updateUIView(_ map: MKMapView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
+        let contextMoved = coordinator.lastCenterRevision != centerRevision || coordinator.placeID != place.id
         // Keep MapKit attribution/controls above the forecast panel, including larger text sizes.
         map.layoutMargins = UIEdgeInsets(top: 96, left: 12, bottom: bottomInset + 12, right: 12)
         if coordinator.lastCenterRevision != centerRevision {
@@ -48,8 +51,17 @@ struct RadarMap: UIViewRepresentable {
             map.addAnnotation(pin)
             coordinator.placeID = place.id
         }
+        coordinator.updatePrefetch()
         let frameChanged = coordinator.date != date || coordinator.referenceTime != referenceTime
         guard frameChanged || coordinator.reloadRevision != reloadRevision else { return }
+        // Reserve only an exactly matching speculative frame for MapKit's next
+        // demand. Other frames are cancelled as before; reservation expires in 2 s.
+        if frameChanged, !contextMoved, prefetchActive {
+            RadarPrefetchFlight.shared.prepareHandoff(date: date, referenceTime: referenceTime)
+        } else {
+            RadarPrefetchFlight.shared.cancelHandoff()
+        }
+        coordinator.prefetcher.cancel()
         coordinator.date = date
         coordinator.referenceTime = referenceTime
         coordinator.reloadRevision = reloadRevision
@@ -75,6 +87,13 @@ struct RadarMap: UIViewRepresentable {
         }
     }
 
+    static func dismantleUIView(_ map: MKMapView, coordinator: Coordinator) {
+        RadarPrefetchFlight.shared.cancelHandoff()
+        coordinator.prefetcher.cancel()
+        coordinator.overlay?.cancelLoading()
+        map.delegate = nil
+    }
+
     private func center(_ map: MKMapView, animated: Bool = true) {
         map.setRegion(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: place.coordinate.latitude,
                                                                        longitude: place.coordinate.longitude),
@@ -92,8 +111,30 @@ struct RadarMap: UIViewRepresentable {
         var overlay: RadarTileOverlay?
         var activeContextID: UUID?
         private var lastSequence = -1
+        let prefetcher = RadarPrefetcher()
+        private var currentState: RadarLoadState?
+        private var prefetchBytes: Int64 = 0
+
+        func updatePrefetch() {
+            if !parent.prefetchActive { RadarPrefetchFlight.shared.cancelHandoff() }
+            prefetcher.update(timeline: parent.timeline, selected: date, paths: overlay?.observedPaths ?? [],
+                              state: currentState, active: parent.prefetchActive, revision: reloadRevision,
+                              cache: RadarTileOverlay.cache) { [weak self] count in
+                guard let self else { return }
+                self.prefetchBytes += Int64(count)
+                if var state = self.currentState {
+                    state.prefetchedBodyBytes = self.prefetchBytes
+                    self.parent.onLoadState(state)
+                }
+            }
+        }
 
         func beginViewport(_ overlay: RadarTileOverlay, reloadRevision: Int) {
+            // A new viewport must not carry a frame-only handoff into another area.
+            // Frame replacement calls this before addOverlay, so retain that brief
+            // handoff only while the region itself has not begun changing.
+            prefetcher.cancel()
+            currentState = nil
             let state = overlay.beginViewport(reloadRevision: reloadRevision)
             activeContextID = state.contextID
             lastSequence = -1
@@ -108,13 +149,18 @@ struct RadarMap: UIViewRepresentable {
         func receive(_ state: RadarLoadState) {
             guard state.contextID == activeContextID, state.sequence >= lastSequence else { return }
             lastSequence = state.sequence
-            parent.onLoadState(state)
+            currentState = state
+            var display = state
+            display.prefetchedBodyBytes = prefetchBytes
+            parent.onLoadState(display)
+            updatePrefetch()
         }
 
         func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
             guard let overlay else { return }
             // Start before MapKit asks for the new zoom/region. Resetting in didChange
             // would discard requests which already finished during the gesture.
+            RadarPrefetchFlight.shared.cancelHandoff()
             beginViewport(overlay, reloadRevision: reloadRevision)
         }
 
@@ -154,6 +200,7 @@ struct RadarLoadState: Equatable, Sendable {
     var cacheHits = 0
     var runUnavailable = 0
     var receivedBodyBytes: Int64 = 0
+    var prefetchedBodyBytes: Int64 = 0
     var isViewportIdle = false
     var hasUnknownVisibleTileTotal: Bool { true }
     var isSettled: Bool { pending == 0 && (requested > 0 || isViewportIdle) }
@@ -166,6 +213,7 @@ final class RadarLoadTracker: @unchecked Sendable {
     private let lock = NSLock()
     private var state: RadarLoadState
     private var tiles: [URL: Status] = [:]
+    private var receivedTransports: Set<UUID> = []
     private let notify: @MainActor @Sendable (RadarLoadState) -> Void
 
     init(date: Date, referenceTime: Date, reloadRevision: Int,
@@ -182,6 +230,7 @@ final class RadarLoadTracker: @unchecked Sendable {
             state = RadarLoadState(contextID: UUID(), frameDate: state.frameDate,
                                    referenceTime: state.referenceTime, reloadRevision: reloadRevision)
             tiles.removeAll()
+            receivedTransports.removeAll()
             return state
         }
     }
@@ -207,6 +256,16 @@ final class RadarLoadTracker: @unchecked Sendable {
     func received(_ count: Int, for url: URL) {
         let value: RadarLoadState? = lock.withLock {
             guard tiles[url] != nil else { return nil }
+            state.receivedBodyBytes += Int64(count)
+            return update()
+        }
+        if let value { publish(value) }
+    }
+
+    func receivedOnce(_ count: Int, for url: URL, contextID: UUID, transportID: UUID) {
+        let value: RadarLoadState? = lock.withLock {
+            guard state.contextID == contextID, tiles[url] != nil,
+                  receivedTransports.insert(transportID).inserted else { return nil }
             state.receivedBodyBytes += Int64(count)
             return update()
         }
@@ -280,9 +339,18 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
     private let referenceTime: Date
     private let requests = TileRequests()
     private let progress: RadarLoadTracker
-    private static let cache = TileMemoryCache()
+    static let cache = TileMemoryCache()
+    private let promotedOwner = UUID()
+    private let pathLock = NSLock()
+    private var paths: Set<RadarTileCoordinate> = []
+    var observedPaths: [RadarTileCoordinate] {
+        pathLock.withLock { paths.sorted { ($0.z, $0.x, $0.y) < ($1.z, $1.x, $1.y) } }
+    }
     private static let availabilityRetries = RadarAvailabilityRetryBudget()
     private static let failures = RadarTileFailures()
+    static func hasFailure(url: URL, revision: Int) -> Bool {
+        failures.error(for: url, reloadRevision: revision) != nil
+    }
     private let session: URLSession
     private static let sharedSession: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -312,14 +380,23 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
         DWDRequest.tileURL(x: path.x, y: path.y, z: path.z, date: date, referenceTime: referenceTime)
     }
 
-    func beginViewport(reloadRevision: Int) -> RadarLoadState { progress.reset(reloadRevision: reloadRevision) }
+    func beginViewport(reloadRevision: Int) -> RadarLoadState {
+        pathLock.withLock { paths.removeAll() }
+        return progress.reset(reloadRevision: reloadRevision)
+    }
     func endViewportDemand(contextID: UUID) { progress.endViewportDemand(contextID: contextID) }
-    func cancelLoading() { requests.cancelAll() }
+    func cancelLoading() {
+        requests.cancelAll()
+        RadarPrefetchFlight.shared.cancelDemands(owner: promotedOwner)
+    }
 
     override func loadTile(at path: MKTileOverlayPath, result: @escaping @Sendable (Data?, Error?) -> Void) {
+        pathLock.withLock { paths.insert(RadarTileCoordinate(x: path.x, y: path.y, z: path.z)) }
         let url = url(forTilePath: path)
         let contextID = progress.began(url)
+        let revision = progress.snapshot.reloadRevision
         let completion: TileRequests.ResultHandler = { [progress] data, error in
+            RadarNetworkPriority.shared.endDemand()
             progress.finished(url, contextID: contextID, error: error)
             result(data, error)
         }
@@ -328,9 +405,28 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
             result(cached, nil)
             return
         }
+        // A same-key speculative request becomes foreground demand without a
+        // second transport. Detaching speculative work cannot cancel this waiter.
+        if RadarPrefetchFlight.shared.join(url: url, owner: promotedOwner, result: { [progress] response in
+            if let data = response.data {
+                progress.receivedOnce(data.count, for: url, contextID: contextID, transportID: response.transportID)
+            }
+            var failure = response.error
+            var image: Data?
+            if failure == nil {
+                do {
+                    guard (response.response as? HTTPURLResponse)?.statusCode == 200,
+                          let data = response.data else { throw DWDDataError.unavailable }
+                    image = try DWDResponse.radarImage(from: data)
+                } catch { failure = error }
+            }
+            if let image { Self.cache.insert(image, for: url) }
+            if let failure { Self.failures.record(failure, for: url, reloadRevision: revision) }
+            completion(image, failure)
+        }) { return }
+        RadarNetworkPriority.shared.beginDemand()
         // MapKit automatically repeats failed requests. A viewport change must not
         // silently re-arm the network; only a new explicit refresh/run/frame may.
-        let revision = progress.snapshot.reloadRevision
         if let error = Self.failures.error(for: url, reloadRevision: revision) {
             completion(nil, error)
             return
@@ -412,14 +508,6 @@ final class RadarTileFailures: @unchecked Sendable {
             entries[key] = Entry(error: error, createdAt: now)
         }
     }
-}
-
-// NSCache is thread-safe; the immutable wrapper exposes no other mutable state.
-private final class TileMemoryCache: @unchecked Sendable {
-    private let cache = NSCache<NSURL, NSData>()
-    init() { cache.totalCostLimit = 48 * 1_024 * 1_024 }
-    func data(for url: URL) -> Data? { cache.object(forKey: url as NSURL).map { $0 as Data } }
-    func insert(_ data: Data, for url: URL) { cache.setObject(data as NSData, forKey: url as NSURL, cost: data.count) }
 }
 
 // Every mutable field is protected by lock; callbacks and cancellation run outside it.
