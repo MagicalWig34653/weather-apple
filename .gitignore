@@ -15,3 +15,6 @@ xcuserdata/
 *.xcuserstate
 .idea/
 .claude/settings.local.json
+
+# Rechnerbezogene Repository-Pfade bleiben privat.
+/LOCAL_WORKSPACE.md
