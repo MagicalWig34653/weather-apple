@@ -6,7 +6,7 @@ struct InformationSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Weather · frühe Testversion") {
+                Section("ShowerNow · frühe Testversion") {
                     Text("Regenradar und kurzfristige Ortsprognose für Deutschland. Noch keine automatischen Regenwarnungen, Widgets oder Watch-App.")
                     Text("Die Karte zeigt Messbilder und Radarvorhersagen getrennt. Die Punktprognose basiert auf Fünf-Minuten-Intervallen; minutengenaue Zusagen sind daraus nicht ableitbar.")
                 }
@@ -23,7 +23,7 @@ struct InformationSheet: View {
                     Text("Die App ist eine frühe Testversion. Prognosen können abweichen; bei fehlenden oder veralteten Daten wird keine aktuelle Aussage zugesichert.")
                 }
             }
-            .navigationTitle("Über Weather")
+            .navigationTitle("Über ShowerNow")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
         }

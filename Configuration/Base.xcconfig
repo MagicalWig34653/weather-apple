@@ -1,8 +1,8 @@
-// Vorläufige Identität; bei Umbenennung zentral ändern.
-WEATHER_BUNDLE_ID = de.linolaske.weather
-WEATHER_DISPLAY_NAME = Weather
+// Produktidentität zentral konfigurieren; technische Module heißen weiterhin Weather.
+WEATHER_BUNDLE_ID = de.linolaske.showernow
+WEATHER_DISPLAY_NAME = ShowerNow
 DEVELOPMENT_TEAM = J2DU2P47XW
 SWIFT_VERSION = 6.0
 IPHONEOS_DEPLOYMENT_TARGET = 27.0
 MARKETING_VERSION = 0.1.0
-CURRENT_PROJECT_VERSION = 2
+CURRENT_PROJECT_VERSION = 3

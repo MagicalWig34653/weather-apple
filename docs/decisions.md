@@ -1,6 +1,6 @@
 # Projektstand und verbindliche Entscheidungen
 
-Stand: 28. Oktober 2026. Arbeitsname: Weather. Entwicklung nach geklärten Einstiegsfragen freigegeben; Reihenfolge gemäß `plan.md`.
+Stand: 28. Oktober 2026. App-Name: ShowerNow; Bundle-ID: `de.linolaske.showernow`. Entwicklung nach geklärten Einstiegsfragen freigegeben; Reihenfolge gemäß `plan.md`.
 
 ## Produkt
 
@@ -31,10 +31,10 @@ Widgets sollen Regenstatus und/oder Niederschlagsverlauf für einen ausgewählte
 
 - Lokale Zielordner heißen jeweils `weather`.
 - Vorgesehene GitHub-Namen: `weather-apple` und `weather-backend`; öffentlich, sobald Zugang und Veröffentlichung möglich sind.
-- Vorläufige Haupt-Bundle-ID: `de.linolaske.weather`.
-- Angegebene Apple Team ID: `J2DU2P47XW`; vor Signing mit dem Developer-Account bestätigen.
-- App-Name und Bundle-ID sollen später geändert werden. Abhängige IDs für Widgets, Watch, App Groups etc. erst bei Target-Einrichtung festlegen.
-- Vor dauerhaft genutzten TestFlight-/App-Store-Einträgen den Umgang mit der vorläufigen Identität klären.
+- Aktuelle Haupt-Bundle-ID: `de.linolaske.showernow`; App-Name: ShowerNow.
+- Apple Team ID: `J2DU2P47XW`, durch bisheriges Signing bestätigt.
+- App-Name und Bundle-ID werden jetzt gemeinsam geändert; technische Module/Projektname Weather und Ordner weather bleiben zulässig. Abhängige IDs für Widgets, Watch, App Groups etc. erst bei Target-Einrichtung festlegen.
+- Neuer Release-Kandidat: `0.1.0 (3)`. Der Nutzer hat die Umstellung seines aktuellen App-Store-Connect-Eintrags auf die neue Bundle-ID bestätigt.
 - AGPLv3 ist angestrebt. Lizenzentscheidung und mögliche Zusatzerlaubnisse für App-Store-Veröffentlichung sind offen. Es wird deshalb noch keine endgültige Lizenz behauptet.
 
 ## Quellenhierarchie
@@ -50,7 +50,7 @@ Möglichst kostensparsam entwickeln. Agents sind Pflicht. Sessions müssen wegwe
 - Nutzerfreigabe: Plan schreiben, Einstiegsfragen klären, danach anfangen. Alle drei Einstiegsfragen sind beantwortet; der Start ist damit freigegeben.
 - iPhone 17 Pro und 18 Pro, Apple Watch Ultra, Apple-Silicon-Macs; jeweils 27er-Systemversionen. Zunächst diese Mindestgeneration der Betriebssysteme vorsehen.
 - Erster interner TestFlight-Build nur mit brauchbarer iPhone-App; Widgets und Watch folgen danach.
-- Vorläufige Identität Weather / de.linolaske.weather darf auch für TestFlight verwendet werden. Team-ID weiterhin lokal bestätigen.
+- Damalige Freigabe: Weather / de.linolaske.weather auch für TestFlight; durch die folgende ausdrückliche ShowerNow-Entscheidung überholt.
 - Datenvalidierung vor größerem UI-Ausbau; Backend bleibt zurückgestellt.
 
 ## Datenvalidierung — Arbeitsbefund
@@ -63,7 +63,7 @@ Absolute lokale Repository-Pfade werden ausschließlich in der ignorierten `LOCA
 
 ## App-Store-Connect-Aufteilung
 
-Nutzer möchte benachrichtigt werden, sobald die vorläufige Bundle-ID registriert und in App Store Connect auswählbar ist. Den App-Datensatz legt der Nutzer selbst an. Kein App-Datensatz durch Agents anlegen. Registrierung/Signing-Zustand nur nach tatsächlicher Prüfung als erledigt melden; Projektkonfiguration allein ist keine Registrierung.
+Nutzer möchte benachrichtigt werden, sobald die neue explizite Bundle-ID über ein spezifisches Profil belegt ist (eine Portal-Auswahlliste gesondert prüfen). Den App-Datensatz legt der Nutzer selbst an. Kein App-Datensatz durch Agents anlegen. Registrierung/Signing-Zustand nur nach tatsächlicher Prüfung als erledigt melden; Projektkonfiguration allein ist keine Registrierung.
 
 ## Erster Implementierungsstand und App-Eintrag
 
@@ -71,7 +71,7 @@ Der erste native iPhone-Prototyp verwendet den direkt abgeglichenen WMS-Punktdat
 
 Der Hauptagent koordiniert ausschließlich; technische Arbeit wird an neue abgegrenzte Agents vergeben. Details in `team.md` und `AGENTS.md`.
 
-Die explizite Bundle-ID wurde über ein spezifisches Distributionsprofil bestätigt. Nach der Mitteilung hat der Nutzer den App-Store-Connect-App-Eintrag selbst angelegt. Noch kein TestFlight-Upload. Release-Archive und lokaler Export ersetzen die serverseitige Validierung nicht.
+Historisch wurde `de.linolaske.weather` über ein spezifisches Distributionsprofil bestätigt. Nach der Mitteilung hat der Nutzer den damaligen App-Store-Connect-App-Eintrag selbst angelegt. Der Build-2-Upload unter dieser alten ID wurde angenommen; Verarbeitung und interne Verfügbarkeit sind getrennt zu prüfen, siehe [Uploadbefund](testflight-upload.md).
 
 ## Export-Compliance des aktuellen Prototyps
 
@@ -81,4 +81,20 @@ Die explizite Bundle-ID wurde über ein spezifisches Distributionsprofil bestät
 
 Der Nutzer hat Variante B (Radar) aus dem Designcheckpoint `fd601e1` gewählt. Nur dieses vollständige native Icon-Composer-Package ist als `AppIcon.icon` im App-Target aktiv. Beide editierbaren Originalvarianten und die SVG-Kompositionen bleiben unter `design/Icon/` erhalten. Der verworfene ältere Entwurf wurde vollständig ersetzt.
 
-Die Integration ist mit Apples Asset-Kompilierung, Bundle-Metadaten und dem aktuellen signierten lokalen Release-Export belegt; Details und die Grenze der nicht möglichen Homescreen-GUI-Sichtung in [icon.md](icon.md). Noch kein Upload. Für die nächste Freigabe ausschließlich das neue Archiv mit Radar-Icon verwenden; das unabhängige begrenzte Release-Review ist ohne offene P1-/P2-Befunde oder erkannte Uploadblocker abgeschlossen. Der geprüfte Quellencheckpoint geht dem separaten Uploadauftrag voraus.
+Die Integration ist mit Apples Asset-Kompilierung, Bundle-Metadaten und dem damaligen signierten lokalen Release-Export belegt; Details und die Grenze der nicht möglichen Homescreen-GUI-Sichtung in [icon.md](icon.md). Der Build-2-Upload verwendet dieses Radar-Icon. Für spätere Freigaben ausschließlich passende geprüfte Archive verwenden; das unabhängige begrenzte Release-Review ist ohne offene P1-/P2-Befunde oder erkannte Uploadblocker abgeschlossen. Der geprüfte Quellencheckpoint geht dem separaten Uploadauftrag voraus.
+
+## Packaging und erster interner Upload
+
+Der erste Upload von `0.1.0 (1)` scheiterte mit Apple `90474`: Die tatsächliche Gerätefamilie ist `1,2`, da XcodeGen-Targetdefaults den Projektwert `1` überschreiben. Die enge Korrektur erhält diese Universal-Metadaten, ergänzt ausdrücklich alle vier iPad-Orientierungen und belässt die drei iPhone-Orientierungen; kein Fullscreen-Schalter oder Gerätefamilienwechsel zur Umgehung der Validierung. Buildnummer `2` unterscheidet den korrigierten Kandidaten eindeutig. Dies bleibt ein auf iPhone validierter Prototyp, keine eigenständige iPad-Freigabe oder angepasste iPad-Oberfläche.
+
+Quellencheckpoint `0f48cb5` ist unabhängig geprüft und veröffentlicht. Genau ein Upload von `0.1.0 (2)` über den vorhandenen offiziellen Xcode-Account wurde am 28. Oktober 2026 erfolgreich angenommen. Der belegte Endzustand ist `PROCESSING`; abgeschlossene Verarbeitung oder interne Gruppenzuordnung sind nicht belegt. Der Upload ist nur für interne TestFlight-Verteilung bestimmt. Kein zusätzlicher API-Schlüssel wurde vorausgesetzt, keine Zugangsdaten ausgelesen und keine Tester-/Rollenänderung vorgenommen. Details in [testflight-upload.md](testflight-upload.md).
+
+## Verbindliche Umbenennung in ShowerNow
+
+Nutzerentscheidung vom 28. Oktober 2026: App-Name **ShowerNow**, Bundle-ID ebenfalls ändern auf **`de.linolaske.showernow`**, Team bleibt `J2DU2P47XW`; Version `0.1.0`, Build `3`. Frühere Anweisungen zum Beibehalten von `de.linolaske.weather` sind überholt. Keine Funktions-/Designänderung; Radar-Icon und Packaging bleiben erhalten.
+
+Die alte ID bleibt ausschließlich historisch: Build 1 wurde mit `90474` abgelehnt; Build 2 wurde transportiert/angenommen (`PROCESSING`). Zusätzlich berichtet der Nutzer einen Namenskonflikt mit Weather. Kein Befund bestätigt einen nutzbaren TestFlight-Build. [Historische Uploadbefunde](testflight-upload.md).
+
+Ein lokaler Displayname und das ASC-Feld „Name“ sind getrennt. Apple beschreibt Einschränkungen für Bundle-ID-Änderungen an App-Datensätzen mit bereits zugeordnetem Upload; dies ordnet die historische Weather-Identität ein. Der Nutzer hat ausdrücklich bestätigt: „Die BundleID ist im Connecteintrag geändert.“ Der aktuelle ASC-Eintrag gilt damit für `de.linolaske.showernow` als bestätigt; ein weiterer neuer App-Datensatz ist keine Voraussetzung. Keine direkte Portalabfrage wurde durchgeführt. Agents ändern keine App-Datensätze, Rollen oder Tester. Das konkrete explizite Distributionsprofil belegt die neue ID. Das unabhängige Identity-Review ist ohne offene P1-/P2-Befunde abgeschlossen; vor dem separaten Upload bleibt der finale Quellencheckpoint. [Apple: Bundle-ID ändern](https://developer.apple.com/documentation/xcode/changing-the-bundle-identifier), [ASC-App-Informationen](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information), geprüft am 28. Oktober 2026.
+
+Der lokale ShowerNow-Release-Export ist erfolgreich: Das tatsächliche eingebettete Distributionsprofil bestätigt `J2DU2P47XW.de.linolaske.showernow`, Team `J2DU2P47XW`, `get-task-allow=false` und keine Geräteliste. Die neue explizite ID ist damit belegt; der Lead wurde sofort informiert. Der passende aktuelle ASC-Eintrag ist durch den Nutzer bestätigt. Der gezielte finale Metadatenfix setzt zusätzlich `CFBundleName` auf den zentralen Anzeigenamen ShowerNow; technische Produkt-/Modulnamen bleiben Weather.

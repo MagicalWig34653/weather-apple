@@ -9,7 +9,7 @@ Stand: 28. Oktober 2026. Nach Klärung der drei Einstiegsfragen ist der Beginn f
 - Swift/SwiftUI, MapKit und CoreLocation. Keine Konten, Werbung oder Analyse-SDKs. Karte unabhängig vom eigenen Backend.
 - Zielgeräte: iPhone 17 Pro und 18 Pro, Apple Watch Ultra und Apple-Silicon-Macs; Betriebssysteme jeweils 27er-Versionen. Zunächst keine ältere Systemunterstützung. Konkrete iPad-Testhardware noch nicht benannt; Simulatorprüfung vorsehen.
 - Erster interner TestFlight-Build: brauchbare iPhone-App. Widgets und Watch direkt danach ergänzen; keine Voraussetzung für den ersten Build.
-- Name Weather und Haupt-Bundle-ID de.linolaske.weather dürfen auch für den ersten TestFlight-Eintrag verwendet werden. Team J2DU2P47XW vor Signing bestätigen. Endgültige Umbenennung später explizit planen.
+- Verbindliche aktuelle Identität: ShowerNow, Haupt-Bundle-ID `de.linolaske.showernow`, Team `J2DU2P47XW`, Version `0.1.0 (3)`. Technisches Projekt/Module und Ordner dürfen Weather/weather bleiben. Frühere Freigaben der Weather-Identität sind überholt. Der Nutzer hat die neue Bundle-ID im aktuellen App-Store-Connect-Eintrag bestätigt. Nach finalem Quellencheckpoint folgt der separate Upload.
 
 ## 1. Datenkette validieren — aktueller Arbeitsschritt
 
@@ -34,7 +34,7 @@ Reproduzierbares Xcode-Projekt mit vorläufigen Kennungen, zentral konfigurierba
 
 ## 3. Erster interner TestFlight-Build
 
-Team/Signing lokal prüfen; keine Schlüssel oder Profile committen. Interne Verteilung unter vorläufiger Identität vorbereiten, reale Verfügbarkeit von Zugang und App-Store-Connect-Rechten prüfen. Buildnummer, Datenschutz-/Quellenhinweise, bekannte Grenzen und kurze Testanleitung dokumentieren. Erforderliche Erklärungen nicht ungeprüft beantworten.
+Team/Signing lokal prüfen; keine Schlüssel oder Profile committen. Interne Verteilung unter der bestätigten ShowerNow-Identität vorbereiten, reale Verfügbarkeit von Zugang und App-Store-Connect-Rechten prüfen. Buildnummer, Datenschutz-/Quellenhinweise, bekannte Grenzen und kurze Testanleitung dokumentieren. Erforderliche Erklärungen nicht ungeprüft beantworten.
 
 **Abnahme:** Archive-/Validierungsergebnis und interner TestFlight-Status dokumentiert. Wenn Zugang fehlt, genau den verbleibenden manuellen Schritt dokumentieren. Alltagstest durch Nutzer und Vater; Regenereignisse, Datenalter und Bedienprobleme ohne private Standortdaten im öffentlichen Repo auswerten.
 

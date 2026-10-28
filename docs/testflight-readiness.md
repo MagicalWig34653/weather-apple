@@ -1,21 +1,22 @@
 # Readiness: erster interner iPhone-TestFlight-Build
 
-Stand: 28. Oktober 2026. Aktualisiert nach dem ersten abgewiesenen Upload und dem gezielten Packaging-Fix für Build `2`. Ursprünglicher Serverbefund in [testflight-upload.md](testflight-upload.md); keine Portaländerungen oder zusätzlichen Compliance-Antworten.
+Stand: 28. Oktober 2026. Aktueller Kandidat: **ShowerNow `0.1.0 (3)`**, `de.linolaske.showernow`, Team `J2DU2P47XW`. Neue Nutzerentscheidung ersetzt die vorläufige Weather-Identität. Historische Uploadbefunde bleiben in [testflight-upload.md](testflight-upload.md).
 
 ## Aktuelle Einordnung
 
-Der erste iPhone-Prototyp ist ein sinnvoller Kandidat für einen frühen internen Alltagstest, nach abgeschlossener QA, Radar-Icon-Integration und unabhängigem Release-Review. Er ist keine vollständige v1. Der Nutzer hat den App-Store-Connect-App-Eintrag selbst angelegt. Explizite Bundle-ID und lokaler Distributionsweg sind in [signing.md](signing.md) belegt; daraus folgt noch kein erfolgreicher Upload.
+Der frühe iPhone-Prototyp hat 12 grüne Datentests und 2 grüne UI-Flows aus den bisherigen gezielten QA-Läufen, ein natives Radar-Icon und korrigierte Universal-Metadaten. Keine Funktionsänderung durch die Umbenennung; keine volle Testsuite dafür wiederholen.
 
-| Schritt | Stand bei dieser Prüfung | Vor dem ersten internen Build |
+| Schritt | Aktueller Stand | Noch erforderlich |
 |---|---|---|
-| App-Eintrag, Bundle-ID und Team | Vom Nutzer angelegt; spezifisches Profil bestätigt | Im aktuellen Radar-Archiv und Export bestätigt |
-| Bedienabläufe und Refresh-Fixes | Zwölf Datentests, Info-Smoke und abschließender CRUD-Rerun grün; unabhängiges Review ohne offene P1/P2 | Unabhängiges Release-Review ohne offene P1/P2 oder erkannte Uploadblocker abgeschlossen |
-| App-Icon | Gewähltes Radar-`.icon` als einziges natives AppIcon integriert; Archiv-/Export-Assets und PNG geprüft | Homescreen auf physischem iPhone prüfen; Simulator-GUI nicht gesichtet |
-| Version/Buildnummer | Neuer Kandidat `0.1.0` / `2`; Build `1` wurde serverseitig abgelehnt | Nur neues Archiv verwenden; neuer Upload bleibt offen |
-| Export-Compliance | `ITSAppUsesNonExemptEncryption=false` begründet gesetzt und Plist geprüft | Bei Änderungen an Kryptografie/SDKs erneut bewerten |
-| Neues Release-Archiv | Build `2` nach Packaging-Fix erfolgreich archiviert/lokal exportiert; IPA-Metadaten, Signaturen und explizites Profil geprüft | Frischer unabhängiger Quellen-/Metadatencheckpoint erfolgreich; separater Upload und Servervalidierung offen |
-| Servervalidierung und Verarbeitung | Build `1`: Apple `90474`, fehlendes PortraitUpsideDown für iPad-Multitasking; keine abgeschlossene Verarbeitung | Build `2` nach Quellencheckpoint separat hochladen; Annahme und Verarbeitung getrennt belegen |
-| Interne Gruppe/Tester | Nicht geprüft | Berechtigte App-Store-Connect-Nutzer und Build-Zuordnung prüfen |
+| Produktidentität | ShowerNow / `de.linolaske.showernow`, `0.1.0 (3)` bestätigt; unabhängiges Identity-Review ohne offene P1/P2 | Finalen Metadaten-/Quellencheckpoint abschließen |
+| Bundle-ID/Signing | Neue explizite ID durch tatsächliches spezifisches Distributionsprofil belegt | Nachweis in [signing.md](signing.md); kein zusätzliches Signing-Gate |
+| Aktueller ASC-App-Datensatz | Nutzer bestätigt die geänderte Bundle-ID im Connecteintrag | Kein weiterer neuer Datensatz erforderlich |
+| Review/Checkpoint | Historischer Quellencheckpoint `0f48cb5`; neues Identity-Review grün | Finalen Quellencheckpoint veröffentlichen |
+| Icon/Packaging | Radar-AppIcon, Universal-Familie `[1,2]`, vier iPad-/drei iPhone-Orientierungen bleiben erhalten | Neue IPA-Metadaten/Signaturen und native Assets geprüft; Homescreen auf physischem iPhone prüfen |
+| Export-Compliance | Begründetes `ITSAppUsesNonExemptEncryption=false` bleibt erhalten | Bei Kryptografie-/SDK-Änderung erneut bewerten |
+| Upload/TestFlight | Neue Identität noch nicht hochgeladen | Nach finalem Quellencheckpoint separaten Upload, Verarbeitung und interne Verfügbarkeit belegen |
+
+Historisch: Build 1 unter `de.linolaske.weather` wurde mit `90474` abgelehnt; Build 2 wurde angenommen (`PROCESSING`). Nutzer meldet zusätzlich Weather-Namenskonflikt. Dies belegt keinen nutzbaren TestFlight-Build.
 
 Apple nennt das App-Icon ausdrücklich als Bestandteil der Uploadvalidierung. Icon Composer ist dafür ein unterstützter Weg; eine bloß im Repo liegende, nicht im Target verwendete Datei genügt nicht. [Vorbereitung der Distribution](https://help.apple.com/xcode/mac/current/en.lproj/dev91fe7130a.html), [App-Icon in App Store Connect](https://developer.apple.com/help/app-store-connect/manage-app-information/add-an-app-icon/).
 
@@ -76,14 +77,8 @@ Nach erfolgreicher Verarbeitung muss der konkrete Build der internen Gruppe zuge
 
 Gelegentliche transparent gemeldete Kachelfehler, breitere NoData-/Zellrandfalltests, Energie-/Cachemessungen und präzisere Regenendeformulierungen bleiben Qualitätsarbeit. Der korrigierte Retry und der Kernablauf müssen vor Upload funktionieren; verbleibende Grenzen gehören in die Testhinweise. Widgets, Watch, angepasste iPad-/Mac-Oberflächen, Backend und automatische Regenwarnungen sind keine Voraussetzung dieses ersten internen iPhone-Builds.
 
-Die vorläufige Identität ist ausdrücklich auch für TestFlight freigegeben. Wichtig für die geplante spätere Umbenennung: Nach dem ersten Upload lässt sich die Bundle-ID im bestehenden App-Store-Connect-Eintrag nicht einfach austauschen. Eine andere Bundle-ID verlangt einen entsprechend neuen App-Eintrag; Displayname und endgültige Markenentscheidung sind davon zu unterscheiden. [Apple: Distribution vorbereiten](https://help.apple.com/xcode/mac/current/en.lproj/dev91fe7130a.html).
+Der lokale Displayname ShowerNow, `CFBundleName` und das ASC-Feld Name sind getrennt. Apple beschreibt Einschränkungen für die Bundle-ID eines ASC-Eintrags mit bereits zugeordnetem Upload; dies betrifft die historische Einordnung. Der Nutzer bestätigt die geänderte Bundle-ID im aktuellen Connecteintrag; dieser gilt für `de.linolaske.showernow` als bestätigt. Kein weiterer neuer App-Datensatz wird verlangt. Keine direkte Portalabfrage wurde durchgeführt. [Apple: Bundle-ID ändern](https://developer.apple.com/documentation/xcode/changing-the-bundle-identifier), [ASC-App-Informationen](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information), geprüft am 28. Oktober 2026.
 
 ## Konkreter nächster Auftrag
 
-Build `1` wurde wegen unvollständiger iPad-Orientierungen abgelehnt. Der minimale Fix erhält die tatsächlich konfigurierte Gerätefamilie `1,2`, ergänzt `UISupportedInterfaceOrientations~ipad` vollständig und erhöht die Buildnummer auf `2`. Der Projektwert `TARGETED_DEVICE_FAMILY=1` wurde im generierten Projekt durch XcodeGen-Targetdefaults `1,2` überschrieben; kein Gerätefamilienwechsel oder `UIRequiresFullScreen` zur Validierungsumgehung.
-
-Neues Release-Archiv und lokaler `destination=export`-Export mit Automatic Signing sind erfolgreich. Assertions an der tatsächlichen IPA bestätigen `0.1.0 (2)`, `UIDeviceFamily=[1,2]`, alle vier iPad-Orientierungen, unveränderte drei iPhone-Orientierungen, Compliance `false` und `CFBundleIconName=AppIcon` für beide Gerätefamilien; native Assets enthalten IconImageStack/IconGroup. Archiv-/IPA-App bestehen `codesign --verify --deep --strict`. Das Distributionsprofil enthält die explizite ID `J2DU2P47XW.de.linolaske.weather`, `get-task-allow=false` und keine Geräteliste. Quellenkopiegleichheit und `plutil` geprüft; keine volle Unit-/UI-Suite für den reinen Packaging-Fix wiederholt. iPad-kompatible Metadaten, auf iPhone validierter Prototyp; keine eigenständige iPad-Freigabe.
-
-Der frische unabhängige Checkpoint bestätigt zusätzlich die IPA-Prüfsumme und bytegleiche `Info.plist`/`Base.xcconfig` zur Archivquellenkopie; keine offenen P1/P2 im begrenzten Konfigurationsreview. Keine Builds, Exporte oder Tests dafür wiederholt.
-
-Nach Veröffentlichung des neuen Quellencheckpoints führt ein separater Release-Agent den autorisierten internen Upload mit dem neuen Archiv `0.1.0 (2)` aus. „Upload angenommen“, „Verarbeitung abgeschlossen“ und „für interne Gruppe verfügbar“ bleiben getrennt zu belegen. Lokaler Export ist keine Apple-Serverfreigabe.
+Build-/Profilnachweis und unabhängiges Identity-Review sind erfolgreich; der Nutzer hat den aktuellen ASC-Eintrag auf neuer ID bestätigt. Den gezielten finalen Metadatenfix für `CFBundleName=ShowerNow` mit dem aktuellen Archiv-/Exportbeleg im Quellencheckpoint veröffentlichen. Danach führt der separate Release-Agent den autorisierten Upload ausschließlich mit dem aktuellen geprüften ShowerNow-Archiv aus. Alte Archive nicht erneut versuchen. „Upload angenommen“, „Verarbeitung abgeschlossen“ und „intern verfügbar“ bleiben getrennt zu belegen.

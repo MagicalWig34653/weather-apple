@@ -1,25 +1,22 @@
 # Apple-Signing und Bundle-ID
 
-Stand: 28. Oktober 2026. Tatsächlich ausgeführte lokale Builds; kein Upload und kein App-Store-Connect-App-Datensatz durch Agents.
+Stand: 28. Oktober 2026. Aktuelle Identität ist **ShowerNow**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, Version **`0.1.0 (3)`**. Gezielter Simulatorbuild, signiertes Release-Archiv und lokaler Export erfolgreich. Der Nutzer hat die Umstellung seines ASC-App-Datensatzes auf die neue ID bestätigt; Build 3 wurde noch nicht hochgeladen.
 
-## Bestätigter aktueller Zustand
+## Aktueller Nachweis und klare Grenzen
 
-- Release-Archivierung mit automatischem Signing und `-allowProvisioningUpdates` erfolgreich (`ARCHIVE SUCCEEDED`).
-- Lokaler Export mit Methode `app-store-connect`, `signingStyle=automatic` und ausdrücklich `destination=export` erfolgreich (`EXPORT SUCCEEDED`).
-- Exportierte IPA trägt Bundle-ID **`de.linolaske.weather`**.
-- Das eingebettete Distributionsprofil enthält **`J2DU2P47XW.de.linolaske.weather` als expliziten `application-identifier`** und bestätigt Team `J2DU2P47XW`.
-- Im exportierten Profil ist `get-task-allow=false`; es enthält keine Liste registrierter Testgeräte. Dies entspricht dem geprüften App-Store-Distributionsweg.
-- Sowohl Archiv-App als auch exportierte IPA-App bestanden `codesign --verify --deep --strict`.
-- Damit ist die explizite App-ID über den Build-/Exportweg nachgewiesen. Der frühere Development-Build verwendete nur `J2DU2P47XW.*`; dieser ältere Wildcard-Befund ist durch den spezifischen Distributionsnachweis ergänzt.
+Der Simulatorbuild bestätigt neue Bundle-ID, Displayname und Version/Build. Ein Projektsetting oder altes Weather-Profil belegt keine neue explizite ID. Für die neue Identität ist der spezifische `application-identifier` `J2DU2P47XW.de.linolaske.showernow` im tatsächlichen Distributionsprofil maßgeblich. Der lokale `app-store-connect`-Export ist erfolgreich; das tatsächlich eingebettete Profil bestätigt genau diesen expliziten Identifier und Team `J2DU2P47XW`, `get-task-allow=false`, ohne `ProvisionedDevices`. Die neue explizite ID wurde sofort dem Lead gemeldet. Ein bestehender ASC-App-Datensatz war für den lokalen Export nicht erforderlich.
 
-**Die explizite ID ist jetzt belegt; die tatsächliche Sichtbarkeit im Bundle-ID-Auswahlfeld von App Store Connect wurde nicht direkt geprüft.** Dafür war in dieser Umgebung kein authentifizierter Browser-/Portalzugang verfügbar. Der Nutzer kann nun bei der App-Anlage `de.linolaske.weather` auswählen beziehungsweise die Sichtbarkeit prüfen. Keine Auswahlverfügbarkeit allein aus einer Projektdatei oder dem früheren Wildcard-Profil behaupten.
+Das nach dem gezielten Bundle-Name-Fix neu erzeugte Release-Archiv (`ARCHIVE SUCCEEDED`) und der lokale Export (`EXPORT SUCCEEDED`) bestätigen in der tatsächlichen IPA **`CFBundleName=ShowerNow` und `CFBundleDisplayName=ShowerNow`**, `de.linolaske.showernow`, `0.1.0 (3)`, `UIDeviceFamily=[1,2]`, vier iPad-/drei iPhone-Orientierungen, Compliance `false` und `CFBundleIconName=AppIcon` für beide Familien; native Assets enthalten IconImageStack und IconGroup. Beide Apps bestehen `codesign --verify --deep --strict`. Alle 24 kopierten App-/Test-/Projekt-/Konfigurationsdateien stimmen bytegleich mit der isolierten Archivquellenkopie überein. Das Development-Wildcardprofil im Archiv ist vom expliziten Distributionsprofil der IPA zu unterscheiden und kein Fehler. Kein Upload, keine volle Unit-/UI-Suite und keine neue physische/HomeScreen-Prüfung ausgeführt. IPA-SHA-256: `07a33550538cd9dadbed6ff61f2d0677d78ef47365303f69a992d6ebb32f9215`.
 
-## Zuständigkeit und verbleibende Schritte
+## ASC-Zuständigkeit und historische Identität
 
-1. Nutzer wurde über den erfolgreichen expliziten Build-/Exportnachweis informiert.
-2. Nutzer hat bestätigt, dass er den App-Datensatz in App Store Connect selbst angelegt hat; kein Agent hat einen Datensatz erstellt.
-3. Die App vor TestFlight weiter vervollständigen: insbesondere App-Icon, erforderliche Store-/Datenschutzinformationen und realen Gerätetest prüfen. Der aktuelle lokale Export ist noch kein geprüfter TestFlight-Upload und keine vollständige Store-Validierung.
-4. Erst anschließend einen autorisierten Upload durchführen. Es wurde bislang nichts hochgeladen.
+Der Nutzer hat bestätigt, seinen ASC-App-Datensatz auf `de.linolaske.showernow` umgestellt zu haben. Dies ist eine Nutzerbestätigung; eine direkte Portalabfrage wurde nicht vorgenommen. Ein neuer Datensatz wird deshalb nicht weiter als offener Blocker geführt. Apples allgemeine Einschränkung gilt bedingt: Sobald für einen konkreten ASC-Datensatz bereits ein Build hochgeladen wurde, ist dessen Bundle-ID nicht mehr editierbar. Daraus wird keine gegenteilige Aussage über die vom Nutzer beobachtete Umstellung abgeleitet. [ASC-App-Informationen](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information), geprüft am 28. Oktober 2026.
+
+Die Namensfelder sind getrennt: ASC **Name** ist die Store-Metadatenangabe und muss Apples Anforderung eines eindeutigen App-Namens erfüllen; `CFBundleDisplayName` bezeichnet den Gerätenamen, `CFBundleName` den kurzen, ebenfalls potenziell sichtbaren Bundle-Namen. Die bisherige tatsächliche IPA hatte Displayname ShowerNow, aber Bundle-Name Weather. Der gezielte Plist-Fix bindet nun beide Namen an `WEATHER_DISPLAY_NAME`; Executable, Produktname und Swift-Modul bleiben Weather. Dieser lokale Fix belegt weder ASC-Namensverfügbarkeit noch die Behebung des gemeldeten ASC-Namenskonflikts. [Apple: App Review 2.3.7](https://developer.apple.com/app-store/review/guidelines/#accurate-metadata), [Bundle-Namen](https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html), [Geräte-/Store-Namen](https://developer.apple.com/library/archive/qa/qa1892/_index.html), geprüft am 28. Oktober 2026.
+
+Historisch belegt ist das explizite alte Profil `J2DU2P47XW.de.linolaske.weather`. Build `0.1.0 (1)` wurde mit `90474` abgelehnt. Build `0.1.0 (2)` zu `0f48cb5` wurde am 28. Oktober 2026 einmal ohne Transport-/Validierungsfehler angenommen; letzter Serverstatus `PROCESSING`. Zusätzlich berichtet der Nutzer einen Namenskonflikt mit Weather. Dies ist kein Nachweis eines nutzbaren TestFlight-Builds. [Unveränderte Uploadbefunde](testflight-upload.md).
+
+Das bisherige Identity-Review ist ohne offene P1-/P2-Befunde abgeschlossen. Der ergänzende Bundle-Name-Nachweis ist abgeschlossen. Nach einem frischen geprüften Quellencheckpoint kann ein separater autorisierter Upload des neuen Archivs erfolgen. Keine Accounts, App-Datensätze, Rollen, Gruppen oder Tester werden in diesem Auftrag geändert. Physische Prüfung danach gemäß [internal-testing.md](internal-testing.md).
 
 ## Ausgeführter Weg
 

@@ -1,12 +1,12 @@
-# Weather — Apple-App
+# ShowerNow — Apple-App
 
-Native, datensparsame Regen-App mit SwiftUI und MapKit. Arbeitsname und technische Kennungen sind vorläufig.
+Native, datensparsame Regen-App mit SwiftUI und MapKit. Produktname: ShowerNow, Bundle-ID: `de.linolaske.showernow`, Team: `J2DU2P47XW`. Technisches Projekt und Swift-Module heißen weiterhin `Weather`.
 
 ## Aktueller Stand
 
 Der erste iPhone-Prototyp enthält Radarkarte und Zeitleiste, direkte DWD-Ortsprognose, lokale Orte, Ortssuche und optionalen Standortzugriff bei Nutzung. Es gibt kein eigenes Backend, keine Benutzerkonten und keine Werbung. Datenalter, Messung/Vorhersage sowie fehlende Daten werden unterschieden.
 
-Der Stand ist noch keine vollständige Version 1 und noch nicht in TestFlight veröffentlicht. Widgets, Watch, angepasste iPad-/Mac-Oberflächen und Push folgen gemäß [Entwicklungsplan](docs/plan.md). Tatsächlich ausgeführte Prüfungen und offene Punkte stehen im [Arbeitsstatus](docs/status.md).
+Der Stand ist noch keine vollständige Version 1. Aktueller Kandidat ist ShowerNow `0.1.0 (3)` mit neuer Bundle-ID. Der Nutzer hat die Umstellung seines App-Store-Connect-Eintrags auf die neue Bundle-ID bestätigt. Das unabhängige Identity-Review ist grün; der finale Quellencheckpoint und der separate Upload stehen noch aus. Historisch wurde Build `0.1.0 (2)` unter `de.linolaske.weather` zum Upload angenommen (`PROCESSING`); zusätzlich meldet der Nutzer einen Namenskonflikt mit Weather. Daraus folgt kein nutzbarer TestFlight-Build. Widgets, Watch, angepasste iPad-/Mac-Oberflächen und Push folgen gemäß [Entwicklungsplan](docs/plan.md). Tatsächlich ausgeführte Prüfungen und offene Punkte stehen im [Arbeitsstatus](docs/status.md).
 
 ## Projekt öffnen und prüfen
 
@@ -38,6 +38,7 @@ Bei anderem Simulator dessen vorhandenen Namen einsetzen. UI-Tests legen nur eig
 ## Dokumentation
 
 - [Arbeitsstand und nächste Schritte](docs/status.md)
+- [Uploadbefund](docs/testflight-upload.md) und [interne iPhone-Testanleitung](docs/internal-testing.md)
 - [Entwicklungsplan](docs/plan.md)
 - [Aktuelle Entscheidungen](docs/decisions.md)
 - [DWD-Datenvertrag und Grenzen](docs/data-contract.md)
