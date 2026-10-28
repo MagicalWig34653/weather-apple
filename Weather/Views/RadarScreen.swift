@@ -9,9 +9,10 @@ struct RadarScreen: View {
     @State private var sheet: Sheet?
     @State private var showSave = false
     @State private var placeName = ""
-    @State private var tileFailed = false
+    @State private var radarLoadState: RadarLoadState?
+    @State private var refreshTapFeedback = false
     @State private var displayNow = Date()
-    @State private var mapBottomInset: CGFloat = 300
+    @State private var mapBottomInset: CGFloat = 70
 
     private enum Sheet: String, Identifiable {
         case places, details, information
@@ -25,12 +26,18 @@ struct RadarScreen: View {
                      reloadRevision: store.radarReloadRevision,
                      bottomInset: mapBottomInset,
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
-                     onTileError: { tileFailed = true })
+                     onLoadState: { state in
+                         guard state.frameDate == store.frameDate, state.referenceTime == store.frameReference,
+                               state.reloadRevision == store.radarReloadRevision else { return }
+                         radarLoadState = state
+                         store.acceptRadarLoadState(state)
+                     })
                 .ignoresSafeArea()
                 .accessibilityLabel("Regenradar für \(store.selectedPlace.name)")
                 .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
             VStack(spacing: 10) {
                 header
+                forecastCard
                 if let message = statusMessage {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
@@ -57,17 +64,13 @@ struct RadarScreen: View {
             .padding(.top, 8)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            GlassEffectContainer(spacing: 6) {
-                VStack(spacing: 10) {
-                    forecastCard
-                    timeline
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 8)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapBottomInset = $0 }
+            timeline
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapBottomInset = $0 }
         }
+
         .sheet(item: $sheet) { item in
             switch item {
             case .places: PlacesSheet(store: store)
@@ -82,11 +85,26 @@ struct RadarScreen: View {
         } message: { Text("Name und Koordinaten werden nur auf diesem Gerät gespeichert.") }
         .task(id: store.isPlaying) {
             guard store.isPlaying else { return }
+            var waitingFrame = store.frameDate
+            var waitingSince = Date()
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .milliseconds(reduceMotion ? 3000 : 2000)) }
                 catch { return }
                 guard let timeline = store.timeline, !timeline.dates.isEmpty else { return }
+                if waitingFrame != store.frameDate {
+                    waitingFrame = store.frameDate
+                    waitingSince = Date()
+                }
+                if let load = currentRadarLoadState, load.shouldStopPlayback {
+                    store.isPlaying = false
+                    return
+                }
+                // Wait for actual requests, but keep offline/no-event frames from stalling playback forever.
+                let frameFinished = currentRadarLoadState.map { $0.requested > 0 && $0.pending == 0 } ?? false
+                guard frameFinished || Date().timeIntervalSince(waitingSince) >= 12 else { continue }
                 store.selectedFrame = (store.selectedFrame + 1) % timeline.dates.count
+                waitingFrame = store.frameDate
+                waitingSince = Date()
             }
         }
         .task(id: scenePhase) {
@@ -103,16 +121,17 @@ struct RadarScreen: View {
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { store.isPlaying = false }
         }
-        .onChange(of: store.timeline?.referenceTime) { _, _ in tileFailed = false }
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
+        (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 12))) {
             Button { sheet = .places } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "cloud.rain.fill").font(.title2).foregroundStyle(.cyan)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(store.selectedPlace.name).font(.headline).lineLimit(1)
+                        Text(store.selectedPlace.name).font(.headline)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                            .fixedSize(horizontal: false, vertical: true)
                         if !dynamicTypeSize.isAccessibilitySize {
                             Text("Regenradar").font(.caption).foregroundStyle(.secondary)
                         }
@@ -122,127 +141,228 @@ struct RadarScreen: View {
                 .padding(.horizontal, 16).padding(.vertical, 11)
                 .glassEffect(.regular, in: Capsule())
             }.buttonStyle(.plain).accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
-            Spacer(minLength: 0)
-            Button {
-                store.isPlaying = false
-                tileFailed = false
-                Task { await store.refresh() }
-            } label: {
-                Group {
-                    if store.isLoading { ProgressView() }
-                    else { Image(systemName: "arrow.clockwise").font(.system(size: 20)) }
-                }.frame(width: 46, height: 46)
-                    .glassEffect(.regular.interactive(), in: Circle())
-            }.buttonStyle(.plain).disabled(store.isLoading).accessibilityLabel("Wetterdaten aktualisieren")
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+            refreshControl
+
         }
     }
 
+    private var currentRadarLoadState: RadarLoadState? {
+        guard let state = radarLoadState,
+              state.frameDate == store.frameDate,
+              state.referenceTime == store.frameReference,
+              state.reloadRevision == store.radarReloadRevision else { return nil }
+        return state
+    }
+
+    private var radarIsLoading: Bool {
+        if store.isRadarLoading { return true }
+        if let state = currentRadarLoadState { return !state.isSettled }
+        return refreshTapFeedback || (store.radarError == nil && store.timeline != nil)
+    }
+
+    private var refreshAccessibilityStatus: String {
+        if store.isRadarLoading { return "Radar-Datenstand wird aktualisiert" }
+        if refreshTapFeedback && currentRadarLoadState == nil { return "Radar wird aktualisiert" }
+        if let error = store.radarError { return "Radar konnte nicht aktualisiert werden: \(error). Erneut versuchen." }
+        guard let state = currentRadarLoadState else { return "Radar wartet auf Kartendaten" }
+        let bytes = ByteCountFormatter.string(fromByteCount: state.receivedBodyBytes, countStyle: .file)
+        if state.failed > 0 { return "\(state.failed) Radarkacheln fehlen, \(state.succeeded) geladen. \(bytes) empfangen. Erneut versuchen." }
+        if state.pending > 0 { return "Radar lädt. \(state.succeeded) Kacheln empfangen, \(state.pending) Anfragen offen. \(bytes) empfangen." }
+        if state.requested == 0 && state.isViewportIdle { return "Für diesen Kartenausschnitt wurden keine neuen Radarkacheln angefordert." }
+        if state.requested == 0 { return "Radar wartet auf Kachelanfragen" }
+        let pointStatus = store.isForecastLoading ? "lädt noch" : store.forecastError != nil ? "nicht aktualisiert" : store.forecast != nil ? "verfügbar" : "nicht verfügbar"
+        let cacheStatus = state.receivedBodyBytes == 0 && state.cacheHits > 0 && state.cacheHits == state.succeeded ? " Aus dem Zwischenspeicher, kein neuer Radar-Download." : " \(bytes) empfangen."
+        return "\(state.succeeded) angeforderte Radarkacheln geladen.\(cacheStatus) Ortsprognose \(pointStatus)."
+    }
+
+    private var radarTransferLabel: String {
+        guard let state = currentRadarLoadState else { return "Radar" }
+        if state.isSettled && state.failed == 0 && state.cacheHits > 0 && state.cacheHits == state.succeeded && state.receivedBodyBytes == 0 { return "Radar · Cache" }
+        guard state.receivedBodyBytes > 0 else { return "Radar" }
+        if state.receivedBodyBytes < 100_000 {
+            let kilobytes = Double(state.receivedBodyBytes) / 1_000
+            return "Radar · \(kilobytes.formatted(.number.precision(.fractionLength(1)))) kB"
+        }
+        let megabytes = Double(state.receivedBodyBytes) / 1_000_000
+        return "Radar · \(megabytes.formatted(.number.precision(.fractionLength(1)))) MB"
+    }
+
+    private var refreshControl: some View {
+        Button {
+            store.isPlaying = false
+            radarLoadState = nil
+            refreshTapFeedback = true
+            Task { await store.refresh() }
+            // Keep immediate tap acknowledgement visible even when all metadata is cached.
+            Task {
+                try? await Task.sleep(for: .milliseconds(600))
+                refreshTapFeedback = false
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(radarTransferLabel)
+                    .font(.caption.weight(.medium))
+                    .fixedSize(horizontal: true, vertical: true)
+                ZStack {
+                    if radarIsLoading {
+                        if reduceMotion {
+                            Image(systemName: "arrow.down.circle").font(.system(size: 18))
+                        } else {
+                            ProgressView().controlSize(.small)
+                        }
+                    } else {
+                        Image(systemName: (currentRadarLoadState?.failed ?? 0) > 0 || store.radarError != nil ? "exclamationmark.arrow.circlepath" : currentRadarLoadState?.isSettled == true && (currentRadarLoadState?.succeeded ?? 0) > 0 ? "checkmark" : "arrow.clockwise")
+                            .font(.system(size: 18))
+                    }
+                }
+                .frame(width: 28, height: 28)
+                .overlay { Circle().strokeBorder(.secondary.opacity(0.35), lineWidth: 1) }
+            }
+            .padding(.horizontal, 10)
+            .frame(minHeight: 44)
+            .glassEffect(.regular.interactive(), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(refreshTapFeedback || store.isRadarLoading)
+        .accessibilityLabel("Wetterdaten aktualisieren")
+        .accessibilityValue(refreshAccessibilityStatus)
+        .accessibilityHint("Empfangene Datenmenge nur für DWD-Radarantworten dieses Karten-Ladevorgangs; ohne Grundkarte und Ortsprognose")
+        .accessibilityIdentifier("radar-refresh")
+    }
+
     private var timeline: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Button { store.isPlaying.toggle() } label: {
-                    Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .disabled(store.timeline == nil)
-                .accessibilityLabel(store.isPlaying ? "Animation pausieren" : "Radaranimation starten")
-                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout(spacing: 6))) {
-                    if let date = store.frameDate {
-                        Text(date, style: .time).font(.headline).monospacedDigit()
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 4) {
+                    frameLabel
+                    HStack(spacing: 12) {
+                        playButton
+                        timeSlider
+                        nowButton
                     }
-                    Text(store.isForecastFrame ? "Vorhersage" : "Messung")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(store.isForecastFrame ? .orange : .cyan)
                 }
-                .accessibilityElement(children: .combine)
-                Spacer(minLength: 0)
-                if let timeline = store.timeline {
-                    Button("Jetzt") {
-                        store.isPlaying = false
-                        store.selectedFrame = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minWidth: 44, minHeight: 44)
+            } else {
+                HStack(spacing: 8) {
+                    playButton
+                    timeSlider
+                    frameLabel
+                    nowButton
                 }
             }
-            if let timeline = store.timeline, timeline.dates.count > 1 {
-                Slider(value: Binding(get: { Double(store.selectedFrame) }, set: {
-                    store.isPlaying = false
-                    store.selectedFrame = Int($0)
-                }), in: 0...Double(timeline.dates.count - 1), step: 1)
-                .accessibilityLabel("Radarzeitpunkt")
-                .accessibilityValue("\(store.frameDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(store.isForecastFrame ? "Vorhersage" : "Messung")")
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
+        .accessibilityIdentifier("radar-timeline")
+    }
+
+    private var playButton: some View {
+        Button { store.isPlaying.toggle() } label: {
+            Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(store.timeline == nil)
+        .accessibilityLabel(store.isPlaying ? "Animation pausieren" : "Radaranimation starten")
+    }
+
+    private var frameLabel: some View {
+        VStack(spacing: 0) {
+            if let date = store.frameDate {
+                Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit()
+            }
+            Text(store.isForecastFrame ? "Vorhersage" : "Messung")
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(store.isForecastFrame ? .orange : .cyan)
+        }
+        .fixedSize(horizontal: true, vertical: true)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("radar-frame-label")
+    }
+
+    @ViewBuilder private var nowButton: some View {
+        if let timeline = store.timeline {
+            Button {
+                store.isPlaying = false
+                store.selectedFrame = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
+            } label: {
+                Text("Jetzt").font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: true, vertical: true)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder private var timeSlider: some View {
+        if let timeline = store.timeline, timeline.dates.count > 1 {
+            Slider(value: Binding(get: { Double(store.selectedFrame) }, set: {
+                store.isPlaying = false
+                store.selectedFrame = Int($0)
+            }), in: 0...Double(timeline.dates.count - 1), step: 1)
+            .frame(minWidth: 50, minHeight: 44)
+            .overlay(alignment: .bottom) {
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
                         Color.cyan.frame(width: geometry.size.width * boundary)
                         Color.orange
-                    }.clipShape(Capsule())
-                    Rectangle().fill(.primary).frame(width: 2, height: 7)
-                        .offset(x: max(0, geometry.size.width * boundary - 1), y: -2)
+                    }
+                    .clipShape(Capsule())
+                    Rectangle().fill(.primary).frame(width: 2, height: 5)
+                        .offset(x: max(0, geometry.size.width * boundary - 1), y: -1)
                 }
-                .frame(height: 3)
-                .accessibilityLabel("Grenze zwischen Messung und Vorhersage")
-                HStack {
-                    Text(timeline.dates.first!, style: .time)
-                    Spacer()
-                    Text(timeline.dates.last!, style: .time)
-                }
-                .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
-                .padding(.top, 6)
-            } else {
-                Text(store.isLoading ? "Radar wird geladen …" : "Keine Radarzeitpunkte verfügbar")
-                    .font(.caption).foregroundStyle(.secondary).padding(.bottom, 6)
+                .frame(height: 2)
+                .padding(.horizontal, 2)
+                .accessibilityHidden(true)
+                .allowsHitTesting(false)
             }
+            .accessibilityLabel("Radarzeitpunkt")
+            .accessibilityValue("\(store.frameDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(store.isForecastFrame ? "Vorhersage" : "Messung")")
+            .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .omitted, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened))")
+        } else {
+            Text(store.isLoading ? "Radar lädt …" : "Keine Radarzeiten")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28))
     }
 
     private var forecastCard: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             Button { sheet = .details } label: {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(forecastHeadline)
-                            .font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.bold)).foregroundStyle(.secondary)
-                    }
-                    if let reference = store.forecast?.referenceTime ?? store.timeline?.referenceTime {
-                        Text("DWD · \(reference.formatted(date: .omitted, time: .shortened)) · \(age(reference))")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    } else {
-                        Text("Kurzfristige Ortsprognose").font(.caption2).foregroundStyle(.secondary)
-                    }
+                HStack(spacing: 6) {
+                    Text(dynamicTypeSize.isAccessibilitySize ? "Prognosedetails" : forecastHeadline)
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: 44)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("forecast-details")
             .accessibilityHint("Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise")
             Button {
                 placeName = store.selectedPlace.name
                 showSave = true
             } label: {
                 Image(systemName: store.places.contains(where: { $0.id == store.selectedPlace.id }) ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 20))
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 20)).frame(width: 44, height: 44)
             }
             .accessibilityLabel("Ausgewählten Ort speichern oder umbenennen")
         }
-        .padding(.leading, 16).padding(.trailing, 8).padding(.vertical, 6)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+        .padding(.leading, 14).padding(.trailing, 4)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
     }
 
     private var forecastHeadline: String {
         guard let forecast = store.forecast else {
-            return store.isLoading ? "Regenprognose wird geladen …" : "Prognose nicht verfügbar"
+            return store.isForecastLoading ? "Regenprognose wird geladen …" : "Prognose nicht verfügbar"
         }
         if store.forecastError != nil || forecast.isStale(at: displayNow) {
             return "Ältere Prognose · bitte aktualisieren"
@@ -253,9 +373,10 @@ struct RadarScreen: View {
     private var statusMessage: String? {
         if let message = store.locationMessage { return message }
         if let message = store.storageMessage { return message }
-        if tileFailed { return "Radar unvollständig. Bitte aktualisieren." }
+        if let state = currentRadarLoadState, state.failed > 0 { return "Einige Radarkacheln fehlen. Bitte erneut aktualisieren." }
         if let error = store.radarError { return "Radar: \(error)" }
         if let error = store.forecastError { return "Ortsprognose: \(error)" }
+        if let notice = store.radarNotice { return notice }
         return nil
     }
 
@@ -308,6 +429,8 @@ struct ForecastDetails: View {
                         Text("Durchschnittliche Intensität in mm/h für Fünf-Minuten-Intervalle. Gestrichelte Markierungen zeigen fehlende Werte.")
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent("Datenlauf", value: forecast.referenceTime.formatted(date: .abbreviated, time: .shortened))
+                        Text("DWD · vor \(max(0, Int(context.date.timeIntervalSince(forecast.referenceTime) / 60))) Min.")
+                            .font(.caption).foregroundStyle(.secondary)
                         if store.forecastError != nil || forecast.isStale(at: context.date) {
                             Label("Die Prognose ist nicht aktuell bestätigt.", systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
@@ -328,4 +451,10 @@ struct ForecastDetails: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
         }.presentationDetents([.medium, .large])
     }
+}
+
+// A fully failed frame must not fan out across every animation time.
+// Idle demand, cancelled requests and partially valid frames remain distinct.
+extension RadarLoadState {
+    var shouldStopPlayback: Bool { succeeded == 0 && failed > 0 && pending == 0 }
 }

@@ -1,0 +1,25 @@
+{
+  "method": "simctl launch after process termination, monotonic screenshot intervals; later capture wall clock from saved origin",
+  "captures": [
+    {
+      "image": "12.png",
+      "start": 6.305,
+      "end": 6.688
+    },
+    {
+      "image": "13.png",
+      "start": 6.812,
+      "end": 7.209
+    },
+    {
+      "image": "20.png",
+      "start": 10.435,
+      "end": 10.825
+    },
+    {
+      "image": "later.png",
+      "start": 79.044,
+      "end": 79.568
+    }
+  ]
+}

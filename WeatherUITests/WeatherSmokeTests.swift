@@ -37,7 +37,7 @@ final class WeatherSmokeTests: XCTestCase {
         app.buttons["Radaranimation starten"].tap()
         XCTAssertTrue(app.buttons["Animation pausieren"].waitForExistence(timeout: 2))
         app.buttons["Animation pausieren"].tap()
-        let details = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "DWD ·")).firstMatch
+        let details = app.buttons["forecast-details"]
         XCTAssertTrue(details.waitForExistence(timeout: 5))
         details.tap()
         XCTAssertTrue(app.buttons["Fertig"].waitForExistence(timeout: 5))
@@ -47,6 +47,71 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Einordnung vorhandener Radardaten; keine zusätzliche Vorhersage oder amtliche Warnung."].exists)
         app.buttons["Fertig"].tap()
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
+    }
+
+    func testRefreshImmediatelyAcknowledgesTap() throws {
+        let app = launchApp()
+        let refresh = app.buttons["radar-refresh"]
+        XCTAssertTrue(refresh.waitForExistence(timeout: 15))
+        let ready = NSPredicate(format: "enabled == true")
+        expectation(for: ready, evaluatedWith: refresh)
+        waitForExpectations(timeout: 25)
+        XCTAssertGreaterThanOrEqual(refresh.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(refresh.frame.width, 44)
+        refresh.tap()
+        let value = refresh.value as? String ?? ""
+        XCTAssertTrue(value.contains("wird aktualisiert") || value.contains("geladen") || value.contains("fehlen") || value.contains("lädt"), "Der Tap muss auch bei Cachetreffern sofort einen ehrlichen Lade- oder Ergebniszustand zeigen.")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "refresh-immediate-feedback"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    func testTimelineIsCompactAndNearBottom() throws {
+        let app = launchApp()
+        let slider = app.sliders["Radarzeitpunkt"]
+        guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
+        let play = app.buttons["Radaranimation starten"]
+        let now = app.buttons["Jetzt"]
+        XCTAssertGreaterThanOrEqual(play.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(play.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(now.frame.height, 44)
+        XCTAssertLessThan(app.frame.maxY - play.frame.minY, 110, "Die gesamte untere Bedienung soll im unteren 110-Punkt-Bereich liegen.")
+        XCTAssertLessThanOrEqual(play.frame.maxX, slider.frame.minX)
+        XCTAssertLessThanOrEqual(slider.frame.maxX, now.frame.minX)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "timeline-normal"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        print("TIMELINE_NORMAL play=\(play.frame) slider=\(slider.frame) now=\(now.frame) screen=\(app.frame)")
+    }
+
+    func testTimelineAtMaximumDynamicTypeKeepsControlsSeparate() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        let slider = app.sliders["Radarzeitpunkt"]
+        guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
+        let play = app.buttons["Radaranimation starten"]
+        let now = app.buttons["Jetzt"]
+        let label = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Messung")).firstMatch
+        XCTAssertTrue(play.isHittable)
+        XCTAssertTrue(now.isHittable)
+        XCTAssertGreaterThanOrEqual(now.frame.height, 44)
+        XCTAssertLessThanOrEqual(play.frame.maxX, slider.frame.minX)
+        XCTAssertLessThanOrEqual(slider.frame.maxX, now.frame.minX)
+        XCTAssertTrue(label.exists)
+        XCTAssertLessThanOrEqual(label.frame.maxY, play.frame.minY)
+        XCTAssertTrue(app.buttons["forecast-details"].isHittable)
+        slider.adjust(toNormalizedSliderPosition: 1)
+        XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
+        now.tap()
+        XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "timeline-maximum-dynamic-type"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        print("TIMELINE_AXMAX play=\(play.frame) slider=\(slider.frame) now=\(now.frame) labelExists=\(label.exists)")
     }
 
     func testNewMapPlaceCanBeSavedRenamedPersistedAndDeleted() throws {

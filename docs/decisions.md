@@ -112,3 +112,15 @@ Der nächste interne Kandidat ist `0.1.0 (4)` unter unveränderter ShowerNow-Ide
 Die lokale manuelle Einordnung ist umgesetzt: Apple Foundation Models priorisiert maximal zwei zulässige, deterministisch belegte Fakten, die App rendert ausschließlich hinterlegte deutsche Sätze. Keine zusätzliche Prognose, frei erfundenen Zahlen, Scores oder Warnungen. Verfügbarkeit, deutsche Sprache, frische vollständige Daten und Ergebnisidentität werden geprüft; keine Koordinaten/Ortsnamen im Prompt, keine Persistenz, kein automatischer Startrequest. Bei nur einem Fakt wird die Generation gespart. Tatsächliche Modellgeneration auf bereiter Hardware bleibt offen. Nach unabhängigem Review folgt der bereits autorisierte Quellencheckpoint und offizielle interne Upload; keine neuen Konten-, Tester- oder Rollenänderungen.
 
 Der unabhängige Review des integrierten Build-4-Stands ist ohne offene P1-/P2-Befunde abgeschlossen; Details in [review-build4.md](review-build4.md). Der veröffentlichte Quellencheckpoint ist die verbindliche Grundlage für das folgende signierte Archiv und den internen Upload. Archiv-/Uploadstatus wird separat belegt.
+
+## P0 nach Alltagstest von Build 4
+
+Aktuelles Nutzerfeedback: Build 4 lädt noch langsamer, dauerhaft unvollständiges Radar und kein erkennbares Refreshfeedback machen die App kaum bedienbar. Zuerst begrenzte echte DWD-/Overlaydiagnose samt Lade-/Abbruch-/Laufverfügbarkeitsnachweisen, dann gezielter frischer Fixauftrag. Kein weiterer TestFlight-Build vor belegter Bedienbarkeit; KI-Ausbau pausiert. Der parallel autorisierte kompaktere Timelineentwurf und Refreshfeedback bleiben UI-Arbeit, haben gegenüber funktionierendem Radar nachgeordnete Priorität. Vorherige Fixture-/UI-Grünbefunde sind keine Live-Latenzfreigabe.
+
+## Nahezu sofortiges Laden bei begrenztem API-Budget
+
+Neue Nutzeranforderung: möglichst nahezu sofort laden, ohne die DWD-API zu überstrapazieren. Gültige vorhandene Karten wiederverwenden, tatsächlichen Datenzeitpunkt erhalten und Aktualisierungen gezielt begrenzen. Kein pauschales Frame-Prefetch, zusätzliches Polling oder Lastverschiebung durch neue Infrastruktur. Warmer Cache kann Netzabrufe vermeiden; ein kalter Erstabruf bleibt von Netz und DWD-Verfügbarkeit abhängig. Die [begrenzte Strategieprüfung](research/near-instant-radar.md) bewertet kleine Cache-/Requestoptionen; kein neuer Cache oder Endpunktwechsel ohne konkreten nachgewiesenen Vorteil. Die laufende P0-Korrektur und Bedienbarkeitsvalidierung haben Vorrang.
+
+## Build 5 nach P0-Schlussreview
+
+Die kritische Build-4-Nutzerrückmeldung bleibt maßgeblich. Die begrenzten Daten-/Map-/Refreshkorrekturen und kompakte Timeline sind nach gezielten Nachweisen und frischem Schlussreview für eine interne Build-5-Testversion freigegeben, ohne offene P1/P2 im geprüften Fixdiff. Identität bleibt ShowerNow / `de.linolaske.showernow`, Team `J2DU2P47XW`, Version `0.1.0`, Build `5`. Kalte Ladezeit bleibt variabel; keine Instant- oder DWD-Verfügbarkeitsgarantie. Kein Diskcache, Prefetch oder KI-Ausbau in diesem Kandidaten. Archiv/Upload erst aus veröffentlichtem Quellencheckpoint; physischer Alltagstest erforderlich.

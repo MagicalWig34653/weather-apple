@@ -1,12 +1,14 @@
 # Interner iPhone-Test von ShowerNow
 
-Aktueller Stand: ShowerNow `0.1.0 (3)` / `de.linolaske.showernow` funktioniert laut Nutzer intern über TestFlight. Der damalige Uploadabschluss und Serverzustand sind im [Uploadbefund](testflight-upload.md) dokumentiert. Build `0.1.0 (4)` ist als neuer Verbesserungskandidat integriert und im Simulator kompiliert; Review, signierte Archivprüfung und Upload stehen noch aus. Keine neue interne Verfügbarkeit für Build 4 behauptet. Agents haben keine Tester, Rollen, Gruppen oder Einladungen verändert.
+Aktueller Kandidat: ShowerNow `0.1.0 (5)` / `de.linolaske.showernow`, nach unabhängig geprüftem P0-Fix. Build 4 wurde vom Nutzer verwendet und als langsam/unvollständig kritisiert. Build 5 begrenzt automatische Fehlversuche, erhält gültige Bilder beim Refresh und zeigt Radar-Ladestatus/Cacheergebnis. Archiv/Upload werden getrennt dokumentiert; noch keine neue interne Verfügbarkeit behauptet. Keine Tester-/Rechteänderungen.
 
-Die folgenden zusätzlichen Alltagstests nach tatsächlicher Verfügbarkeit von Build 4 durchführen:
+Nach tatsächlicher Verfügbarkeit von Build 5 gezielt prüfen:
 
-- Beim Laden prüfen, ob Radar schon sichtbar wird, während die Ortsprognose noch lädt; wiederholte Orts-/Zeitwechsel und manuellen Refresh beobachten.
-- Kompakte schwebende Bedienung bei Light/Dark und großer Schrift prüfen; Jetzt, Play/Pause und Details müssen erreichbar bleiben.
-- In Details die Einordnung prüfen. Bei nur einem belegten Fakt bleibt der Standardtext ohne Modellrequest. Sonst manuell lokal einordnen; bei ungeeignetem Gerät, deaktiviertem Apple Intelligence oder nicht bereitem Modell bleibt die Standard-Einordnung erhalten. Echte Modellgeneration ist bislang nicht auf bereiter Hardware belegt. Keine zusätzliche Vorhersage oder amtliche Warnung daraus ableiten.
+- Kaltstart bis zum ersten sichtbaren Radar und bis zum Ende des Ladeindikators beobachten; Netz/DWD können variieren. Kein Instant-Versprechen.
+- Warmen Refresh antippen: sofortige Rückmeldung, bei Cachetreffern Abschlusszeichen/Cachehinweis, sonst tatsächliche Radarbytes; Karte bleibt bedienbar. Punktprognose darf Radarfeedback nicht blockieren.
+- Zoomen, verschieben und Frames wechseln: keine Warnung aus alten Anfragen, kein endloser Wiederholungsring. Nach Fehler explizit erneut versuchen; ein Vorgängerlauf muss als solcher erkennbar bleiben.
+- Schmale Timeline unten, Play/Jetzt/Slider und Details bei Light/Dark sowie maximaler Schrift prüfen; keine überlagerten Zeitangaben.
+- Lokale Einordnung nur bei Interesse auf tatsächlich modellbereitem Gerät prüfen. Sie ist unverändert und keine zusätzliche Wettervorhersage; reale Generierung bleibt bisher ungeprüft.
 
 Auf dem physischen iPhone prüfen:
 

@@ -16,7 +16,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     var forecast: RainForecast?
     var timeline: RadarTimeline?
     var selectedFrame = 0
-    var isLoading = false
+    var isRadarLoading = false
+    var isForecastLoading = false
+    var isLoading: Bool { isRadarLoading || isForecastLoading }
+    var radarNotice: String?
     var forecastError: String?
     var radarError: String?
     var locationMessage: String?
@@ -31,6 +34,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var waitingForLocation = false
     @ObservationIgnored private var forecastPlaceID: UUID?
+    @ObservationIgnored private var attemptedRadarFallback = false
 
     override convenience init() {
         self.init(client: DWDClient())
@@ -111,10 +115,18 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         let requestID = UUID()
         generation = requestID
         let place = selectedPlace
-        isLoading = true
+        isRadarLoading = true
+        isForecastLoading = true
+        radarNotice = nil
+        attemptedRadarFallback = false
         // A retry must also reload missing tiles when the data run is unchanged.
         radarReloadRevision += 1
-        defer { if generation == requestID { isLoading = false } }
+        defer {
+            if generation == requestID {
+                isRadarLoading = false
+                isForecastLoading = false
+            }
+        }
         forecastError = nil
         radarError = nil
         // Each source can fail independently: a point error must not disable the map.
@@ -128,6 +140,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     private func refreshTimeline(requestID: UUID, placeID: UUID) async {
         let result = await loadTimeline()
         guard generation == requestID, selectedPlace.id == placeID, !Task.isCancelled else { return }
+        isRadarLoading = false
         switch result {
         case .success(let value):
             timeline = value
@@ -140,6 +153,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     private func refreshForecast(requestID: UUID, place: SavedPlace) async {
         let result = await loadForecast(at: place.coordinate)
         guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
+        isForecastLoading = false
         switch result {
         case .success(let value):
             forecast = value
@@ -147,6 +161,36 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         case .failure(let error):
             if forecastPlaceID != place.id { forecast = nil }
             forecastError = error.localizedDescription
+        }
+    }
+
+    /// Only a concrete unavailable-run response may select one previous, still-fresh
+    /// radar run. The timeline's real reference changes; old images are never relabelled.
+    func acceptRadarLoadState(_ state: RadarLoadState) {
+        guard state.reloadRevision == radarReloadRevision,
+              state.frameDate == frameDate, state.referenceTime == frameReference,
+              state.referenceTime == timeline?.referenceTime,
+              state.isSettled, state.succeeded == 0, state.runUnavailable > 0,
+              !attemptedRadarFallback, !isRadarLoading else { return }
+        attemptedRadarFallback = true
+        let requestID = generation
+        let unavailableReference = state.referenceTime
+        let currentFrame = frameDate
+        isRadarLoading = true
+        Task {
+            defer { if generation == requestID { isRadarLoading = false } }
+            do {
+                let fallback = try await client.radarTimeline(before: unavailableReference)
+                guard generation == requestID, frameDate == currentFrame,
+                      timeline?.referenceTime == unavailableReference, !Task.isCancelled else { return }
+                timeline = fallback
+                selectedFrame = fallback.dates.firstIndex(of: fallback.referenceTime) ?? 0
+                radarNotice = "Neuster Radarlauf noch nicht verfügbar. Radar zeigt den vorherigen Lauf von "
+                    + fallback.referenceTime.formatted(date: .omitted, time: .shortened) + " Uhr."
+            } catch {
+                guard generation == requestID else { return }
+                radarNotice = "Radarlauf derzeit nicht verfügbar. Bitte erneut laden."
+            }
         }
     }
 

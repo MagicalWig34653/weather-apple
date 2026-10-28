@@ -9,7 +9,7 @@ struct RadarMap: UIViewRepresentable {
     let reloadRevision: Int
     let bottomInset: CGFloat
     let onSelect: (CLLocationCoordinate2D) -> Void
-    let onTileError: @MainActor @Sendable () -> Void
+    let onLoadState: @MainActor @Sendable (RadarLoadState) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -26,7 +26,8 @@ struct RadarMap: UIViewRepresentable {
         press.minimumPressDuration = 0.6
         map.addGestureRecognizer(press)
         context.coordinator.map = map
-        center(map)
+        center(map, animated: false)
+        context.coordinator.lastCenterRevision = centerRevision
         return map
     }
 
@@ -47,23 +48,37 @@ struct RadarMap: UIViewRepresentable {
             map.addAnnotation(pin)
             coordinator.placeID = place.id
         }
-        guard coordinator.date != date || coordinator.referenceTime != referenceTime
-                || coordinator.reloadRevision != reloadRevision else { return }
+        let frameChanged = coordinator.date != date || coordinator.referenceTime != referenceTime
+        guard frameChanged || coordinator.reloadRevision != reloadRevision else { return }
         coordinator.date = date
         coordinator.referenceTime = referenceTime
         coordinator.reloadRevision = reloadRevision
-        for case let overlay as RadarTileOverlay in map.overlays { overlay.cancelLoading() }
+        // Refreshing the same frame preserves the existing overlay/renderer. Successful
+        // tiles remain memory hits; only missing tiles need the network again.
+        if !frameChanged, let overlay = coordinator.overlay {
+            coordinator.beginViewport(overlay, reloadRevision: reloadRevision)
+            (map.renderer(for: overlay) as? MKTileOverlayRenderer)?.reloadData()
+            return
+        }
+        coordinator.overlay?.cancelLoading()
         map.removeOverlays(map.overlays)
+        coordinator.overlay = nil
+        coordinator.activeContextID = nil
         if let date, let referenceTime {
-            let overlay = RadarTileOverlay(date: date, referenceTime: referenceTime, onError: onTileError)
+            let overlay = RadarTileOverlay(date: date, referenceTime: referenceTime,
+                                           reloadRevision: reloadRevision) { [weak coordinator] state in
+                coordinator?.receive(state)
+            }
+            coordinator.overlay = overlay
+            coordinator.beginViewport(overlay, reloadRevision: reloadRevision)
             map.addOverlay(overlay, level: .aboveRoads)
         }
     }
 
-    private func center(_ map: MKMapView) {
+    private func center(_ map: MKMapView, animated: Bool = true) {
         map.setRegion(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: place.coordinate.latitude,
                                                                        longitude: place.coordinate.longitude),
-                                        latitudinalMeters: 180_000, longitudinalMeters: 180_000), animated: true)
+                                        latitudinalMeters: 180_000, longitudinalMeters: 180_000), animated: animated)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
@@ -74,6 +89,39 @@ struct RadarMap: UIViewRepresentable {
         var reloadRevision = -1
         var lastCenterRevision = -1
         var placeID: UUID?
+        var overlay: RadarTileOverlay?
+        var activeContextID: UUID?
+        private var lastSequence = -1
+
+        func beginViewport(_ overlay: RadarTileOverlay, reloadRevision: Int) {
+            let state = overlay.beginViewport(reloadRevision: reloadRevision)
+            activeContextID = state.contextID
+            lastSequence = -1
+            Task { @MainActor [weak self] in self?.receive(state) }
+            Task { @MainActor [weak self, weak overlay] in
+                try? await Task.sleep(for: .milliseconds(800))
+                guard let self, let overlay, self.activeContextID == state.contextID else { return }
+                overlay.endViewportDemand(contextID: state.contextID)
+            }
+        }
+
+        func receive(_ state: RadarLoadState) {
+            guard state.contextID == activeContextID, state.sequence >= lastSequence else { return }
+            lastSequence = state.sequence
+            parent.onLoadState(state)
+        }
+
+        func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            guard let overlay else { return }
+            // Start before MapKit asks for the new zoom/region. Resetting in didChange
+            // would discard requests which already finished during the gesture.
+            beginViewport(overlay, reloadRevision: reloadRevision)
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            guard let overlay, let activeContextID else { return }
+            overlay.endViewportDemand(contextID: activeContextID)
+        }
 
         init(parent: RadarMap) { self.parent = parent }
 
@@ -91,26 +139,168 @@ struct RadarMap: UIViewRepresentable {
     }
 }
 
-// Public weather images only; tile cache is in memory and never stores point-query URLs on disk.
+// A snapshot of demand observed from MapKit, not a percentage of an unbounded cache.
+// MapKit may request more tiles later; isSettled means only the observed requests settled.
+struct RadarLoadState: Equatable, Sendable {
+    let contextID: UUID
+    let frameDate: Date
+    let referenceTime: Date
+    let reloadRevision: Int
+    var sequence = 0
+    var requested = 0
+    var succeeded = 0
+    var failed = 0
+    var pending = 0
+    var cacheHits = 0
+    var runUnavailable = 0
+    var receivedBodyBytes: Int64 = 0
+    var isViewportIdle = false
+    var hasUnknownVisibleTileTotal: Bool { true }
+    var isSettled: Bool { pending == 0 && (requested > 0 || isViewportIdle) }
+}
+
+// Mutable counters are lock protected. Every callback carries its viewport identity;
+// superseded callbacks neither change the counters nor produce errors for the new view.
+final class RadarLoadTracker: @unchecked Sendable {
+    private enum Status { case pending, succeeded, cached, failed, runUnavailable }
+    private let lock = NSLock()
+    private var state: RadarLoadState
+    private var tiles: [URL: Status] = [:]
+    private let notify: @MainActor @Sendable (RadarLoadState) -> Void
+
+    init(date: Date, referenceTime: Date, reloadRevision: Int,
+         notify: @escaping @MainActor @Sendable (RadarLoadState) -> Void) {
+        state = RadarLoadState(contextID: UUID(), frameDate: date,
+                               referenceTime: referenceTime, reloadRevision: reloadRevision)
+        self.notify = notify
+    }
+
+    var snapshot: RadarLoadState { lock.withLock { state } }
+
+    func reset(reloadRevision: Int) -> RadarLoadState {
+        lock.withLock {
+            state = RadarLoadState(contextID: UUID(), frameDate: state.frameDate,
+                                   referenceTime: state.referenceTime, reloadRevision: reloadRevision)
+            tiles.removeAll()
+            return state
+        }
+    }
+
+    func endViewportDemand(contextID: UUID) {
+        let value: RadarLoadState? = lock.withLock {
+            guard state.contextID == contextID else { return nil }
+            state.isViewportIdle = true
+            return update()
+        }
+        if let value { publish(value) }
+    }
+
+    func began(_ url: URL) -> UUID {
+        let snapshot = lock.withLock {
+            if tiles[url] == nil { tiles[url] = .pending }
+            return update()
+        }
+        publish(snapshot)
+        return snapshot.contextID
+    }
+
+    func received(_ count: Int, for url: URL) {
+        let value: RadarLoadState? = lock.withLock {
+            guard tiles[url] != nil else { return nil }
+            state.receivedBodyBytes += Int64(count)
+            return update()
+        }
+        if let value { publish(value) }
+    }
+
+    func finished(_ url: URL, contextID: UUID, error: Error?, cached: Bool = false) {
+        let value: RadarLoadState? = lock.withLock {
+            guard state.contextID == contextID, tiles[url] != nil else { return nil }
+            if (error as? URLError)?.code == .cancelled || error is CancellationError {
+                // Cancellation is neither an incomplete image nor a successful one.
+                tiles[url] = nil
+            } else if let error {
+                tiles[url] = (error as? DWDDataError) == .runUnavailable ? .runUnavailable : .failed
+            } else { tiles[url] = cached ? .cached : .succeeded }
+            return update()
+        }
+        if let value { publish(value) }
+    }
+
+    private func update() -> RadarLoadState {
+        state.sequence += 1
+        state.requested = tiles.count
+        state.pending = tiles.values.filter { $0 == .pending }.count
+        state.cacheHits = tiles.values.filter { $0 == .cached }.count
+        state.succeeded = tiles.values.filter { $0 == .succeeded || $0 == .cached }.count
+        state.runUnavailable = tiles.values.filter { $0 == .runUnavailable }.count
+        state.failed = tiles.values.filter { $0 == .failed || $0 == .runUnavailable }.count
+        return state
+    }
+
+    private func publish(_ value: RadarLoadState) {
+        Task { @MainActor in notify(value) }
+    }
+}
+
+// A run-level ceiling across overlays/frames: a temporarily unavailable source must
+// not turn 32 requested tiles into 32 additional probes on every animation frame.
+final class RadarAvailabilityRetryBudget: @unchecked Sendable {
+    private struct Key: Hashable { let referenceTime: Date; let reloadRevision: Int }
+    private struct Entry { let createdAt: Date; var used: Int }
+    private let lock = NSLock()
+    private var entries: [Key: Entry] = [:]
+    private let limit: Int
+
+    init(limit: Int = 4) { self.limit = limit }
+
+    func claim(referenceTime: Date, reloadRevision: Int, now: Date = Date()) -> Bool {
+        lock.withLock {
+            entries = entries.filter { now.timeIntervalSince($0.value.createdAt) < 1200 }
+            let key = Key(referenceTime: referenceTime, reloadRevision: reloadRevision)
+            if var entry = entries[key] {
+                guard entry.used < limit else { return false }
+                entry.used += 1
+                entries[key] = entry
+            } else {
+                guard limit > 0 else { return false }
+                if entries.count >= 16, let oldest = entries.min(by: { $0.value.createdAt < $1.value.createdAt })?.key {
+                    entries[oldest] = nil
+                }
+                entries[key] = Entry(createdAt: now, used: 1)
+            }
+            return true
+        }
+    }
+}
+
+// Public weather images only; memory cache never persists coordinate-bearing URLs.
 final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
     private let date: Date
     private let referenceTime: Date
-    private let onError: @MainActor @Sendable () -> Void
     private let requests = TileRequests()
+    private let progress: RadarLoadTracker
     private static let cache = TileMemoryCache()
-    private static let session: URLSession = {
+    private static let availabilityRetries = RadarAvailabilityRetryBudget()
+    private static let failures = RadarTileFailures()
+    private let session: URLSession
+    private static let sharedSession: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
-        configuration.timeoutIntervalForRequest = 15
-        configuration.timeoutIntervalForResource = 20
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = 8
+        configuration.timeoutIntervalForResource = 12
         configuration.httpMaximumConnectionsPerHost = 4
         return URLSession(configuration: configuration)
     }()
 
-    init(date: Date, referenceTime: Date, onError: @escaping @MainActor @Sendable () -> Void) {
+    init(date: Date, referenceTime: Date, reloadRevision: Int = 0,
+         session: URLSession? = nil, onLoadState: @escaping @MainActor @Sendable (RadarLoadState) -> Void) {
         self.date = date
         self.referenceTime = referenceTime
-        self.onError = onError
+        self.session = session ?? Self.sharedSession
+        self.progress = RadarLoadTracker(date: date, referenceTime: referenceTime,
+                                         reloadRevision: reloadRevision, notify: onLoadState)
         super.init(urlTemplate: nil)
         canReplaceMapContent = false
         minimumZ = 4
@@ -122,42 +312,104 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
         DWDRequest.tileURL(x: path.x, y: path.y, z: path.z, date: date, referenceTime: referenceTime)
     }
 
+    func beginViewport(reloadRevision: Int) -> RadarLoadState { progress.reset(reloadRevision: reloadRevision) }
+    func endViewportDemand(contextID: UUID) { progress.endViewportDemand(contextID: contextID) }
     func cancelLoading() { requests.cancelAll() }
 
     override func loadTile(at path: MKTileOverlayPath, result: @escaping @Sendable (Data?, Error?) -> Void) {
         let url = url(forTilePath: path)
+        let contextID = progress.began(url)
+        let completion: TileRequests.ResultHandler = { [progress] data, error in
+            progress.finished(url, contextID: contextID, error: error)
+            result(data, error)
+        }
         if let cached = Self.cache.data(for: url) {
+            progress.finished(url, contextID: contextID, error: nil, cached: true)
             result(cached, nil)
             return
         }
-        let notify = onError
-        let registry = requests
-        let id = UUID()
-        let task = Self.session.dataTask(with: url) { data, response, error in
-            let callbacks = registry.finished(url: url, id: id)
-            guard !callbacks.isEmpty else { return }
-            if let error {
-                callbacks.forEach { $0(nil, error) }
-                if (error as? URLError)?.code != .cancelled {
-                    Task { @MainActor in notify() }
-                }
-                return
-            }
-            guard let response = response as? HTTPURLResponse, response.statusCode == 200,
-                  let data, data.starts(with: [137, 80, 78, 71, 13, 10, 26, 10]) else {
-                callbacks.forEach { $0(nil, URLError(.cannotDecodeContentData)) }
-                Task { @MainActor in notify() }
-                return
-            }
-            Self.cache.insert(data, for: url)
-            callbacks.forEach { $0(data, nil) }
+        // MapKit automatically repeats failed requests. A viewport change must not
+        // silently re-arm the network; only a new explicit refresh/run/frame may.
+        let revision = progress.snapshot.reloadRevision
+        if let error = Self.failures.error(for: url, reloadRevision: revision) {
+            completion(nil, error)
+            return
         }
-        switch registry.add(task, url: url, id: id, result: result) {
+        let id = UUID()
+        let task = makeTask(url: url, id: id, retryDimension: true)
+        switch requests.add(task, url: url, id: id, result: completion) {
         case .start: task.resume()
         case .joined: task.cancel()
         case .cancelled:
             task.cancel()
-            result(nil, URLError(.cancelled))
+            completion(nil, URLError(.cancelled))
+        }
+    }
+
+    private func makeTask(url: URL, id: UUID, retryDimension: Bool) -> URLSessionDataTask {
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
+        request.setValue("ShowerNow/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
+        let revision = progress.snapshot.reloadRevision
+        return session.dataTask(with: request) { [self] data, response, error in
+            guard requests.contains(url: url, id: id) else { return }
+            if let data { progress.received(data.count, for: url) }
+            var failure: Error? = error
+            var image: Data?
+            if failure == nil {
+                do {
+                    guard let response = response as? HTTPURLResponse, response.statusCode == 200,
+                          let data else { throw DWDDataError.unavailable }
+                    image = try DWDResponse.radarImage(from: data)
+                } catch { failure = error }
+            }
+            if (failure as? DWDDataError) == .runUnavailable, retryDimension,
+               Self.availabilityRetries.claim(referenceTime: referenceTime, reloadRevision: revision) {
+                // At most one retry per request AND four extra requests per run/reload
+                // across frames/overlays. Never retry arbitrary network or image errors.
+                let retry = makeTask(url: url, id: id, retryDimension: false)
+                if requests.replace(retry, url: url, id: id) {
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 0.25) { retry.resume() }
+                }
+                else { retry.cancel() }
+                return
+            }
+            if let failure {
+                Self.failures.record(failure, for: url, reloadRevision: revision)
+            }
+            let callbacks = requests.finished(url: url, id: id)
+            guard !callbacks.isEmpty else { return }
+            if let image { Self.cache.insert(image, for: url) }
+            callbacks.forEach { $0(image, failure) }
+        }
+    }
+}
+
+// Failed outcomes are not images. Keep them only in bounded memory, keyed by
+// the full run/frame/tile URL and explicit refresh revision, across viewport/overlay
+// recreation. 4096 entries covers >3 complete 32-tile × 37-frame animations; stale
+// runs are discarded after the existing 20-minute freshness window. No URL is logged.
+final class RadarTileFailures: @unchecked Sendable {
+    private struct Key: Hashable { let url: URL; let reloadRevision: Int }
+    private struct Entry { let error: Error; let createdAt: Date }
+    private let lock = NSLock()
+    private var entries: [Key: Entry] = [:]
+
+    func error(for url: URL, reloadRevision: Int, now: Date = Date()) -> Error? {
+        lock.withLock {
+            entries = entries.filter { now.timeIntervalSince($0.value.createdAt) < 1200 }
+            return entries[Key(url: url, reloadRevision: reloadRevision)]?.error
+        }
+    }
+
+    func record(_ error: Error, for url: URL, reloadRevision: Int, now: Date = Date()) {
+        guard (error as? URLError)?.code != .cancelled, !(error is CancellationError) else { return }
+        lock.withLock {
+            let key = Key(url: url, reloadRevision: reloadRevision)
+            guard entries[key] == nil else { return }
+            if entries.count >= 4096, let oldest = entries.min(by: { $0.value.createdAt < $1.value.createdAt })?.key {
+                entries[oldest] = nil
+            }
+            entries[key] = Entry(error: error, createdAt: now)
         }
     }
 }
@@ -194,6 +446,18 @@ final class TileRequests: @unchecked Sendable {
             }
             tasks[url] = Entry(id: id, task: task, callbacks: [result])
             return .start
+        }
+    }
+
+    func contains(url: URL, id: UUID) -> Bool {
+        lock.withLock { tasks[url]?.id == id }
+    }
+
+    func replace(_ task: URLSessionDataTask, url: URL, id: UUID) -> Bool {
+        lock.withLock {
+            guard let entry = tasks[url], entry.id == id, !cancelled else { return false }
+            tasks[url] = Entry(id: id, task: task, callbacks: entry.callbacks)
+            return true
         }
     }
 

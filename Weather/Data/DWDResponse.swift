@@ -1,4 +1,6 @@
 import Foundation
+import ImageIO
+import zlib
 
 enum DWDRunIndex {
     static func dates(from data: Data, now: Date) throws -> [Date] {
@@ -22,6 +24,59 @@ enum DWDRunIndex {
 }
 
 enum DWDResponse {
+    /// WMS may return a ServiceException report with HTTP 200. Inspect only a bounded
+    /// prefix, never log the body (point queries can contain coordinate metadata).
+    static func serviceError(in data: Data) -> DWDDataError? {
+        guard let text = String(data: data.prefix(16_384), encoding: .utf8),
+              text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<"),
+              text.contains("ServiceException") || text.contains("ExceptionReport") else { return nil }
+        if text.contains("InvalidDimensionValue") || text.contains("MissingDimensionValue") {
+            return .runUnavailable
+        }
+        return .invalidResponse
+    }
+
+    static func radarImage(from data: Data) throws -> Data {
+        if let error = serviceError(in: data) { throw error }
+        guard data.count <= 2 * 1_024 * 1_024,
+              data.starts(with: [137, 80, 78, 71, 13, 10, 26, 10]),
+              hasCompletePNGChunks(data),
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              CGImageSourceGetCount(source) == 1,
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int,
+              (1...1024).contains(width), (1...1024).contains(height),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary),
+              image.width == width, image.height == height,
+              CGImageSourceGetStatusAtIndex(source, 0) == .statusComplete else {
+            throw DWDDataError.invalidResponse
+        }
+        return data
+    }
+
+    // ImageIO can recover truncated/corrupt PNGs with substitute pixels. Require
+    // complete chunks and their CRCs as well as an actual bounded image decode.
+    private static func hasCompletePNGChunks(_ data: Data) -> Bool {
+        data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
+            func integer(at offset: Int) -> UInt32 {
+                (0..<4).reduce(UInt32(0)) { ($0 << 8) | UInt32(bytes[offset + $1]) }
+            }
+            var offset = 8
+            while offset + 12 <= bytes.count {
+                let count = Int(integer(at: offset))
+                guard count <= bytes.count - offset - 12 else { return false }
+                let actual = crc32(0, bytes.baseAddress!.advanced(by: offset + 4).assumingMemoryBound(to: Bytef.self), uInt(count + 4))
+                guard UInt32(actual) == integer(at: offset + 8 + count) else { return false }
+                if integer(at: offset + 4) == 0x49454E44 { // IEND
+                    return count == 0 && offset + 12 == bytes.count
+                }
+                offset += count + 12
+            }
+            return false
+        }
+    }
+
     private struct Collection: Decodable {
         let type: String
         let features: [Feature]
@@ -42,6 +97,7 @@ enum DWDResponse {
     }
 
     static func forecast(from data: Data, expectedReference: Date, now: Date) throws -> RainForecast {
+        if let error = serviceError(in: data) { throw error }
         let collection: Collection
         do { collection = try JSONDecoder().decode(Collection.self, from: data) }
         catch { throw DWDDataError.invalidResponse }

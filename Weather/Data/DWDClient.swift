@@ -20,8 +20,8 @@ actor DWDClient {
             let configuration = URLSessionConfiguration.ephemeral
             configuration.urlCache = nil
             configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-            configuration.timeoutIntervalForRequest = 20
-            configuration.timeoutIntervalForResource = 30
+            configuration.timeoutIntervalForRequest = 10
+            configuration.timeoutIntervalForResource = 15
             configuration.httpMaximumConnectionsPerHost = 4
             let session = URLSession(configuration: configuration)
             self.transport = { request in
@@ -73,9 +73,12 @@ actor DWDClient {
         }
     }
 
-    func radarTimeline() async throws -> RadarTimeline {
+    func radarTimeline(before unavailableReference: Date? = nil) async throws -> RadarTimeline {
         let runs = try await runs()
-        guard let reference = runs.last else { throw DWDDataError.unavailable }
+        guard let reference = runs.last(where: { date in
+            (unavailableReference.map { date < $0 } ?? true)
+                && clock().timeIntervalSince(date) <= RainForecast.maximumAge
+        }) else { throw DWDDataError.staleData }
         let history = runs.filter { $0 >= reference.addingTimeInterval(-3600) && $0 < reference }
         let nowcast = (0...24).map { reference.addingTimeInterval(Double($0 * 300)) }
         return RadarTimeline(referenceTime: reference, dates: history + nowcast)
@@ -105,9 +108,9 @@ actor DWDClient {
         }
     }
 
-    private func fetch(_ url: URL) async throws -> Data {
+    private func fetch(_ url: URL, retryDimension: Bool = true) async throws -> Data {
         try Task.checkCancellation()
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
         request.setValue("Weather/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
         let (data, response): (Data, HTTPURLResponse)
         do { (data, response) = try await transport(request) }
@@ -116,6 +119,13 @@ actor DWDClient {
         catch { throw DWDDataError.unavailable }
         guard (200...299).contains(response.statusCode) else { throw DWDDataError.unavailable }
         guard !data.isEmpty, data.count <= 2 * 1024 * 1024 else { throw DWDDataError.invalidResponse }
+        if let error = DWDResponse.serviceError(in: data) {
+            if error == .runUnavailable, retryDimension {
+                try await Task.sleep(for: .milliseconds(250))
+                return try await fetch(url, retryDimension: false)
+            }
+            throw error
+        }
         return data
     }
 }

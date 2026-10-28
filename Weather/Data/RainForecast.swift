@@ -61,6 +61,7 @@ enum DWDDataError: LocalizedError, Equatable {
     case unsupportedLocation
     case invalidResponse
     case unavailable
+    case runUnavailable
     case staleData
     case incompleteForecast
     case mismatchedRun
@@ -69,6 +70,7 @@ enum DWDDataError: LocalizedError, Equatable {
         switch self {
         case .unsupportedLocation: "Der Ort liegt außerhalb des unterstützten Radargebiets."
         case .invalidResponse: "Die Wetterdaten konnten nicht gelesen werden."
+        case .runUnavailable: "Der angekündigte DWD-Datenlauf ist am Radardienst noch nicht verfügbar. Bitte erneut versuchen."
         case .unavailable: "Die DWD-Wetterdaten sind momentan nicht erreichbar."
         case .staleData: "Der DWD stellt momentan keinen ausreichend aktuellen Datenlauf bereit."
         case .incompleteForecast: "Der DWD liefert für diesen Ort keine vollständige Prognose."
