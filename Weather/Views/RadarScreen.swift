@@ -12,6 +12,8 @@ struct RadarScreen: View {
     @State private var radarLoadState: RadarLoadState?
     @State private var refreshTapFeedback = false
     @State private var displayNow = Date()
+    /// Slot index under the finger while scrubbing; drives thumb and time label independent of tile loading.
+    @State private var scrubIndex: Int?
     @State private var mapBottomInset: CGFloat = 70
 
     private enum Sheet: String, Identifiable {
@@ -36,6 +38,18 @@ struct RadarScreen: View {
                 .ignoresSafeArea()
                 .accessibilityLabel("Regenradar für \(store.selectedPlace.name)")
                 .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
+            if let slot = slotFeedback {
+                VStack {
+                    Spacer()
+                    Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 12).padding(.vertical, 7)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(.bottom, 8)
+                        .accessibilityIdentifier("radar-slot-status")
+                }
+                .allowsHitTesting(false)
+            }
             VStack(spacing: 10) {
                 header
                 forecastCard
@@ -154,6 +168,25 @@ struct RadarScreen: View {
               state.referenceTime == store.frameReference,
               state.reloadRevision == store.radarReloadRevision else { return nil }
         return state
+    }
+
+    /// Slot shown by thumb and label: the scrub position wins over the store while dragging.
+    private var displayedIndex: Int { scrubIndex ?? store.selectedFrame }
+
+    private var displayedDate: Date? {
+        guard let dates = store.timeline?.dates, dates.indices.contains(displayedIndex) else { return store.frameDate }
+        return dates[displayedIndex]
+    }
+
+    /// Honest per-slot hint: the map never shows another slot's image as this slot's state.
+    private var slotFeedback: (text: String, failed: Bool)? {
+        guard store.timeline != nil, !store.isPlaying, let date = displayedDate else { return nil }
+        let time = date.formatted(date: .omitted, time: .shortened)
+        switch TimelineSlot.status(for: currentRadarLoadState) {
+        case .ready: return nil
+        case .loading: return ("Radar für \(time) lädt …", false)
+        case .failed: return ("Radar für \(time) nicht geladen", true)
+        }
     }
 
     private var radarIsLoading: Bool {
@@ -276,14 +309,19 @@ struct RadarScreen: View {
         .accessibilityLabel(store.isPlaying ? "Animation pausieren" : "Radaranimation starten")
     }
 
+    private var displayedIsForecast: Bool {
+        guard let date = displayedDate, let timeline = store.timeline else { return false }
+        return date > timeline.referenceTime
+    }
+
     private var frameLabel: some View {
         VStack(spacing: 0) {
-            if let date = store.frameDate {
+            if let date = displayedDate {
                 Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit()
             }
-            Text(store.isForecastFrame ? "Vorhersage" : "Messung")
+            Text(displayedIsForecast ? "Vorhersage" : "Messung")
                 .font(.caption2.weight(.medium))
-                .foregroundStyle(store.isForecastFrame ? .orange : .cyan)
+                .foregroundStyle(displayedIsForecast ? .orange : .cyan)
         }
         .fixedSize(horizontal: true, vertical: true)
         .accessibilityElement(children: .combine)
@@ -307,10 +345,15 @@ struct RadarScreen: View {
 
     @ViewBuilder private var timeSlider: some View {
         if let timeline = store.timeline, timeline.dates.count > 1 {
-            Slider(value: Binding(get: { Double(store.selectedFrame) }, set: {
+            Slider(value: Binding(get: { Double(displayedIndex) }, set: {
+                let index = TimelineSlot.index(for: $0, count: timeline.dates.count)
                 store.isPlaying = false
-                store.selectedFrame = Int($0)
-            }), in: 0...Double(timeline.dates.count - 1), step: 1)
+                scrubIndex = index
+                if store.selectedFrame != index { store.selectedFrame = index }
+            }), in: 0...Double(timeline.dates.count - 1), step: 1) { editing in
+                if !editing { scrubIndex = nil }
+            }
+            .sensoryFeedback(.selection, trigger: scrubIndex) { _, new in new != nil }
             .frame(minWidth: 50, minHeight: 44)
             .overlay(alignment: .bottom) {
                 GeometryReader { geometry in
@@ -329,7 +372,7 @@ struct RadarScreen: View {
                 .allowsHitTesting(false)
             }
             .accessibilityLabel("Radarzeitpunkt")
-            .accessibilityValue("\(store.frameDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(store.isForecastFrame ? "Vorhersage" : "Messung")")
+            .accessibilityValue("\(displayedDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(displayedIsForecast ? "Vorhersage" : "Messung")")
             .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .omitted, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened))")
         } else {
             Text(store.isLoading ? "Radar lädt …" : "Keine Radarzeiten")
@@ -390,6 +433,24 @@ struct RadarScreen: View {
     private func age(_ date: Date) -> String {
         let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
         return minutes == 0 ? "gerade aktualisiert" : "vor \(minutes) Min."
+    }
+}
+
+/// Pure slot logic for the timeline slider, kept testable without UI.
+enum TimelineSlot {
+    enum Status: Equatable { case loading, failed, ready }
+
+    /// Nearest valid slot for a raw slider value; never truncates down.
+    static func index(for value: Double, count: Int) -> Int {
+        guard count > 0, value.isFinite else { return 0 }
+        return min(max(Int(value.rounded()), 0), count - 1)
+    }
+
+    /// `nil` means no load state of the current slot has been reported yet.
+    static func status(for state: RadarLoadState?) -> Status {
+        guard let state else { return .loading }
+        guard state.isSettled else { return .loading }
+        return state.failed > 0 && state.succeeded == 0 ? .failed : .ready
     }
 }
 

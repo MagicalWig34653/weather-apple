@@ -26,12 +26,22 @@ final class RadarPrefetchTests: XCTestCase {
         XCTAssertEqual(RadarPrefetchPolicy.order(selected: 4, count: 4), [])
     }
 
-    func testPrefetchStopsForInactiveOrConstrainedDevice() {
-        XCTAssertTrue(RadarPrefetchPolicy.isAllowed(isActive: true, lowPower: false, constrained: false, expensive: false))
-        XCTAssertFalse(RadarPrefetchPolicy.isAllowed(isActive: false, lowPower: false, constrained: false, expensive: false))
-        XCTAssertFalse(RadarPrefetchPolicy.isAllowed(isActive: true, lowPower: true, constrained: false, expensive: false))
-        XCTAssertFalse(RadarPrefetchPolicy.isAllowed(isActive: true, lowPower: false, constrained: true, expensive: false))
-        XCTAssertFalse(RadarPrefetchPolicy.isAllowed(isActive: true, lowPower: false, constrained: false, expensive: true))
+    func testPrefetchAllowsWiFiAndCellularUnlessDataSavingIsEnabled() {
+        for expensive in [false, true] { // Ordinary Wi-Fi, then cellular/hotspot.
+            XCTAssertTrue(RadarPrefetchPolicy.isAllowed(isActive: true, lowPower: false,
+                                                       constrained: false, expensive: expensive))
+            XCTAssertFalse(RadarPrefetchPolicy.isAllowed(isActive: true, lowPower: false,
+                                                        constrained: true, expensive: expensive))
+        }
+    }
+
+    func testPrefetchStillStopsForInactiveOrLowPowerDeviceOnEveryNetwork() {
+        for expensive in [false, true] {
+            XCTAssertFalse(RadarPrefetchPolicy.isAllowed(isActive: false, lowPower: false,
+                                                        constrained: false, expensive: expensive))
+            XCTAssertFalse(RadarPrefetchPolicy.isAllowed(isActive: true, lowPower: true,
+                                                        constrained: false, expensive: expensive))
+        }
     }
 
     func testMemoryCacheUsesDecimal50MBDefaultAndRejectsOversizedEntry() {

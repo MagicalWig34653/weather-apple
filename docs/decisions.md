@@ -137,3 +137,17 @@ Kein zusätzliches periodisches Polling, kein Backend-/Rendererumbau, kein KI-Au
 Build 6 bleibt Version `0.1.0` und unveränderte ShowerNow-Identität. Vor Veröffentlichung: deterministische Tests, gezielte Integration, frisches unabhängiges P0-/Fair-Use-Review und geprüfter Quellencheckpoint. Keine DWD-Livelastmatrix zur Demonstration. Interner Upload und öffentliche Quellenpushes sind autorisiert; Serverannahme und Installierbarkeit getrennt berichten. [Auftrags-/Quellenstand](timeline-prefetch.md).
 
 Umgesetzte appseitige Schutzwerte für Build 6: eine Sekunde Leerlauf, eine spekulative Netzoperation, mindestens 500 ms Startabstand, höchstens 120 Vorladeversuche und eine Stopgrenze von 8.000.000 empfangenen Vorladebytes je festem 60-Sekunden-Fenster. Die einzelne bereits gestartete Antwort kann diese Transferstopgrenze überschreiten; der 50.000.000-Byte-RAM-Bildcache bleibt hart. Budget über Kontextwechsel erhalten, 120 Sekunden Pause bei Quellfehlern, keine Prefetchretries. Dies sind keine veröffentlichten DWD-Kontingente. Die Frischeprüfung betrifft den aktuellen Timeline-Quelllauf; historische Analyseframes dürfen ihre ältere tatsächliche Referenz behalten. Der begrenzte unabhängige Review ist ohne offene P1/P2 abgeschlossen; 16 neue Tests und die einmalige vollständige 57-Test-Logiksuite sind erfolgreich. Details, Testhostgrenze und Warmzeitgrenzen im [Integrationsnachweis](prefetch-integration.md).
+
+Quellencheckpoint für diesen Umfang: `87915f8a6c8eda891cc094a46554cfe8200d908d`, auf `origin/main` veröffentlicht. Der getrennte Build-6-Release läuft aus genau diesem unveränderten Stand; Archiv-/IPA-Prüfung und das Ergebnis des einen autorisierten Uploads werden separat in [Signing](signing.md) und [Uploadnachweis](testflight-upload.md) belegt. Bisher kein belegtes Build-6-Uploadresultat oder Installierbarkeitsnachweis.
+
+## Präzisierung der Netzpräferenz: WLAN und Mobilfunk
+
+Neue verbindliche Nutzerantwort: „WLAN und Mobilfunk, aber nur solange Datensparmodus nicht aktiviert ist“. Für den endgültigen nächsten Beta-Stand sind normale WLAN- und Mobilfunknetze zum budgetierten Vorladen freigegeben; `isExpensive` allein sperrt nicht. `isConstrained`/Datensparmodus, Stromsparmodus und inaktive App bleiben Sperrgründe. Alle bestehenden Request-/Bytebudgets, Cachegrenzen, Nachfragepriorität und Quellenpausen bleiben bestehen.
+
+Build 6 aus Quellencheckpoint `87915f8a6c8eda891cc094a46554cfe8200d908d` befindet sich bereits im einmaligen Upload und bleibt als konservativer Zwischenstand unverändert. Der gezielte Policyfix erhält Buildnummer 7; Prüfungen, veröffentlichter Quellencheckpoint und tatsächliches Releaseergebnis sind separat nachzuweisen. Kein Abbruch oder Wiederholungsupload von Build 6 und keine vorweggenommene Build-7-Erfolgsmeldung.
+
+Build 6 wurde um 20:01:53 Uhr MEZ von Apple angenommen (`PROCESSING`); die eng begrenzte Netzpolicykorrektur verwendet deshalb Buildnummer 7. Installierbarkeit von Build 6 ist dadurch nicht belegt.
+
+## Zeit-Slider (29. Oktober 2026, Nutzeranforderung)
+
+Die Slider-Bewegung muss immer erkennbar sein, auch wenn der Radarslot nicht geladen ist oder das Laden fehlgeschlagen ist. Thumb und Zeitangabe folgen dem Finger netzunabhängig (`scrubIndex`). Eine ehrliche Statuspille nennt den Zustand des angezeigten Slots („lädt“ / „nicht geladen“); ein altes Bild gilt nie als Stand des gewählten Slots. Leichte Auswahl-Haptik pro Slotwechsel. Keine Änderung an Prefetch, Budgets oder Backend. Umsetzung für Build 7 (`TimelineSlot`, `TimelineSlotTests`).

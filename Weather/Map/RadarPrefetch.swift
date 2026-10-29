@@ -43,8 +43,9 @@ enum RadarPrefetchPolicy {
         }
         return result
     }
-    static func isAllowed(isActive: Bool, lowPower: Bool, constrained: Bool, expensive: Bool) -> Bool {
-        isActive && !lowPower && !constrained && !expensive
+    static func isAllowed(isActive: Bool, lowPower: Bool, constrained: Bool, expensive _: Bool) -> Bool {
+        // Normal cellular/hotspot access is allowed; Low Data Mode remains a stop.
+        isActive && !lowPower && !constrained
     }
 }
 
@@ -254,10 +255,13 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
         configuration.timeoutIntervalForRequest = 8
         configuration.timeoutIntervalForResource = 12
         configuration.allowsConstrainedNetworkAccess = false
-        configuration.allowsExpensiveNetworkAccess = false
+        configuration.allowsExpensiveNetworkAccess = true
+        configuration.allowsCellularAccess = true
+        configuration.waitsForConnectivity = false
         self.session = session ?? URLSession(configuration: configuration)
         monitor.pathUpdateHandler = { [weak self] path in
-            let allowed = path.status == .satisfied && !path.isConstrained && !path.isExpensive
+            let allowed = path.status == .satisfied && RadarPrefetchPolicy.isAllowed(
+                isActive: true, lowPower: false, constrained: path.isConstrained, expensive: path.isExpensive)
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.pathAllowed = allowed

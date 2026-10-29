@@ -71,3 +71,13 @@ Methode: Build-4-Audit-AX-Messung des Prognosebuttons y=647,3 pt, abzüglich 6 p
 - [Echtes Cache-Refresh-Ergebnis](../design/UI/build5/refresh-feedback.png)
 
 App mit Berlin starten, normales Large-Schriftformat wählen und Zeit/Play/Jetzt bedienen. Prognosezugang oben öffnet Datenalter und Details. Systemdarstellung zwischen Light/Dark wechseln. Für die maximale Schrift `accessibility-extra-extra-extra-large` verwenden; Zeit und Phase müssen vollständig oberhalb der Bedienzeile stehen. Die Screenshots enthalten ausschließlich Berlin und öffentliche Kartenbeschriftungen, keine private Standort-/Ortsliste oder andere App. Reduce-Motion-Verhalten ist implementiert, hier jedoch nicht in einem eigenen finalen Settingslauf visuell abgenommen. Keine echte Apple-Intelligence-Generierung oder physische Geräteprüfung hinzugefügt.
+
+## Slider muss immer sichtbar reagieren (Nutzeranforderung 29. Oktober 2026)
+
+Anforderung: Bewegt der Nutzer den Zeit-Slider, ist immer eine Bewegung erkennbar, auch wenn das Radarbild des Ziel-Slots noch nicht geladen ist oder das Laden fehlschlägt.
+
+Befund: Thumb und Zeitanzeige waren direkt an `store.selectedFrame` gebunden und liefen nicht auf Bildladung. Sichtbar ausgeblieben ist die Rückmeldung in der Karte: `RadarMap.updateUIView` entfernt beim Slotwechsel sofort das Overlay und legt ein neues an; bis Kacheln eintreffen (oder dauerhaft bei Fehlern) zeigt die Karte kein Radar und keinen Hinweis, welcher Slot gemeint ist. Zusätzlich schnitt `Int($0)` Slider-Werte ab statt zu runden, und es gab kein haptisches Feedback.
+
+Umsetzung (nur UI, keine Prefetch-/Backend-Änderung): lokaler `scrubIndex` treibt Thumb, Zeit, Messung/Vorhersage und Accessibility-Wert unabhängig vom Netz; Pille unten auf der Karte „Radar für HH:MM lädt …“ bzw. „… nicht geladen“, solange der Ladezustand des gewählten Slots nicht erfolgreich abgeschlossen ist (altes Bild wird nicht als aktueller Stand ausgegeben); `.sensoryFeedback(.selection)` beim Slotwechsel durch Ziehen; reine Logik in `TimelineSlot` (Runden/Klemmen, Status). Test: `WeatherTests/TimelineSlotTests`.
+
+Prüfung: gezielter Test `TimelineSlotTests` und Simulatorbuild, siehe Abschlussbericht. Nicht geprüft: visuelles Verhalten der Pille und Haptik im Simulator/Gerät, UI-Test.
