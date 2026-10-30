@@ -12,6 +12,13 @@ final class RadarPrefetchTests: XCTestCase {
         DWDRequest.tileURL(x: 137 + index, y: 83, z: 8, date: reference, referenceTime: reference)
     }
 
+    override func setUp() async throws {
+        RadarPrefetcher.resetSharedStateForTesting()
+    }
+    override func tearDown() async throws {
+        RadarPrefetcher.resetSharedStateForTesting()
+    }
+
     func testPrefetchExpandsLeftThenRightFromSelectedFrame() {
         XCTAssertEqual(RadarPrefetchPolicy.order(selected: 3, count: 7), [3, 2, 4, 1, 5, 0, 6])
         XCTAssertEqual(RadarPrefetchPolicy.order(selected: 2, count: 6), [2, 1, 3, 0, 4, 5])
@@ -168,7 +175,7 @@ final class RadarPrefetchTests: XCTestCase {
         PrefetchGateProtocol.gate.reset(started: started)
         var state = RadarLoadState(contextID: UUID(), frameDate: now, referenceTime: now, reloadRevision: 2401)
         state.requested = 1; state.succeeded = 1; state.isViewportIdle = true
-        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero)
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, priority: RadarNetworkPriority())
         defer { prefetch.cancel() }
         let bytesReceived = expectation(description: "Prefetch bytes counted separately")
         let expectedPNG = png
@@ -317,7 +324,7 @@ final class RadarPrefetchTests: XCTestCase {
         let noStart = expectation(description: "No speculative request before foreground settles")
         noStart.isInverted = true
         PrefetchGateProtocol.gate.reset(started: noStart)
-        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero)
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, priority: RadarNetworkPriority())
         defer { prefetch.cancel() }
         prefetch.update(timeline: RadarTimeline(referenceTime: now, dates: [now]), selected: now,
                         paths: [RadarTileCoordinate(x: 140, y: 84, z: 8)], state: state,
@@ -331,34 +338,89 @@ final class RadarPrefetchTests: XCTestCase {
         XCTAssertEqual(PrefetchGateProtocol.gate.starts, 0)
     }
 
-    func testSourceDimensionFailureStopsSweepAndRepeatedUpdatesDoNotFloodNeighbors() async {
+    func testPlanAppliesViewportCoordinatesToEverySlotIncludingUnvisitedOnes() {
+        let paths = (0..<4).map { RadarTileCoordinate(x: 100 + $0, y: 50, z: 8) }
+        let plan = RadarPrefetchPolicy.plan(selected: 18, count: 37, paths: paths)
+        XCTAssertEqual(plan.count, 37 * 4, "Every slot receives the full observed coordinate set")
+        XCTAssertEqual(Set(plan.map(\.slot)), Set(0..<37))
+        XCTAssertEqual(plan.map(\.slot).prefix(12).filter { $0 == 18 }.count, 4, "Selected slot first")
+        let slotOrder = stride(from: 0, to: plan.count, by: 4).map { plan[$0].slot }
+        XCTAssertEqual(slotOrder, RadarPrefetchPolicy.order(selected: 18, count: 37))
+        XCTAssertEqual(slotOrder.prefix(5), [18, 17, 19, 16, 20])
+        XCTAssertTrue(plan.allSatisfy { paths.contains($0.path) })
+        XCTAssertEqual(RadarPrefetchPolicy.plan(selected: 0, count: 0, paths: paths), [])
+        XCTAssertEqual(RadarPrefetchPolicy.plan(selected: 0, count: 3, paths: []), [])
+    }
+
+    func testDefaultBudgetAllowsFullTimelineWarmupWithinHardWindowLimits() {
+        let budget = RadarPrefetchBudget()
+        var claims = 0
+        while budget.claim(now: reference) { claims += 1 }
+        XCTAssertEqual(claims, 240)
+        XCTAssertEqual(budget.retryAfter(now: reference), 60)
+        XCTAssertEqual(RadarPrefetchPolicy.parallelism, 3)
+        // 32 coordinates x 37 slots = 1,184 requests -> 5 windows at 240 per minute.
+        XCTAssertEqual(Int((1184.0 / 240.0).rounded(.up)), 5)
+    }
+
+    func testParallelismIsCappedAndCancelStopsAllWorkers() async {
         let session = makeSession()
         defer { session.invalidateAndCancel() }
         let now = Date()
-        let timeline = RadarTimeline(referenceTime: now, dates: [now.addingTimeInterval(-300), now, now.addingTimeInterval(300)])
+        let dates = (0..<7).map { now.addingTimeInterval(Double($0 - 3) * 300) }
+        var state = RadarLoadState(contextID: UUID(), frameDate: now, referenceTime: now, reloadRevision: 2404)
+        state.requested = 1; state.succeeded = 1; state.isViewportIdle = true
+        PrefetchGateProtocol.gate.reset()
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, priority: RadarNetworkPriority())
+        defer { prefetch.cancel() }
+        let paths = [RadarTileCoordinate(x: 150, y: 90, z: 8), RadarTileCoordinate(x: 151, y: 90, z: 8)]
+        prefetch.update(timeline: RadarTimeline(referenceTime: now, dates: dates), selected: dates[3], paths: paths,
+                        state: state, active: true, revision: 2404, cache: TileMemoryCache(), received: { _ in })
+        await waitForStarts(3)
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 3, "Never more than the configured parallel transports")
+        prefetch.cancel() // Location/zoom change or demand: all workers stop, no new starts.
+        await waitForStops(3)
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 3)
+    }
+
+    func testIsolatedTileFailureIsSkippedButRepeatedFailuresStopSweep() async {
+        let session = makeSession()
+        defer { session.invalidateAndCancel() }
+        let now = Date()
+        let dates = (0..<8).map { now.addingTimeInterval(Double($0 - 4) * 300) }
         var state = RadarLoadState(contextID: UUID(), frameDate: now, referenceTime: now, reloadRevision: 2403)
         state.requested = 1; state.succeeded = 1; state.isViewportIdle = true
-        let started = expectation(description: "One controlled source request")
-        PrefetchGateProtocol.gate.reset(started: started)
-        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero)
+        PrefetchGateProtocol.gate.reset()
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, parallelism: 1, priority: RadarNetworkPriority())
         defer { prefetch.cancel() }
-        let bodyReceived = expectation(description: "Service error body still counted")
-        let update = {
-            prefetch.update(timeline: timeline, selected: now, paths: [RadarTileCoordinate(x: 141, y: 84, z: 8)],
-                            state: state, active: true, revision: 2403, cache: TileMemoryCache(),
-                            received: { _ in bodyReceived.fulfill() })
+        let bodyCount = Counter()
+        prefetch.update(timeline: RadarTimeline(referenceTime: now, dates: dates), selected: dates[4],
+                        paths: [RadarTileCoordinate(x: 141, y: 84, z: 8)], state: state, active: true,
+                        revision: 2403, cache: TileMemoryCache(), received: { _ in bodyCount.increment() })
+        let bad = Data("<ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">not ready</ServiceException></ServiceExceptionReport>".utf8)
+        for expected in 1...3 {
+            await waitForStarts(expected)
+            PrefetchGateProtocol.gate.finish(data: bad)
         }
-        update()
-        await fulfillment(of: [started], timeout: 2)
-        PrefetchGateProtocol.gate.finish(data: Data("<ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">not ready</ServiceException></ServiceExceptionReport>".utf8))
-        await fulfillment(of: [bodyReceived], timeout: 2)
-        for _ in 0..<100 { await Task.yield() }
-        let noRetry = expectation(description: "No retry or next-neighbor source flood")
-        noRetry.isInverted = true
-        PrefetchGateProtocol.gate.expectFurtherStarts(noRetry)
-        update()
-        await fulfillment(of: [noRetry], timeout: 0.15)
-        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 1)
+        try? await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 3, "Third consecutive failure ends the sweep; no retry or flood")
+        prefetch.update(timeline: RadarTimeline(referenceTime: now, dates: dates), selected: dates[4],
+                        paths: [RadarTileCoordinate(x: 141, y: 84, z: 8)], state: state, active: true,
+                        revision: 2403, cache: TileMemoryCache(), received: { _ in })
+        try? await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 3, "Cooldown blocks an identical update")
+    }
+
+    // Polling with a generous deadline instead of fixed short timeouts.
+    private func waitForStarts(_ count: Int) async {
+        for _ in 0..<1000 where PrefetchGateProtocol.gate.starts < count { try? await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertGreaterThanOrEqual(PrefetchGateProtocol.gate.starts, count)
+    }
+    private func waitForStops(_ count: Int) async {
+        for _ in 0..<1000 where PrefetchGateProtocol.gate.stops < count { try? await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertGreaterThanOrEqual(PrefetchGateProtocol.gate.stops, count)
     }
 
     private func makeSession() -> URLSession {
@@ -392,7 +454,7 @@ private final class PrefetchProtocolGate: @unchecked Sendable {
     private var stopCount = 0
     var starts: Int { lock.withLock { startCount } }
     var stops: Int { lock.withLock { stopCount } }
-    func reset(started: XCTestExpectation) {
+    func reset(started: XCTestExpectation? = nil) {
         lock.withLock { pending = []; self.started = started; startCount = 0; stopCount = 0 }
     }
     func start(_ request: PrefetchGateProtocol) {
@@ -405,4 +467,10 @@ private final class PrefetchProtocolGate: @unchecked Sendable {
         let requests = lock.withLock { let value = pending; pending = []; return value }
         requests.forEach { $0.finish(data: data) }
     }
+}
+
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+    func increment() { lock.withLock { value += 1 } }
 }

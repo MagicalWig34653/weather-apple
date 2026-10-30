@@ -43,6 +43,14 @@ enum RadarPrefetchPolicy {
         }
         return result
     }
+    struct Item: Equatable, Sendable { let slot: Int; let path: RadarTileCoordinate }
+    // Slot-major plan: the viewport's tile coordinates are identical for every time
+    // slot, so slots never visited still get the full coordinate set.
+    static func plan(selected: Int, count: Int, paths: [RadarTileCoordinate]) -> [Item] {
+        order(selected: selected, count: count).flatMap { slot in paths.map { Item(slot: slot, path: $0) } }
+    }
+    static let parallelism = 3
+    static let maxConsecutiveFailures = 3
     static func isAllowed(isActive: Bool, lowPower: Bool, constrained: Bool, expensive _: Bool) -> Bool {
         // Normal cellular/hotspot access is allowed; Low Data Mode remains a stop.
         isActive && !lowPower && !constrained
@@ -59,7 +67,7 @@ final class RadarPrefetchBudget: @unchecked Sendable {
     private var start: Date?
     private var requests = 0
     private var bytes = 0
-    init(maxRequests: Int = 120, interval: TimeInterval = 60, maxBytes: Int = 8_000_000) {
+    init(maxRequests: Int = 240, interval: TimeInterval = 60, maxBytes: Int = 8_000_000) {
         self.maxRequests = maxRequests; self.interval = interval; self.maxBytes = maxBytes
     }
     private func reset(_ now: Date) {
@@ -101,10 +109,11 @@ final class RadarNetworkPriority: @unchecked Sendable {
         }
     }
     func clear() { lock.withLock { cancellation = nil } }
+    func resetForTesting() { lock.withLock { demands = 0; cancellation = nil } }
 }
 
-// One speculative transport. A matching foreground subscriber promotes it and
-// survives detachment/cancellation of the speculative waiter.
+// Speculative transports (a few in parallel, one per URL). A matching foreground
+// subscriber promotes one and survives detachment/cancellation of the speculative waiter.
 final class RadarPrefetchFlight: @unchecked Sendable {
     struct Response: @unchecked Sendable {
         let data: Data?; let response: URLResponse?; let error: Error?
@@ -117,67 +126,78 @@ final class RadarPrefetchFlight: @unchecked Sendable {
         var speculative: Handler?; var demands: [(UUID, Handler)]
         let received: @Sendable (Int) -> Void
         var handoff = false
+        var isIdle: Bool { demands.isEmpty && speculative == nil && !handoff }
     }
     private let lock = NSLock()
-    private var entry: Entry?
+    private var entries: [UUID: Entry] = [:]
+    var activeCount: Int { lock.withLock { entries.count } }
     func prepareHandoff(date: Date?, referenceTime: Date?) {
-        let outcome: (UUID?, URLSessionDataTask?) = lock.withLock {
-            guard var current = entry else { return (nil, nil) }
-            let items = URLComponents(url: current.url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-            let matches: Bool
-            if let date, let referenceTime {
-                matches = items.contains { $0.name == "TIME" && $0.value == DWDRequest.timestamp(date) }
-                    && items.contains { $0.name == "DIM_REFERENCE_TIME" && $0.value == DWDRequest.timestamp(referenceTime) }
-            } else { matches = false }
-            current.handoff = matches
-            if !matches && current.demands.isEmpty && current.speculative == nil {
-                entry = nil; return (nil, current.task)
-            }
-            entry = current
-            return (matches ? current.id : nil, nil)
-        }
-        outcome.1?.cancel()
-        if let reserved = outcome.0 {
-            DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [self] in
-                let task: URLSessionDataTask? = lock.withLock {
-                    guard var current = entry, current.id == reserved else { return nil }
-                    current.handoff = false
-                    if current.demands.isEmpty && current.speculative == nil { entry = nil; return current.task }
-                    entry = current; return nil
+        let outcome: ([UUID], [URLSessionDataTask]) = lock.withLock {
+            var reserved: [UUID] = [], dropped: [URLSessionDataTask] = []
+            for (id, var current) in entries {
+                let items = URLComponents(url: current.url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                let matches: Bool
+                if let date, let referenceTime {
+                    matches = items.contains { $0.name == "TIME" && $0.value == DWDRequest.timestamp(date) }
+                        && items.contains { $0.name == "DIM_REFERENCE_TIME" && $0.value == DWDRequest.timestamp(referenceTime) }
+                } else { matches = false }
+                current.handoff = matches
+                if !matches && current.demands.isEmpty && current.speculative == nil {
+                    entries[id] = nil; dropped.append(current.task)
+                } else {
+                    entries[id] = current
+                    if matches { reserved.append(id) }
                 }
-                task?.cancel()
+            }
+            return (reserved, dropped)
+        }
+        outcome.1.forEach { $0.cancel() }
+        if !outcome.0.isEmpty {
+            DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [self] in
+                let tasks: [URLSessionDataTask] = lock.withLock {
+                    var cancelled: [URLSessionDataTask] = []
+                    for id in outcome.0 {
+                        guard var current = entries[id] else { continue }
+                        current.handoff = false
+                        if current.isIdle { entries[id] = nil; cancelled.append(current.task) } else { entries[id] = current }
+                    }
+                    return cancelled
+                }
+                tasks.forEach { $0.cancel() }
             }
         }
     }
     func cancelHandoff() {
-        let task: URLSessionDataTask? = lock.withLock {
-            guard var current = entry else { return nil }
-            current.handoff = false
-            if current.demands.isEmpty && current.speculative == nil && !current.handoff { entry = nil; return current.task }
-            entry = current; return nil
+        let tasks: [URLSessionDataTask] = lock.withLock {
+            var cancelled: [URLSessionDataTask] = []
+            for (id, var current) in entries {
+                current.handoff = false
+                if current.isIdle { entries[id] = nil; cancelled.append(current.task) } else { entries[id] = current }
+            }
+            return cancelled
         }
-        task?.cancel()
+        tasks.forEach { $0.cancel() }
     }
     func join(url: URL, owner: UUID = UUID(), result: @escaping Handler) -> Bool {
         lock.withLock {
-            guard entry?.url == url else { return false }
+            guard let id = entries.first(where: { $0.value.url == url })?.key else { return false }
             RadarNetworkPriority.shared.beginDemand(cancelPrefetch: false)
-            entry?.demands.append((owner, result))
-            entry?.handoff = false
+            entries[id]?.demands.append((owner, result))
+            entries[id]?.handoff = false
             return true
         }
     }
     func cancelDemands(owner: UUID) {
-        let cancelled: ([Handler], URLSessionDataTask?) = lock.withLock {
-            guard var current = entry else { return ([], nil) }
-            let callbacks = current.demands.filter { $0.0 == owner }.map { $0.1 }
-            current.demands.removeAll { $0.0 == owner }
-            if current.demands.isEmpty && current.speculative == nil && !current.handoff {
-                entry = nil; return (callbacks, current.task)
+        let cancelled: ([Handler], [URLSessionDataTask]) = lock.withLock {
+            var callbacks: [Handler] = [], tasks: [URLSessionDataTask] = []
+            for (id, var current) in entries {
+                callbacks += current.demands.filter { $0.0 == owner }.map { $0.1 }
+                current.demands.removeAll { $0.0 == owner }
+                if current.isIdle { entries[id] = nil; tasks.append(current.task) } else { entries[id] = current }
             }
-            entry = current; return (callbacks, nil)
+            return (callbacks, tasks)
         }
-        cancelled.1?.cancel()
+        cancelled.1.forEach { $0.cancel() }
         cancelled.0.forEach { $0(Response(data: nil, response: nil, error: URLError(.cancelled))) }
     }
     func load(url: URL, session: URLSession, cache: TileMemoryCache? = nil, received: @escaping @Sendable (Int) -> Void) async -> Response {
@@ -191,10 +211,7 @@ final class RadarPrefetchFlight: @unchecked Sendable {
                     // a new demand cannot fall into a response/cache handoff gap.
                     if error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
                        let data, let image = try? DWDResponse.radarImage(from: data) { cache?.insert(image, for: url) }
-                    let finished: Entry? = lock.withLock {
-                        guard entry?.id == id else { return nil }
-                        let finished = entry; entry = nil; return finished
-                    }
+                    let finished: Entry? = lock.withLock { entries.removeValue(forKey: id) }
                     guard let finished else { return }
                     if let data { finished.received(data.count) }
                     let value = Response(data: data, response: response, error: error)
@@ -202,10 +219,10 @@ final class RadarPrefetchFlight: @unchecked Sendable {
                     finished.demands.forEach { $0.1(value) }
                 }
                 let accepted = lock.withLock {
-                    guard entry == nil else { return false }
-                    entry = Entry(id: id, url: url, task: task,
-                                  speculative: { continuation.resume(returning: $0) },
-                                  demands: [], received: received)
+                    guard !entries.values.contains(where: { $0.url == url }) else { return false }
+                    entries[id] = Entry(id: id, url: url, task: task,
+                                        speculative: { continuation.resume(returning: $0) },
+                                        demands: [], received: received)
                     return true
                 }
                 if accepted {
@@ -218,12 +235,12 @@ final class RadarPrefetchFlight: @unchecked Sendable {
     }
     private func cancel(id: UUID) {
         let cancelled: (Handler?, URLSessionDataTask?) = lock.withLock {
-            guard var current = entry, current.id == id else { return (nil, nil) }
+            guard var current = entries[id] else { return (nil, nil) }
             let callback = current.speculative; current.speculative = nil
             if current.demands.isEmpty && !current.handoff {
-                entry = nil; return (callback, current.task)
+                entries[id] = nil; return (callback, current.task)
             }
-            entry = current; return (callback, nil)
+            entries[id] = current; return (callback, nil)
         }
         cancelled.1?.cancel()
         cancelled.0?(Response(data: nil, response: nil, error: URLError(.cancelled)))
@@ -245,13 +262,20 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
     private let session: URLSession
     private let quiescence: Duration
     private let spacing: Duration
+    private let parallelism: Int
+    private let priority: RadarNetworkPriority
+    private static var failedURLs: Set<URL> = []
     init(session: URLSession? = nil, networkAllowed: Bool? = nil,
-         quiescence: Duration = .seconds(1), spacing: Duration = .milliseconds(500)) {
+         quiescence: Duration = .seconds(1), spacing: Duration = .milliseconds(250),
+         parallelism: Int = RadarPrefetchPolicy.parallelism,
+         priority: RadarNetworkPriority = .shared) {
+        self.priority = priority
         self.quiescence = quiescence; self.spacing = spacing
+        self.parallelism = max(1, parallelism)
         self.pathAllowed = networkAllowed ?? false
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
-        configuration.httpMaximumConnectionsPerHost = 1
+        configuration.httpMaximumConnectionsPerHost = max(1, parallelism)
         configuration.timeoutIntervalForRequest = 8
         configuration.timeoutIntervalForResource = 12
         configuration.allowsConstrainedNetworkAccess = false
@@ -274,9 +298,12 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
             Task { @MainActor [weak self] in self?.restart?() }
         }
     }
+    static func resetSharedStateForTesting() {
+        cooldown = [:]; failedURLs = []; RadarNetworkPriority.shared.resetForTesting()
+    }
     func cancel() {
         generation = UUID(); work?.cancel(); work = nil; signature = nil
-        RadarNetworkPriority.shared.clear()
+        priority.clear()
     }
     func update(timeline: RadarTimeline?, selected: Date?, paths: [RadarTileCoordinate],
                 state: RadarLoadState?, active: Bool, revision: Int,
@@ -299,56 +326,102 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
         guard signature != key else { return }
         cancel(); signature = key
         let token = generation
+        let plan = RadarPrefetchPolicy.plan(selected: index, count: timeline.dates.count, paths: paths)
+        let sweep = Sweep(plan: plan)
         work = Task { [weak self] in
             guard let self else { return }
             // Quiescence after MapKit has finished its observed selected demand.
             do {
                 try await Task.sleep(for: self.quiescence)
-                for slot in RadarPrefetchPolicy.order(selected: index, count: timeline.dates.count) {
-                    let date = timeline.dates[slot]
-                    let reference = min(date, timeline.referenceTime)
-                    if let until = Self.cooldown[reference], until > Date() { continue }
-                    for path in paths {
-                        try Task.checkCancellation()
-                        guard self.generation == token,
-                              !ProcessInfo.processInfo.isLowPowerModeEnabled,
-                              !RainForecast(referenceTime: timeline.referenceTime, samples: []).isStale else { return }
-                        let url = DWDRequest.tileURL(x: path.x, y: path.y, z: path.z, date: date, referenceTime: reference)
-                        if cache.data(for: url) != nil || RadarTileOverlay.hasFailure(url: url, revision: revision) { continue }
-                        let wait = Self.budget.retryAfter()
-                        if wait > 0 { try await Task.sleep(for: .seconds(wait)) }
-                        try Task.checkCancellation()
-                        guard self.generation == token, self.pathAllowed,
-                              !ProcessInfo.processInfo.isLowPowerModeEnabled,
-                              !RainForecast(referenceTime: timeline.referenceTime, samples: []).isStale,
-                              Self.budget.claim() else { return }
-                        let currentWork = self.work
-                        guard RadarNetworkPriority.shared.register({ currentWork?.cancel() }) else { return }
-                        try Task.checkCancellation()
-                        let response = await RadarPrefetchFlight.shared.load(url: url, session: self.session, cache: cache) { count in
-                            Self.budget.received(count)
-                            Task { @MainActor in received(count) }
-                        }
-                        if let error = response.error { throw error }
-                        guard let data = response.data else { throw DWDDataError.unavailable }
-                        try Task.checkCancellation()
-                        guard self.generation == token else { return }
-                        guard (response.response as? HTTPURLResponse)?.statusCode == 200 else { throw DWDDataError.unavailable }
-                        let image = try DWDResponse.radarImage(from: data)
-                        cache.insert(image, for: url)
-                        RadarNetworkPriority.shared.clear()
-                        try await Task.sleep(for: self.spacing)
+                let workers = (0..<self.parallelism).map { _ in
+                    Task { @MainActor in
+                        try await self.runWorker(sweep: sweep, token: token, timeline: timeline,
+                                                 revision: revision, cache: cache, received: received)
                     }
                 }
+                try await withTaskCancellationHandler {
+                    var failure: Error?
+                    for worker in workers {
+                        do { try await worker.value } catch {
+                            if failure == nil { failure = error; workers.forEach { $0.cancel() } }
+                        }
+                    }
+                    if let failure { throw failure }
+                } onCancel: { workers.forEach { $0.cancel() } }
             } catch {
                 if !(error is CancellationError), (error as? URLError)?.code != .cancelled {
-                    // Any source failure stops this sweep; no retry or per-frame flood.
+                    // Repeated source failures stop this sweep; no retry or per-frame flood.
                     Self.cooldown = Self.cooldown.filter { $0.value > Date() }
                     Self.cooldown[timeline.referenceTime] = Date().addingTimeInterval(120)
                 }
             }
-            if self.generation == token { RadarNetworkPriority.shared.clear() }
+            if self.generation == token { priority.clear() }
         }
+    }
+    @MainActor private final class Sweep {
+        let plan: [RadarPrefetchPolicy.Item]
+        var next = 0
+        var consecutiveFailures = 0
+        init(plan: [RadarPrefetchPolicy.Item]) { self.plan = plan }
+        func take() -> RadarPrefetchPolicy.Item? {
+            guard next < plan.count else { return nil }
+            defer { next += 1 }
+            return plan[next]
+        }
+    }
+    private func mayContinue(token: UUID, timeline: RadarTimeline) -> Bool {
+        generation == token && pathAllowed && !ProcessInfo.processInfo.isLowPowerModeEnabled
+            && !RainForecast(referenceTime: timeline.referenceTime, samples: []).isStale
+    }
+    private func runWorker(sweep: Sweep, token: UUID, timeline: RadarTimeline, revision: Int, cache: TileMemoryCache,
+                           received: @escaping @MainActor @Sendable (Int) -> Void) async throws {
+        while let item = sweep.take() {
+            try Task.checkCancellation()
+            guard mayContinue(token: token, timeline: timeline) else { return }
+            let date = timeline.dates[item.slot]
+            let reference = min(date, timeline.referenceTime)
+            if let until = Self.cooldown[reference], until > Date() { continue }
+            let url = DWDRequest.tileURL(x: item.path.x, y: item.path.y, z: item.path.z, date: date, referenceTime: reference)
+            if cache.data(for: url) != nil || Self.failedURLs.contains(url)
+                || RadarTileOverlay.hasFailure(url: url, revision: revision) { continue }
+            while true {
+                let wait = Self.budget.retryAfter()
+                if wait > 0 { try await Task.sleep(for: .seconds(wait)) }
+                try Task.checkCancellation()
+                guard mayContinue(token: token, timeline: timeline) else { return }
+                if Self.budget.claim() { break }
+            }
+            let currentWork = self.work
+            guard priority.register({ currentWork?.cancel() }) else { return }
+            try Task.checkCancellation()
+            let response = await RadarPrefetchFlight.shared.load(url: url, session: session, cache: cache) { count in
+                Self.budget.received(count)
+                Task { @MainActor in received(count) }
+            }
+            if let error = response.error {
+                if (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                try recordFailure(url: url, sweep: sweep, error: error)
+            } else {
+                try Task.checkCancellation()
+                guard generation == token else { return }
+                if (response.response as? HTTPURLResponse)?.statusCode == 200, let data = response.data,
+                   let image = try? DWDResponse.radarImage(from: data) {
+                    cache.insert(image, for: url)
+                    sweep.consecutiveFailures = 0
+                } else {
+                    try recordFailure(url: url, sweep: sweep, error: DWDDataError.unavailable)
+                }
+            }
+            try await Task.sleep(for: spacing)
+        }
+    }
+    // An isolated bad tile is skipped (and not requested again); several in a row
+    // indicate a source problem and end the sweep with a cooldown.
+    private func recordFailure(url: URL, sweep: Sweep, error: Error) throws {
+        if Self.failedURLs.count > 4096 { Self.failedURLs.removeAll() }
+        Self.failedURLs.insert(url)
+        sweep.consecutiveFailures += 1
+        if sweep.consecutiveFailures >= RadarPrefetchPolicy.maxConsecutiveFailures { throw error }
     }
     isolated deinit {
         work?.cancel(); monitor.cancel()

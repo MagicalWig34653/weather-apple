@@ -151,3 +151,7 @@ Build 6 wurde um 20:01:53 Uhr MEZ von Apple angenommen (`PROCESSING`); die eng b
 ## Zeit-Slider (29. Oktober 2026, Nutzeranforderung)
 
 Die Slider-Bewegung muss immer erkennbar sein, auch wenn der Radarslot nicht geladen ist oder das Laden fehlgeschlagen ist. Thumb und Zeitangabe folgen dem Finger netzunabhängig (`scrubIndex`). Eine ehrliche Statuspille nennt den Zustand des angezeigten Slots („lädt“ / „nicht geladen“); ein altes Bild gilt nie als Stand des gewählten Slots. Leichte Auswahl-Haptik pro Slotwechsel. Keine Änderung an Prefetch, Budgets oder Backend. Umsetzung für Build 7 (`TimelineSlot`, `TimelineSlotTests`).
+
+## Build 8: vollständiges Timeline-Vorladen (30. Oktober 2026)
+
+Nutzerfeedback zu Build 7: Die Zeitleiste wird nicht komplett vorgeladen. Entscheidung: Koordinaten des sichtbaren Ausschnitts gelten für alle Timeline-Slots; drei parallele Prefetch-Requests, 250 ms Abstand, 240 Requests je 60-s-Fenster (Bytestopp unverändert 8.000.000), Quellfehlerstopp nach drei aufeinanderfolgenden Fehlern. **Ersetzt** die Build-6/7-Vorsichtswerte (eine Netzoperation, 500 ms, 120 Requests je Fenster, Stopp bei erstem Fehler). Unverändert: 50-MB-RAM-Cap, kein Diskcache, Datensparmodus/Low Power/inaktive App sperren, Abbruch bei Ort-/Zoom-/Framewechsel, 120-s-Pause je Referenzlauf. Begründung und Rechnung in [timeline-prefetch.md](timeline-prefetch.md). Version `0.1.0`, Build `8`.
