@@ -1,6 +1,6 @@
 # Radar-Cache-Backend und Benachrichtigungen
 
-> **Server produktiv, App-Anbindung in Arbeit.** Der Radar-Cache läuft unter `https://showernow.linolaske.de` und ist öffentlich erreichbar. Die App nutzt ihn in der aktuellen Version (Build 8) noch nicht. Die Anbindung für Build 9 ist **in Arbeit**: Die App soll Radarbilder dann zuerst vom Cache laden und bei Fehler oder Daten älter als 20 Minuten auf den DWD zurückfallen. Die Benachrichtigungsdienste bleiben Plan bzw. Entwurf.
+> **Server produktiv, App-Anbindung mit Build 9 hochgeladen.** Der Radar-Cache läuft unter `https://showernow.linolaske.de` und ist öffentlich erreichbar. Build 9 lädt Radarbilder zuerst von diesem Cache und fällt bei Fehler oder Daten älter als 20 Minuten auf den DWD zurück. Build 9 ist hochgeladen und von Apple angenommen; Verarbeitung und Installierbarkeit sind noch nicht bestätigt. Die Benachrichtigungsdienste bleiben Plan bzw. Entwurf.
 
 Maßgeblich für den Server ist das Schwesterprojekt [weather-backend](https://github.com/MagicalWig34653/weather-backend). Dessen Dokumentation: [magicalwig34653.github.io/weather-backend](https://magicalwig34653.github.io/weather-backend/).
 
@@ -21,11 +21,13 @@ Der DWD-WMS-Dienst ist für eine Zeitleiste mit vielen Einzelbildern langsam und
 | `GET /v1/radar/latest.json` | aktueller Lauf mit Liste der verfügbaren Zeitpunkte |
 | `GET /v1/radar/<run>/<slot>.webp` | Bild eines Zeitpunkts (`<run>` = Lauf, `<slot>` = Zeitpunkt) |
 
-Die Form von `latest.json` (Schema 1) steht im Backend-Repository. Vorgesehen ist, dass die App unbekannte Schemaversionen ablehnt und dann auf den DWD zurückfällt. Geplant ist außerdem, `latest.json` beim Aktivwerden und danach etwa jede Minute abzufragen (nur bei sichtbarer App) und die Bilder der Zeitleiste im Hintergrund vorzuladen. Der Cache-Vertrag ist im Backend-Repository dokumentiert; die App-Seite ist noch nicht ausgeliefert.
+Die Form von `latest.json` (Schema 1) steht im Backend-Repository. Die App lehnt unbekannte Schemaversionen ab und fällt dann auf den DWD zurück.
+
+Die App fragt `latest.json` beim Start und beim Aktivwerden sowie danach alle 60 Sekunden ab, solange sie sichtbar ist (mit ETag; `304` ohne neue Daten). Die Bilder der Zeitleiste werden im Hintergrund vorgeladen. Dafür gelten vier parallele Anfragen und ein Arbeitsspeicher-Cache von höchstens 50 MB; Datensparmodus, Stromsparmodus und inaktive App sperren das Vorladen.
 
 ## Fallback auf den DWD
 
-Vorgesehen für Build 9: Die App nutzt den direkten DWD-Weg bei Fehler, Timeout oder Datenalter über 20 Minuten. Dieser Weg soll DWD-XML-Fehlerantworten (`InvalidDimensionValue`) begrenzt mit Wartezeit wiederholen. Die App soll anzeigen, ob die Radarbilder aus dem ShowerNow-Cache oder direkt vom DWD stammen. Bis Build 9 ausgeliefert ist, gilt für die Radarkarte der direkte DWD-Weg (siehe [Funktionen](funktionen.html)).
+Build 9 nutzt den direkten DWD-Weg bei Fehler, 404, Timeout, ungültigem Manifest oder Daten älter als 20 Minuten. Auf diesem Weg wiederholt die App DWD-XML-Fehlerantworten (`InvalidDimensionValue`) begrenzt mit Wartezeit, bis zu drei Versuche. Liefert der Cache gar keine Bilder, bleibt die App 5 Minuten auf dem DWD-Weg. Die Karte zeigt die Quelle an („ShowerNow-Cache“ bzw. „direkt vom DWD“).
 
 ## Benachrichtigungsdienst (Entwurf)
 

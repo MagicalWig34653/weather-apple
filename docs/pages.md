@@ -8,7 +8,7 @@
 - Kuratierte Seiten: `docs-site/content/*.md` (Start, Funktionen, Datenschutz, Datenquellen, Architektur, Radar-Cache, Roadmap, Entwickler).
 - Direkt eingebunden: `docs/data-contract.md` (Seite „DWD-Datenvertrag“) und der Abschnitt „Projekt öffnen und prüfen“ aus `README.md`. Links auf nicht veröffentlichte `docs/`-Dateien zeigen auf GitHub.
 - Bewusst nicht veröffentlicht: Status, Uploadprotokolle, Signing, Reviews, Entscheidungsdetails mit Kennungen. Die kuratierten Seiten fassen `decisions.md` und `plan.md` zusammen; bei Entscheidungsänderungen die Seiten `architektur`, `backend`, `roadmap` nachziehen.
-- Radar-Cache: Backend produktiv beschrieben; App-Anbindung (Build 9) als „in Arbeit“ gekennzeichnet, bis sie geprüft und ausgeliefert ist. Benachrichtigungsdienst bleibt als Plan/Entwurf.
+- Radar-Cache: Backend produktiv beschrieben; App-Anbindung mit Build 9 (hochgeladen, Verarbeitung/Installierbarkeit nicht bestätigt) beschrieben. Benachrichtigungsdienst bleibt als Plan/Entwurf.
 
 ## Lokaler Build
 

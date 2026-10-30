@@ -8,8 +8,8 @@ Nativer, werbefreier Regenradar für Apple-Plattformen. ShowerNow zeigt das Nied
 
 Frühe, interne Beta. Es ist keine öffentliche Version und keine fertige Version 1.
 
-- Aktueller Stand: Version `0.1.0`, **Build 8** (hochgeladen; Installierbarkeit in TestFlight nicht bestätigt), nur für interne TestFlight-Tester vorgesehen.
-- **In Arbeit: Build 9** mit Anbindung an den eigenen Radar-Cache. Das Cache-Backend läuft bereits produktiv; die App nutzt es noch nicht.
+- Aktueller Stand: Version `0.1.0`, **Build 9** (am 30. Oktober 2026 hochgeladen und von Apple angenommen; Verarbeitung und Installierbarkeit in TestFlight noch nicht bestätigt), nur für interne TestFlight-Tester vorgesehen. Vorgänger ist Build 8.
+- Radarbilder kommen mit Build 9 zuerst vom eigenen Radar-Cache. Bei Fehlern oder veralteten Daten lädt die App sie direkt vom DWD; die Karte zeigt, woher die Bilder stammen. Das Cache-Backend läuft produktiv.
 - Läuft auf dem **iPhone**; die App ist auf dem **iPad** kompatibel (Universal-Metadaten, noch ohne angepasste iPad-Oberfläche).
 - **Geplant, noch nicht umgesetzt:** Widgets, Apple Watch, angepasste iPad- und Mac-Oberfläche, Benachrichtigungen.
 - Bundle-ID (vorläufig): `de.linolaske.showernow`.
