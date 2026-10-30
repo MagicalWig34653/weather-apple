@@ -161,3 +161,7 @@ Die folgenden Nachweise gehören zu den jeweils genannten Schritten; damalige An
 3. Auf physischem iPhone Kaltstart, warmen Refresh, Zoom/Orts-/Framewechsel und Fehlererholung prüfen. Keine privaten Standortlogs veröffentlichen; verbleibende DWD-Verfügbarkeit und variable kalte Ladezeit ausdrücklich beobachten.
 
 Widgets/Watch, Push und angepasste iPad-/Mac-Oberflächen folgen gemäß Plan.
+
+## Notiz: Radar-Cache-Backend (30. Oktober 2026)
+
+Der Nutzer hat ein Radar-Cache-Backend beauftragt; Stufe 1 liegt im Backend-Repo (lokal getestet, noch nicht auf dem Swarm deployt). Entscheidungen: [decisions.md](decisions.md), Messung: [research/backend-radar-cache.md](research/backend-radar-cache.md). App-Code und Release-Stand (Build 8) unverändert; die Client-Anbindung folgt als Build 9.

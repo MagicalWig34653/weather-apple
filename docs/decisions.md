@@ -20,7 +20,7 @@ Widgets sollen Regenstatus und/oder Niederschlagsverlauf für einen ausgewählte
 ## Architektur und Datenschutz
 
 - Swift und SwiftUI; MapKit und CoreLocation für die Apple-App.
-- Karte unabhängig vom eigenen Backend; Bilder grundsätzlich direkt vom Anbieter.
+- Karte: Direktweg zum DWD bleibt Fallback; ein eigener Radar-Cache (Backend) wird gebaut, siehe Abschnitt "Radar-Cache-Backend" (30. Oktober 2026), der den früheren Grundsatz "unabhängig vom Backend, direkt vom Anbieter" für die Standardroute ersetzt.
 - Numerische Ortsprognose ohne Backend ist ein frühes Validierungsthema, noch keine bestätigte Datenkette.
 - Zentraler Backend-Stack: Swift/Vapor, MariaDB, Docker Swarm; stateless Replikate, persistente Jobkoordination und Push-Outbox.
 - Keine Serverregistrierung ohne aktivierte Pushabonnements.
@@ -155,3 +155,13 @@ Die Slider-Bewegung muss immer erkennbar sein, auch wenn der Radarslot nicht gel
 ## Build 8: vollständiges Timeline-Vorladen (30. Oktober 2026)
 
 Nutzerfeedback zu Build 7: Die Zeitleiste wird nicht komplett vorgeladen. Entscheidung: Koordinaten des sichtbaren Ausschnitts gelten für alle Timeline-Slots; drei parallele Prefetch-Requests, 250 ms Abstand, 240 Requests je 60-s-Fenster (Bytestopp unverändert 8.000.000), Quellfehlerstopp nach drei aufeinanderfolgenden Fehlern. **Ersetzt** die Build-6/7-Vorsichtswerte (eine Netzoperation, 500 ms, 120 Requests je Fenster, Stopp bei erstem Fehler). Unverändert: 50-MB-RAM-Cap, kein Diskcache, Datensparmodus/Low Power/inaktive App sperren, Abbruch bei Ort-/Zoom-/Framewechsel, 120-s-Pause je Referenzlauf. Begründung und Rechnung in [timeline-prefetch.md](timeline-prefetch.md). Version `0.1.0`, Build `8`.
+
+## Radar-Cache-Backend (Nutzerentscheidungen vom 30. Oktober 2026)
+
+Messungen und Empfehlung: [research/backend-radar-cache.md](research/backend-radar-cache.md). Umsetzung und Details im [Backend-Repo](https://github.com/MagicalWig34653/weather-backend/blob/main/docs/decisions.md).
+
+- Ein Radar-Cache-Backend wird gebaut. Die App behält den DWD-Direktweg als Fallback (bei Fehler, Timeout oder Datenalter über 20 Minuten); der Cache ersetzt "Karte unabhängig vom Backend" als Standardroute. Er ist zugleich die Ingest-Basis für spätere Benachrichtigungen.
+- Betrieb auf dem vorhandenen Docker Swarm des Nutzers mit MariaDB 12.3; Reverse Proxy (Zoraxy) reicht nur durch und cached nicht, deshalb liegt der Cache im Stack (LRU je Replikat, ETag/304, `immutable`). Stateless Replikate, keine Cookies/Sticky Sessions. Ein Redis ist nicht vorgesehen.
+- Format: ein Ganzbild je Slot (1024 x 1311 px, EPSG:3857, DWD-Palette), verlustfreies WebP; Vertrag `GET /v1/radar/latest.json` und `GET /v1/radar/<run>/<slot>.webp` (siehe Backend-README). Client-Anbindung folgt als Build 9 (separater Auftrag), nicht Teil dieser Entscheidung.
+- Annahme: CC BY 4.0 und GeoNutzV genügen für Zwischenspeichern und Weitergabe, mit Quellenvermerk "Quelle: Deutscher Wetterdienst" und Veränderungshinweis; die App muss beides an der Karte sichtbar halten. Eine schriftliche DWD-Bestätigung zu Spiegelung und Takt bleibt optional und offen.
+- Neue Messung (30. Oktober 2026, Backend-Arbeit): Etwa jede dritte WMS-GetMap-Antwort des DWD ist ein HTTP-200 mit XML-Fehler `InvalidDimensionValue`, auch für veröffentlichte Läufe, und wechselt bei Wiederholung zufällig. Auch der App-Direktweg sollte Wiederholungen bei XML-Antworten vorsehen (zu prüfen in Build 9).
