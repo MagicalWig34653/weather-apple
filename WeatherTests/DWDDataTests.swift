@@ -269,6 +269,32 @@ final class DWDDataTests: XCTestCase {
         XCTAssertTrue(budget.claim(referenceTime: reference.addingTimeInterval(-300), reloadRevision: 1, now: reference), "A single correctly-labelled fallback run has a separate capped allowance")
     }
 
+    func testDefaultRetryBudgetAllowsExactly160ClaimsPerRunAndRevision() {
+        let budget = RadarAvailabilityRetryBudget()
+        for _ in 0..<160 { XCTAssertTrue(budget.claim(referenceTime: reference, reloadRevision: 1, now: reference)) }
+        XCTAssertFalse(budget.claim(referenceTime: reference, reloadRevision: 1, now: reference))
+    }
+
+    func testTileSucceedsOnThirdAttemptAfterTwoXMLFailures() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RadarTestURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let png = Self.validRadarPNG
+        RadarTestURLProtocol.responses.configure(png: png, leadingFailures: 2)
+        let overlay = RadarTileOverlay(date: reference.addingTimeInterval(125), referenceTime: reference, reloadRevision: 125,
+                                       session: session, retryDelay: { _ in 0 }, onLoadState: { _ in })
+        let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
+        let done = expectation(description: "Third attempt succeeds")
+        overlay.loadTile(at: path) { data, error in
+            XCTAssertNil(error)
+            XCTAssertEqual(data, png)
+            done.fulfill()
+        }
+        await fulfillment(of: [done], timeout: 3)
+        XCTAssertEqual(RadarTestURLProtocol.responses.count, 3)
+    }
+
     func testViewportWithoutNewRequestsBecomesIdleWithoutInventingCacheSuccess() {
         let tracker = RadarLoadTracker(date: reference, referenceTime: reference, reloadRevision: 0, notify: { _ in })
         let state = tracker.snapshot
@@ -673,14 +699,15 @@ private final class RadarResponses: @unchecked Sendable {
     private var body = Data()
     private var calls = 0
     private var alwaysUnavailable = false
+    private var leadingFailures = 1
     var count: Int { lock.withLock { calls } }
-    func configure(png: Data, alwaysUnavailable: Bool = false) {
-        lock.withLock { body = png; calls = 0; self.alwaysUnavailable = alwaysUnavailable }
+    func configure(png: Data, alwaysUnavailable: Bool = false, leadingFailures: Int = 1) {
+        lock.withLock { body = png; calls = 0; self.alwaysUnavailable = alwaysUnavailable; self.leadingFailures = leadingFailures }
     }
     func next() -> Data {
         lock.withLock {
             calls += 1
-            return calls == 1 || alwaysUnavailable ? Data("<ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">not ready</ServiceException></ServiceExceptionReport>".utf8) : body
+            return calls <= leadingFailures || alwaysUnavailable ? Data("<ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">not ready</ServiceException></ServiceExceptionReport>".utf8) : body
         }
     }
 }

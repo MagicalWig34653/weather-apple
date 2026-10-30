@@ -412,7 +412,10 @@ final class RadarAvailabilityRetryBudget: @unchecked Sendable {
     private var entries: [Key: Entry] = [:]
     private let limit: Int
 
-    init(limit: Int = 48) { self.limit = limit }
+    // Per (reference time, reload revision). ~1/3 InvalidDimensionValue rate and 32 visible
+    // tiles cost ~14 retries per newly shown frame; each tile still retries at most twice.
+    static let defaultLimit = 160
+    init(limit: Int = RadarAvailabilityRetryBudget.defaultLimit) { self.limit = limit }
 
     func claim(referenceTime: Date, reloadRevision: Int, now: Date = Date()) -> Bool {
         lock.withLock {
@@ -565,7 +568,7 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
             }
             if RadarRetryPolicy.shouldRetry(failure, attempt: attempt),
                Self.availabilityRetries.claim(referenceTime: referenceTime, reloadRevision: revision) {
-                // At most two retries per request (jittered backoff) AND 48 extra requests
+                // At most two retries per request (jittered backoff) AND 160 extra requests
                 // per run/reload across frames/overlays. Never retry arbitrary network or image errors.
                 let retry = makeTask(url: url, id: id, attempt: attempt + 1)
                 if requests.replace(retry, url: url, id: id) {

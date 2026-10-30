@@ -277,14 +277,17 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
     private let parallelism: Int
     private let priority: RadarNetworkPriority
     private let retryDelay: @Sendable (Int) -> TimeInterval
+    private let budget: RadarPrefetchBudget
     private static var failedURLs: Set<URL> = []
     init(session: URLSession? = nil, networkAllowed: Bool? = nil,
          quiescence: Duration = .seconds(1), spacing: Duration = .milliseconds(250),
          parallelism: Int = RadarPrefetchPolicy.parallelism,
          priority: RadarNetworkPriority = .shared,
+         budget: RadarPrefetchBudget? = nil,
          retryDelay: @escaping @Sendable (Int) -> TimeInterval = { RadarRetryPolicy.delay(afterAttempt: $0) }) {
         self.priority = priority
         self.retryDelay = retryDelay
+        self.budget = budget ?? Self.budget
         self.quiescence = quiescence; self.spacing = spacing
         self.parallelism = max(1, parallelism)
         self.pathAllowed = networkAllowed ?? false
@@ -405,17 +408,17 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
             var attempt = 1
             attemptLoop: while true {
                 while true {
-                    let wait = Self.budget.retryAfter()
+                    let wait = budget.retryAfter()
                     if wait > 0 { try await Task.sleep(for: .seconds(wait)) }
                     try Task.checkCancellation()
                     guard mayContinue(token: token, timeline: timeline) else { return }
-                    if Self.budget.claim() { break }
+                    if budget.claim() { break }
                 }
                 let currentWork = self.work
                 guard priority.register({ currentWork?.cancel() }) else { return }
                 try Task.checkCancellation()
                 let response = await RadarPrefetchFlight.shared.load(url: url, session: session, cache: cache) { count in
-                    Self.budget.received(count)
+                    self.budget.received(count)
                     Task { @MainActor in received(count) }
                 }
                 if let error = response.error {
@@ -436,6 +439,10 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
                 }
                 if RadarRetryPolicy.shouldRetry(failure, attempt: attempt) {
                     try await Task.sleep(for: .seconds(retryDelay(attempt)))
+                    try Task.checkCancellation()
+                    // Demand may have loaded or failed this tile while we backed off.
+                    if cache.data(for: url) != nil || Self.failedURLs.contains(url)
+                        || RadarTileOverlay.hasFailure(url: url, revision: revision) { break attemptLoop }
                     attempt += 1
                     continue attemptLoop
                 }

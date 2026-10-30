@@ -413,6 +413,96 @@ final class RadarPrefetchTests: XCTestCase {
         XCTAssertEqual(PrefetchGateProtocol.gate.starts, 9, "Cooldown blocks an identical update")
     }
 
+    private static let badXML = Data("<ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">not ready</ServiceException></ServiceExceptionReport>".utf8)
+    private struct SweepFixture {
+        let now = Date()
+        let dates: [Date]
+        let state: RadarLoadState
+        let path = RadarTileCoordinate(x: 141, y: 84, z: 8)
+        var timeline: RadarTimeline { RadarTimeline(referenceTime: now, dates: dates) }
+        init(revision: Int) {
+            let now = self.now
+            dates = (0..<8).map { now.addingTimeInterval(Double($0 - 4) * 300) }
+            var state = RadarLoadState(contextID: UUID(), frameDate: now, referenceTime: now, reloadRevision: revision)
+            state.requested = 1; state.succeeded = 1; state.isViewportIdle = true
+            self.state = state
+        }
+    }
+    private func start(_ prefetch: RadarPrefetcher, _ fixture: SweepFixture, revision: Int, cache: TileMemoryCache = TileMemoryCache()) {
+        prefetch.update(timeline: fixture.timeline, selected: fixture.dates[4], paths: [fixture.path],
+                        state: fixture.state, active: true, revision: revision, cache: cache, received: { _ in })
+    }
+
+    func testTwoXMLFailuresThenSuccessResetsFailureCountAndKeepsSweepRunning() async {
+        let session = makeSession()
+        defer { session.invalidateAndCancel() }
+        let fixture = SweepFixture(revision: 2410)
+        PrefetchGateProtocol.gate.reset()
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, parallelism: 1, priority: RadarNetworkPriority(), retryDelay: { _ in 0 })
+        defer { prefetch.cancel() }
+        start(prefetch, fixture, revision: 2410)
+        // Tiles 1 and 2 fail (3 attempts each), tile 3 recovers on attempt 3, tiles 4 and 5 fail.
+        // Without the reset the third failed tile would already end the sweep at request 12.
+        for expected in 1...16 {
+            await waitForStarts(expected)
+            PrefetchGateProtocol.gate.finish(data: expected == 9 ? png : Self.badXML)
+        }
+        XCTAssertGreaterThanOrEqual(PrefetchGateProtocol.gate.starts, 16)
+    }
+
+    func testPrefetchRetryConsumesWindowBudget() async {
+        let session = makeSession()
+        defer { session.invalidateAndCancel() }
+        let fixture = SweepFixture(revision: 2411)
+        PrefetchGateProtocol.gate.reset()
+        let budget = RadarPrefetchBudget(maxRequests: 2, interval: 3600)
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, parallelism: 1, priority: RadarNetworkPriority(), budget: budget, retryDelay: { _ in 0 })
+        defer { prefetch.cancel() }
+        start(prefetch, fixture, revision: 2411)
+        for expected in 1...2 {
+            await waitForStarts(expected)
+            PrefetchGateProtocol.gate.finish(data: Self.badXML)
+        }
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 2, "The original request and its retry used the whole window; the next attempt waits")
+    }
+
+    func testCancelDuringBackoffStartsNothingAndSetsNoCooldown() async {
+        let session = makeSession()
+        defer { session.invalidateAndCancel() }
+        let fixture = SweepFixture(revision: 2412)
+        PrefetchGateProtocol.gate.reset()
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, parallelism: 1, priority: RadarNetworkPriority(), retryDelay: { _ in 3600 })
+        defer { prefetch.cancel() }
+        start(prefetch, fixture, revision: 2412)
+        await waitForStarts(1)
+        PrefetchGateProtocol.gate.finish(data: Self.badXML)
+        try? await Task.sleep(for: .milliseconds(150)) // now inside the backoff sleep
+        prefetch.cancel() // e.g. location change
+        try? await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 1, "No further request after cancellation")
+        start(prefetch, fixture, revision: 2412)
+        await waitForStarts(2) // a new sweep may start at once: cancellation set no cooldown
+    }
+
+    func testRetryIsSkippedWhenDemandCachedTheTileDuringBackoff() async {
+        let session = makeSession()
+        defer { session.invalidateAndCancel() }
+        let fixture = SweepFixture(revision: 2413)
+        PrefetchGateProtocol.gate.reset()
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, parallelism: 1, priority: RadarNetworkPriority(), retryDelay: { _ in 0.5 })
+        defer { prefetch.cancel() }
+        let cache = TileMemoryCache()
+        start(prefetch, fixture, revision: 2413, cache: cache)
+        await waitForStarts(1)
+        let first = PrefetchGateProtocol.gate.startedURLs[0]
+        PrefetchGateProtocol.gate.finish(data: Self.badXML)
+        try? await Task.sleep(for: .milliseconds(100)) // inside the backoff
+        cache.insert(png, for: first)
+        await waitForStarts(2) // the sweep moves on to the next tile
+        XCTAssertNotEqual(PrefetchGateProtocol.gate.startedURLs[1], first, "No retry for a tile that is already cached")
+    }
+
     // Polling with a generous deadline instead of fixed short timeouts.
     private func waitForStarts(_ count: Int) async {
         for _ in 0..<1000 where PrefetchGateProtocol.gate.starts < count { try? await Task.sleep(for: .milliseconds(10)) }
@@ -452,13 +542,15 @@ private final class PrefetchProtocolGate: @unchecked Sendable {
     private var started: XCTestExpectation?
     private var startCount = 0
     private var stopCount = 0
+    private var urls: [URL] = []
     var starts: Int { lock.withLock { startCount } }
     var stops: Int { lock.withLock { stopCount } }
+    var startedURLs: [URL] { lock.withLock { urls } }
     func reset(started: XCTestExpectation? = nil) {
-        lock.withLock { pending = []; self.started = started; startCount = 0; stopCount = 0 }
+        lock.withLock { pending = []; self.started = started; startCount = 0; stopCount = 0; urls = [] }
     }
     func start(_ request: PrefetchGateProtocol) {
-        let event = lock.withLock { pending.append(request); startCount += 1; return started }
+        let event = lock.withLock { pending.append(request); startCount += 1; urls.append(request.request.url!); return started }
         event?.fulfill()
     }
     func expectFurtherStarts(_ event: XCTestExpectation) { lock.withLock { started = event } }

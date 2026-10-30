@@ -73,3 +73,7 @@ Liefert der Radar-Cache einen frischen Lauf, ersetzt ein einziges `RadarImageOve
 - Vorladen: `BackendRadarLoader.prefetch` lädt alle Slots in der Reihenfolge `RadarPrefetchPolicy.order` (selected, -1, +1, ...) mit 4 parallelen Requests (je Bild etwa 6 KB, gesamt etwa 150-300 KB). Komprimierte Bilder im bestehenden 50-MB-`TileMemoryCache`, höchstens 8 dekodierte Bilder zugleich; Fehler eines Bildes haben 5 s Abkühlung, kein Sturm.
 - Der DWD-`RadarPrefetcher` wird auf dem Backendweg nicht aktualisiert und bricht laufende Arbeit ab; beide Wege laufen nie zugleich.
 - Aktualisierung: `WeatherStore.pollRadar` (alle 60 s, aktiv); ein neuer Lauf behält den gewählten Zeitpunkt (`RadarTimelineSelection`), „Jetzt“ folgt der neuen Referenz.
+
+### Retry-Budgets (DWD-Direktweg, Nachbesserung Build 9)
+
+Die 240 Requests/min gelten nur für den Prefetch (jeder Versuch inklusive Retry verbraucht das Fenster). Retries der sichtbaren Nachfrage haben einen eigenen Deckel: 160 je (Referenzzeit, Reload-Revision), höchstens 2 Retries je Kachel. Der erste Build-9-Wert 48 ist ersetzt: bei etwa 1/3 `InvalidDimensionValue` und 32 sichtbaren Kacheln fallen rund 14 Retries je neu angezeigtem Frame an, 48 reichten für etwa 3 Frames (Rechnung, keine Lastmessung). Der Prefetch-Worker prüft nach dem Backoff-Sleep erneut Cache, Fehlerstand und Abbruch und fragt nicht erneut an, wenn die Nachfrage die Kachel inzwischen geladen hat.
