@@ -166,3 +166,14 @@ Messungen und Empfehlung: [research/backend-radar-cache.md](research/backend-rad
 - Annahme: CC BY 4.0 und GeoNutzV genügen für Zwischenspeichern und Weitergabe, mit Quellenvermerk "Quelle: Deutscher Wetterdienst" und Veränderungshinweis; die App muss beides an der Karte sichtbar halten. Eine schriftliche DWD-Bestätigung zu Spiegelung und Takt bleibt optional und offen.
 - Neue Messung (30. Oktober 2026, Backend-Arbeit): Etwa jede dritte WMS-GetMap-Antwort des DWD ist ein HTTP-200 mit XML-Fehler `InvalidDimensionValue`, auch für veröffentlichte Läufe, und wechselt bei Wiederholung zufällig. Auch der App-Direktweg sollte Wiederholungen bei XML-Antworten vorsehen (zu prüfen in Build 9).
 - Backend-Sprache (Nutzerentscheidung 30. Oktober 2026): Der Radar-Cache ist Swift/Vapor/MariaDB (wie ursprünglich geplant); die Python-Stufe 1 ist ersetzt. HTTP-Vertrag und Verhalten sind unverändert, die App ist nicht betroffen. Details im Backend-Repo, docs/decisions.md.
+
+## Build 9: Backend zuerst, DWD als Fallback (30. Oktober 2026)
+
+Auftrag des Nutzers: Die App lädt Radarbilder vom produktiven Radar-Cache (`https://showernow.linolaske.de`, zentrale Konstante `RadarBackendConfig`) und fällt nur bei Fehler oder veralteten Daten auf den DWD-Direktweg zurück. Gründe und Messung: [research/backend-radar-cache.md](research/backend-radar-cache.md).
+
+- Frischegrenze 20 Minuten (Alter von `reference_time`, wie `RainForecast.maximumAge`); `latest.json` wird beim Start/Aktivwerden und danach alle 60 s bei sichtbarer App geprüft (ETag, 304), nicht im Hintergrund.
+- Fehler, 404, Timeout, ungültiges oder unbekanntes Schema, veraltete Daten: Fallback ohne Nutzeraktion. Liefert der Cache gar keine Bilder, bleibt die App 5 Minuten beim DWD-Weg. Quelle wird ehrlich angezeigt („ShowerNow-Cache“ bzw. „direkt vom DWD“), dazu Quellenvermerk und Veränderungshinweis aus dem Manifest.
+- Der DWD-Tile-Prefetch (3 Worker, 240/min) läuft nur auf dem Fallbackweg; Backend-Prefetch: 4 parallele Requests, abwechselnd links/rechts, gleicher 50-MB-RAM-Cache, gesperrt bei Datensparmodus, Low Power, inaktiver App (Nachfrage für den sichtbaren Slot bleibt erlaubt).
+- DWD-Direktweg: bis zu 3 Versuche (Backoff 0,3/0,6 s mit ±25 % Jitter) nur bei HTTP-200-`InvalidDimensionValue`; Retrybudget je Lauf von 4 auf 48 angehoben. Punktprognose bleibt direkt beim DWD.
+- Datenschutz: Die App kontaktiert nun den ShowerNow-Radar-Server (sieht nur den Abruf, technisch die IP-Adresse; kein Ort, keine Cookies, kein identifizierender Header). Die Datenschutztexte der App sind angepasst.
+- Buildnummer 9.

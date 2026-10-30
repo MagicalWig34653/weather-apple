@@ -393,24 +393,24 @@ final class RadarPrefetchTests: XCTestCase {
         var state = RadarLoadState(contextID: UUID(), frameDate: now, referenceTime: now, reloadRevision: 2403)
         state.requested = 1; state.succeeded = 1; state.isViewportIdle = true
         PrefetchGateProtocol.gate.reset()
-        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, parallelism: 1, priority: RadarNetworkPriority())
+        let prefetch = RadarPrefetcher(session: session, networkAllowed: true, quiescence: .zero, spacing: .zero, parallelism: 1, priority: RadarNetworkPriority(), retryDelay: { _ in 0 })
         defer { prefetch.cancel() }
         let bodyCount = Counter()
         prefetch.update(timeline: RadarTimeline(referenceTime: now, dates: dates), selected: dates[4],
                         paths: [RadarTileCoordinate(x: 141, y: 84, z: 8)], state: state, active: true,
                         revision: 2403, cache: TileMemoryCache(), received: { _ in bodyCount.increment() })
         let bad = Data("<ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">not ready</ServiceException></ServiceExceptionReport>".utf8)
-        for expected in 1...3 {
+        for expected in 1...9 { // three tiles, each with three attempts
             await waitForStarts(expected)
             PrefetchGateProtocol.gate.finish(data: bad)
         }
         try? await Task.sleep(for: .milliseconds(150))
-        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 3, "Third consecutive failure ends the sweep; no retry or flood")
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 9, "Third consecutive failed tile (3 attempts each) ends the sweep; no flood")
         prefetch.update(timeline: RadarTimeline(referenceTime: now, dates: dates), selected: dates[4],
                         paths: [RadarTileCoordinate(x: 141, y: 84, z: 8)], state: state, active: true,
                         revision: 2403, cache: TileMemoryCache(), received: { _ in })
         try? await Task.sleep(for: .milliseconds(150))
-        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 3, "Cooldown blocks an identical update")
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 9, "Cooldown blocks an identical update")
     }
 
     // Polling with a generous deadline instead of fixed short timeouts.

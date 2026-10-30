@@ -29,6 +29,7 @@ struct RadarScreen: View {
                      timeline: store.timeline, prefetchActive: scenePhase == .active && !store.isPlaying,
                      bottomInset: mapBottomInset,
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
+                     onBackendFailure: { loaded in if loaded == 0 { store.backendImagesUnavailable() } },
                      onLoadState: { state in
                          guard state.frameDate == store.frameDate, state.referenceTime == store.frameReference,
                                state.reloadRevision == store.radarReloadRevision else { return }
@@ -38,18 +39,25 @@ struct RadarScreen: View {
                 .ignoresSafeArea()
                 .accessibilityLabel("Regenradar für \(store.selectedPlace.name)")
                 .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
-            if let slot = slotFeedback {
-                VStack {
-                    Spacer()
+            VStack(spacing: 6) {
+                Spacer()
+                if let slot = slotFeedback {
                     Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 12).padding(.vertical, 7)
                         .background(.regularMaterial, in: Capsule())
-                        .padding(.bottom, 8)
                         .accessibilityIdentifier("radar-slot-status")
                 }
-                .allowsHitTesting(false)
+                if store.timeline != nil {
+                    Text("\(store.radarAttribution.attribution) · \(store.radarSource.label)")
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(.thinMaterial, in: Capsule())
+                        .accessibilityIdentifier("radar-attribution")
+                }
             }
+            .padding(.bottom, 8)
+            .allowsHitTesting(false)
             VStack(spacing: 10) {
                 header
                 forecastCard
@@ -90,7 +98,7 @@ struct RadarScreen: View {
             switch item {
             case .places: PlacesSheet(store: store)
             case .details: ForecastDetails(store: store)
-            case .information: InformationSheet()
+            case .information: InformationSheet(source: store.radarSource, attribution: store.radarAttribution)
             }
         }
         .alert("Ort speichern", isPresented: $showSave) {
@@ -267,7 +275,7 @@ struct RadarScreen: View {
         .disabled(refreshTapFeedback || store.isRadarLoading)
         .accessibilityLabel("Wetterdaten aktualisieren")
         .accessibilityValue(refreshAccessibilityStatus)
-        .accessibilityHint("Empfangene Datenmenge nur für DWD-Radarantworten dieses Karten-Ladevorgangs; ohne Grundkarte und Ortsprognose")
+        .accessibilityHint("Empfangene Datenmenge nur für Radarbilder dieses Karten-Ladevorgangs; ohne Grundkarte und Ortsprognose")
         .accessibilityIdentifier("radar-refresh")
     }
 
@@ -423,7 +431,11 @@ struct RadarScreen: View {
     private var statusMessage: String? {
         if let message = store.locationMessage { return message }
         if let message = store.storageMessage { return message }
-        if let state = currentRadarLoadState, state.failed > 0 { return "Einige Radarkacheln fehlen. Bitte erneut aktualisieren." }
+        if let state = currentRadarLoadState, state.failed > 0 {
+            return store.radarSource == .cache
+                ? "Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren."
+                : "Einige Radarkacheln fehlen. Bitte erneut aktualisieren."
+        }
         if let error = store.radarError { return "Radar: \(error)" }
         if let error = store.forecastError { return "Ortsprognose: \(error)" }
         if let notice = store.radarNotice { return notice }
@@ -499,6 +511,7 @@ struct ForecastDetails: View {
                         LabeledContent("Datenlauf", value: forecast.referenceTime.formatted(date: .abbreviated, time: .shortened))
                         Text("DWD · vor \(max(0, Int(context.date.timeIntervalSince(forecast.referenceTime) / 60))) Min.")
                             .font(.caption).foregroundStyle(.secondary)
+                        LabeledContent("Radarbilder", value: store.radarSource.label)
                         if store.forecastError != nil || forecast.isStale(at: context.date) {
                             Label("Die Prognose ist nicht aktuell bestätigt.", systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
@@ -506,7 +519,7 @@ struct ForecastDetails: View {
                         ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastError != nil)
                         Text("Lange auf die Karte drücken, um einen Ort zu wählen.")
                         Text("Radarprognosen beschreiben die erwartete Entwicklung. Gerade bei entstehenden oder sich auflösenden Schauern können Beginn, Ende und Intensität abweichen.")
-                        Text("Datenbasis: Deutscher Wetterdienst. Niederschlagswerte umgerechnet und als Ortsprognose aufbereitet.")
+                        Text("\(store.radarAttribution.modificationNotice). Niederschlagswerte der Ortsprognose umgerechnet und aufbereitet.")
                             .font(.footnote).foregroundStyle(.secondary)
                     } else {
                         ContentUnavailableView("Keine Ortsprognose", systemImage: "cloud.rain", description: Text(store.forecastError ?? "Bitte Wetterdaten aktualisieren."))

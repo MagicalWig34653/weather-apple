@@ -20,8 +20,20 @@ final class TileMemoryCache: @unchecked Sendable {
             return entry.data
         }
     }
+    func contains(_ url: URL) -> Bool { lock.withLock { entries[url] != nil } }
+    /// Drops everything except the given keys (a new backend run replaces the old one).
+    func retain(_ keep: Set<URL>) {
+        lock.withLock {
+            for key in entries.keys where !keep.contains(key) { bytes -= entries.removeValue(forKey: key)!.data.count }
+        }
+    }
     func insert(_ data: Data, for url: URL) {
-        guard data.count <= limit, (try? DWDResponse.radarImage(from: data)) != nil else { return }
+        guard (try? DWDResponse.radarImage(from: data)) != nil else { return }
+        insertTrusted(data, for: url)
+    }
+    /// For payloads the caller has already validated (backend images are decoded first).
+    func insertTrusted(_ data: Data, for url: URL) {
+        guard data.count <= limit else { return }
         lock.withLock {
             if let old = entries.removeValue(forKey: url) { bytes -= old.data.count }
             while bytes + data.count > limit,
@@ -264,12 +276,15 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
     private let spacing: Duration
     private let parallelism: Int
     private let priority: RadarNetworkPriority
+    private let retryDelay: @Sendable (Int) -> TimeInterval
     private static var failedURLs: Set<URL> = []
     init(session: URLSession? = nil, networkAllowed: Bool? = nil,
          quiescence: Duration = .seconds(1), spacing: Duration = .milliseconds(250),
          parallelism: Int = RadarPrefetchPolicy.parallelism,
-         priority: RadarNetworkPriority = .shared) {
+         priority: RadarNetworkPriority = .shared,
+         retryDelay: @escaping @Sendable (Int) -> TimeInterval = { RadarRetryPolicy.delay(afterAttempt: $0) }) {
         self.priority = priority
+        self.retryDelay = retryDelay
         self.quiescence = quiescence; self.spacing = spacing
         self.parallelism = max(1, parallelism)
         self.pathAllowed = networkAllowed ?? false
@@ -384,33 +399,48 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
             let url = DWDRequest.tileURL(x: item.path.x, y: item.path.y, z: item.path.z, date: date, referenceTime: reference)
             if cache.data(for: url) != nil || Self.failedURLs.contains(url)
                 || RadarTileOverlay.hasFailure(url: url, revision: revision) { continue }
-            while true {
-                let wait = Self.budget.retryAfter()
-                if wait > 0 { try await Task.sleep(for: .seconds(wait)) }
+            // The DWD service answers about every third GetMap request with an HTTP-200
+            // InvalidDimensionValue XML. Retry exactly that case a bounded number of times
+            // with jittered backoff; every attempt claims the shared request budget.
+            var attempt = 1
+            attemptLoop: while true {
+                while true {
+                    let wait = Self.budget.retryAfter()
+                    if wait > 0 { try await Task.sleep(for: .seconds(wait)) }
+                    try Task.checkCancellation()
+                    guard mayContinue(token: token, timeline: timeline) else { return }
+                    if Self.budget.claim() { break }
+                }
+                let currentWork = self.work
+                guard priority.register({ currentWork?.cancel() }) else { return }
                 try Task.checkCancellation()
-                guard mayContinue(token: token, timeline: timeline) else { return }
-                if Self.budget.claim() { break }
-            }
-            let currentWork = self.work
-            guard priority.register({ currentWork?.cancel() }) else { return }
-            try Task.checkCancellation()
-            let response = await RadarPrefetchFlight.shared.load(url: url, session: session, cache: cache) { count in
-                Self.budget.received(count)
-                Task { @MainActor in received(count) }
-            }
-            if let error = response.error {
-                if (error as? URLError)?.code == .cancelled { throw CancellationError() }
-                try recordFailure(url: url, sweep: sweep, error: error)
-            } else {
+                let response = await RadarPrefetchFlight.shared.load(url: url, session: session, cache: cache) { count in
+                    Self.budget.received(count)
+                    Task { @MainActor in received(count) }
+                }
+                if let error = response.error {
+                    if (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                    try recordFailure(url: url, sweep: sweep, error: error)
+                    break attemptLoop
+                }
                 try Task.checkCancellation()
                 guard generation == token else { return }
-                if (response.response as? HTTPURLResponse)?.statusCode == 200, let data = response.data,
-                   let image = try? DWDResponse.radarImage(from: data) {
-                    cache.insert(image, for: url)
-                    sweep.consecutiveFailures = 0
-                } else {
-                    try recordFailure(url: url, sweep: sweep, error: DWDDataError.unavailable)
+                var failure: Error = DWDDataError.unavailable
+                if (response.response as? HTTPURLResponse)?.statusCode == 200, let data = response.data {
+                    do {
+                        let image = try DWDResponse.radarImage(from: data)
+                        cache.insert(image, for: url)
+                        sweep.consecutiveFailures = 0
+                        break attemptLoop
+                    } catch { failure = error }
                 }
+                if RadarRetryPolicy.shouldRetry(failure, attempt: attempt) {
+                    try await Task.sleep(for: .seconds(retryDelay(attempt)))
+                    attempt += 1
+                    continue attemptLoop
+                }
+                try recordFailure(url: url, sweep: sweep, error: failure)
+                break attemptLoop
             }
             try await Task.sleep(for: spacing)
         }

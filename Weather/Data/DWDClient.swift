@@ -4,6 +4,7 @@ actor DWDClient {
     typealias Transport = @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse)
     private let transport: Transport
     private let clock: @Sendable () -> Date
+    private let retryDelay: @Sendable (Int) -> TimeInterval
     private var cachedRuns: (fetchedAt: Date, dates: [Date])?
     private var pendingRuns: Task<[Date], Error>?
     private struct PointKey: Hashable {
@@ -13,8 +14,10 @@ actor DWDClient {
     private var pendingPoints: [PointKey: Task<RainForecast, Error>] = [:]
     private var pointCache: [WeatherCoordinate: (fetchedAt: Date, forecast: RainForecast)] = [:]
 
-    init(transport: Transport? = nil, clock: @escaping @Sendable () -> Date = { Date() }) {
+    init(transport: Transport? = nil, clock: @escaping @Sendable () -> Date = { Date() },
+         retryDelay: @escaping @Sendable (Int) -> TimeInterval = { RadarRetryPolicy.delay(afterAttempt: $0) }) {
         self.clock = clock
+        self.retryDelay = retryDelay
         if let transport { self.transport = transport }
         else {
             let configuration = URLSessionConfiguration.ephemeral
@@ -108,7 +111,7 @@ actor DWDClient {
         }
     }
 
-    private func fetch(_ url: URL, retryDimension: Bool = true) async throws -> Data {
+    private func fetch(_ url: URL, attempt: Int = 1) async throws -> Data {
         try Task.checkCancellation()
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
         request.setValue("Weather/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
@@ -120,9 +123,9 @@ actor DWDClient {
         guard (200...299).contains(response.statusCode) else { throw DWDDataError.unavailable }
         guard !data.isEmpty, data.count <= 2 * 1024 * 1024 else { throw DWDDataError.invalidResponse }
         if let error = DWDResponse.serviceError(in: data) {
-            if error == .runUnavailable, retryDimension {
-                try await Task.sleep(for: .milliseconds(250))
-                return try await fetch(url, retryDimension: false)
+            if RadarRetryPolicy.shouldRetry(error, attempt: attempt) {
+                try await Task.sleep(for: .seconds(retryDelay(attempt)))
+                return try await fetch(url, attempt: attempt + 1)
             }
             throw error
         }

@@ -35,3 +35,7 @@ Die unterstützte Koordinatenhülle ist vorläufig 45–56.5°N und 0–20°E; s
 `WeatherTests/DWDDataTests.swift` prüft die reale WMS-Fixture, Einheitenumrechnung, Sentinelwerte, null, fremde/alte/zukünftige Läufe, Zeitlücken, Projektion/Achsenfolge sowie Request-Zusammenführung und Cache. Fixture enthält einen öffentlichen Wetterpunkt, keine Nutzerposition.
 
 Offen bleiben allgemeine Zellgrenzen-/NoData-Verifikation, Quellenänderungen, Ausfallverhalten im Alltag und iPhone-Energieverbrauch. Die Tests sind offline und ersetzen keine regelmäßig begrenzte Live-Prüfung. Build-/Testausführung dokumentiert die koordinierende Instanz im Arbeitsstatus.
+
+## Radar-Cache-Backend (Build 9)
+
+Quelle `RadarBackendConfig.productionBaseURL` (`https://showernow.linolaske.de/v1/radar/`). `GET latest.json` (Schema 1: `run`, `reference_time`, `generated_at`, `step_minutes`, `image` mit `format` `image/webp`, `width`, `height`, `projection` `EPSG:3857`, `bbox`, `slots[]` mit `time`, `kind` `analysis|forecast`, `path`, `attribution`, `modification_notice`; ETag, `max-age=30`; 404 solange nichts veröffentlicht ist) und `GET <run>/<slot>.webp` (ein Ganzbild für Deutschland, unveränderlich, ETag/304). Keine Ortsangabe, keine Cookies. Die App validiert strikt (siehe `RadarManifest.parse`), lehnt unbekannte Schemaversionen ab und nutzt Daten nur bis 20 Minuten Alter; sonst DWD-Direktweg. Fixture einer echten Antwort: `WeatherTests/Fixtures/radar-latest.json`. Attribution und Veränderungshinweis aus dem Manifest werden in der App angezeigt. Die Punktprognose bleibt direkt beim DWD.

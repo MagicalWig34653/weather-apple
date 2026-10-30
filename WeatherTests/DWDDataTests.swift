@@ -6,6 +6,9 @@ import XCTest
 final class DWDDataTests: XCTestCase {
     private let reference = DWDRequest.date("2026-10-28T15:15:00Z")!
 
+    /// Stores in these tests must not reach the live radar cache: it counts as unreachable.
+    static let unreachableBackend = RadarBackendClient(transport: { _ in throw URLError(.notConnectedToInternet) })
+
     private func fixture() throws -> Data {
         let bundle = Bundle(for: DWDDataTests.self)
         let url = bundle.url(forResource: "wms-wet-point-response", withExtension: "json", subdirectory: "Fixtures")
@@ -174,7 +177,7 @@ final class DWDDataTests: XCTestCase {
     func testRadarPublishesBeforeSuspendedPointForecast() async throws {
         let gate = SuspendedPointTransport(fixture: try fixture())
         let fixedNow = reference
-        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }))
+        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }), backend: Self.unreachableBackend)
         let refresh = Task { await store.refresh() }
         await gate.waitForPoint()
         for _ in 0..<100 where store.timeline == nil { await Task.yield() }
@@ -192,7 +195,7 @@ final class DWDDataTests: XCTestCase {
     func testCancelledRefreshDoesNotPublishDelayedPointResult() async throws {
         let gate = SuspendedPointTransport(fixture: try fixture())
         let fixedNow = reference
-        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }))
+        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }), backend: Self.unreachableBackend)
         let refresh = Task { await store.refresh() }
         await gate.waitForPoint()
         refresh.cancel()
@@ -284,7 +287,7 @@ final class DWDDataTests: XCTestCase {
     func testStoreUsesAtMostOneCorrectlyLabelledRadarFallbackPerRefresh() async throws {
         let counter = RequestCounter(fixture: try fixture())
         let now = reference
-        let store = WeatherStore(client: DWDClient(transport: { try await counter.respond(to: $0) }, clock: { now }))
+        let store = WeatherStore(client: DWDClient(transport: { try await counter.respond(to: $0) }, clock: { now }), backend: Self.unreachableBackend)
         await store.refresh()
         var failed = RadarLoadState(contextID: UUID(), frameDate: reference, referenceTime: reference,
                                     reloadRevision: store.radarReloadRevision)
@@ -313,16 +316,16 @@ final class DWDDataTests: XCTestCase {
         let png = Self.validRadarPNG
         RadarTestURLProtocol.responses.configure(png: png, alwaysUnavailable: true)
         let overlay = RadarTileOverlay(date: reference.addingTimeInterval(124), referenceTime: reference, reloadRevision: 124,
-                                       session: session, onLoadState: { _ in })
+                                       session: session, retryDelay: { _ in 0.01 }, onLoadState: { _ in })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
-        let unavailable = expectation(description: "Persistent XML ends after one retry")
+        let unavailable = expectation(description: "Persistent XML ends after two retries")
         overlay.loadTile(at: path) { data, error in
             XCTAssertNil(data)
             XCTAssertEqual(error as? DWDDataError, .runUnavailable)
             unavailable.fulfill()
         }
         await fulfillment(of: [unavailable], timeout: 3)
-        XCTAssertEqual(RadarTestURLProtocol.responses.count, 2)
+        XCTAssertEqual(RadarTestURLProtocol.responses.count, 3, "One original plus two jittered retries")
         RadarTestURLProtocol.responses.configure(png: png)
         let recovered = expectation(description: "Explicit refresh can recover")
         _ = overlay.beginViewport(reloadRevision: 1124)
@@ -343,13 +346,13 @@ final class DWDDataTests: XCTestCase {
         RadarTestURLProtocol.responses.configure(png: Self.validRadarPNG, alwaysUnavailable: true)
         let trackerStates = LockedRadarStates()
         var overlay = RadarTileOverlay(date: reference.addingTimeInterval(812), referenceTime: reference,
-                                       reloadRevision: 812, session: session, onLoadState: { trackerStates.append($0) })
+                                       reloadRevision: 812, session: session, retryDelay: { _ in 0.01 }, onLoadState: { trackerStates.append($0) })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         for index in 0..<8 {
             if index == 4 { _ = overlay.beginViewport(reloadRevision: 812) }
             if index == 6 {
                 overlay = RadarTileOverlay(date: reference.addingTimeInterval(812), referenceTime: reference,
-                                           reloadRevision: 812, session: session, onLoadState: { trackerStates.append($0) })
+                                           reloadRevision: 812, session: session, retryDelay: { _ in 0.01 }, onLoadState: { trackerStates.append($0) })
             }
             let finished = expectation(description: "Bounded repeat \(index)")
             overlay.loadTile(at: path) { data, error in
@@ -359,7 +362,7 @@ final class DWDDataTests: XCTestCase {
             }
             await fulfillment(of: [finished], timeout: 3)
         }
-        XCTAssertEqual(RadarTestURLProtocol.responses.count, 2, "One original plus one permitted dimension retry, never eight originals")
+        XCTAssertEqual(RadarTestURLProtocol.responses.count, 3, "One original plus two permitted dimension retries, never eight originals")
         for _ in 0..<10 { await Task.yield() }
         XCTAssertEqual(trackerStates.last?.pending, 0)
         XCTAssertEqual(trackerStates.last?.failed, 1)
@@ -425,7 +428,7 @@ final class DWDDataTests: XCTestCase {
         defer { session.invalidateAndCancel() }
         RadarTestURLProtocol.responses.configure(png: Data([137, 80, 78, 71, 13, 10, 26, 10, 0]))
         let overlay = RadarTileOverlay(date: reference.addingTimeInterval(129), referenceTime: reference, reloadRevision: 129,
-                                       session: session, onLoadState: { _ in })
+                                       session: session, retryDelay: { _ in 0.01 }, onLoadState: { _ in })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         let invalid = expectation(description: "Pseudo PNG rejected")
         overlay.loadTile(at: path) { data, error in
@@ -462,17 +465,17 @@ final class DWDDataTests: XCTestCase {
         let fixture = try fixture()
         let transport = DimensionTransport(fixture: fixture, alwaysUnavailable: false)
         let now = reference
-        let client = DWDClient(transport: { try await transport.respond($0) }, clock: { now })
+        let client = DWDClient(transport: { try await transport.respond($0) }, clock: { now }, retryDelay: { _ in 0 })
         let value = try await client.forecast(at: WeatherCoordinate(latitude: 53, longitude: 10))
         XCTAssertEqual(value.samples.count, 25)
         let count = await transport.pointCount
         XCTAssertEqual(count, 2)
         let unavailable = DimensionTransport(fixture: fixture, alwaysUnavailable: true)
-        let failed = DWDClient(transport: { try await unavailable.respond($0) }, clock: { now })
+        let failed = DWDClient(transport: { try await unavailable.respond($0) }, clock: { now }, retryDelay: { _ in 0 })
         do { _ = try await failed.forecast(at: WeatherCoordinate(latitude: 53, longitude: 10)); XCTFail("Invalid dimension accepted") }
         catch { XCTAssertEqual(error as? DWDDataError, .runUnavailable) }
         let failureCount = await unavailable.pointCount
-        XCTAssertEqual(failureCount, 2, "Only one availability retry")
+        XCTAssertEqual(failureCount, 3, "Three attempts in total, never more")
     }
 
     func testPreviousRadarRunRetainsActualReferenceAndFreshnessBoundary() async throws {
@@ -535,7 +538,7 @@ final class DWDDataTests: XCTestCase {
         let png = Self.validRadarPNG
         RadarTestURLProtocol.responses.configure(png: png)
         let overlay = RadarTileOverlay(date: reference.addingTimeInterval(123), referenceTime: reference, reloadRevision: 123,
-                                       session: session, onLoadState: { _ in })
+                                       session: session, retryDelay: { _ in 0.01 }, onLoadState: { _ in })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         let first = expectation(description: "XML then valid PNG")
         overlay.loadTile(at: path) { data, error in

@@ -55,6 +55,8 @@ struct RainForecast: Codable, Sendable {
 struct RadarTimeline: Sendable {
     let referenceTime: Date
     let dates: [Date]
+    /// Set when the frames come from the radar cache backend; `nil` means direct DWD tiles.
+    var backend: RadarManifest?
 }
 
 enum DWDDataError: LocalizedError, Equatable {

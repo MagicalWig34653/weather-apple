@@ -3,6 +3,25 @@ import Foundation
 import Observation
 import SwiftUI
 
+enum RadarSource: Equatable, Sendable {
+    case cache, direct
+    var label: String { self == .cache ? "ShowerNow-Cache" : "direkt vom DWD" }
+}
+
+struct RadarAttribution: Equatable, Sendable {
+    let attribution: String
+    let modificationNotice: String
+    static let `default` = RadarAttribution(
+        attribution: "Quelle: Deutscher Wetterdienst",
+        modificationNotice: "Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben")
+    init(attribution: String, modificationNotice: String) {
+        self.attribution = attribution; self.modificationNotice = modificationNotice
+    }
+    init(_ manifest: RadarManifest) {
+        self.init(attribution: manifest.attribution, modificationNotice: manifest.modificationNotice)
+    }
+}
+
 struct SavedPlace: Codable, Identifiable, Equatable {
     var id = UUID()
     var name: String
@@ -28,8 +47,13 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     var centerRevision = 0
     var radarReloadRevision = 0
     var lastRefresh: Date?
+    /// Where the currently shown radar images come from (honest source display).
+    var radarSource: RadarSource = .cache
+    var radarAttribution = RadarAttribution.default
 
     @ObservationIgnored private let client: DWDClient
+    @ObservationIgnored private let backend: RadarBackendClient
+    @ObservationIgnored private var backendBlockedUntil = Date.distantPast
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var waitingForLocation = false
@@ -40,8 +64,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         self.init(client: DWDClient())
     }
 
-    init(client: DWDClient) {
+    init(client: DWDClient, backend: RadarBackendClient = RadarBackendClient()) {
         self.client = client
+        self.backend = backend
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
@@ -143,11 +168,57 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         isRadarLoading = false
         switch result {
         case .success(let value):
-            timeline = value
-            selectedFrame = value.dates.firstIndex(of: value.referenceTime) ?? 0
+            apply(value.timeline, source: value.source, attribution: value.attribution, keepSelection: false)
         case .failure(let error):
             radarError = error.localizedDescription
         }
+    }
+
+    private func apply(_ value: RadarTimeline, source: RadarSource, attribution: RadarAttribution?, keepSelection: Bool) {
+        let previous = frameDate, previousReference = timeline?.referenceTime
+        timeline = value
+        radarSource = source
+        radarAttribution = attribution ?? .default
+        radarError = nil
+        selectedFrame = keepSelection
+            ? RadarTimelineSelection.index(previous: previous, previousReference: previousReference,
+                                           dates: value.dates, reference: value.referenceTime)
+            : value.dates.firstIndex(of: value.referenceTime) ?? 0
+    }
+
+    /// Visible-app poll of the cache manifest (ETag, 304 is cheap). A new run replaces the
+    /// slots and keeps the selected instant; a returning backend ends a direct-DWD fallback.
+    func pollRadar() async {
+        guard !isRadarLoading, Date() >= backendBlockedUntil else { return }
+        let outcome = await backend.latest()
+        guard !isRadarLoading, !Task.isCancelled, Date() >= backendBlockedUntil else { return }
+        switch outcome {
+        case .fresh(let manifest, _):
+            if radarSource == .cache, timeline?.backend == manifest { return }
+            apply(manifest.timeline, source: .cache, attribution: RadarAttribution(manifest), keepSelection: true)
+            radarNotice = nil
+        case .fallback:
+            guard radarSource == .cache, let timeline,
+                  Date().timeIntervalSince(timeline.referenceTime) > RadarBackendConfig.maximumDataAge else { return }
+            await switchToDirectRadar(notice: nil)
+        }
+    }
+
+    /// Called by the map when cache images cannot be loaded at all: use the direct DWD path
+    /// and do not return to the cache for a few minutes.
+    func backendImagesUnavailable() {
+        guard radarSource == .cache, timeline?.backend != nil, !isRadarLoading else { return }
+        backendBlockedUntil = Date().addingTimeInterval(RadarBackendConfig.imageFailureBlockInterval)
+        Task { await switchToDirectRadar(notice: "Radar-Cache nicht erreichbar. Radar kommt direkt vom DWD.") }
+    }
+
+    private func switchToDirectRadar(notice: String?) async {
+        do {
+            let direct = try await client.radarTimeline()
+            guard !isRadarLoading, !Task.isCancelled else { return }
+            apply(direct, source: .direct, attribution: nil, keepSelection: true)
+            radarNotice = notice
+        } catch { /* keep the current images; the next refresh reports the error */ }
     }
 
     private func refreshForecast(requestID: UUID, place: SavedPlace) async {
@@ -194,8 +265,19 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         }
     }
 
-    private func loadTimeline() async -> Result<RadarTimeline, Error> {
-        do { return .success(try await client.radarTimeline()) }
+    private struct LoadedTimeline {
+        let timeline: RadarTimeline
+        let source: RadarSource
+        let attribution: RadarAttribution?
+    }
+
+    /// Cache backend first; direct DWD tiles on any error, 404, timeout, invalid or stale data.
+    private func loadTimeline() async -> Result<LoadedTimeline, Error> {
+        if Date() >= backendBlockedUntil, case .fresh(let manifest, _) = await backend.latest() {
+            return .success(LoadedTimeline(timeline: manifest.timeline, source: .cache,
+                                           attribution: RadarAttribution(manifest)))
+        }
+        do { return .success(LoadedTimeline(timeline: try await client.radarTimeline(), source: .direct, attribution: nil)) }
         catch { return .failure(error) }
     }
 

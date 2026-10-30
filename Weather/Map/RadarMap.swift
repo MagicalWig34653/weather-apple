@@ -11,6 +11,8 @@ struct RadarMap: UIViewRepresentable {
     let prefetchActive: Bool
     let bottomInset: CGFloat
     let onSelect: (CLLocationCoordinate2D) -> Void
+    /// Called when a backend image failed; the argument is the number of images loaded so far.
+    var onBackendFailure: @MainActor (Int) -> Void = { _ in }
     let onLoadState: @MainActor @Sendable (RadarLoadState) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
@@ -50,6 +52,13 @@ struct RadarMap: UIViewRepresentable {
             pin.title = place.name
             map.addAnnotation(pin)
             coordinator.placeID = place.id
+        }
+        if let manifest = timeline?.backend {
+            // Cache backend: one whole-image overlay; DWD tile overlay and prefetch stay off.
+            coordinator.updateBackend(map: map, manifest: manifest)
+            return
+        } else if coordinator.backendOverlay != nil {
+            coordinator.tearDownBackend(map: map)
         }
         coordinator.updatePrefetch()
         let frameChanged = coordinator.date != date || coordinator.referenceTime != referenceTime
@@ -91,6 +100,7 @@ struct RadarMap: UIViewRepresentable {
         RadarPrefetchFlight.shared.cancelHandoff()
         coordinator.prefetcher.cancel()
         coordinator.overlay?.cancelLoading()
+        coordinator.backendOverlay?.loader.cancelPrefetch()
         map.delegate = nil
     }
 
@@ -110,12 +120,98 @@ struct RadarMap: UIViewRepresentable {
         var placeID: UUID?
         var overlay: RadarTileOverlay?
         var activeContextID: UUID?
+        var backendOverlay: RadarImageOverlay?
+        private var backendContextID = UUID()
+        private var backendSequence = 0
+        private let pathGate = RadarPathGate()
         private var lastSequence = -1
         let prefetcher = RadarPrefetcher()
         private var currentState: RadarLoadState?
         private var prefetchBytes: Int64 = 0
 
+        func tearDownBackend(map: MKMapView) {
+            backendOverlay?.loader.cancelPrefetch()
+            if let old = backendOverlay { map.removeOverlay(old) }
+            backendOverlay = nil
+            date = nil; referenceTime = nil
+        }
+
+        /// Shows the selected slot from the cache backend. Slot changes only redraw the same
+        /// overlay (from memory when preloaded); a new run swaps the overlay.
+        func updateBackend(map: MKMapView, manifest: RadarManifest) {
+            if overlay != nil {
+                prefetcher.cancel()
+                RadarPrefetchFlight.shared.cancelHandoff()
+                overlay?.cancelLoading()
+                map.removeOverlays(map.overlays.filter { $0 is MKTileOverlay })
+                overlay = nil; activeContextID = nil; currentState = nil
+            }
+            var replaced = false
+            if backendOverlay?.loader.manifest != manifest {
+                let created = RadarImageOverlay(loader: BackendRadarLoader(manifest: manifest))
+                map.addOverlay(created, level: .aboveRoads)
+                if let old = backendOverlay { old.loader.cancelPrefetch(); map.removeOverlay(old) }
+                backendOverlay = created
+                replaced = true
+            }
+            guard let backendOverlay, let date = parent.date, let reference = parent.referenceTime else { return }
+            let changed = replaced || self.date != date || reloadRevision != parent.reloadRevision
+            self.date = date; referenceTime = reference; reloadRevision = parent.reloadRevision
+            guard let slot = manifest.slot(at: date), let index = manifest.slots.firstIndex(of: slot) else {
+                reportBackend(.failed, date: date, reference: reference, loader: backendOverlay.loader)
+                return
+            }
+            let loader = backendOverlay.loader
+            if changed {
+                backendOverlay.slotURL = slot.url
+                map.renderer(for: backendOverlay)?.setNeedsDisplay()
+                if loader.image(for: slot.url) != nil {
+                    reportBackend(.ready, date: date, reference: reference, loader: loader)
+                } else {
+                    reportBackend(.pending, date: date, reference: reference, loader: loader)
+                    let revision = reloadRevision
+                    Task { @MainActor [weak self, weak backendOverlay, weak map] in
+                        let ok = await loader.demand(slot.url)
+                        guard let self, let backendOverlay, self.backendOverlay === backendOverlay,
+                              self.date == date, self.reloadRevision == revision else { return }
+                        if ok { map?.renderer(for: backendOverlay)?.setNeedsDisplay() }
+                        self.reportBackend(ok ? .ready : .failed, date: date, reference: reference, loader: loader)
+                        if !ok { self.parent.onBackendFailure(loader.successCount) }
+                    }
+                }
+            }
+            startBackendPrefetch(loader: loader, selected: index)
+        }
+
+        private func startBackendPrefetch(loader: BackendRadarLoader, selected: Int) {
+            let active = parent.prefetchActive
+            let gate = pathGate
+            guard active, !ProcessInfo.processInfo.isLowPowerModeEnabled, !gate.isConstrained else {
+                loader.cancelPrefetch(); return
+            }
+            loader.prefetch(selected: selected) {
+                !ProcessInfo.processInfo.isLowPowerModeEnabled && !gate.isConstrained
+            }
+        }
+
+        private enum BackendStatus { case pending, ready, failed }
+        private func reportBackend(_ status: BackendStatus, date: Date, reference: Date, loader: BackendRadarLoader) {
+            backendSequence += 1
+            var state = RadarLoadState(contextID: backendContextID, frameDate: date, referenceTime: reference,
+                                       reloadRevision: parent.reloadRevision)
+            state.sequence = backendSequence
+            state.requested = 1
+            state.pending = status == .pending ? 1 : 0
+            state.succeeded = status == .ready ? 1 : 0
+            state.failed = status == .failed ? 1 : 0
+            state.receivedBodyBytes = loader.receivedBytes
+            state.isViewportIdle = true
+            // Never publish while SwiftUI is updating the view.
+            Task { @MainActor [weak self] in self?.parent.onLoadState(state) }
+        }
+
         func updatePrefetch() {
+            if backendOverlay != nil { return }
             if !parent.prefetchActive { RadarPrefetchFlight.shared.cancelHandoff() }
             prefetcher.update(timeline: parent.timeline, selected: date, paths: overlay?.observedPaths ?? [],
                               state: currentState, active: parent.prefetchActive, revision: reloadRevision,
@@ -172,6 +268,11 @@ struct RadarMap: UIViewRepresentable {
         init(parent: RadarMap) { self.parent = parent }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if overlay is RadarImageOverlay {
+                let renderer = RadarImageRenderer(overlay: overlay)
+                renderer.alpha = 0.72
+                return renderer
+            }
             guard let tiles = overlay as? MKTileOverlay else { return MKOverlayRenderer(overlay: overlay) }
             let renderer = MKTileOverlayRenderer(tileOverlay: tiles)
             renderer.alpha = 0.72
@@ -311,7 +412,7 @@ final class RadarAvailabilityRetryBudget: @unchecked Sendable {
     private var entries: [Key: Entry] = [:]
     private let limit: Int
 
-    init(limit: Int = 4) { self.limit = limit }
+    init(limit: Int = 48) { self.limit = limit }
 
     func claim(referenceTime: Date, reloadRevision: Int, now: Date = Date()) -> Bool {
         lock.withLock {
@@ -352,6 +453,7 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
         failures.error(for: url, reloadRevision: revision) != nil
     }
     private let session: URLSession
+    private let retryDelay: @Sendable (Int) -> TimeInterval
     private static let sharedSession: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
@@ -363,7 +465,10 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
     }()
 
     init(date: Date, referenceTime: Date, reloadRevision: Int = 0,
-         session: URLSession? = nil, onLoadState: @escaping @MainActor @Sendable (RadarLoadState) -> Void) {
+         session: URLSession? = nil,
+         retryDelay: @escaping @Sendable (Int) -> TimeInterval = { RadarRetryPolicy.delay(afterAttempt: $0) },
+         onLoadState: @escaping @MainActor @Sendable (RadarLoadState) -> Void) {
+        self.retryDelay = retryDelay
         self.date = date
         self.referenceTime = referenceTime
         self.session = session ?? Self.sharedSession
@@ -432,7 +537,7 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
             return
         }
         let id = UUID()
-        let task = makeTask(url: url, id: id, retryDimension: true)
+        let task = makeTask(url: url, id: id, attempt: 1)
         switch requests.add(task, url: url, id: id, result: completion) {
         case .start: task.resume()
         case .joined: task.cancel()
@@ -442,7 +547,7 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
         }
     }
 
-    private func makeTask(url: URL, id: UUID, retryDimension: Bool) -> URLSessionDataTask {
+    private func makeTask(url: URL, id: UUID, attempt: Int) -> URLSessionDataTask {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
         request.setValue("ShowerNow/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
         let revision = progress.snapshot.reloadRevision
@@ -458,13 +563,13 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
                     image = try DWDResponse.radarImage(from: data)
                 } catch { failure = error }
             }
-            if (failure as? DWDDataError) == .runUnavailable, retryDimension,
+            if RadarRetryPolicy.shouldRetry(failure, attempt: attempt),
                Self.availabilityRetries.claim(referenceTime: referenceTime, reloadRevision: revision) {
-                // At most one retry per request AND four extra requests per run/reload
-                // across frames/overlays. Never retry arbitrary network or image errors.
-                let retry = makeTask(url: url, id: id, retryDimension: false)
+                // At most two retries per request (jittered backoff) AND 48 extra requests
+                // per run/reload across frames/overlays. Never retry arbitrary network or image errors.
+                let retry = makeTask(url: url, id: id, attempt: attempt + 1)
                 if requests.replace(retry, url: url, id: id) {
-                    DispatchQueue.global().asyncAfter(deadline: .now() + 0.25) { retry.resume() }
+                    DispatchQueue.global().asyncAfter(deadline: .now() + retryDelay(attempt)) { retry.resume() }
                 }
                 else { retry.cancel() }
                 return

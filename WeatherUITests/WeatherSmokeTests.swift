@@ -17,7 +17,7 @@ final class WeatherSmokeTests: XCTestCase {
         let privacy = app.staticTexts["Datenschutz"]
         for _ in 0..<5 where !privacy.isHittable { app.swipeUp() }
         XCTAssertTrue(privacy.isHittable)
-        let explanation = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Kein Konto, kein eigener Server")).firstMatch
+        let explanation = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Kein Konto und keine")).firstMatch
         XCTAssertTrue(explanation.exists)
 
         app.buttons["Fertig"].tap()

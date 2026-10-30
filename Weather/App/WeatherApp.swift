@@ -18,6 +18,15 @@ struct WeatherApp: App {
                         catch { return }
                     }
                 }
+                // Cache manifest: on activation and then every 60 s while visible (ETag, 304).
+                .task(id: scenePhase) {
+                    guard scenePhase == .active else { return }
+                    while !Task.isCancelled {
+                        await store.pollRadar()
+                        do { try await Task.sleep(for: .seconds(RadarBackendConfig.pollInterval)) }
+                        catch { return }
+                    }
+                }
         }
     }
 }
