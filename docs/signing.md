@@ -1,6 +1,10 @@
 # Apple-Signing und Bundle-ID
 
-Stand: 30. Oktober 2026. Zuletzt geprüfter und hochgeladener Release ist **ShowerNow `0.1.0 (8)`**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, aus veröffentlichtem Quellencheckpoint `cdd5735af73938e80a7a9acd3b2ea079534d946b`, gebaut mit **Xcode 27.1 (27A9275)**. Signiertes Release-Archiv und lokaler Export erfolgreich; ein angenommener interner Upload von **11:49:50 bis 11:50:53 Uhr MEZ** mit Exit 0 (Serverzustand `Uploaded package is processing`). Abgeschlossene Verarbeitung oder Installierbarkeit sind nicht belegt.
+Stand: 30. Oktober 2026. Zuletzt geprüfter und hochgeladener Release ist **ShowerNow `0.1.0 (9)`**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, aus veröffentlichtem Quellencheckpoint `0c5e22ff88fa3716e6b794ce093d3c5e9f9354e3`, gebaut mit **Xcode 27.1 (27A9275)**. Signiertes Release-Archiv und lokaler Export erfolgreich; ein angenommener interner Upload von **21:29:44 bis 21:31:14 Uhr MEZ** (30. Oktober 2026) mit Exit 0 (Serverzustand `Uploaded package is processing`). Abgeschlossene Verarbeitung oder Installierbarkeit sind nicht belegt.
+
+## Build 9: geprüfte tatsächliche Artefakte
+
+Isolierte `git archive`-Kopie des unveränderten, auf `origin/main` veröffentlichten Commits `0c5e22f` (Verfahren wie Build 8), direkt mit **Xcode 27.1 (27A9275)** per `DEVELOPER_DIR` archiviert und exportiert (`xcode-select` unverändert): `ARCHIVE SUCCEEDED`, lokales `EXPORT SUCCEEDED`. IPA bestätigt ShowerNow (`CFBundleName`/`CFBundleDisplayName`), `de.linolaske.showernow`, Version `0.1.0`, Build `9`, `UIDeviceFamily [1,2]`, `ITSAppUsesNonExemptEncryption=false`, AppIcon (`CFBundleIcons`/`CFBundleIcons~ipad` mit `CFBundleIconName=AppIcon`), `DTSDKName=iphoneos27.1`. Archiv-App und IPA-App bestehen `codesign --verify --deep --strict`. Eingebettetes Profil: `iOS Team Store Provisioning Profile: de.linolaske.showernow`, `J2DU2P47XW.de.linolaske.showernow`, Team `J2DU2P47XW`, `get-task-allow=false`, keine Geräteliste. IPA-SHA-256 des lokalen Exports: `21b7210cae82fff960d3714f52b7b421df559d3a3bd5e856f8900b99d74f3baf`. Alle 38 getrackten Nicht-Doku-/Nicht-Design-Dateien der Quellenkopie sind bytegleich zum Commit. Kein Produktcode geändert, keine Tests im Releaseauftrag wiederholt (Teststand siehe [status.md](status.md)).
 
 ## Build 8: geprüfte tatsächliche Artefakte
 

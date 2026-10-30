@@ -149,3 +149,18 @@ Veröffentlichter Quellencheckpoint `cdd5735af73938e80a7a9acd3b2ea079534d946b`; 
 | Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
 
 Hinweis: Mit Xcode 27.2 ist derzeit kein Upload möglich; bis Apple 27.2 akzeptiert, Releases mit Xcode 27.1 bauen.
+
+## ShowerNow Build 9: Radar-Cache-Anbindung, Upload angenommen (Xcode 27.1)
+
+Veröffentlichter Quellencheckpoint `0c5e22ff88fa3716e6b794ce093d3c5e9f9354e3` (HEAD == `origin/main`, Arbeitsbaum sauber, `CURRENT_PROJECT_VERSION = 9`); Archiv/Export aus isolierter Kopie, Metadaten siehe [Signingnachweis](signing.md). Gleiche privaten Optionen wie Build 6 bis 8, offizieller `xcodebuild -exportArchive`-Pfad mit vorhandenem Xcode-Account. Wegen der Ablehnung von Xcode 27.2 bei Build 8 direkt mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR` gebaut.
+
+**Genau ein Upload, 30. Oktober 2026 21:29:44 bis 21:31:14 Uhr MEZ:** **Exit 0**, **`EXPORT SUCCEEDED`**, **`Upload succeeded`**. Letzter Serverzustand: **`Uploaded package is processing`**. Kein Retry, kein Polling; keine App-Datensätze, Tester, Gruppen, Rollen oder Konten verändert.
+
+| Zustand Build 9 | Beleg |
+|---|---|
+| Archiv und lokale IPA (Xcode 27.1) | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster und einziger Versuch) |
+| Verarbeitung | Läuft laut letzter Meldung; Abschluss nicht belegt |
+| Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
+
+Hinweis: Mit Xcode 27.2 ist weiterhin kein Upload möglich (Stand Build 8); Releases bis zur Apple-Unterstützung mit Xcode 27.1 bauen.
