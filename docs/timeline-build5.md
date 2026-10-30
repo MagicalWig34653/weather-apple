@@ -81,3 +81,7 @@ Befund: Thumb und Zeitanzeige waren direkt an `store.selectedFrame` gebunden und
 Umsetzung (nur UI, keine Prefetch-/Backend-Änderung): lokaler `scrubIndex` treibt Thumb, Zeit, Messung/Vorhersage und Accessibility-Wert unabhängig vom Netz; Pille unten auf der Karte „Radar für HH:MM lädt …“ bzw. „… nicht geladen“, solange der Ladezustand des gewählten Slots nicht erfolgreich abgeschlossen ist (altes Bild wird nicht als aktueller Stand ausgegeben); `.sensoryFeedback(.selection)` beim Slotwechsel durch Ziehen; reine Logik in `TimelineSlot` (Runden/Klemmen, Status). Test: `WeatherTests/TimelineSlotTests`.
 
 Prüfung: gezielter Test `TimelineSlotTests` und Simulatorbuild, siehe Abschlussbericht. Nicht geprüft: visuelles Verhalten der Pille und Haptik im Simulator/Gerät, UI-Test.
+
+## Feines Scrubben und Wiedergabefenster (30. Oktober 2026)
+
+Der Zeit-Slider ist ein eigener Drag-Slider (`TimelineScrubSlider`); je weiter der Finger vertikal wegwandert, desto kleiner der Anteil der horizontalen Bewegung (1, 0,5, 0,25, 0,1; Schwellen 40/90/150 pt, Hysterese 10 pt). Rundung auf Slots weiter über `TimelineSlot.index`. Die Wiedergabe nutzt nur ein Fenster von höchstens 3 h Vergangenheit bis Vorhersageende (`PlaybackWindow`). Tests: `WeatherTests/TimelineScrubTests` (Stufen, Hysterese, Sprungfreiheit bei Stufenwechsel, Klemmen, Fenster bei 1/2/48 h, wenig Historie, Lücken, Schleife). Details und Begründung: [decisions.md](decisions.md). Nicht geprüft: Gerätegefühl, Stufenanzeige/Haptik im Simulator.

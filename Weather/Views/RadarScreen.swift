@@ -14,6 +14,8 @@ struct RadarScreen: View {
     @State private var displayNow = Date()
     /// Slot index under the finger while scrubbing; drives thumb and time label independent of tile loading.
     @State private var scrubIndex: Int?
+    /// Fine-scrubbing stage while the finger is down (`nil` when not dragging).
+    @State private var scrubStage: ScrubStage?
     @State private var mapBottomInset: CGFloat = 70
 
     private enum Sheet: String, Identifiable {
@@ -41,6 +43,13 @@ struct RadarScreen: View {
                 .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
             VStack(spacing: 6) {
                 Spacer()
+                if let label = scrubStage?.label {
+                    Label(label, systemImage: "slider.horizontal.3")
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 12).padding(.vertical, 7)
+                        .background(.regularMaterial, in: Capsule())
+                        .accessibilityHidden(true)
+                }
                 if let slot = slotFeedback {
                     Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
                         .font(.caption.weight(.medium))
@@ -109,6 +118,11 @@ struct RadarScreen: View {
         } message: { Text("Name und Koordinaten werden nur auf diesem Gerät gespeichert.") }
         .task(id: store.isPlaying) {
             guard store.isPlaying else { return }
+            // Playback covers only a window (at most 3 h of past); start there if the slider is further back.
+            if let timeline = store.timeline {
+                let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.pastHours)
+                if store.selectedFrame < start { store.selectedFrame = start }
+            }
             var waitingFrame = store.frameDate
             var waitingSince = Date()
             while !Task.isCancelled {
@@ -126,7 +140,8 @@ struct RadarScreen: View {
                 // Wait for actual requests, but keep offline/no-event frames from stalling playback forever.
                 let frameFinished = currentRadarLoadState.map { $0.requested > 0 && $0.pending == 0 } ?? false
                 guard frameFinished || Date().timeIntervalSince(waitingSince) >= 12 else { continue }
-                store.selectedFrame = (store.selectedFrame + 1) % timeline.dates.count
+                store.selectedFrame = PlaybackWindow.nextIndex(after: store.selectedFrame, dates: timeline.dates,
+                                                               reference: timeline.referenceTime, pastHours: store.pastHours)
                 waitingFrame = store.frameDate
                 waitingSince = Date()
             }
@@ -364,16 +379,13 @@ struct RadarScreen: View {
 
     @ViewBuilder private var timeSlider: some View {
         if let timeline = store.timeline, timeline.dates.count > 1 {
-            Slider(value: Binding(get: { Double(displayedIndex) }, set: {
-                let index = TimelineSlot.index(for: $0, count: timeline.dates.count)
+            TimelineScrubSlider(count: timeline.dates.count, displayedIndex: displayedIndex, onScrub: { index in
                 store.isPlaying = false
-                scrubIndex = index
+                if scrubIndex != index { scrubIndex = index }
                 if store.selectedFrame != index { store.selectedFrame = index }
-            }), in: 0...Double(timeline.dates.count - 1), step: 1) { editing in
-                if !editing { scrubIndex = nil }
-            }
+            }, onEnd: { scrubIndex = nil }, stage: $scrubStage)
             .sensoryFeedback(.selection, trigger: scrubIndex) { _, new in new != nil }
-            .frame(minWidth: 50, minHeight: 44)
+            .sensoryFeedback(.impact(weight: .light), trigger: scrubStage) { old, new in old != nil && new != nil }
             .overlay(alignment: .bottom) {
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
@@ -390,9 +402,17 @@ struct RadarScreen: View {
                 .accessibilityHidden(true)
                 .allowsHitTesting(false)
             }
-            .accessibilityLabel("Radarzeitpunkt")
-            .accessibilityValue("\(displayedDate.map { otherDayLabel(for: $0).map { day in day + ", " } ?? "" } ?? "")\(displayedDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(displayedIsForecast ? "Vorhersage" : "Messung")")
-            .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened))")
+            .accessibilityRepresentation {
+                // Native slider semantics for VoiceOver (adjustable, XCUI "Slider"); the drag slider stays visual.
+                Slider(value: Binding(get: { Double(displayedIndex) }, set: {
+                    let index = TimelineSlot.index(for: $0, count: timeline.dates.count)
+                    store.isPlaying = false
+                    if store.selectedFrame != index { store.selectedFrame = index }
+                }), in: 0...Double(timeline.dates.count - 1), step: 1)
+                .accessibilityLabel("Radarzeitpunkt")
+                .accessibilityValue("\(displayedDate.map { otherDayLabel(for: $0).map { day in day + ", " } ?? "" } ?? "")\(displayedDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(displayedIsForecast ? "Vorhersage" : "Messung")")
+                .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened)). Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.")
+            }
         } else {
             Text(store.isLoading ? "Radar lädt …" : "Keine Radarzeiten")
                 .font(.caption).foregroundStyle(.secondary)
