@@ -132,3 +132,20 @@ Genau ein autorisierter interner Upload am **30. Oktober 2026 von 06:31:30 bis 0
 | Uploadannahme | Erfolgreich, Exit 0 |
 | Verarbeitung | Läuft laut letzter Meldung; Abschluss nicht belegt |
 | Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
+
+
+## ShowerNow Build 8: vollständiges Timeline-Vorladen, Upload angenommen (Xcode 27.1)
+
+Veröffentlichter Quellencheckpoint `cdd5735af73938e80a7a9acd3b2ea079534d946b`; Archiv/Export aus isolierter Kopie, Metadaten siehe [Signingnachweis](signing.md). Gleiche privaten Optionen wie Build 6/7 (`testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`), offizieller `xcodebuild -exportArchive`-Pfad mit vorhandenem Xcode-Account.
+
+1. **Versuch 1, Xcode 27.2 (27B52), 30. Oktober 2026 11:47:36 bis 11:49:00 Uhr MEZ:** Exit 70, `EXPORT FAILED`, Apple-Meldung `Unsupported SDK or Xcode version` (die App wurde mit einem von App Store Connect nicht unterstützten SDK/Xcode gebaut; Release Candidates oder Release erforderlich). Klar nicht angenommen; Ursache eindeutig die Xcode-Version, kein Signing-, Netz-, Konto- oder Buildnummernproblem.
+2. **Versuch 2 (einziger Retry), Xcode 27.1 (27A9275) per `DEVELOPER_DIR`, Neuarchivierung aus derselben Quellenkopie, 11:49:50 bis 11:50:53 Uhr MEZ:** **Exit 0**, **`EXPORT SUCCEEDED`**, **`Upload succeeded`**. Letzter Serverzustand: **`Uploaded package is processing`**. Kein weiterer Retry, kein Polling; keine App-Datensätze, Tester, Gruppen, Rollen oder Konten verändert.
+
+| Zustand Build 8 | Beleg |
+|---|---|
+| Archiv und lokale IPA (Xcode 27.1) | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (zweiter Versuch) |
+| Verarbeitung | Läuft laut letzter Meldung; Abschluss nicht belegt |
+| Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
+
+Hinweis: Mit Xcode 27.2 ist derzeit kein Upload möglich; bis Apple 27.2 akzeptiert, Releases mit Xcode 27.1 bauen.
