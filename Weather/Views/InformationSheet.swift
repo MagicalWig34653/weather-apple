@@ -21,7 +21,7 @@ struct InformationSheet: View {
                 }
                 Section("Datenschutz") {
                     Text("Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben lokal.")
-                    Text("Radarbilder lädt die App vom ShowerNow-Radar-Server. Er sieht nur den Abruf selbst (technisch die IP-Adresse), keinen Ort, keine Cookies und keine Standortverläufe. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab.")
+                    Text("Radarbilder lädt die App vom ShowerNow-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab.")
                     Text("Für eine Ortsprognose erhält der DWD weiterhin direkt einen Kartenausschnitt um die ausgewählte Position. Karten und Suchanfragen werden von Apple verarbeitet. Dabei fallen Netzwerkdaten wie die IP-Adresse an.")
                     Text("Standortzugriff ist optional und wird nur bei Nutzung angefordert. Keine Hintergrundortung. Punktanfragen werden nicht in einem Festplatten-Netzwerkcache gespeichert.")
                     Text("Die App ist eine frühe Testversion. Prognosen können abweichen; bei fehlenden oder veralteten Daten wird keine aktuelle Aussage zugesichert.")
