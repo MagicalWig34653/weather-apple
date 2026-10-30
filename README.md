@@ -46,6 +46,7 @@ Bei anderem Simulator dessen vorhandenen Namen einsetzen. UI-Tests legen nur eig
 - [Aktuelle Entscheidungen](docs/decisions.md)
 - [DWD-Datenvertrag und Grenzen](docs/data-contract.md)
 - [Ursprüngliches Konzept](docs/concept-v2.md)
+- [GitHub-Pages-Dokumentation](docs/pages.md) (Aufbau, lokaler Build, Deployment)
 - [Anweisungen für Agents](AGENTS.md), [Claude Code](CLAUDE.md)
 
 Die private lokale Zuordnung zum Schwesterrepository steht optional in der ignorierten `LOCAL_WORKSPACE.md`; die öffentliche Vorlage enthält keine persönlichen Pfade. Schwesterrepository: [weather-backend](https://github.com/MagicalWig34653/weather-backend).

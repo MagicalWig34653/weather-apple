@@ -18,3 +18,7 @@ xcuserdata/
 
 # Rechnerbezogene Repository-Pfade bleiben privat.
 /LOCAL_WORKSPACE.md
+
+# GitHub-Pages-Seite
+/docs-site/node_modules/
+/docs-site/dist/
