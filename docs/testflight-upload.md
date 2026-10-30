@@ -164,3 +164,18 @@ Veröffentlichter Quellencheckpoint `0c5e22ff88fa3716e6b794ce093d3c5e9f9354e3` (
 | Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
 
 Hinweis: Mit Xcode 27.2 ist weiterhin kein Upload möglich (Stand Build 8); Releases bis zur Apple-Unterstützung mit Xcode 27.1 bauen.
+
+## ShowerNow Build 10: korrigierter Datenschutztext, Upload angenommen (Xcode 27.1)
+
+Veröffentlichter Quellencheckpoint `b106f1e7d94344e2a1128e63da67c89be8ac9a21` (HEAD == `origin/main`, Arbeitsbaum sauber, `CURRENT_PROJECT_VERSION = 10`); Inhalt gegenüber Build 9 ausschließlich die korrigierte Datenschutzaussage (`b9ce323`). Archiv/Export aus isolierter Kopie, Metadaten siehe [Signingnachweis](signing.md). Private Uploadoptionen wie Build 6 bis 9 (`testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`), offizieller `xcodebuild -exportArchive`-Pfad mit vorhandenem Xcode-Account, Xcode 27.1 (27A9275) per `DEVELOPER_DIR`.
+
+**Genau ein Upload, 30. Oktober 2026 21:49:46 bis 21:51:20 Uhr MEZ:** **Exit 0**, **`EXPORT SUCCEEDED`**, **`Upload succeeded`**. Letzter Serverzustand: **`Uploaded package is processing`**. Kein Retry, kein Polling; keine App-Datensätze, Tester, Gruppen, Rollen oder Konten verändert.
+
+| Zustand Build 10 | Beleg |
+|---|---|
+| Archiv und lokale IPA (Xcode 27.1) | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster und einziger Versuch) |
+| Verarbeitung | Läuft laut letzter Meldung; Abschluss nicht belegt |
+| Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
+
+Hinweis: Mit Xcode 27.2 ist weiterhin kein Upload möglich (Stand Build 8); Releases mit Xcode 27.1 bauen.
