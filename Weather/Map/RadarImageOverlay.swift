@@ -9,6 +9,9 @@ enum RadarBackendPolicy {
     static let decodedImageLimit = 8
     /// A failed image is not requested again for this long (draw callbacks must not hammer).
     static let failureCooldown: TimeInterval = 5
+    /// Prefetch stops adding images once the compressed cache holds this much (80 % of the 50 MB
+    /// limit). Far slots then never evict the near ones; demand for the visible slot still fits.
+    static let prefetchCacheCeiling = 40_000_000
 }
 
 enum RadarImageDecoder {
@@ -58,6 +61,7 @@ final class BackendRadarLoader: @unchecked Sendable {
 
     let manifest: RadarManifest
     private let cache: TileMemoryCache
+    private let prefetchCeiling: Int
     private let decoded = DecodedImageCache()
     private let fetch: Fetch
     private let decode: Decode
@@ -70,9 +74,11 @@ final class BackendRadarLoader: @unchecked Sendable {
     private var failures = 0
 
     init(manifest: RadarManifest, cache: TileMemoryCache = BackendRadarLoader.sharedCache,
+         prefetchCeiling: Int = RadarBackendPolicy.prefetchCacheCeiling,
          fetch: Fetch? = nil, decode: Decode? = nil) {
         self.manifest = manifest
         self.cache = cache
+        self.prefetchCeiling = prefetchCeiling
         self.fetch = fetch ?? BackendRadarLoader.makeFetch()
         let width = manifest.imageWidth, height = manifest.imageHeight
         self.decode = decode ?? { RadarImageDecoder.decode($0, width: width, height: height) }
@@ -136,7 +142,7 @@ final class BackendRadarLoader: @unchecked Sendable {
             await withTaskGroup(of: Void.self) { group in
                 for _ in 0..<RadarBackendPolicy.prefetchParallelism {
                     group.addTask { [self] in
-                        while !Task.isCancelled, allowed(), let url = queue.next() {
+                        while !Task.isCancelled, allowed(), cache.byteCount < prefetchCeiling, let url = queue.next() {
                             if hasImage(for: url) { continue }
                             _ = await demand(url)
                         }

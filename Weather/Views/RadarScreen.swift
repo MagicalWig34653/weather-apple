@@ -49,7 +49,8 @@ struct RadarScreen: View {
                         .accessibilityIdentifier("radar-slot-status")
                 }
                 if store.timeline != nil {
-                    Text("\(store.radarAttribution.attribution) · \(store.radarSource.label)")
+                    Text("\(store.radarAttribution.attribution) · \(store.radarSource.label)"
+                         + (store.historyStatus == .unavailable && store.radarSource == .cache ? " · Historie nicht verfügbar" : ""))
                         .font(.caption2).foregroundStyle(.secondary)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(.thinMaterial, in: Capsule())
@@ -98,7 +99,7 @@ struct RadarScreen: View {
             switch item {
             case .places: PlacesSheet(store: store)
             case .details: ForecastDetails(store: store)
-            case .information: InformationSheet(source: store.radarSource, attribution: store.radarAttribution)
+            case .information: InformationSheet(store: store)
             }
         }
         .alert("Ort speichern", isPresented: $showSave) {
@@ -326,6 +327,9 @@ struct RadarScreen: View {
         VStack(spacing: 0) {
             if let date = displayedDate {
                 Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit()
+                if let day = otherDayLabel(for: date) {
+                    Text(day).font(.caption2).foregroundStyle(.secondary)
+                }
             }
             Text(displayedIsForecast ? "Vorhersage" : "Messung")
                 .font(.caption2.weight(.medium))
@@ -334,6 +338,13 @@ struct RadarScreen: View {
         .fixedSize(horizontal: true, vertical: true)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("radar-frame-label")
+    }
+
+    /// With up to 48 hours of past the time alone is ambiguous: name the day when it is not the reference day.
+    private func otherDayLabel(for date: Date) -> String? {
+        guard let reference = store.timeline?.referenceTime,
+              !Calendar.current.isDate(date, inSameDayAs: reference) else { return nil }
+        return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
     }
 
     @ViewBuilder private var nowButton: some View {
@@ -380,8 +391,8 @@ struct RadarScreen: View {
                 .allowsHitTesting(false)
             }
             .accessibilityLabel("Radarzeitpunkt")
-            .accessibilityValue("\(displayedDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(displayedIsForecast ? "Vorhersage" : "Messung")")
-            .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .omitted, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened))")
+            .accessibilityValue("\(displayedDate.map { otherDayLabel(for: $0).map { day in day + ", " } ?? "" } ?? "")\(displayedDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(displayedIsForecast ? "Vorhersage" : "Messung")")
+            .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened))")
         } else {
             Text(store.isLoading ? "Radar lädt …" : "Keine Radarzeiten")
                 .font(.caption).foregroundStyle(.secondary)

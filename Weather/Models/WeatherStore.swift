@@ -50,6 +50,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// Where the currently shown radar images come from (honest source display).
     var radarSource: RadarSource = .cache
     var radarAttribution = RadarAttribution.default
+    /// Chosen maximum past of the timeline (hours); only the cache backend can deliver more than one hour.
+    private(set) var pastHours = RadarPastWindow.defaultHours
+    private(set) var historyStatus = RadarHistoryStatus.notNeeded
+    /// Longest past the server currently offers (`history_hours`), if known.
+    var serverHistoryHours: Int? { if case .loaded(let hours) = historyStatus { hours } else { nil } }
 
     @ObservationIgnored private let client: DWDClient
     @ObservationIgnored private let backend: RadarBackendClient
@@ -59,15 +64,24 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private var waitingForLocation = false
     @ObservationIgnored private var forecastPlaceID: UUID?
     @ObservationIgnored private var attemptedRadarFallback = false
+    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private var latestManifest: RadarManifest?
+    @ObservationIgnored private var history: RadarHistory?
+    @ObservationIgnored private var historyCheckedRun: String?
+    @ObservationIgnored private var composedHours = RadarPastWindow.defaultHours
 
     override convenience init() {
         self.init(client: DWDClient())
     }
 
-    init(client: DWDClient, backend: RadarBackendClient = RadarBackendClient()) {
+    init(client: DWDClient, backend: RadarBackendClient = RadarBackendClient(),
+         defaults: UserDefaults = .standard) {
         self.client = client
         self.backend = backend
+        self.defaults = defaults
         super.init()
+        pastHours = RadarPastWindow.load(defaults)
+        composedHours = pastHours
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         do {
@@ -169,6 +183,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         switch result {
         case .success(let value):
             apply(value.timeline, source: value.source, attribution: value.attribution, keepSelection: false)
+            // The setting changed while loading: compose again for the new choice (selection kept).
+            if value.source == .cache, composedHours != pastHours { await recomposeTimeline() }
         case .failure(let error):
             radarError = error.localizedDescription
         }
@@ -194,8 +210,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         guard !isRadarLoading, !Task.isCancelled, Date() >= backendBlockedUntil else { return }
         switch outcome {
         case .fresh(let manifest, _):
-            if radarSource == .cache, timeline?.backend == manifest { return }
-            apply(manifest.timeline, source: .cache, attribution: RadarAttribution(manifest), keepSelection: true)
+            if radarSource == .cache, latestManifest == manifest { return }
+            let merged = await resolveBackendTimeline(manifest, retryHistory: false)
+            guard !isRadarLoading, !Task.isCancelled else { return }
+            apply(merged.timeline, source: .cache, attribution: RadarAttribution(manifest), keepSelection: true)
             radarNotice = nil
         case .fallback:
             guard radarSource == .cache, let timeline,
@@ -274,11 +292,56 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// Cache backend first; direct DWD tiles on any error, 404, timeout, invalid or stale data.
     private func loadTimeline() async -> Result<LoadedTimeline, Error> {
         if Date() >= backendBlockedUntil, case .fresh(let manifest, _) = await backend.latest() {
-            return .success(LoadedTimeline(timeline: manifest.timeline, source: .cache,
+            let merged = await resolveBackendTimeline(manifest, retryHistory: true)
+            return .success(LoadedTimeline(timeline: merged.timeline, source: .cache,
                                            attribution: RadarAttribution(manifest)))
         }
         do { return .success(LoadedTimeline(timeline: try await client.radarTimeline(), source: .direct, attribution: nil)) }
         catch { return .failure(error) }
+    }
+
+    /// Combines `latest.json` with `history.json` for the chosen past. History is requested only if the
+    /// choice exceeds what latest covers, and only for a new run (or when a manual refresh retries a miss).
+    private func resolveBackendTimeline(_ latest: RadarManifest, retryHistory: Bool) async -> RadarManifest {
+        latestManifest = latest
+        let hours = pastHours
+        if RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
+            if latest.run != historyCheckedRun || (retryHistory && history == nil) {
+                switch await backend.history() {
+                case .loaded(let value, _):
+                    history = value
+                    historyCheckedRun = latest.run
+                case .unavailable(let error):
+                    // A transient network error keeps the last valid history; 404/invalid drops it.
+                    if error != .unreachable { history = nil }
+                    historyCheckedRun = latest.run
+                }
+            }
+            if let history, RadarTimelineComposer.isCompatible(history, with: latest) {
+                historyStatus = .loaded(hours: history.historyHours)
+            } else { historyStatus = .unavailable }
+        } else {
+            historyStatus = .notNeeded
+        }
+        composedHours = hours
+        return RadarTimelineComposer.compose(latest: latest, history: history, hours: hours)
+    }
+
+    /// Changes the maximum past and persists it. The current instant stays selected where possible.
+    func setPastHours(_ hours: Int) {
+        guard RadarPastWindow.options.contains(hours), hours != pastHours else { return }
+        pastHours = hours
+        RadarPastWindow.save(hours, to: defaults)
+        guard radarSource == .cache, latestManifest != nil, !isRadarLoading else { return }
+        Task { await recomposeTimeline() }
+    }
+
+    private func recomposeTimeline() async {
+        guard radarSource == .cache, let latest = latestManifest else { return }
+        let hours = pastHours
+        let merged = await resolveBackendTimeline(latest, retryHistory: true)
+        guard hours == pastHours, !isRadarLoading, !Task.isCancelled, radarSource == .cache else { return }
+        apply(merged.timeline, source: .cache, attribution: RadarAttribution(latest), keepSelection: true)
     }
 
     private func loadForecast(at coordinate: WeatherCoordinate) async -> Result<RainForecast, Error> {

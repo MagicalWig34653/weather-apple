@@ -14,7 +14,8 @@ settings:
     SWIFT_VERSION: '6.0'
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CODE_SIGN_STYLE: Automatic
-    TARGETED_DEVICE_FAMILY: '1'
+    # Universal (iPhone + iPad); orientations live in Configuration/Info.plist.
+    TARGETED_DEVICE_FAMILY: '1,2'
 targets:
   Weather:
     type: application

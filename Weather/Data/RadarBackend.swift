@@ -12,6 +12,8 @@ enum RadarBackendConfig {
     static let imageFailureBlockInterval: TimeInterval = 300
     static let maximumManifestBytes = 256 * 1024
     static let maximumImageBytes = 1_048_576
+    /// Privacy policy page of the ShowerNow site (opened in the browser; no network dependency in the app).
+    static let privacyPolicyURL = URL(string: "https://showernow.linolaske.de/datenschutz")!
 
     /// Debug builds accept `-radar-backend-url <https-url>` so the fallback path can be exercised.
     static func baseURL(arguments: [String] = ProcessInfo.processInfo.arguments) -> URL {
@@ -39,6 +41,20 @@ enum RadarBackendError: Error, Equatable, Sendable {
 struct RadarBounds: Equatable, Sendable {
     let minX: Double, minY: Double, maxX: Double, maxY: Double
     static let halfWorld = 20_037_508.342789244
+}
+
+/// The `image` object shared by `latest.json` and `history.json`.
+struct RadarImageInfo: Decodable, Equatable, Sendable {
+    let format: String, width: Int, height: Int, projection: String, bbox: [Double]
+
+    /// `nil` unless format, projection, size and Web-Mercator bounds are plausible.
+    var validatedBounds: RadarBounds? {
+        guard format == "image/webp", projection == "EPSG:3857",
+              (1...4096).contains(width), (1...4096).contains(height),
+              bbox.count == 4, bbox.allSatisfy({ $0.isFinite && abs($0) <= RadarBounds.halfWorld + 1 }),
+              bbox[0] < bbox[2], bbox[1] < bbox[3] else { return nil }
+        return RadarBounds(minX: bbox[0], minY: bbox[1], maxX: bbox[2], maxY: bbox[3])
+    }
 }
 
 struct RadarManifest: Equatable, Sendable {
@@ -79,14 +95,11 @@ struct RadarManifest: Equatable, Sendable {
 
     private struct SchemaProbe: Decodable { let schema: Int }
     private struct Raw: Decodable {
-        struct Image: Decodable {
-            let format: String, width: Int, height: Int, projection: String, bbox: [Double]
-        }
         struct RawSlot: Decodable { let time: String, kind: String, path: String }
         let schema: Int, run: String
         let referenceTime: String, generatedAt: String
         let stepMinutes: Int
-        let image: Image
+        let image: RadarImageInfo
         let slots: [RawSlot]
         let attribution: String, modificationNotice: String
     }
@@ -104,10 +117,7 @@ struct RadarManifest: Equatable, Sendable {
         guard isRunID(raw.run),
               let reference = DWDRequest.date(raw.referenceTime), let generated = DWDRequest.date(raw.generatedAt),
               (1...60).contains(raw.stepMinutes),
-              raw.image.format == "image/webp", raw.image.projection == "EPSG:3857",
-              (1...4096).contains(raw.image.width), (1...4096).contains(raw.image.height),
-              raw.image.bbox.count == 4, raw.image.bbox.allSatisfy({ $0.isFinite && abs($0) <= RadarBounds.halfWorld + 1 }),
-              raw.image.bbox[0] < raw.image.bbox[2], raw.image.bbox[1] < raw.image.bbox[3],
+              let bounds = raw.image.validatedBounds,
               !raw.attribution.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !raw.modificationNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               (1...200).contains(raw.slots.count) else { throw RadarBackendError.invalid }
@@ -124,12 +134,11 @@ struct RadarManifest: Equatable, Sendable {
         guard slots.contains(where: { $0.time == reference }) else { throw RadarBackendError.invalid }
         return RadarManifest(run: raw.run, referenceTime: reference, generatedAt: generated, stepMinutes: raw.stepMinutes,
                              imageWidth: raw.image.width, imageHeight: raw.image.height,
-                             bounds: RadarBounds(minX: raw.image.bbox[0], minY: raw.image.bbox[1],
-                                                 maxX: raw.image.bbox[2], maxY: raw.image.bbox[3]),
+                             bounds: bounds,
                              slots: slots, attribution: raw.attribution, modificationNotice: raw.modificationNotice)
     }
 
-    private static func isRunID(_ text: String) -> Bool {
+    static func isRunID(_ text: String) -> Bool {
         text.range(of: #"^\d{8}T\d{4}Z$"#, options: .regularExpression) != nil
     }
 
@@ -188,6 +197,8 @@ actor RadarBackendClient {
     private let clock: @Sendable () -> Date
     private var etag: String?
     private var last: RadarManifest?
+    private var historyEtag: String?
+    private var lastHistory: RadarHistory?
 
     init(baseURL: URL = RadarBackendConfig.baseURL(), transport: Transport? = nil,
          clock: @escaping @Sendable () -> Date = { Date() }) {
@@ -210,6 +221,41 @@ actor RadarBackendClient {
                 return (data, response)
             }
         }
+    }
+
+    enum HistoryOutcome: Equatable, Sendable {
+        case loaded(RadarHistory, changed: Bool)
+        case unavailable(RadarBackendError)
+    }
+
+    /// Optional longer past (`history.json`). Any error leaves the caller with `latest.json` only.
+    func history() async -> HistoryOutcome {
+        var request = URLRequest(url: baseURL.appendingPathComponent("history.json"),
+                                 cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6)
+        request.httpShouldHandleCookies = false
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let historyEtag, lastHistory != nil { request.setValue(historyEtag, forHTTPHeaderField: "If-None-Match") }
+        let data: Data, response: HTTPURLResponse
+        do { (data, response) = try await transport(request) }
+        catch { return .unavailable(.unreachable) }
+        let value: RadarHistory
+        switch response.statusCode {
+        case 304:
+            guard let lastHistory else { return .unavailable(.invalid) }
+            value = lastHistory
+        case 200:
+            do { value = try RadarHistory.parse(data, baseURL: baseURL, now: clock()) }
+            catch { return .unavailable(error as? RadarBackendError ?? .invalid) }
+        case 404:
+            historyEtag = nil; lastHistory = nil
+            return .unavailable(.notPublished)
+        default:
+            return .unavailable(.unreachable)
+        }
+        let changed = value != lastHistory
+        if response.statusCode == 200 { historyEtag = response.value(forHTTPHeaderField: "ETag") }
+        lastHistory = value
+        return .loaded(value, changed: changed)
     }
 
     func latest() async -> Outcome {

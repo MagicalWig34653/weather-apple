@@ -6,16 +6,16 @@ import XCTest
 // Logic tests without network. Every test builds its own state (own caches, clients,
 // loaders); nothing here touches shared singletons.
 final class RadarBackendTests: XCTestCase {
-    private let base = URL(string: "https://radar.example.invalid/v1/radar/")!
+    let base = URL(string: "https://radar.example.invalid/v1/radar/")!
 
-    private func fixtureData() throws -> Data {
+    func fixtureData() throws -> Data {
         let bundle = Bundle(for: RadarBackendTests.self)
         let url = bundle.url(forResource: "radar-latest", withExtension: "json", subdirectory: "Fixtures")
             ?? bundle.url(forResource: "radar-latest", withExtension: "json")
         return try Data(contentsOf: XCTUnwrap(url))
     }
 
-    private func manifest() throws -> RadarManifest { try RadarManifest.parse(fixtureData(), baseURL: base) }
+    func manifest() throws -> RadarManifest { try RadarManifest.parse(fixtureData(), baseURL: base) }
 
     private func modified(_ change: (inout [String: Any]) -> Void) throws -> Data {
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: fixtureData()) as? [String: Any])
@@ -143,14 +143,25 @@ final class RadarBackendTests: XCTestCase {
 
     // MARK: Client: fallback decision and ETag
 
-    private final class Script: @unchecked Sendable {
+    final class Script: @unchecked Sendable {
         struct Reply { var status: Int; var body: Data = Data(); var etag: String? }
         private let lock = NSLock()
         private var replies: [Reply]
+        private var historyReplies: [Reply]
         private(set) var requests: [URLRequest] = []
-        init(_ replies: [Reply]) { self.replies = replies }
+        private(set) var historyRequests: [URLRequest] = []
+        /// `history.json` requests are answered from their own script (default: 404) and counted separately.
+        init(_ replies: [Reply], history: [Reply] = [Reply(status: 404)]) {
+            self.replies = replies
+            self.historyReplies = history
+        }
         func next(_ request: URLRequest) throws -> (Data, HTTPURLResponse) {
+            let isHistory = request.url?.lastPathComponent == "history.json"
             let reply: Reply = lock.withLock {
+                if isHistory {
+                    historyRequests.append(request)
+                    return historyReplies.count > 1 ? historyReplies.removeFirst() : historyReplies[0]
+                }
                 requests.append(request)
                 return replies.count > 1 ? replies.removeFirst() : replies[0]
             }
@@ -161,7 +172,7 @@ final class RadarBackendTests: XCTestCase {
         }
     }
 
-    private func client(_ script: Script, now: Date) -> RadarBackendClient {
+    func client(_ script: Script, now: Date) -> RadarBackendClient {
         RadarBackendClient(baseURL: base, transport: { try script.next($0) }, clock: { now })
     }
 
@@ -219,7 +230,7 @@ final class RadarBackendTests: XCTestCase {
         XCTAssertEqual(third, .fallback(.stale), "A 304 does not make aging data fresh")
     }
 
-    private final class ClockBox: @unchecked Sendable {
+    final class ClockBox: @unchecked Sendable {
         private let lock = NSLock()
         private var value: Date
         init(_ value: Date) { self.value = value }
@@ -306,7 +317,7 @@ final class RadarBackendTests: XCTestCase {
 
     // MARK: Loader: cache, order, parallelism
 
-    private final class FetchProbe: @unchecked Sendable {
+    final class FetchProbe: @unchecked Sendable {
         private let lock = NSLock()
         private(set) var started: [URL] = []
         private var running = 0
@@ -461,7 +472,7 @@ final class RadarBackendTests: XCTestCase {
 
     // MARK: Store: source choice, fallback, selection across runs
 
-    private func failingDWD() -> DWDClient {
+    func failingDWD() -> DWDClient {
         DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }, retryDelay: { _ in 0 })
     }
 
