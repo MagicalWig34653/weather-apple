@@ -1,6 +1,17 @@
 # Apple-Signing und Bundle-ID
 
-Stand: 28. Oktober 2026. Aktueller geprüfter Release-Kandidat ist **ShowerNow `0.1.0 (5)`**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, aus veröffentlichtem Quellencheckpoint `c4748931c14ce9bf79a7f6e97e024a27da3c27a8`. Signiertes Release-Archiv und lokaler Export erfolgreich; genau ein interner Upload wurde um **19:14:17 Uhr MEZ** mit Exit 0 angenommen (`PROCESSING`). Die Nutzerregression von Build 4 und die begrenzten P0-Korrekturen stehen im [P0-Befund](performance-regression-build4.md) und [Schlussreview](reviews/p0-build5.md). Kaltes Radar bleibt variabel; keine Instant-Garantie oder neue physische Abnahme.
+Stand: 30. Oktober 2026. Zuletzt geprüfter und hochgeladener Release ist **ShowerNow `0.1.0 (7)`**, **`de.linolaske.showernow`**, Team **`J2DU2P47XW`**, aus veröffentlichtem Quellencheckpoint `1c093ddceee12d0e434030d7f18cb72b2235aa94`. Signiertes Release-Archiv und lokaler Export erfolgreich; genau ein interner Upload wurde von **06:31:30 bis 06:33:03 Uhr MEZ** mit Exit 0 angenommen (Serverzustand `Uploaded package is processing`). Abgeschlossene Verarbeitung oder Installierbarkeit sind nicht belegt.
+
+## Build 7: geprüfte tatsächliche Artefakte
+
+`ARCHIVE SUCCEEDED` und lokales `EXPORT SUCCEEDED`, beides aus einer isolierten `git archive`-Kopie des Commits `1c093dd` (Verfahren wie Build 6). Archiv und IPA bestätigen ShowerNow (`CFBundleName`/`CFBundleDisplayName`), `de.linolaske.showernow`, Version `0.1.0`, Build `7`, `UIDeviceFamily [1,2]`, `ITSAppUsesNonExemptEncryption=false` und AppIcon (`CFBundleIconName=AppIcon`). Beide Apps bestehen `codesign --verify --deep --strict`. Das eingebettete Distributionsprofil bestätigt `J2DU2P47XW.de.linolaske.showernow`, Team `J2DU2P47XW`, `get-task-allow=false`, keine Geräteliste. IPA-SHA-256 des lokalen Exports: `958344876f01c8953684f119830236a6c7a1dbe9c0364bdb71193210bb8b0106`. Alle 33 getrackten Nicht-Doku-/Nicht-Design-Dateien der Quellenkopie sind bytegleich zum Commit. Kein Produktcode geändert, keine Tests im Releaseauftrag wiederholt (Teststand siehe [status.md](status.md)). Keine Konto-/Tester-/Rollenänderung, keine Zugangsdatenextraktion. Upload: [Uploadnachweis](testflight-upload.md).
+
+## Build 6: geprüfte tatsächliche Artefakte
+
+`ARCHIVE SUCCEEDED` und lokales `EXPORT SUCCEEDED`. Archiv und tatsächliche IPA bestätigen beide Namensfelder ShowerNow, Bundle-ID `de.linolaske.showernow`, Version `0.1.0`, Build `6`, Familie `[1,2]`, drei iPhone-/vier iPad-Orientierungen und Compliance `false`. AppIcon ist für beide Familien gesetzt; native Assets enthalten IconImageStack und IconGroup. Beide Apps bestehen `codesign --verify --deep --strict`.
+
+Das tatsächlich eingebettete IPA-Distributionsprofil bestätigt `J2DU2P47XW.de.linolaske.showernow`, Team `J2DU2P47XW`, `get-task-allow=false` und keine Geräteliste. IPA-SHA-256: `1fda7478cb765b2e9298227ba101683aa5e521af9446f60db9f69a39f7761555`. Alle 26 getrackten Projekt-/Konfigurations-/App-/Test-/Ressourcendateien einschließlich Schemen und nativer Iconquellen der isolierten Archivkopie wurden bytegleich zum veröffentlichten Quellencheckpoint `87915f8` geprüft. Keine Änderungen am Appcode oder Tests im Releaseauftrag; vorhandene 16 Prefetch- und 57 vollständige Logiktests wurden nicht wiederholt. Kein Live-DWD-Fanout, keine Accounts-/Tester-/Rollenänderung oder Zugangsdatenextraktion. Uploadstatus separat im [Uploadnachweis](testflight-upload.md).
+
 
 ## Build 5: geprüfte tatsächliche Artefakte
 

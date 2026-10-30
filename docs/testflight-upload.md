@@ -100,3 +100,35 @@ Genau ein autorisierter interner Upload dieses Archivs wurde um **19:13:02 Uhr M
 
 
 Nach dem Start wurde ein einmaliger vollständiger `WeatherTests`-Logiklauf gegen exakt denselben Quellencommit zusätzlich beauftragt, da die PNG-Prüfung gemeinsame Fixtures betrifft. Zu diesem Zeitpunkt hatte der Upload bereits Serveranalyse-/Completiontransfer erreicht; er wurde nicht blind abgebrochen oder wiederholt. Der getrennte Runner verwendet eine eigene Quellenkopie/DerivedData und ändert den Appcode nicht. Der Lauf endete um **19:14:21 Uhr MEZ** mit `TEST SUCCEEDED`, Exit 0: **41 Tests, null Fehler, 2,760 s** (33 DWD/Map, acht Einordnung). Dies ist nun ein tatsächlicher gemeinsamer Grünlauf der aktuellen Logikquellen; keine UI-Suite erneut ausgeführt. Quellen und hochgeladene App sind unverändert. Erfolgreiche Uploadannahme und grüner Logiklauf ersetzen weiterhin keinen physischen Alltagstest oder eine garantierte kalte Ladezeit.
+
+
+## ShowerNow Build 6: budgetiertes Timeline-Vorladen, Upload angenommen
+
+Veröffentlichter Quellencheckpoint `87915f8a6c8eda891cc094a46554cfe8200d908d`, unabhängiger [Review ohne offene P1/P2](reviews/prefetch-build6.md) und [Integration](prefetch-integration.md): 16 gezielte Prefetchtests sowie der abschließende gemeinsame Logiklauf mit 57 Tests und null Fehlern. Diese Läufe sind keine addierbare Zahl unterschiedlicher Tests. Kein weiterer Testlauf oder Live-DWD-Fanout im Releaseauftrag.
+
+Das neue signierte Archiv und der lokale IPA-Export wurden aus einer isolierten Kopie genau dieses veröffentlichten Commits erstellt. 26 getrackte App-/Test-/Projekt-/Konfigurations-/Ressourcendateien einschließlich Schemen und nativer Iconquellen sind bytegleich. Beide tatsächlichen Apps bestehen die strikte Signaturprüfung. Die IPA bestätigt ShowerNow in beiden Namensfeldern, `de.linolaske.showernow`, `0.1.0 (6)`, Familie `[1,2]`, drei iPhone-/vier iPad-Orientierungen, Compliance `false`, native Radar-Assets und das explizite Distributionsprofil mit Team `J2DU2P47XW`. SHA-256: `1fda7478cb765b2e9298227ba101683aa5e521af9446f60db9f69a39f7761555`. [Signingnachweis](signing.md).
+
+Genau ein autorisierter interner Upload wurde am **28. Oktober 2026 um 20:00:32 Uhr MEZ** gestartet und um **20:01:53 Uhr MEZ** angenommen. Offizieller `xcodebuild -exportArchive`-Pfad mit vorhandenem Xcode-Account, automatischer Signierung, `testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false` und `uploadSymbols=true`. **Exit 0**, **`EXPORT SUCCEEDED`**, **`Upload succeeded`** und Apples ContentDelivery-Bestätigung **`UPLOAD SUCCEEDED with no errors`**. Letzter konkreter Serverzustand: **`PROCESSING`**. Kein Abbruch, Retry oder fortlaufendes Polling; keine App-Datensätze, Tester, Gruppen, Rollen oder Konten verändert und keine Zugangsdaten extrahiert.
+
+| Zustand Build 6 | Tatsächlicher Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich; Metadaten, Signaturen, explizites Profil und Quellenbytegleichheit geprüft |
+| Uploadannahme | Erfolgreich, Exit 0; Apple bestätigt Upload ohne Fehler |
+| Verarbeitung | `PROCESSING` um 20:01:53 Uhr MEZ; Abschluss nicht belegt |
+| Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
+
+Build 6 enthält die zunächst konservative Prefetch-Netzpolicy: teure Verbindungen einschließlich üblichen Mobilfunks werden ausgeschlossen. Die danach präzisierte Nutzerentscheidung erlaubt normales WLAN und Mobilfunk bei weiterhin gesperrtem Low Data Mode. Diese Änderung wird separat als Build 7 umgesetzt; sie wird dem bereits hochgeladenen Build 6 nicht rückwirkend zugeschrieben. Private Artefakte, Optionen und Rohlogs bleiben außerhalb des Repos.
+
+
+## ShowerNow Build 7: Mobilfunk-Prefetch und Slider-Feedback, Upload angenommen
+
+Veröffentlichter Quellencheckpoint `1c093ddceee12d0e434030d7f18cb72b2235aa94` (Build-7-Code `a9289fb` plus Dokumentation). Archiv und lokaler Export aus isolierter Kopie genau dieses Commits; Metadaten, Signaturen, Profil und Bytegleichheit siehe [Signingnachweis](signing.md).
+
+Genau ein autorisierter interner Upload am **30. Oktober 2026 von 06:31:30 bis 06:33:03 Uhr MEZ**: offizieller `xcodebuild -exportArchive`-Pfad mit vorhandenem Xcode-Account, automatischer Signierung und denselben privaten Optionen wie Build 6 (`testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`). **Exit 0**, **`EXPORT SUCCEEDED`**, **`Upload succeeded`**. Letzter Serverzustand: **`Uploaded package is processing`**. Kein Retry, kein Polling; keine App-Datensätze, Tester, Gruppen, Rollen oder Konten verändert.
+
+| Zustand Build 7 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 |
+| Verarbeitung | Läuft laut letzter Meldung; Abschluss nicht belegt |
+| Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
