@@ -39,6 +39,7 @@ add('datenvertrag.html', 'Daten', path.join(repo, 'docs/data-contract.md'), { sr
 add('architektur.html', 'Technik', c('architektur.md'));
 add('backend.html', 'Technik', c('backend.md'));
 add('roadmap.html', 'Projekt', c('roadmap.md'));
+add('apple-externe-tests.html', 'Projekt', c('apple-externe-tests.md'));
 const dev = read(c('entwickler.md')).replace('{{BUILD}}', readmeSection('Projekt öffnen und prüfen'));
 add('entwickler.html', 'Projekt', null, { text: dev, title: 'Entwickler-Doku' });
 
