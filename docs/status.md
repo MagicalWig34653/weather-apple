@@ -164,4 +164,4 @@ Widgets/Watch, Push und angepasste iPad-/Mac-Oberflächen folgen gemäß Plan.
 
 ## Notiz: Radar-Cache-Backend (30. Oktober 2026)
 
-Der Nutzer hat ein Radar-Cache-Backend beauftragt; Stufe 1 liegt im Backend-Repo (lokal getestet, noch nicht auf dem Swarm deployt). Entscheidungen: [decisions.md](decisions.md), Messung: [research/backend-radar-cache.md](research/backend-radar-cache.md). App-Code und Release-Stand (Build 8) unverändert; die Client-Anbindung folgt als Build 9.
+Der Nutzer hat ein Radar-Cache-Backend beauftragt; Stufe 1 liegt im Backend-Repo und ist seit dem 30. Oktober 2026 in Swift/Vapor umgesetzt (Python ersetzt; HTTP-Vertrag unverändert; lokal getestet, auf einem lokalen Wegwerf-Swarm geprüft, noch nicht auf dem Swarm des Betreibers). Entscheidungen: [decisions.md](decisions.md), Messung: [research/backend-radar-cache.md](research/backend-radar-cache.md). App-Code und Release-Stand (Build 8) unverändert; die Client-Anbindung folgt als Build 9.
