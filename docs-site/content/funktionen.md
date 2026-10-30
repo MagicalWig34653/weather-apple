@@ -4,7 +4,7 @@ Stand: Build 8 (interne Beta). Beschrieben ist, was im Repository umgesetzt und 
 
 ## Radar und Zeitleiste
 
-- Hauptansicht ist eine Karte (MapKit) mit dem DWD-Niederschlagsradar als transparenter Ebene.
+- Hauptansicht ist eine Karte (MapKit) mit dem DWD-Niederschlagsradar als transparenter Ebene. Stand Build 8 lädt diese Ebene direkt vom DWD. Mit Build 9 (in Arbeit, noch nicht ausgeliefert) kommt sie zuerst vom ShowerNow-Cache, bei Fehler oder Daten älter als 20 Minuten vom DWD.
 - Die Zeitleiste umfasst die letzten 60 Minuten (Messung) und bis zu zwei Stunden Vorhersage. Messung und Vorhersage sind sichtbar unterschieden, das Datenalter wird angezeigt.
 - Play/Pause, „Jetzt“ und ein kompakter, schwebender Zeit-Slider im Liquid-Glass-Stil.
 - Der Slider folgt dem Finger unabhängig vom Netz. Eine Statuspille nennt den Zustand des angezeigten Zeitpunkts („lädt“ / „nicht geladen“); ein altes Bild gilt nie als Stand des gewählten Zeitpunkts. Jeder Zeitpunktwechsel gibt eine leichte Haptik.
@@ -13,7 +13,7 @@ Stand: Build 8 (interne Beta). Beschrieben ist, was im Repository umgesetzt und 
 
 Ab Build 8 lädt die App nach dem sichtbaren Frame die übrigen Zeitpunkte des Kartenausschnitts im Hintergrund vor, beginnend beim gewählten Zeitpunkt und abwechselnd nach links und rechts. Der Cache liegt nur im Arbeitsspeicher (höchstens 50.000.000 Byte validierter Bilddaten).
 
-Schutzwerte gegen Überlastung der DWD-Schnittstelle: drei parallele Anfragen, 250 ms Abstand, höchstens 240 Anfragen je 60 Sekunden, Bytestopp 8.000.000 je Fenster, Abbruch nach drei aufeinanderfolgenden Quellfehlern. Datensparmodus, Stromsparmodus und inaktive App sperren das Vorladen; WLAN und Mobilfunk sind sonst erlaubt. Die wahrgenommene Ladezeit ist Nutzerfeedback aus dem Alltagstest, keine Laborstudie; ein kalter Erstabruf hängt von Netz und DWD ab.
+Schutzwerte gegen Überlastung der DWD-Schnittstelle: drei parallele Anfragen, 250 ms Abstand, höchstens 240 Anfragen je 60 Sekunden, Bytestopp 8.000.000 je Fenster, Abbruch nach drei aufeinanderfolgenden Quellfehlern. Datensparmodus, Stromsparmodus und inaktive App sperren das Vorladen; WLAN und Mobilfunk sind sonst erlaubt. Die wahrgenommene Ladezeit ist Nutzerfeedback aus dem Alltagstest, keine Laborstudie; ein kalter Erstabruf hängt von Netz und DWD ab. Mit Build 9 (in Arbeit) werden Bilder aus dem Cache mit eigenen Grenzen vorgeladen, die noch nicht gemessen sind; die Werte oben gelten für den DWD-Weg.
 
 ## Orte
 

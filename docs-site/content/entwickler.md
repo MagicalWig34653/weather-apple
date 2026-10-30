@@ -9,6 +9,7 @@ Ein grüner Simulatorlauf ersetzt keine Gerätetests, keine vollständige Access
 ## TestFlight-Stand
 
 - Build 8 wurde hochgeladen und vom Server angenommen (Verarbeitung lief); Installierbarkeit in TestFlight ist in dieser Doku nicht bestätigt. Die Verteilung ist auf interne Tester beschränkt.
+- Build 9 (Anbindung an den Radar-Cache) ist in Arbeit. Dafür ist kein Upload dokumentiert.
 - Build-, Signing- und TestFlight-Status werden getrennt geführt und nur nach tatsächlicher Prüfung als erledigt gemeldet. Den aktuellen, belegten Stand nennt [docs/status.md](https://github.com/MagicalWig34653/weather-apple/blob/main/docs/status.md).
 - Keine Signing-Dateien, Schlüssel oder Tokens im Repository.
 

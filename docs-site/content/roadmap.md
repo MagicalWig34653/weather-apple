@@ -7,7 +7,7 @@ Reihenfolge laut Entwicklungsplan ([docs/plan.md](https://github.com/MagicalWig3
 | 1. Datenkette validieren | DWD-Radar, Punktprognose, Lizenz, Aktualität | erledigt für den Prototyp, siehe [Datenvertrag](datenvertrag.html) |
 | 2. iPhone-App | Radar, Zeitleiste, Ortsprognose, Orte, Datenalter, Cache, Light/Dark | Prototyp in interner Beta (Build 8) |
 | 3. Interner TestFlight | Alltagstest, Rückmeldungen | läuft |
-| 4. Radar-Cache-Backend anbinden | App nutzt Cache, DWD als Fallback | entschieden, Backend in Arbeit, App-Anbindung geplant |
+| 4. Radar-Cache-Backend anbinden | App nutzt Cache, DWD als Fallback | Backend läuft produktiv; Build 9 (Cache zuerst, DWD als Fallback) in Arbeit |
 | 5. Widgets, Watch, iPad, Mac | Regen-Widgets, kompakte Watch-Prognose, angepasste Oberflächen | geplant |
 | 6. Benachrichtigungen | Regenwarnungen mit datensparsamem Push | Entwurf, nach der nutzbaren App |
 | 7. Später | Unterwegs-Warnungen, Wind-/Temperaturkarten, Wolken/Satellit, tvOS, visionOS (zuerst Simulator) | Ideen |

@@ -5,10 +5,10 @@
 ## Aufbau
 
 - Generator: `docs-site/build.mjs` (Node, nur Abhängigkeit `marked`), Stil `docs-site/style.css`; Stack und Look folgen der Seite des Schwesterprojekts Todo.
-- Kuratierte Seiten: `docs-site/content/*.md` (Start, Funktionen, Datenschutz, Datenquellen, Architektur, Backend-Plan, Roadmap, Entwickler).
+- Kuratierte Seiten: `docs-site/content/*.md` (Start, Funktionen, Datenschutz, Datenquellen, Architektur, Radar-Cache, Roadmap, Entwickler).
 - Direkt eingebunden: `docs/data-contract.md` (Seite „DWD-Datenvertrag“) und der Abschnitt „Projekt öffnen und prüfen“ aus `README.md`. Links auf nicht veröffentlichte `docs/`-Dateien zeigen auf GitHub.
 - Bewusst nicht veröffentlicht: Status, Uploadprotokolle, Signing, Reviews, Entscheidungsdetails mit Kennungen. Die kuratierten Seiten fassen `decisions.md` und `plan.md` zusammen; bei Entscheidungsänderungen die Seiten `architektur`, `backend`, `roadmap` nachziehen.
-- Backend-Inhalte sind als Plan/Entwurf gekennzeichnet; erst nach bestätigtem Produktivbetrieb ändern.
+- Radar-Cache: Backend produktiv beschrieben; App-Anbindung (Build 9) als „in Arbeit“ gekennzeichnet, bis sie geprüft und ausgeliefert ist. Benachrichtigungsdienst bleibt als Plan/Entwurf.
 
 ## Lokaler Build
 

@@ -11,13 +11,14 @@ Kurzfassung der aktuellen Produktentscheidungen. Maßgeblich bleibt [docs/decisi
 
 ## Datenweg
 
-- **Standard heute:** Direktweg zum DWD (Karte und Punktprognose), siehe [Datenvertrag](datenvertrag.html).
-- **Entschieden, in Entwicklung:** ein eigener Radar-Cache als Standardroute der Karte, der DWD-Direktweg bleibt Fallback bei Fehler, Timeout oder Datenalter über 20 Minuten. Siehe [Radar-Cache-Backend](backend.html).
+- **Radarkarte heute (Build 8):** direkt beim DWD.
+- **Radarkarte (Build 9, in Arbeit):** zuerst der eigene Radar-Cache; der DWD-Direktweg bleibt Fallback bei Fehler, Timeout oder Datenalter über 20 Minuten. Siehe [Radar-Cache-Backend](backend.html).
+- **Punktprognose:** weiterhin direkt beim DWD, siehe [Datenvertrag](datenvertrag.html).
 - Die Zeitleiste lädt gewählte und benachbarte Zeitpunkte budgetiert vor (siehe [Funktionen](funktionen.html)).
 
-## Backend (geplant)
+## Backend
 
-Swift/Vapor, MariaDB, Docker Swarm; zustandslose Replikate. Zuerst der Radar-Cache, später ein Benachrichtigungsdienst. Die Backend-Implementierung folgt nach der nutzbaren App und liegt in einem eigenen Repository ([weather-backend](https://github.com/MagicalWig34653/weather-backend)).
+Swift/Vapor, MariaDB, Docker Swarm; zustandslose Replikate. Der Radar-Cache läuft produktiv und ist öffentlich erreichbar; die Anbindung der App (Build 9) ist in Arbeit. Ein Benachrichtigungsdienst folgt später. Die Backend-Implementierung liegt in einem eigenen Repository ([weather-backend](https://github.com/MagicalWig34653/weather-backend)).
 
 ## Verbindliche Leitlinien
 
