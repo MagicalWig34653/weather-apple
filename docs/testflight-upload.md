@@ -179,3 +179,21 @@ Veröffentlichter Quellencheckpoint `b106f1e7d94344e2a1128e63da67c89be8ac9a21` (
 | Interne TestFlight-Installierbarkeit | Noch nicht bestätigt |
 
 Hinweis: Mit Xcode 27.2 ist weiterhin kein Upload möglich (Stand Build 8); Releases mit Xcode 27.1 bauen.
+
+
+## ShowerNow Build 11: erster Build ohne "Internal Only", Upload angenommen (Xcode 27.1)
+
+Veröffentlichter Quellencheckpoint `ae0f428` (Code `847e9ff` plus Buildnummer 11; HEAD == `origin/main`, Arbeitsbaum sauber). Inhalt gegenüber Build 10: Einstellung "Maximale Vergangenheit" (bis 48 h, `history.json`), Datenschutz-Link im Info-Sheet, feine Scrub-Geste und 3-h-Animationsfenster, robustere Punktprognose (Retries, Fehlerarten, letzte gültige Prognose mit Altersanzeige), Apple-Karte/Ortssuche im Datenschutztext, `project.yml` Universal. Archiv/Export aus isolierter Kopie, Metadaten siehe [Signingnachweis](signing.md).
+
+**Abweichung zu Build 1 bis 10:** Der Upload wurde ohne `testFlightInternalTestingOnly` vorbereitet; tatsächlich benutzter Wert `false`. Die weiteren Optionen blieben (`destination=upload`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`, automatische Signierung, Xcode 27.1 per `DEVELOPER_DIR`). Wirkung der Option laut Hilfe von `xcodebuild`: bei `true` keine Verteilung extern oder im App Store; Quelle für die Zuordnungsregel siehe Signingnachweis.
+
+**Genau ein Upload, 31. Oktober 2026 von 04:55:25 bis 04:57:12 Uhr MEZ:** **Exit 0**, **`EXPORT SUCCEEDED`**, **`Upload succeeded`**. Letzter Serverzustand: **`Uploaded package is processing`**. Kein Retry, kein Polling; keine App-Datensätze, Tester, Gruppen, Rollen oder Konten verändert, keine Gruppenzuordnung, keine Beta-App-Prüfung eingereicht.
+
+| Zustand Build 11 | Beleg |
+|---|---|
+| Archiv und lokale IPA (Xcode 27.1) | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster und einziger Versuch) |
+| Verarbeitung | Läuft laut letzter Meldung; Abschluss nicht belegt |
+| Installierbarkeit / externe Zuordenbarkeit | Nicht bestätigt |
+
+Der Nutzer muss Build 11 nach der Verarbeitung in App Store Connect einer externen Gruppe zuordnen und die Testinformationen ausfüllen (siehe [apple-externe-tests.md](apple-externe-tests.md)). Voraussetzung im Betrieb: Das Backend auf dem Swarm muss auf `sha-e80b6b8` (oder neuer) aktualisiert sein, sonst zeigt die App "Historie nicht verfügbar" und der Datenschutz-Link führt auf eine 404-Seite.
