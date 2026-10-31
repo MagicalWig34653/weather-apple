@@ -400,7 +400,13 @@ struct RadarScreen: View {
                     if store.selectedFrame != index { store.selectedFrame = index }
                 }), in: 0...Double(timeline.dates.count - 1), step: 1)
                 .accessibilityLabel("Radarzeitpunkt")
-                .accessibilityValue("\(displayedDate.map { otherDayLabel(for: $0).map { day in day + ", " } ?? "" } ?? "")\(displayedDate?.formatted(date: .omitted, time: .shortened) ?? "Unbekannt"), \(displayedIsForecast ? "Vorhersage" : "Messung")")
+                .accessibilityAdjustableAction { direction in
+                    let step = direction == .increment ? 1 : -1
+                    let index = TimelineAccessibility.adjusted(index: displayedIndex, by: step, count: timeline.dates.count)
+                    store.isPlaying = false
+                    if store.selectedFrame != index { store.selectedFrame = index }
+                }
+                .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime))
                 .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened)). Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.")
             }
         } else {

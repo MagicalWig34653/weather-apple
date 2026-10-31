@@ -78,3 +78,33 @@ final class TimelineScrubTests: XCTestCase {
         XCTAssertEqual(PlaybackWindow.nextIndex(after: 0, dates: [], reference: ref, pastHours: 2), 0)
     }
 }
+
+final class TimelineAccessibilityTests: XCTestCase {
+    private var cal: Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(identifier: "UTC")!; return c }
+    private let ref = Date(timeIntervalSince1970: 1_793_000_000) // fixed reference
+
+    func testValueSameDayHasTimeAndKind() {
+        let v = TimelineAccessibility.value(date: ref.addingTimeInterval(300), isForecast: true, reference: ref, calendar: cal)
+        XCTAssertTrue(v.hasSuffix(", Vorhersage"), v)
+        XCTAssertFalse(v.contains("Okt") || v.contains("Nov"), v)
+        let m = TimelineAccessibility.value(date: ref, isForecast: false, reference: ref, calendar: cal)
+        XCTAssertTrue(m.hasSuffix(", Messung"), m)
+    }
+
+    func testValueNamesOtherDay() {
+        let v = TimelineAccessibility.value(date: ref.addingTimeInterval(-86_400), isForecast: false, reference: ref, calendar: cal)
+        XCTAssertGreaterThan(v.split(separator: ",").count, 2, v)
+    }
+
+    func testValueUnknownWithoutDate() {
+        XCTAssertEqual(TimelineAccessibility.value(date: nil, isForecast: false, reference: ref), "Unbekannt")
+    }
+
+    func testIncrementDecrementStepsOneSlotAndClamps() {
+        XCTAssertEqual(TimelineAccessibility.adjusted(index: 5, by: 1, count: 10), 6)
+        XCTAssertEqual(TimelineAccessibility.adjusted(index: 5, by: -1, count: 10), 4)
+        XCTAssertEqual(TimelineAccessibility.adjusted(index: 9, by: 1, count: 10), 9)
+        XCTAssertEqual(TimelineAccessibility.adjusted(index: 0, by: -1, count: 10), 0)
+        XCTAssertEqual(TimelineAccessibility.adjusted(index: 3, by: 1, count: 0), 0)
+    }
+}

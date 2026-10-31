@@ -7,6 +7,20 @@ final class WeatherSmokeTests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
+    func testTimelineSliderExposesAccessibilityValue() throws {
+        let app = launchApp()
+        let slider = app.sliders["Radarzeitpunkt"]
+        guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
+        XCTAssertEqual(slider.label, "Radarzeitpunkt")
+        let before = slider.value as? String ?? ""
+        let pattern = #"^(.+, )?\d{1,2}:\d{2}, (Messung|Vorhersage)$"#
+        XCTAssertNotNil(before.range(of: pattern, options: .regularExpression), before)
+        dragSlider(slider, to: 0.9)
+        let after = slider.value as? String ?? ""
+        XCTAssertNotEqual(before, after)
+        XCTAssertNotNil(after.range(of: pattern, options: .regularExpression), after)
+    }
+
     func testInformationExplainsPrivacyWithoutLocationPermission() throws {
         let app = launchApp()
         let information = app.buttons["Datenquellen und Datenschutz"]
