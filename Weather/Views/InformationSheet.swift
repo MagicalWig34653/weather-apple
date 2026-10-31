@@ -27,6 +27,12 @@ struct InformationSheet: View {
                     Link("Datenschutzerklärung", destination: RadarBackendConfig.privacyPolicyURL)
                         .accessibilityHint("Öffnet die Datenschutzerklärung im Browser")
                         .accessibilityIdentifier("privacy-policy-link")
+                    Link("Support", destination: RadarBackendConfig.supportURL)
+                        .accessibilityHint("Öffnet die Support-Seite im Browser")
+                        .accessibilityIdentifier("support-link")
+                    Link("Über ShowerNow", destination: RadarBackendConfig.marketingURL)
+                        .accessibilityHint("Öffnet die Seite Über ShowerNow im Browser")
+                        .accessibilityIdentifier("marketing-link")
                     Text("Die App ist eine frühe Testversion. Prognosen können abweichen; bei fehlenden oder veralteten Daten wird keine aktuelle Aussage zugesichert.")
                 }
             }

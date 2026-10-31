@@ -528,3 +528,17 @@ final class RadarBackendTests: XCTestCase {
         XCTAssertEqual(script.requests[1].value(forHTTPHeaderField: "If-None-Match"), "\"a\"")
     }
 }
+
+final class SiteLinkTests: XCTestCase {
+    func testSiteLinksAreHTTPSOnRadarHost() {
+        let host = RadarBackendConfig.productionBaseURL.host
+        XCTAssertNotNil(host)
+        for url in [RadarBackendConfig.privacyPolicyURL, RadarBackendConfig.supportURL, RadarBackendConfig.marketingURL] {
+            XCTAssertEqual(url.scheme, "https")
+            XCTAssertEqual(url.host, host)
+            XCTAssertNil(url.query)
+        }
+        XCTAssertEqual(RadarBackendConfig.supportURL.path, "/support")
+        XCTAssertEqual(RadarBackendConfig.marketingURL.path, "/marketing")
+    }
+}

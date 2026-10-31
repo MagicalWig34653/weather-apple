@@ -14,6 +14,10 @@ enum RadarBackendConfig {
     static let maximumImageBytes = 1_048_576
     /// Privacy policy page of the ShowerNow site (opened in the browser; no network dependency in the app).
     static let privacyPolicyURL = URL(string: "https://showernow.linolaske.de/datenschutz")!
+    /// Support page of the ShowerNow site (opened in the browser; no network dependency in the app).
+    static let supportURL = URL(string: "https://showernow.linolaske.de/support")!
+    /// Marketing page ("Über ShowerNow") of the ShowerNow site (opened in the browser).
+    static let marketingURL = URL(string: "https://showernow.linolaske.de/marketing")!
 
     /// Debug builds accept `-radar-backend-url <https-url>` so the fallback path can be exercised.
     static func baseURL(arguments: [String] = ProcessInfo.processInfo.arguments) -> URL {
