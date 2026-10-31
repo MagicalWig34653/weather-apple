@@ -197,3 +197,17 @@ Veröffentlichter Quellencheckpoint `ae0f428` (Code `847e9ff` plus Buildnummer 1
 | Installierbarkeit / externe Zuordenbarkeit | Nicht bestätigt |
 
 Der Nutzer muss Build 11 nach der Verarbeitung in App Store Connect einer externen Gruppe zuordnen und die Testinformationen ausfüllen (siehe [apple-externe-tests.md](apple-externe-tests.md)). Voraussetzung im Betrieb: Das Backend auf dem Swarm muss auf `sha-e80b6b8` (oder neuer) aktualisiert sein, sonst zeigt die App "Historie nicht verfügbar" und der Datenschutz-Link führt auf eine 404-Seite.
+
+## ShowerNow Build 12: Upload angenommen (Xcode 27.1)
+
+Veröffentlichter Quellencheckpoint `de280c1` (`CURRENT_PROJECT_VERSION = 12`), Archiv/Export aus isolierter `git archive`-Kopie mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR`. Vorher: volle Tests (266 Unit, 7 UI) ohne Fehler. Optionen wie Build 11 (`testFlightInternalTestingOnly=false`, `destination=upload`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`, automatische Signierung; belegt in der geschriebenen `ExportOptions.plist`).
+
+**Genau ein Upload, 31. Oktober 2026 von 21:15:02 bis 21:16:17 Uhr MEZ:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Keine Delivery-UUID in der Ausgabe. Entitlements der exportierten App: `aps-environment=production`, `com.apple.developer.usernotifications.time-sensitive=true`, `get-task-allow=false`. IPA-SHA-256 `ee0705154d72c339bcea375d67e02dd1b9d7a85e2ff82383bfaa9b10ef439ad1`.
+
+| Zustand Build 12 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 |
+| Verarbeitung / externe Zuordenbarkeit | Nicht geprüft |
+
+Der Nutzer muss Build 12 nach der Verarbeitung in App Store Connect einer externen Gruppe zuordnen.
