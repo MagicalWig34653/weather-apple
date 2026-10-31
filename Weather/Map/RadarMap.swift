@@ -172,7 +172,8 @@ struct RadarMap: UIViewRepresentable {
             if backendOverlay?.loader.manifest != manifest {
                 let isRadar = parent.layer == .radar
                 let created = RadarImageOverlay(loader: BackendRadarLoader(manifest: manifest, trimsCache: isRadar),
-                                                opacity: parent.layer.overlayOpacity)
+                                                opacity: parent.layer.overlayOpacity,
+                                                sunComposer: parent.layer == .cloudmask ? SunOverlayComposer(bounds: manifest.bounds) : nil)
                 map.addOverlay(created, level: .aboveRoads)
                 if let old = backendOverlay { old.loader.cancelPrefetch(); map.removeOverlay(old) }
                 backendOverlay = created
@@ -187,6 +188,7 @@ struct RadarMap: UIViewRepresentable {
             }
             let loader = backendOverlay.loader
             if changed {
+                backendOverlay.slotTime = slot.time
                 backendOverlay.slotURL = slot.url
                 map.renderer(for: backendOverlay)?.setNeedsDisplay()
                 if loader.image(for: slot.url) != nil {

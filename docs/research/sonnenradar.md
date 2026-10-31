@@ -60,3 +60,21 @@ Voraussetzung: **Wolkenebene (Satellit, `msg_fes:clm`-Slots im Backend) existier
 2. [N] `clm`-Legende offiziell (Klassencodes) und Randverhalten im Nachtbereich (Wolkenmaske nachts aus IR, ohne Tagbild verfügbar?) stichprobenartig an Nachtslot testen.
 3. [N] DWD-SIS-Lizenzfeld und Namensnennung bestätigen.
 4. Entscheidung Nutzer: A zuerst, B später? Kurzfristextrapolation gewünscht?
+
+## 6. clm-Farben und App-Umsetzung (31. Oktober 2026, Abrufe 15:20-15:35 UTC)
+
+Beantwortet Punkt 5.2 teilweise. Auftrag: Weg A, die App rechnet den Sonnenstand (`Weather/Data/SunMask.swift`).
+
+**clm-Klassen [G]:**
+- GetCapabilities `msg_fes:clm`: Zeitdimension 2020-09-01 bis 15:00 UTC, PT15M. Abstract: vier Klassen "clear sky over water, clear sky over land, cloud, not processed (off Earth disc)".
+- GetLegendGraphic (640x80, Abruf 31.10.2026 15:21 UTC): drei beschriftete Stufen "Clear sky over water" (Blau), "Clear sky over land" (Grün), "Cloud" (Rest, im Legendenbild weiß).
+- Pixelhistogramm GetMap 1024x1311, EPSG:3857, Radar-bbox: Weiß (255,255,255), Grün (0,192,0) (Variante (1,192,0)), Blau (0,0,255) bilden zusammen 91,8 bis 98,5 Prozent der Pixel (Slot 11:00 UTC: 76,9 % Weiß, 14,5 % Grün, 0,3 % Blau; 01:00 UTC: 45 % Weiß, 34 % Grün, 3 % Blau; 15.7.2026 12:00: 54,5 % Weiß). Rest sind Mischfarben der Reprojektion (Abstand zur nächsten Klassenfarbe über 10 bei 3 bis 8 %, über 60 bei 0,8 bis 2,6 %).
+- Außerhalb der Erdscheibe (BBOX im Atlantik/Afrika-Test) ist das Bild vollständig transparent (RGBA 0,0,0,0): Klasse "nicht verarbeitet" = Alpha 0. Auch Slot 01:00 UTC hat RGBA.
+- Weiß = Wolke zusätzlich belegt: gleicher Slot 11:00 UTC, mittlere Helligkeit des sichtbaren Kanals (`msg_fes:vis006`) unter den weißen Pixeln 79,3, unter den grünen 25,1 (Natural Colour 185 gegen 132): weiße Pixel sind die hellen, also bewölkten.
+- **Nachtslot [G]:** 31.10.2026 01:00 UTC liefert eine vollständige Maske über ganz Deutschland (aus IR abgeleitet, Land/Wasser/Wolke), kein Leerbild. Die App zeigt nachts trotzdem nur Abdunklung, weil die Maske ohne Sonne nichts über Sonne aussagt.
+- [A] Anti-Alias-Mischpixel werden nicht geraten: Abstand über 60 (RGB-Euklid) = unbekannt, transparent/neutral. Ein 3x3-Fenster am Ort muss einheitlich klar oder bewölkt sein.
+- GetMap-Abruf des jüngsten Slots (15:00 UTC) lieferte um 15:20 HTTP 500 (Gateway-Fehler), 17:00 HTTP 502 (Zukunft); ältere Slots HTTP 200 (Retry/Backend-Verantwortung).
+
+**Darstellung (`SunOverlay`):** Sonnenhöhe je Pixel aus `SolarPosition.Parameters` (zeitabhängige Größen einmal; je Zeile sin/cos der Breite aus der Mercator-Zeile, je Spalte cos des Stundenwinkels). Tag (Höhe >= 0): klar = warmes Gelb (Alpha 0,55), Wolke = Grau (0,38), unbekannt transparent. Unter dem Horizont dunkelblaue Abdunklung: 0 bei -0,833 Grad, 0,30 bei -6 (bürgerlich), 0,50 bei -12 (nautisch), 0,62 bei -18 (astronomisch), 0,68 Nacht. Terminator: dünne helle Linie bei Höhe -0,833 Grad (+-0,02 Grad, ca. 6 px). Zeit der Sonne = Slotzeit der Maske (Zeitachse der Ebene), nicht die aktuelle Uhrzeit. Keine "heiter"-Stufe (Maske ohne Wolkendicke).
+
+**Rechenzeit (Messung auf dem Mac, iOS-Simulator, 1024x1311, ganzes Bild ohne Verkleinerung):** Debug 300 ms, Release 17 ms. Läuft auf dem Zeichenthread des Overlays, nicht auf dem Main Thread; pro Slot einmal (Cache 4 Bilder à ca. 5 MB). Verkleinern nicht nötig. Gerätewerte nicht gemessen [N].

@@ -602,6 +602,7 @@ struct ForecastDetails: View {
                     if let forecast = store.forecast {
                         Text(forecast.summary(at: context.date)).font(.title2.bold())
                         RainChart(forecast: forecast).frame(height: 220)
+                        SunPlaceSection(store: store, now: context.date)
                         Text("Durchschnittliche Intensität in mm/h für Fünf-Minuten-Intervalle. Gestrichelte Markierungen zeigen fehlende Werte.")
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent("Datenlauf", value: forecast.referenceTime.formatted(date: .abbreviated, time: .shortened))
@@ -636,4 +637,46 @@ struct ForecastDetails: View {
 // Idle demand, cancelled requests and partially valid frames remain distinct.
 extension RadarLoadState {
     var shouldStopPlayback: Bool { succeeded == 0 && failed > 0 && pending == 0 }
+}
+
+/// "Sonne bis HH:mm" from the sun position plus, only when the cloud mask is unambiguous at the place,
+/// "Aktuell klar/bewölkt (Satellit, vor N min)". Loads the newest cloud mask image when the sheet opens
+/// (no location is sent; the image is the same whole-image slot for everybody).
+struct SunPlaceSection: View {
+    @Bindable var store: WeatherStore
+    let now: Date
+    @State private var cloud: (state: CloudMaskClass, slot: Date)?
+
+    private var key: String {
+        let place = store.selectedPlace
+        return "\(place.coordinate.latitude),\(place.coordinate.longitude)"
+    }
+
+    var body: some View {
+        let place = store.selectedPlace
+        VStack(alignment: .leading, spacing: 2) {
+            Label(SunPlace.sunLine(at: now, latitude: place.coordinate.latitude, longitude: place.coordinate.longitude),
+                  systemImage: "sun.max")
+                .accessibilityIdentifier("place-sun-line")
+            if let cloud, let line = SunPlace.cloudLine(cloud.state, slotTime: cloud.slot, now: now) {
+                Text(line).font(.subheadline).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("place-cloud-line")
+            }
+        }
+        .font(.headline)
+        .task(id: key) { await loadCloud() }
+    }
+
+    private func loadCloud() async {
+        cloud = nil
+        let place = store.selectedPlace
+        if store.layers.snapshot(.cloudmask).manifest == nil { await store.layers.refresh(.cloudmask) }
+        guard let manifest = store.layers.snapshot(.cloudmask).manifest, let slot = manifest.slots.last else { return }
+        let loader = BackendRadarLoader(manifest: manifest.backend, trimsCache: false)
+        guard await loader.demand(slot.url), let image = loader.image(for: slot.url),
+              let state = SunPlace.cloudClass(in: image, bounds: manifest.backend.bounds,
+                                              latitude: place.coordinate.latitude, longitude: place.coordinate.longitude),
+              !Task.isCancelled else { return }
+        cloud = (state, slot.time)
+    }
 }

@@ -3,15 +3,15 @@ import Observation
 
 /// Map layers shown over the base map. Exactly one is active; `.radar` is the default and keeps its own
 /// code path (cache backend with DWD fallback). All other layers exist only on the cache backend
-/// (`/v1/layers/<id>/`) and have NO direct DWD fallback. `cloudmask` is reserved for the sun radar and
-/// is not offered in the layer picker.
+/// (`/v1/layers/<id>/`) and have NO direct DWD fallback. `cloudmask` is shown as the "Sonne" layer: the app
+/// combines the cloud mask with the computed sun position (`SunOverlay`).
 enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     case radar, pressure, lightning, clouds, cloudmask
 
     var id: String { rawValue }
 
-    /// Layers the user can choose (the cloud mask is a data-model placeholder for the later sun radar).
-    static let selectable: [RadarLayer] = [.radar, .pressure, .lightning, .clouds]
+    /// Layers the user can choose (the cloud mask is the data basis of the sun layer).
+    static let selectable: [RadarLayer] = [.radar, .pressure, .lightning, .clouds, .cloudmask]
     /// Layers fetched from the backend's `/v1/layers/<id>/` API.
     static let backendLayers: [RadarLayer] = [.pressure, .lightning, .clouds, .cloudmask]
 
@@ -23,7 +23,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .pressure: "Luftdruck"
         case .lightning: "Blitze"
         case .clouds: "Wolken"
-        case .cloudmask: "Wolkenmaske"
+        case .cloudmask: "Sonne"
         }
     }
 
@@ -34,7 +34,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .pressure: "Luftdruck, Isobaren"
         case .lightning: "Blitze"
         case .clouds: "Wolken, Satellitenbild"
-        case .cloudmask: "Wolkenmaske"
+        case .cloudmask: "Sonne, Rückblick aus Satellit und Sonnenstand"
         }
     }
 
@@ -44,7 +44,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .pressure: "gauge.with.dots.needle.33percent"
         case .lightning: "bolt.fill"
         case .clouds: "cloud"
-        case .cloudmask: "cloud.fill"
+        case .cloudmask: "sun.max"
         }
     }
 
@@ -95,7 +95,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var overlayOpacity: Double {
         switch self {
         case .radar: 0.72
-        case .clouds, .cloudmask: 0.8
+        case .clouds: 0.8
+        case .cloudmask: 0.85
         case .pressure, .lightning: 0.9
         }
     }
@@ -103,7 +104,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Caption below the slider time.
     func frameCaption(isForecast: Bool) -> String {
         switch self {
-        case .radar, .lightning, .clouds, .cloudmask: isForecast ? "Vorhersage" : "Messung"
+        case .cloudmask: "Rückblick"
+        case .radar, .lightning, .clouds: isForecast ? "Vorhersage" : "Messung"
         case .pressure: isForecast ? "Vorhersage" : "Modell"
         }
     }

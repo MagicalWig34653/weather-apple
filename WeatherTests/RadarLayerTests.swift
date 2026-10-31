@@ -165,7 +165,9 @@ final class RadarLayerTests: XCTestCase {
         let date = utc("2026-10-31T13:00:00Z")
         XCTAssertTrue(TimelineAccessibility.value(date: date, isForecast: false, reference: date, caption: "Modell").hasSuffix(", Modell"))
         XCTAssertTrue(TimelineAccessibility.value(date: date, isForecast: false, reference: date).hasSuffix(", Messung"), "radar wording unchanged")
-        XCTAssertEqual(RadarLayer.selectable, [.radar, .pressure, .lightning, .clouds], "cloudmask is not offered")
+        XCTAssertEqual(RadarLayer.selectable, [.radar, .pressure, .lightning, .clouds, .cloudmask], "cloudmask is the sun layer")
+        XCTAssertEqual(RadarLayer.cloudmask.title, "Sonne")
+        XCTAssertEqual(RadarLayer.cloudmask.frameCaption(isForecast: false), "Rückblick")
         XCTAssertEqual(RadarLayer.cloudmask.nominalStepMinutes, 15)
     }
 
@@ -255,7 +257,8 @@ final class RadarLayerTests: XCTestCase {
     }
 
     private func backendResponder() throws -> Responder {
-        let files = ["pressure": try fixture("layer-pressure"), "lightning": try fixture("layer-lightning"), "clouds": try fixture("layer-clouds")]
+        let files = ["pressure": try fixture("layer-pressure"), "lightning": try fixture("layer-lightning"), "clouds": try fixture("layer-clouds"),
+                     "cloudmask": try fixture("layer-cloudmask")]
         return Responder { request in
             let id = request.url!.pathComponents.dropLast().last!
             if let data = files[id] { return (200, data, [:]) }
@@ -271,7 +274,6 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertTrue(layers.isSelectable(.radar))
         XCTAssertEqual(layers.availability(.radar), .available)
         XCTAssertTrue(layers.select(.radar))
-        XCTAssertFalse(layers.select(.cloudmask), "the cloud mask belongs to the later sun radar and is not selectable")
         XCTAssertEqual(layers.active, .radar)
     }
 
@@ -281,14 +283,13 @@ final class RadarLayerTests: XCTestCase {
         let responder = Responder { _ in (404, Data(), [:]) }
         let layers = store(responder)
         await layers.probeAll(force: true)
-        for layer in [RadarLayer.pressure, .lightning, .clouds] {
+        for layer in [RadarLayer.pressure, .lightning, .clouds, .cloudmask] {
             XCTAssertEqual(layers.availability(layer), .notPublished)
             XCTAssertFalse(layers.isSelectable(layer))
             XCTAssertFalse(layers.select(layer), "a layer the server does not offer cannot be chosen")
         }
         XCTAssertEqual(layers.active, .radar)
-        XCTAssertEqual(responder.paths.count, 3, "one request per optional layer, not for the cloud mask")
-        XCTAssertFalse(responder.paths.contains { $0.contains("cloudmask") })
+        XCTAssertEqual(responder.paths.count, 4, "one request per optional layer, including the sun layer")
         XCTAssertEqual(layers.availability(.pressure).hint, "nicht verfügbar")
     }
 
@@ -297,12 +298,12 @@ final class RadarLayerTests: XCTestCase {
         let responder = try backendResponder()
         let layers = store(responder)
         await layers.probeAll()
-        XCTAssertEqual(responder.paths.count, 3)
+        XCTAssertEqual(responder.paths.count, 4)
         await layers.probeAll()
-        XCTAssertEqual(responder.paths.count, 3, "throttled")
+        XCTAssertEqual(responder.paths.count, 4, "throttled")
         await layers.probeAll(force: true, restricted: true)
-        XCTAssertEqual(responder.paths.count, 3, "restricted with the radar active: no layer requests")
-        for layer in [RadarLayer.pressure, .lightning, .clouds] { XCTAssertEqual(layers.availability(layer), .available) }
+        XCTAssertEqual(responder.paths.count, 4, "restricted with the radar active: no layer requests")
+        for layer in [RadarLayer.pressure, .lightning, .clouds, .cloudmask] { XCTAssertEqual(layers.availability(layer), .available) }
     }
 
     @MainActor

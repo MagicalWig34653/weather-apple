@@ -249,3 +249,5 @@ Nach EUMETSAT Data Policy (Jan. 2026, Art. 5.1, 6.1, 6.3, Annex II) sind die gep
 ## Sonnenradar (31. Oktober 2026)
 
 Nutzerentscheidung: Start mit Weg A (Wolkenmaske plus Sonnenhöhe; Terminator/Nachtschattierung in der App gerechnet). Die Kurzfrist-Extrapolation („Sonne in 30 min“, als „Schätzung“ gekennzeichnet) ist ebenfalls gewünscht, kommt aber zuletzt, nach der Wolkenebene. Grundlage: [research/sonnenradar.md](research/sonnenradar.md). Baustein S1 (`Weather/Data/SolarPosition.swift`) ist umgesetzt, siehe [status.md](status.md).
+
+Umsetzung Ebene „Sonne“ (31.10.2026): `RadarLayer.cloudmask` ist jetzt wählbar und heißt in der App „Sonne“ (Pfad `/v1/layers/cloudmask/` unverändert). Die App erzeugt das Overlay aus Maske und Sonnenstand der Slotzeit (`Weather/Data/SunMask.swift`), keine Extrapolation. Klassenzuordnung der Maskenfarben und Messwerte: [research/sonnenradar.md](research/sonnenradar.md) Abschnitt 6; Mischpixel gelten als unbekannt; keine „heiter“-Stufe. Die Zeitzone der Ortszeile ist fest `Europe/Berlin` (Kartengebiet liegt komplett in MEZ/MESZ); ein Ort außerhalb bräuchte eine Zeitzonenquelle (nicht vorhanden, Annahme).

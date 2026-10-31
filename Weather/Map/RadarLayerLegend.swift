@@ -14,7 +14,7 @@ enum RadarLayerLegendText {
         case .clouds:
             "Satellitenbild von Meteosat: Wolken erscheinen weiß bis grau. Es gibt keine Farbskala, und das Bild zeigt Bewölkung, keinen Niederschlag."
         case .cloudmask:
-            "Wolkenmaske von Meteosat."
+            "Rückblick, keine Vorhersage: Wolkenmaske von Meteosat (Satellit, 25 bis 40 Minuten alt) kombiniert mit dem berechneten Sonnenstand. Die Maske kennt nur klar oder bewölkt, keine Wolkendicke: dünne Wolken zählen als bewölkt. Kein Schattenwurf, Nebel kann als klar erscheinen."
         }
     }
 
@@ -24,7 +24,7 @@ enum RadarLayerLegendText {
         case .pressure: "Luftdruck (Isobaren)"
         case .lightning: "Blitzdichte"
         case .clouds: "Wolken"
-        case .cloudmask: "Wolkenmaske"
+        case .cloudmask: "Sonne"
         }
     }
 
@@ -34,9 +34,27 @@ enum RadarLayerLegendText {
         case .radar: "Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde"
         case .pressure: "Zeigt oder verbirgt den Hinweis zu den Isobaren"
         case .lightning: "Zeigt oder verbirgt die Legende der Blitzdichte"
-        case .clouds, .cloudmask: "Zeigt oder verbirgt den Hinweis zum Satellitenbild"
+        case .clouds: "Zeigt oder verbirgt den Hinweis zum Satellitenbild"
+        case .cloudmask: "Zeigt oder verbirgt die Legende der Sonnenebene"
         }
     }
+}
+
+/// Classes of the sun layer legend. Only what the overlay really draws (`SunOverlay`) and the cloud mask supports:
+/// no "heiter" class, because the mask has no cloud thickness.
+enum SunLegend {
+    static let entries: [MapLegendEntry] = [
+        .init(id: "sunny", label: "Sonnig (Tag, klar)", spokenLabel: "Sonnig: Sonne über dem Horizont und laut Satellit klar",
+              red: UInt8(SunOverlay.sunny.r), green: UInt8(SunOverlay.sunny.g), blue: UInt8(SunOverlay.sunny.b), opacity: SunOverlay.sunny.a + 0.2),
+        .init(id: "cloudy", label: "Bewölkt (Tag)", spokenLabel: "Bewölkt: Sonne über dem Horizont, laut Satellit bedeckt",
+              red: UInt8(SunOverlay.cloudy.r), green: UInt8(SunOverlay.cloudy.g), blue: UInt8(SunOverlay.cloudy.b), opacity: SunOverlay.cloudy.a + 0.3),
+        .init(id: "civil", label: "Dämmerung", spokenLabel: "Dämmerung: Sonne bis 18 Grad unter dem Horizont, zunehmend dunkler",
+              red: 8, green: 14, blue: 42, opacity: 0.3),
+        .init(id: "night", label: "Nacht", spokenLabel: "Nacht: Sonne mehr als 18 Grad unter dem Horizont",
+              red: 8, green: 14, blue: 42, opacity: 0.68),
+        .init(id: "terminator", label: "Grenze Tag/Nacht", spokenLabel: "Dünne helle Linie: Grenze zwischen Tag und Nacht",
+              red: 255, green: 236, blue: 190)
+    ]
 }
 
 /// Loads a legend image the manifest points to. https and the known map hosts only, size-limited,
@@ -97,6 +115,20 @@ struct RadarLayerLegendPanel: View {
                             .background(.white, in: RoundedRectangle(cornerRadius: 6))
                             .accessibilityHidden(true)
                     }
+                    if layer == .cloudmask {
+                        VStack(alignment: .leading, spacing: 3) {
+                            ForEach(SunLegend.entries) { entry in
+                                HStack(spacing: 8) {
+                                    RoundedRectangle(cornerRadius: 3).fill(entry.color)
+                                        .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(.secondary.opacity(0.5), lineWidth: 0.5) }
+                                        .frame(width: 20, height: 12)
+                                    Text(entry.label).font(.caption2)
+                                }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(entry.spokenLabel)
+                            }
+                        }
+                    }
                     Text(RadarLayerLegendText.hint(for: layer)).font(.caption2)
                     if let manifest {
                         Text("\(manifest.attribution). \(manifest.modificationNotice).")
@@ -105,7 +137,7 @@ struct RadarLayerLegendPanel: View {
             }
         }
         .padding(10)
-        .frame(width: 190, alignment: .leading)
+        .frame(width: layer == .cloudmask ? 220 : 190, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)

@@ -215,11 +215,15 @@ final class RadarImageOverlay: NSObject, MKOverlay, @unchecked Sendable {
     let coordinate: CLLocationCoordinate2D
     private let lock = NSLock()
     private var shownURL: URL?
+    private var shownTime: Date?
     let opacity: CGFloat
+    /// Sun layer: the mask slot is turned into the sun overlay (slot time = sun position time) before drawing.
+    let sunComposer: SunOverlayComposer?
 
-    init(loader: BackendRadarLoader, opacity: CGFloat = 0.72) {
+    init(loader: BackendRadarLoader, opacity: CGFloat = 0.72, sunComposer: SunOverlayComposer? = nil) {
         self.loader = loader
         self.opacity = opacity
+        self.sunComposer = sunComposer
         let rect = RadarImageGeometry.mapRect(for: loader.manifest.bounds)
         boundingMapRect = MKMapRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height)
         coordinate = MKMapPoint(x: rect.x + rect.width / 2, y: rect.y + rect.height / 2).coordinate
@@ -231,8 +235,19 @@ final class RadarImageOverlay: NSObject, MKOverlay, @unchecked Sendable {
         set { lock.withLock { shownURL = newValue } }
     }
 
+    /// Time of the shown slot; set together with `slotURL`.
+    var slotTime: Date? {
+        get { lock.withLock { shownTime } }
+        set { lock.withLock { shownTime = newValue } }
+    }
+
     func currentImage() -> CGImage? {
-        guard let url = slotURL else { return nil }
+        let (url, time) = lock.withLock { (shownURL, shownTime) }
+        guard let url else { return nil }
+        if let sunComposer {
+            guard let time else { return nil }
+            return sunComposer.image(for: url, time: time) { [loader] in loader.image(for: url) }
+        }
         return loader.image(for: url)
     }
 }
