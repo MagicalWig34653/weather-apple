@@ -24,8 +24,10 @@
 		8C841CAE839A94657CA0DF81 /* TimelineScrubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */; };
 		90FAC3EC054A2F0EE95D5FE8 /* ForecastInterpretationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41AD6A302CA6A069044C960 /* ForecastInterpretationSection.swift */; };
 		B030A0A201C54569AC941360 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = FB0B59D778801F65B8630D2F /* AppIcon.icon */; };
+		B0E3C90CEEFCED3DDC1EAC79 /* RadarLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7B3D1CE91807719FEDFDD2 /* RadarLegend.swift */; };
 		B6EED9533FE194244F58F804 /* DWDResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72CFC446C21AB47F0E3115CD /* DWDResponse.swift */; };
 		BBCAFC6177CAE2EE714406F2 /* InformationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEB273A74F0043348EF420D /* InformationSheet.swift */; };
+		C47A6FE5458CA968A49A5BF7 /* RadarLegendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */; };
 		C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */; };
 		CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */; };
 		D2A91364788C1F526A607365 /* PlacesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36810EBB689143D24E645BAD /* PlacesSheet.swift */; };
@@ -69,10 +71,12 @@
 		3B01B3F12274A8B6A7652EA2 /* WeatherUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WeatherUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		408AB90A46B56EE3B628B952 /* ForecastInterpretation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastInterpretation.swift; sourceTree = "<group>"; };
 		4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineScrubTests.swift; sourceTree = "<group>"; };
+		4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegendTests.swift; sourceTree = "<group>"; };
 		5864651A53DB9067C466A451 /* RadarImageOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarImageOverlay.swift; sourceTree = "<group>"; };
 		6208E34C71F4CA9DBAA42C13 /* RainForecast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainForecast.swift; sourceTree = "<group>"; };
 		62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarMap.swift; sourceTree = "<group>"; };
 		6BE19E74BAAAE195B28694A9 /* DWDRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRequest.swift; sourceTree = "<group>"; };
+		6F7B3D1CE91807719FEDFDD2 /* RadarLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegend.swift; sourceTree = "<group>"; };
 		72CFC446C21AB47F0E3115CD /* DWDResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDResponse.swift; sourceTree = "<group>"; };
 		73971DC8BB40190DE67EE4F9 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSlotTests.swift; sourceTree = "<group>"; };
@@ -127,6 +131,7 @@
 				0CDCFF7534843CDCBAD6352D /* ForecastResilienceTests.swift */,
 				F074EE7537C4C452040B4523 /* RadarBackendTests.swift */,
 				DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */,
+				4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */,
 				EBC9EBD9EB7EC18BA4EE6C0D /* RadarPollScheduleTests.swift */,
 				16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */,
 				4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */,
@@ -159,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				5864651A53DB9067C466A451 /* RadarImageOverlay.swift */,
+				6F7B3D1CE91807719FEDFDD2 /* RadarLegend.swift */,
 				62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */,
 				18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */,
 			);
@@ -375,6 +381,7 @@
 				0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */,
 				35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */,
 				833B08E15FD8FA6A2A9DF0F8 /* RadarImageOverlay.swift in Sources */,
+				B0E3C90CEEFCED3DDC1EAC79 /* RadarLegend.swift in Sources */,
 				FE729001EDD401716B119CC1 /* RadarMap.swift in Sources */,
 				6142E6AB3EFBE4055C6E4E53 /* RadarPollSchedule.swift in Sources */,
 				C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */,
@@ -395,6 +402,7 @@
 				439BD00528C4DD7AB2610BB2 /* ForecastResilienceTests.swift in Sources */,
 				79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */,
 				0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */,
+				C47A6FE5458CA968A49A5BF7 /* RadarLegendTests.swift in Sources */,
 				59C05B2C531A8C515A468777 /* RadarPollScheduleTests.swift in Sources */,
 				FC53F4ADAD5AE068572020BE /* RadarPrefetchTests.swift in Sources */,
 				8C841CAE839A94657CA0DF81 /* TimelineScrubTests.swift in Sources */,

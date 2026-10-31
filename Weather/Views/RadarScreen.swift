@@ -8,6 +8,7 @@ struct RadarScreen: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var sheet: Sheet?
     @State private var showSave = false
+    @State private var showLegend = false
     @State private var placeName = ""
     @State private var radarLoadState: RadarLoadState?
     @State private var refreshTapFeedback = false
@@ -78,12 +79,20 @@ struct RadarScreen: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                HStack {
+                HStack(alignment: .top) {
                     Spacer()
+                    if showLegend { RadarLegendPanel(legend: .precipitationRadar) }
                     VStack(spacing: 14) {
                         Button { store.requestLocation() } label: {
                             Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
                         }.accessibilityLabel("Aktuellen Standort verwenden")
+                        Button { withAnimation(reduceMotion ? nil : .snappy) { showLegend.toggle() } } label: {
+                            Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
+                        }
+                        .accessibilityLabel("Legende Regenradar")
+                        .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
+                        .accessibilityHint("Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde")
+                        .accessibilityIdentifier("radar-legend-toggle")
                         Button { sheet = .information } label: {
                             Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
                         }.accessibilityLabel("Datenquellen und Datenschutz")
@@ -236,22 +245,6 @@ struct RadarScreen: View {
         return "\(state.succeeded) angeforderte Radarkacheln geladen.\(cacheStatus) Ortsprognose \(pointStatus)." + preloadStatus
     }
 
-    private var radarTransferLabel: String {
-        guard let state = currentRadarLoadState else { return "Radar" }
-        if state.prefetchedBodyBytes > 0 {
-            let total = ByteCountFormatter.string(fromByteCount: state.prefetchedBodyBytes, countStyle: .file)
-            return "Radar · Vorladen \(total)"
-        }
-        if state.isSettled && state.failed == 0 && state.cacheHits > 0 && state.cacheHits == state.succeeded && state.receivedBodyBytes == 0 { return "Radar · Cache" }
-        guard state.receivedBodyBytes > 0 else { return "Radar" }
-        if state.receivedBodyBytes < 100_000 {
-            let kilobytes = Double(state.receivedBodyBytes) / 1_000
-            return "Radar · \(kilobytes.formatted(.number.precision(.fractionLength(1)))) kB"
-        }
-        let megabytes = Double(state.receivedBodyBytes) / 1_000_000
-        return "Radar · \(megabytes.formatted(.number.precision(.fractionLength(1)))) MB"
-    }
-
     private var refreshControl: some View {
         Button {
             store.isPlaying = false
@@ -265,9 +258,6 @@ struct RadarScreen: View {
             }
         } label: {
             HStack(spacing: 5) {
-                Text(radarTransferLabel)
-                    .font(.caption.weight(.medium))
-                    .fixedSize(horizontal: true, vertical: true)
                 ZStack {
                     if radarIsLoading {
                         if reduceMotion {
