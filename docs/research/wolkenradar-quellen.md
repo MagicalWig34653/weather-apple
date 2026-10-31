@@ -82,3 +82,22 @@ Ausgangslage: DWD-WMS-Satellitenlayer nur 3-stündlich (siehe `weitere-radarkart
 5. Realistisch erwartbar: Alter der Wolkenbilder 25-40 min, keine Vorhersage. Als "Satellit, ca. 10-min-Takt" kennzeichnen, nicht als Nowcast.
 
 Quellen: `view.eumetsat.int/geoserver/wms` (Capabilities, GetMap), `api.eumetsat.int/data/...`, `opendata.dwd.de/weather/satellite/`, EUMETSAT Data Policy (2026-01).
+
+## 7. Andere Anbieter (Prüfung 31. Oktober 2026, ca. 09:40 UTC)
+
+Frage: Gibt es neben EUMETSAT/DWD Anbieter mit ähnlich offenen Wolken-/Satellitenbildern für Europa? Kurzfazit: **Nein, nicht gleichwertig.** Die geostationären Satelliten über Europa betreibt EUMETSAT (Meteosat); GOES/Himawari decken Europa nicht ab. Kennzeichnung: [G] = per Abruf bestätigt, [A] = Annahme, [N] = nicht geprüft.
+
+| Anbieter | Europa/DE | Takt, Latenz, Projektion | Zugang | Lizenz/Weitergabe | Eignung |
+|---|---|---|---|---|---|
+| NASA GIBS (GOES-East/West, Himawari) | **Nein** [G] | 10 min, Zeitachse bis 08:40 UTC [G]; WMTS EPSG:3857, PNG, Level 6/7 [G] | ohne Schlüssel [G] | NASA-Daten offen [A]; Nutzungsbedingungen nicht Wort für Wort geprüft [N] | ungeeignet für DE |
+| RainViewer Satellit | **Nein** [G] | `satellite.infrared` in `weather-maps.json` ist leer [G] | API ohne Schlüssel [G] | Free Tier nur privat/Bildung/Community, kommerziell Rückfrage (api.html) [G]; Nutzer erhalten nur persönliche, nicht unterlizenzierbare Lizenz (terms.html) [G] | ungeeignet (leer, Lizenz) |
+| OpenWeatherMap-Layer | [N] | [N] | Schlüssel | Preisseite nennt ODbL für Daten [G]; Layer-Bedingungen/Weitergabe nicht geprüft [N] | nicht empfohlen (Kosten/Limits [A]) |
+| KNMI Data Platform | NL/Europa-Produkte möglich [A] | API antwortet mit 401 ohne Schlüssel [G] | Registrierung/API-Key | [N] | nur Fallback-Idee [A] |
+| Copernicus Data Space / Sentinel | Polarorbit, 1-2 Überflüge/Tag [A] | kein Takt für Wolkenradar | Registrierung | CC BY-artig [A] | nicht für Wolkenradar |
+| MeteoSwiss, Météo-France, Met Office | [N] | [N] | Domains im Test nicht erreichbar (Abruf scheiterte, kein Inhalt) [G] | [N] | ungeprüft; nationale Dienste bieten Satellit meist aus Meteosat/EUMETSAT-Daten [A] |
+
+Belegt:
+- GIBS-Capabilities (5,8 MB, 200): Layer `GOES-East_ABI_GeoColor`, `GOES-East/West_ABI_Band13_Clean_Infrared`, `Himawari_AHI_*` vorhanden; kein Meteosat-Layer gefunden [G]. Kachel über Deutschland (z3, x4, y2, GeoColor, 08:40 UTC) hat nur 2.768 Byte, also praktisch leer; Kachel Amerika (z3 x2 y3) 92 kB [G]. GOES-East blickt auf Amerika/Atlantik, Himawari auf Ostasien/Pazifik [A].
+- RainViewer: Radar vorhanden (`past`/`nowcast`), Satellit-Infrarot-Liste leer [G].
+
+Folgerung: Für Deutschland bleibt **EUMETView-WMS (EUMETSAT, CC BY 4.0, Abschnitt 3)** die einzige offene, schlüsselfreie Bildquelle mit passendem Takt; DWD liefert dieselben Satellitendaten nur als NetCDF/3-stündlich (Abschnitt 4). Weiterverteilung abgeleiteter Bilder aus eigenem Cache ist bei Drittanbietern (RainViewer, OWM) vertraglich nicht gedeckt bzw. ungeklärt; bei GIBS irrelevant, da keine Abdeckung. Ungeprüft: Nutzungsbedingungen von GIBS im Wortlaut, MeteoSwiss/Météo-France/Met Office (Domains nicht erreichbar), KNMI-Datensätze mit Schlüssel.

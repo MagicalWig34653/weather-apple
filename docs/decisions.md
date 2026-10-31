@@ -230,11 +230,13 @@ Entschieden:
 - Push-Benachrichtigungen für Orte sind freigegeben (E1/E2): Opt-in je Ort per Server-Push (APNs); lokale Mitteilungen höchstens als Zusatz. Entwurf: [research/push-benachrichtigungen.md](research/push-benachrichtigungen.md).
 - Regenradar-Legende (aufklappbare DWD-Farblegende in mm/h) ist umgesetzt (Commit `141d38b`); die Datenmengenanzeige oben rechts wurde entfernt.
 
-Noch NICHT entschieden (Empfehlung des Entwurfs in Klammern):
+Am 31. Oktober 2026 vom Nutzer gemäß Empfehlung des Entwurfs zugestimmt: E3 bis E6 und E8 (Details unten) sowie die Kartenreihenfolge Luftdruck, Blitze, Wolken. E7 (Rechtsgrundlage, Impressum, Zoraxy-Logging) klärt der Nutzer selbst und bleibt offen.
+
+Noch NICHT entschieden bzw. offen (Empfehlung des Entwurfs in Klammern):
 - E3 Serverraster: Pixelraster des Ingests, ~1 km, nicht feiner (Alternative 3x3 gröber).
 - E4 Intensitätsquelle: Palettenfarben, HDF5 erst bei Bedarf.
 - E5 Regel: nur „Regen beginnt in N Minuten“ (N = 10/20/30), Hysterese, Sperrzeit.
 - E6 Aufbewahrung: 60 Tage Inaktivität, Löschung sofort bei 410 und per DELETE.
 - E7 Rechtsgrundlage, Verantwortlicher/Impressum, Zoraxy-Logging (Einwilligung; Zoraxy ohne IP-Zugriffslog oder gekürzt; vor Livegang klären).
 - E8 Missbrauchsschutz: Limit Subs je Install (10), Rate-Limit am Proxy, App Attest erst bei realem Missbrauch.
-- Reihenfolge weiterer Karten (Empfehlung: Luftdruck, Blitze, Wolken über EUMETSAT MTG geocolour). Klärung der EUMETSAT-Weiterverteilung für abgeleitete Bilder steht aus. Quellen: [research/weitere-radarkarten.md](research/weitere-radarkarten.md), [research/wolkenradar-quellen.md](research/wolkenradar-quellen.md).
+- Reihenfolge weiterer Karten: bestätigt (Luftdruck, Blitze, Wolken über EUMETSAT MTG geocolour). Alternativanbieter geprüft, keiner gleichwertig für Europa (wolkenradar-quellen.md, Abschnitt 7). Klärung der EUMETSAT-Weiterverteilung für abgeleitete Bilder steht aus. Quellen: [research/weitere-radarkarten.md](research/weitere-radarkarten.md), [research/wolkenradar-quellen.md](research/wolkenradar-quellen.md).
