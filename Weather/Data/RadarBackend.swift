@@ -181,6 +181,14 @@ enum RadarRetryPolicy {
     static func shouldRetry(_ error: Error?, attempt: Int) -> Bool {
         (error as? DWDDataError) == .runUnavailable && attempt < maxAttempts
     }
+    /// Short-lived gateway/transport failures. Never `.cancelled`, 4xx, offline or Low Data Mode.
+    static func isTransient(statusCode: Int) -> Bool { [502, 503, 504].contains(statusCode) }
+    static func isTransient(_ error: URLError) -> Bool {
+        switch error.code {
+        case .timedOut, .networkConnectionLost, .cannotConnectToHost, .dnsLookupFailed: true
+        default: false
+        }
+    }
 }
 
 // MARK: - Client

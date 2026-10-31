@@ -28,6 +28,8 @@ Primärquellen und realer 25-Werte-Abgleich: [WMS-Befund](research/wms-point-que
 
 Der Client verwendet eine ephemeral URLSession ohne URLCache und mit 20 Sekunden Request-/30 Sekunden Ressourcenlimit. Keine URL-, Standort- oder Fehler-Rohdaten werden geloggt. Index und bis zu 20 Ortsprognosen bleiben ausschließlich im Speicher, jeweils höchstens fünf Minuten. Gleichzeitige Indexanfragen werden zusammengeführt. Eine persistente lokale Prognosekopie kann die UI separat speichern und muss ihr Alter anzeigen.
 
+Der Client wiederholt Index- und Punktabruf höchstens zweimal (3 Requests) bei `InvalidDimensionValue`, HTTP 502/503/504 und transienten `URLError`; Inhaltsfehler werden als eigene `DWDDataError`-Fälle gemeldet (siehe `decisions.md`). `WeatherStore` hält je Ort (höchstens 10) die zuletzt gültige Punktprognose nur im Speicher und zeigt sie bei Fehlern mit Alter; die 20-Minuten-Grenze gilt unverändert.
+
 Die unterstützte Koordinatenhülle ist vorläufig 45–56.5°N und 0–20°E; sie ist keine Garantie tatsächlicher Radar-Abdeckung. Fehlende Daten bleiben auch innerhalb dieser Hülle unbekannt.
 
 ## Prüfungen und offene Grenzen

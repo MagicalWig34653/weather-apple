@@ -454,7 +454,7 @@ struct RadarScreen: View {
             return store.isForecastLoading ? "Regenprognose wird geladen …" : "Prognose nicht verfügbar"
         }
         if store.forecastError != nil || forecast.isStale(at: displayNow) {
-            return "Ältere Prognose · bitte aktualisieren"
+            return "Ältere Prognose (\(forecast.ageDescription(at: displayNow))) · bitte aktualisieren"
         }
         return forecast.summary(at: displayNow)
     }
@@ -540,11 +540,13 @@ struct ForecastDetails: View {
                         Text("Durchschnittliche Intensität in mm/h für Fünf-Minuten-Intervalle. Gestrichelte Markierungen zeigen fehlende Werte.")
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent("Datenlauf", value: forecast.referenceTime.formatted(date: .abbreviated, time: .shortened))
-                        Text("DWD · vor \(max(0, Int(context.date.timeIntervalSince(forecast.referenceTime) / 60))) Min.")
+                        Text("DWD · \(forecast.ageDescription(at: context.date))")
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent("Radarbilder", value: store.radarSource.label)
                         if store.forecastError != nil || forecast.isStale(at: context.date) {
-                            Label("Die Prognose ist nicht aktuell bestätigt.", systemImage: "exclamationmark.triangle")
+                            Label(store.forecastError != nil
+                                  ? "Aktualisierung fehlgeschlagen. Letzte gültige Prognose, \(forecast.ageDescription(at: context.date)). Sie ist nicht aktuell bestätigt."
+                                  : "Die Prognose ist nicht aktuell bestätigt.", systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
                         }
                         ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastError != nil)

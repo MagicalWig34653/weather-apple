@@ -4,7 +4,7 @@ import zlib
 
 enum DWDRunIndex {
     static func dates(from data: Data, now: Date) throws -> [Date] {
-        guard let html = String(data: data, encoding: .utf8) else { throw DWDDataError.invalidResponse }
+        guard let html = String(data: data, encoding: .utf8) else { throw DWDDataError.malformedPayload }
         let regex = try NSRegularExpression(pattern: #"composite_rv_(\d{8})_(\d{4})\.tar"#)
         let ns = html as NSString
         let dates = regex.matches(in: html, range: NSRange(location: 0, length: ns.length)).compactMap { match -> Date? in
@@ -14,7 +14,7 @@ enum DWDRunIndex {
             return DWDRequest.date(text)
         }
         let sorted = Array(Set(dates)).sorted()
-        guard let latest = sorted.last else { throw DWDDataError.invalidResponse }
+        guard let latest = sorted.last else { throw DWDDataError.unexpectedPayload }
         guard latest.timeIntervalSince(now) <= 60,
               now.timeIntervalSince(latest) <= RainForecast.maximumAge else {
             throw DWDDataError.staleData
@@ -33,7 +33,7 @@ enum DWDResponse {
         if text.contains("InvalidDimensionValue") || text.contains("MissingDimensionValue") {
             return .runUnavailable
         }
-        return .invalidResponse
+        return .serviceFailure
     }
 
     static func radarImage(from data: Data) throws -> Data {
@@ -100,16 +100,16 @@ enum DWDResponse {
         if let error = serviceError(in: data) { throw error }
         let collection: Collection
         do { collection = try JSONDecoder().decode(Collection.self, from: data) }
-        catch { throw DWDDataError.invalidResponse }
+        catch { throw DWDDataError.malformedPayload }
         guard collection.type == "FeatureCollection",
               collection.numberReturned == nil || collection.numberReturned == collection.features.count else {
-            throw DWDDataError.invalidResponse
+            throw DWDDataError.unexpectedPayload
         }
         guard collection.features.count == 25 else { throw DWDDataError.incompleteForecast }
         var samples: [RainSample] = []
         for feature in collection.features {
             guard let reference = DWDRequest.date(feature.properties.reference),
-                  let date = DWDRequest.date(feature.properties.time) else { throw DWDDataError.invalidResponse }
+                  let date = DWDRequest.date(feature.properties.time) else { throw DWDDataError.invalidTimeFormat }
             guard reference == expectedReference else { throw DWDDataError.mismatchedRun }
             samples.append(RainSample(date: date, amountMM: amount(from: feature.properties.value)))
         }

@@ -62,7 +62,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var waitingForLocation = false
-    @ObservationIgnored private var forecastPlaceID: UUID?
+    /// Last valid point forecast per place, memory only (no disk, no location history); most recent last.
+    @ObservationIgnored private var lastValidForecasts: [(placeID: UUID, forecast: RainForecast)] = []
+    static let lastForecastLimit = 10
     @ObservationIgnored private var attemptedRadarFallback = false
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private var latestManifest: RadarManifest?
@@ -116,7 +118,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
         selectedPlace = place
-        forecast = nil
+        forecast = lastValidForecast(for: place.id)
         forecastError = nil
         isPlaying = false
         centerRevision += 1
@@ -246,10 +248,23 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         switch result {
         case .success(let value):
             forecast = value
-            forecastPlaceID = place.id
+            rememberForecast(value, for: place.id)
         case .failure(let error):
-            if forecastPlaceID != place.id { forecast = nil }
+            // Keep (or restore) this place's last valid forecast; the view marks it as not confirmed.
+            forecast = lastValidForecast(for: place.id)
             forecastError = error.localizedDescription
+        }
+    }
+
+    func lastValidForecast(for placeID: UUID) -> RainForecast? {
+        lastValidForecasts.first { $0.placeID == placeID }?.forecast
+    }
+
+    func rememberForecast(_ forecast: RainForecast, for placeID: UUID) {
+        lastValidForecasts.removeAll { $0.placeID == placeID }
+        lastValidForecasts.append((placeID, forecast))
+        if lastValidForecasts.count > Self.lastForecastLimit {
+            lastValidForecasts.removeFirst(lastValidForecasts.count - Self.lastForecastLimit)
         }
     }
 

@@ -12,6 +12,7 @@
 		2DD5FF78C21C8E03F62B8073 /* WeatherStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */; };
 		35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF405ABCD119D3DE565984B0 /* RadarHistory.swift */; };
 		3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */; };
+		439BD00528C4DD7AB2610BB2 /* ForecastResilienceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDCFF7534843CDCBAD6352D /* ForecastResilienceTests.swift */; };
 		4F9D9E40C3F059C9A00DE6F2 /* Fixtures in Resources */ = {isa = PBXBuildFile; fileRef = AA76D542667074A3AA33EFA0 /* Fixtures */; };
 		64E13A277E0DCDBA13FDE619 /* ForecastInterpretation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408AB90A46B56EE3B628B952 /* ForecastInterpretation.swift */; };
 		776A1E417B65F359D480C74F /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D547F6AB1F520F3FE1F00BB /* DWDClient.swift */; };
@@ -54,6 +55,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0CDCFF7534843CDCBAD6352D /* ForecastResilienceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastResilienceTests.swift; sourceTree = "<group>"; };
 		13499096928B9127E2E1D224 /* WeatherTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WeatherTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPrefetchTests.swift; sourceTree = "<group>"; };
 		166813EB890F40B10B45EC0F /* RadarBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarBackend.swift; sourceTree = "<group>"; };
@@ -118,6 +120,7 @@
 				B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */,
 				AA76D542667074A3AA33EFA0 /* Fixtures */,
 				A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */,
+				0CDCFF7534843CDCBAD6352D /* ForecastResilienceTests.swift */,
 				F074EE7537C4C452040B4523 /* RadarBackendTests.swift */,
 				DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */,
 				16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */,
@@ -382,6 +385,7 @@
 			files = (
 				3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */,
 				D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */,
+				439BD00528C4DD7AB2610BB2 /* ForecastResilienceTests.swift in Sources */,
 				79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */,
 				0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */,
 				FC53F4ADAD5AE068572020BE /* RadarPrefetchTests.swift in Sources */,

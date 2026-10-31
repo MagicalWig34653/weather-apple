@@ -33,6 +33,13 @@ struct RainForecast: Codable, Sendable {
             || referenceTime.timeIntervalSince(now) > 60
     }
 
+    /// Age of the DWD run, e.g. "Stand vor 7 Min." (the run time, not the fetch time).
+    func ageDescription(at now: Date) -> String {
+        let minutes = max(0, Int(now.timeIntervalSince(referenceTime) / 60))
+        if minutes < 60 { return "Stand vor \(minutes) Min." }
+        return "Stand vor \(minutes / 60) Std. \(minutes % 60) Min."
+    }
+
     func summary(at now: Date) -> String {
         guard !isStale(at: now) else { return "Prognosedaten sind veraltet" }
         let remaining = samples.filter { $0.date >= now }
@@ -61,7 +68,17 @@ struct RadarTimeline: Sendable {
 
 enum DWDDataError: LocalizedError, Equatable {
     case unsupportedLocation
+    /// Generic unreadable answer (e.g. a non-HTTP response or an image that fails validation).
     case invalidResponse
+    case emptyBody
+    case oversizedBody
+    /// Body is not valid JSON or lacks required fields (HTML from a gateway, truncated JSON).
+    case malformedPayload
+    /// Valid JSON of the wrong shape (type is not FeatureCollection, count mismatch).
+    case unexpectedPayload
+    case invalidTimeFormat
+    /// HTTP 200 with a ServiceException other than a not-yet-available run.
+    case serviceFailure
     case unavailable
     case runUnavailable
     case staleData
@@ -72,6 +89,12 @@ enum DWDDataError: LocalizedError, Equatable {
         switch self {
         case .unsupportedLocation: "Der Ort liegt außerhalb des unterstützten Radargebiets."
         case .invalidResponse: "Die Wetterdaten konnten nicht gelesen werden."
+        case .emptyBody: "Die Wetterdaten konnten nicht gelesen werden (leere Antwort)."
+        case .oversizedBody: "Die Wetterdaten konnten nicht gelesen werden (Antwort zu groß)."
+        case .malformedPayload: "Die Wetterdaten konnten nicht gelesen werden (kein gültiges Datenformat)."
+        case .unexpectedPayload: "Die Wetterdaten konnten nicht gelesen werden (unerwarteter Inhalt)."
+        case .invalidTimeFormat: "Die Wetterdaten konnten nicht gelesen werden (Zeitangaben ungültig)."
+        case .serviceFailure: "Die Wetterdaten konnten nicht gelesen werden (Fehlermeldung des DWD-Dienstes)."
         case .runUnavailable: "Der angekündigte DWD-Datenlauf ist am Radardienst noch nicht verfügbar. Bitte erneut versuchen."
         case .unavailable: "Die DWD-Wetterdaten sind momentan nicht erreichbar."
         case .staleData: "Der DWD stellt momentan keinen ausreichend aktuellen Datenlauf bereit."
