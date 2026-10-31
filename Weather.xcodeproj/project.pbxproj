@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */; };
 		0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166813EB890F40B10B45EC0F /* RadarBackend.swift */; };
+		21CC8AB097B09F01B0F39EDF /* SitePageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEBA2774C202317C41D89E31 /* SitePageSheet.swift */; };
 		2C1B9B24C34E78D4E2248796 /* SunMaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6018099B64B163F2C896E19 /* SunMaskTests.swift */; };
 		2CD5AE787F1A1C3084FFA463 /* PushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05E42607D07EFF4916F6D7D /* PushTests.swift */; };
 		2DD5FF78C21C8E03F62B8073 /* WeatherStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */; };
@@ -121,6 +122,7 @@
 		F0381B38C8CCD1EB6F664EA1 /* SolarPositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarPositionTests.swift; sourceTree = "<group>"; };
 		F074EE7537C4C452040B4523 /* RadarBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarBackendTests.swift; sourceTree = "<group>"; };
 		FB0B59D778801F65B8630D2F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		FEBA2774C202317C41D89E31 /* SitePageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SitePageSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -178,6 +180,7 @@
 				B9952910B477FF2C7B3DFAA1 /* PlacePushSettingsView.swift */,
 				36810EBB689143D24E645BAD /* PlacesSheet.swift */,
 				A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */,
+				FEBA2774C202317C41D89E31 /* SitePageSheet.swift */,
 				29217E1E77DCB0CF4795AABE /* TimelineScrub.swift */,
 			);
 			path = Views;
@@ -441,6 +444,7 @@
 				C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */,
 				CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */,
 				DFFFA7BE418E3D0B142CE4B3 /* RainForecast.swift in Sources */,
+				21CC8AB097B09F01B0F39EDF /* SitePageSheet.swift in Sources */,
 				415AED64B3975EB34CAAE185 /* SolarPosition.swift in Sources */,
 				A42BCE0EE2A3168BF93401E9 /* SunMask.swift in Sources */,
 				EC19D2C4FFE3A6BAC77E14AC /* TimelineScrub.swift in Sources */,

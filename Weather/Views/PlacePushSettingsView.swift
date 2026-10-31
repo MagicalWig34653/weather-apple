@@ -8,6 +8,7 @@ struct PlacePushSettingsView: View {
     @Environment(\.openURL) private var openURL
     @State private var confirmEnable = false
     @State private var working = false
+    @State private var sitePage: SitePage?
 
     private var settings: PlacePushSettings? { push.settings(for: place.id) }
 
@@ -64,21 +65,22 @@ struct PlacePushSettingsView: View {
 
             Section("Zustellung") {
                 Label("Zeitkritisch (oben, standardmäßig aus): Meldungen können einen Fokus oder die Mitteilungszusammenfassung durchbrechen, den Stummschalter aber nicht.", systemImage: "bell.badge")
-                Label("Apple Watch: Ist dein iPhone gesperrt, erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen ShowerNow spiegeln lassen.", systemImage: "applewatch")
-                Label("Radfahren: Trage ShowerNow im Fokus „Radfahren“ (oder „Fahren“) als erlaubte App ein, sonst bleibt die Meldung dort stumm.", systemImage: "figure.outdoor.cycle")
+                Label("Apple Watch: Ist dein iPhone gesperrt (etwa beim Sport), erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen ShowerNow spiegeln lassen.", systemImage: "applewatch")
+                Label("Sport: Beim Radfahren, Laufen oder anderem Training trage ShowerNow in dem Fokus, den du dafür nutzt, als erlaubte App ein, sonst bleibt die Meldung dort stumm.", systemImage: "figure.run")
             }
             .font(.footnote)
             .labelStyle(PushHintLabelStyle())
 
             Section {
                 Text("An den Server gehen: das Gerätetoken deines iPhones, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km Kantenlänge um diesen Ort sowie Schwelle und Vorlaufzeit. Keine Koordinaten, kein Ortsname, kein Konto.")
-                Link("Datenschutzerklärung", destination: RadarBackendConfig.privacyPolicyURL)
+                SitePageButton(page: .privacy, selection: $sitePage)
             }
             .font(.footnote).foregroundStyle(.secondary)
         }
         .navigationTitle("Regenhinweis")
         .navigationBarTitleDisplayMode(.inline)
         .task { await push.refreshAuthorization() }
+        .sitePageSheet($sitePage)
         .alert("Regenhinweis aktivieren?", isPresented: $confirmEnable) {
             Button("Weiter") {
                 working = true
@@ -87,6 +89,7 @@ struct PlacePushSettingsView: View {
                     working = false
                 }
             }
+            Button("Datenschutzerklärung lesen") { sitePage = .privacy }
             Button("Abbrechen", role: .cancel) {}
         } message: {
             Text("ShowerNow meldet dir per Mitteilung, wenn es bei \(place.name) bald zu regnen beginnt. Dafür gehen an den ShowerNow-Server: das Gerätetoken, eine Rasterzelle von etwa 1 km (keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.")

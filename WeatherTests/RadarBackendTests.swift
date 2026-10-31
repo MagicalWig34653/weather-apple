@@ -542,3 +542,20 @@ final class SiteLinkTests: XCTestCase {
         XCTAssertEqual(RadarBackendConfig.marketingURL.path, "/marketing")
     }
 }
+
+final class SitePageTests: XCTestCase {
+    func testPagesMapToBackendURLs() {
+        XCTAssertEqual(SitePage.privacy.url, RadarBackendConfig.privacyPolicyURL)
+        XCTAssertEqual(SitePage.support.url, RadarBackendConfig.supportURL)
+        XCTAssertEqual(SitePage.about.url, RadarBackendConfig.marketingURL)
+        XCTAssertEqual(Set(SitePage.allCases.map(\.id)).count, 3)
+    }
+
+    func testOnlyOwnHostStaysInSheet() {
+        let page = SitePage.privacy
+        XCTAssertTrue(page.allowsInSheet(RadarBackendConfig.supportURL))
+        XCTAssertFalse(page.allowsInSheet(URL(string: "https://example.com/x")!))
+        XCTAssertFalse(page.allowsInSheet(URL(string: "http://\(page.url.host!)/x")!))
+        XCTAssertFalse(page.allowsInSheet(URL(string: "mailto:a@b.de")!))
+    }
+}

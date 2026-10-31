@@ -4,6 +4,7 @@ struct InformationSheet: View {
     var store: WeatherStore
     @Environment(PushManager.self) private var push
     @Environment(\.dismiss) private var dismiss
+    @State private var sitePage: SitePage?
 
     @ViewBuilder private var testRow: some View {
         Button {
@@ -43,7 +44,7 @@ struct InformationSheet: View {
                     if push.canSendTest || push.testState != .idle {
                         testRow
                     }
-                    Link("Datenschutzerklärung", destination: RadarBackendConfig.privacyPolicyURL)
+                    SitePageButton(page: .privacy, selection: $sitePage)
                 } header: {
                     Text("Mitteilungen")
                 } footer: {
@@ -63,21 +64,16 @@ struct InformationSheet: View {
                     Text("Für eine Ortsprognose erhält der DWD weiterhin direkt einen Kartenausschnitt um die ausgewählte Position. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.")
                     Text("Nur wenn du Regenhinweise für einen Ort einschaltest: Der ShowerNow-Server erhält dein Gerätetoken, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km um den Ort (keine Koordinaten, kein Ortsname) sowie Schwelle und Vorlaufzeit; kein Konto. Beim Ausschalten, Löschen des Orts oder Zurücksetzen werden diese Daten gelöscht.")
                     Text("Standortzugriff ist optional und wird nur bei Nutzung angefordert. Keine Hintergrundortung. Punktanfragen werden nicht in einem Festplatten-Netzwerkcache gespeichert.")
-                    Link("Datenschutzerklärung", destination: RadarBackendConfig.privacyPolicyURL)
-                        .accessibilityHint("Öffnet die Datenschutzerklärung im Browser")
-                        .accessibilityIdentifier("privacy-policy-link")
-                    Link("Support", destination: RadarBackendConfig.supportURL)
-                        .accessibilityHint("Öffnet die Support-Seite im Browser")
-                        .accessibilityIdentifier("support-link")
-                    Link("Über ShowerNow", destination: RadarBackendConfig.marketingURL)
-                        .accessibilityHint("Öffnet die Seite Über ShowerNow im Browser")
-                        .accessibilityIdentifier("marketing-link")
+                    SitePageButton(page: .privacy, selection: $sitePage)
+                    SitePageButton(page: .support, selection: $sitePage)
+                    SitePageButton(page: .about, selection: $sitePage)
                     Text("Die App ist eine frühe Testversion. Prognosen können abweichen; bei fehlenden oder veralteten Daten wird keine aktuelle Aussage zugesichert.")
                 }
             }
             .navigationTitle("Über ShowerNow")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
+            .sitePageSheet($sitePage)
         }
     }
 
