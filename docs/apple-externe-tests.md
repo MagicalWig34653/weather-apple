@@ -1,6 +1,6 @@
 # Apple-Leitfaden: externe TestFlight-Tests (und später App Store)
 
-Stand: 30. Oktober 2026. Betreiberanleitung: Was ist bei Apple auszufüllen, damit ShowerNow (`de.linolaske.showernow`) an externe Tester geht? Geprüft gegen Apples Primärquellen (Tabelle am Ende, Abruf jeweils 30. Oktober 2026). Kein Rechtsrat.
+Stand: 31. Oktober 2026 (Build 11). Betreiberanleitung: Was ist bei Apple auszufüllen, damit ShowerNow (`de.linolaske.showernow`) an externe Tester geht? Geprüft gegen Apples Primärquellen (Tabelle am Ende, Abruf jeweils 30. Oktober 2026; für Build 11 nicht erneut abgerufen). Kein Rechtsrat.
 
 Kennzeichnung je Aussage: **BESTÄTIGT** = in der genannten Apple-Quelle gefunden, **ANNAHME** = Erfahrung/Schlussfolgerung, nicht belegt, **UNKLAR** = nicht entscheidbar. Quellen als `[Q#]`.
 
@@ -8,9 +8,32 @@ Oberflächenbegriffe: Apple-Hilfe liegt hier nur auf Englisch vor. Die deutschen
 
 ## Die drei wichtigsten Punkte vorab
 
-1. **Builds 1 bis 9 sind nur intern nutzbar.** Der Uploadweg setzte `testFlightInternalTestingOnly=true` (siehe [testflight-upload.md](testflight-upload.md)). Apple: Solche Builds sind „internal“ markiert und können nur internen Gruppen zugeordnet werden (BESTÄTIGT, [Q2]). Für externe Tester braucht es einen Build, der ohne diese Option hochgeladen wurde. Ob Build 10 so hochgeladen wird, ist in `testflight-upload.md` nachzuprüfen (nicht Teil dieses Auftrags).
-2. **Die URLs Datenschutz, Marketing und Support sind noch nicht live.** Stand 30. Oktober 2026 liefern `https://showernow.linolaske.de/datenschutz`, `/marketing` und `/support` HTTP 404; der Backend-Agent baut sie gerade. Vor Beta-Review prüfen, dass sie erreichbar sind (Apple verlangt „fully functional URLs“, Guideline 2.1(a), [Q15]).
-3. **Datenschutzlink in der App fehlt noch.** Guideline 5.1.1(i): Link zur Datenschutzerklärung in den Metadaten **und** in der App leicht erreichbar (BESTÄTIGT, [Q15]). Die App hat einen Abschnitt „Datenschutz“ im Info-Sheet, aber keinen Link auf die Web-URL (`Weather/Views/InformationSheet.swift`, nur gelesen). Für den App Store nachziehen; für TestFlight vermutlich unkritisch (ANNAHME).
+1. **Builds 1 bis 10 sind nur intern nutzbar; Build 11 ist ohne Internal-Only-Markierung hochgeladen.** Builds 1 bis 10 wurden mit `testFlightInternalTestingOnly=true` hochgeladen (siehe [testflight-upload.md](testflight-upload.md)). Apple: Solche Builds sind „internal“ markiert und können nur internen Gruppen zugeordnet werden (BESTÄTIGT, [Q2]). Build 11 (`0.1.0 (11)`, Upload 31. Oktober 2026, 04:55 bis 04:57 Uhr MEZ) wurde mit `testFlightInternalTestingOnly` = `false` hochgeladen und von Apple angenommen. Ob er externen Gruppen zugeordnet werden kann, ist **nur in App Store Connect belegbar** und dort zu prüfen. Die lokale xcodebuild-Hilfe beschreibt `true` so, dass ein Build weder extern noch im App Store verteilt werden kann (lokale Hilfe, keine Apple-Webseite).
+2. **Die URLs Datenschutz, Marketing und Support antworten, der Inhalt ist aber nicht geprüft.** Abruf am 31. Oktober 2026, 04:59 Uhr MEZ: `https://showernow.linolaske.de/datenschutz`, `/marketing` und `/support` liefern HTTP 200 mit den Titeln „Datenschutzerklärung“, „ShowerNow“ und „Support“ (am 30. Oktober noch 404). Vor Beta-Review Inhalt und Erreichbarkeit erneut prüfen (Apple verlangt „fully functional URLs“, Guideline 2.1(a), [Q15]).
+3. **Datenschutzlink in der App ist mit Build 11 enthalten, in den Metadaten noch nicht.** Guideline 5.1.1(i): Link zur Datenschutzerklärung in den Metadaten **und** in der App leicht erreichbar (BESTÄTIGT, [Q15]). Build 11 hat im Info-Sheet einen tippbaren Link „Datenschutzerklärung“. Im Simulator öffnete Tippen Safari; ein Gerätetest fehlt. Die Privacy-Policy-URL in App Store Connect ist vor dem App Store zu setzen; für TestFlight vermutlich unkritisch (ANNAHME).
+
+## Nächste Schritte für den Betreiber
+
+Stand 31. Oktober 2026, in dieser Reihenfolge. Punkt 1 und 2 können parallel laufen.
+
+1. **Backend auf `history.json` bringen.** Voraussetzung: Backend ab `sha-e80b6b8`. Am 31. Oktober 2026, 04:59 Uhr MEZ antwortete `/v1/radar/history.json` mit HTTP 404 (`latest.json`: HTTP 200). Ohne Historie meldet die App „Historie nicht verfügbar“ und zeigt nur etwa eine Stunde Vergangenheit. Vorgehen laut Auftrag (Backend-Doku: [magicalwig34653.github.io/weather-backend](https://magicalwig34653.github.io/weather-backend/), dort nicht gegengeprüft):
+   - `.env` um `OPERATOR_NAME`, `OPERATOR_ADDRESS`, `OPERATOR_EMAIL` und `PROXY_LOG_NOTE` ergänzen. Werte nur lokal, nie ins Repo.
+   - Datenbank-Benutzer mit der Berechtigung `CREATE` ausstatten.
+   - `update.sh --pull-scripts --tag sha-e80b6b8` ausführen.
+   - Danach `history.json` und die drei Seiten erneut abrufen.
+2. **URLs gegenlesen.** `/datenschutz`, `/marketing`, `/support`: HTTP 200 am 31. Oktober; Inhalt, Kontaktangaben der Support-Seite und Rechtstexte prüfen.
+3. **Build 11 in App Store Connect prüfen.** Nach der Verarbeitung erscheint Build 11 unter TestFlight; Status „verarbeitet“ und Installierbarkeit auf einem Gerät prüfen. Export Compliance ist mit `ITSAppUsesNonExemptEncryption` = `false` vorbelegt (Abschnitt 5).
+4. **Test Information ausfüllen** (Abschnitt 3): Beta App Description, Feedback-E-Mail, Review-Kontakt, Review-Notizen. Platzhalter nur lokal ersetzen.
+5. **Externe Gruppe anlegen** (Abschnitt 8): interne Gruppe sicherstellen, externe Gruppe anlegen, Build 11 zuordnen, „What to Test“ ausfüllen. Ob Build 11 in der Auswahl erscheint, ist der Nachweis der Zuordenbarkeit.
+6. **Submit Review** (Beta App Review). Dauer unbekannt. Einladungen erst nach der Freigabe verschicken.
+7. **Tester einladen** per E-Mail oder öffentlichem Link mit Testerlimit (Abschnitt 2). Build 11 ist 90 Tage testbar; Ablaufdatum notieren.
+
+## Offene Entscheidungen des Betreibers
+
+- **App-Privacy-Variante A oder B** (Abschnitt 4) zusammen mit der **Protokollierung des Reverse Proxy**: Speichert der Reverse Proxy IP-Adressen, spricht das gegen Variante A. Ergebnis in `decisions.md` festhalten.
+- **Rechtsprüfung** der Texte: Datenschutzerklärung, Kontaktangaben/Impressum der Support-URL, Lizenzeinordnung (GeoNutzV / CC BY 4.0), Exportkontrolle. Dieser Leitfaden ist kein Rechtsrat.
+- **Wortlaut des Veränderungshinweises** zum DWD (noch nicht festgelegt, siehe Seite „Datenquellen und Lizenz“).
+- **Frankreich-Verfügbarkeit** (Abschnitt 5) bewusst entscheiden.
 
 ## 1. Voraussetzungen vorab
 
@@ -18,8 +41,8 @@ Oberflächenbegriffe: Apple-Hilfe liegt hier nur auf Englisch vor. Die deutschen
 |---|---|---|
 | Apple Developer Program (bezahlte Mitgliedschaft) | vorhanden (Team in `signing.md`, ohne Konto-/Zahlungsprüfung) | Repo |
 | App-Eintrag in App Store Connect mit Bundle-ID `de.linolaske.showernow` | laut `signing.md` vom Nutzer umgestellt, Upload-Antworten bestätigen `name=ShowerNow`, passende Bundle-ID | Repo |
-| Build hochgeladen und verarbeitet | Build 9 hochgeladen (`processing`); Verarbeitung/Installierbarkeit nicht belegt | `status.md` |
-| Build nicht als „Internal Only“ hochgeladen | **offen** (siehe oben) | [Q2] |
+| Build hochgeladen und verarbeitet | Build 11 von Apple angenommen (Upload 31. Oktober 2026, letzter Zustand `processing`); Verarbeitung/Installierbarkeit nicht belegt | `status.md` |
+| Build nicht als „Internal Only“ hochgeladen | Build 11: ja (`testFlightInternalTestingOnly` = `false`); Zuordenbarkeit zu externen Gruppen in App Store Connect **prüfen** | [Q2], `status.md` |
 | Rolle für Test Information | Account Holder, Admin oder App Manager | BESTÄTIGT [Q3] |
 | Rolle für externe Gruppen/Tester | Account Holder, Admin oder App Manager | BESTÄTIGT [Q2] |
 | Mindestens eine interne Gruppe | Pflicht, bevor eine externe Gruppe angelegt werden kann | BESTÄTIGT [Q2] |
@@ -57,7 +80,7 @@ Pfad (BESTÄTIGT, [Q3]): App öffnen, Tab TestFlight, Seitenleiste unter „Addi
 
 Persönliche Angaben bleiben Platzhalter: Kontakt `<Vorname Nachname>`, `<E-Mail für Prüfer>`, `<Telefon im Format +49…>`, Feedback-E-Mail `<Feedback-E-Mail>`. Nichts davon ins Repo schreiben.
 
-URLs (alle drei **im Backend in Arbeit, noch nicht deployt, 404 am 30. Oktober 2026**):
+URLs (Abruf am 31. Oktober 2026, 04:59 Uhr MEZ: alle drei HTTP 200 mit den Titeln „Datenschutzerklärung“, „ShowerNow“, „Support“; am 30. Oktober noch 404; Inhalt nicht geprüft):
 
 - Datenschutz: `https://showernow.linolaske.de/datenschutz`
 - Marketing: `https://showernow.linolaske.de/marketing`
@@ -81,7 +104,7 @@ Hinweis zur Support-URL (für den App Store, BESTÄTIGT [Q6]): Sie muss echte Ko
 
 **What to Test (je Build, Deutsch)**
 
-> Bitte testen: Radar-Zeitleiste scrubben, Ortsprognose öffnen, Orte speichern/umbenennen/löschen, Verhalten ohne Standortfreigabe, Info-Sheet mit Quellenangabe. Rückmeldungen über TestFlight (Screenshot und Kommentar).
+> Bitte testen: Radar-Zeitleiste scrubben (auch vertikal wegziehen für feinere Schritte), Einstellung „Maximale Vergangenheit“, Ortsprognose öffnen, Orte speichern/umbenennen/löschen, Verhalten ohne Standortfreigabe, Info-Sheet mit Quellenangabe und Datenschutzlink. Rückmeldungen über TestFlight (Screenshot und Kommentar).
 
 Hinweis zur Genauigkeit (ANNAHME): Wetter-/Radar-Apps werden gelegentlich nach Hinweisen zu Aktualität und Genauigkeit gefragt; die App zeigt das Datenalter, die Info-Sheet nennt die Quelle. Wer Warnfunktionen bewirbt, sollte keine Sicherheits- oder Unwetterzusagen machen.
 
@@ -93,7 +116,7 @@ Wichtigste Quellen: Apples Definition „collect“ [Q7] und die Antwort-Maske [
 
 | Datenfluss | Inhalt | Ziel | Quelle im Repo |
 |---|---|---|---|
-| Radar-Ganzbilder | feste Pfade je Lauf/Slot, kein Ort, keine Cookies, keine Kennung | ShowerNow-Radar-Server | `RadarBackend.swift`, `decisions.md` |
+| Radar-Ganzbilder, Zeitpunktliste | feste Pfade je Lauf/Slot bzw. `history.json` (Build 11), kein Ort, keine Cookies, keine Kennung | ShowerNow-Radar-Server | `RadarBackend.swift`, `RadarHistory.swift`, `decisions.md` |
 | Radar-Fallback | Bildabfrage | DWD (`opendata.dwd.de`, `maps.dwd.de`) | `DWDRequest.swift` |
 | Punktprognose | Kartenausschnitt (BBOX, 3×3 Pixel) **um die gewählte Position** | direkt DWD (`maps.dwd.de`) | `DWDRequest.swift`, `decisions.md` |
 | Karte, Ortssuche | Apple MapKit | Apple | `InformationSheet.swift` |
@@ -197,16 +220,19 @@ Build-Ablauf: Ein Build ist 90 Tage testbar und danach nicht mehr verfügbar (BE
 
 ## 9. Ausblick App Store (nicht Teil der aktuellen Aufgabe)
 
-Zusätzlich zu TestFlight (BESTÄTIGT [Q6], [Q9], [Q13]): Screenshots (Pflichtgrößen oben), Description (Pflicht, bis 4000 Zeichen), Keywords (Pflicht, bis 100 Bytes), Support URL (Pflicht, mit Kontaktdaten), Marketing URL (optional), Promotional Text (optional, 170 Zeichen), Copyright (Pflicht, Jahr plus Rechteinhaber), Version Release Settings, Privacy Policy URL, App Privacy, Altersfreigabe, Kategorie, App Review Information mit Kontakt. Preis und Verfügbarkeit (Länder, Frankreich siehe Abschnitt 5): Maske nicht gelesen (UNKLAR). Wetterdaten-Attribution: DWD-Quellenvermerk in App und Beschreibung; WeatherKit-Attribution entfällt, da nicht genutzt. Außerdem: Datenschutzlink in der App (Abschnitt „Die drei wichtigsten Punkte“), Foundation-Models-Richtlinien prüfen.
+Zusätzlich zu TestFlight (BESTÄTIGT [Q6], [Q9], [Q13]): Screenshots (Pflichtgrößen oben), Description (Pflicht, bis 4000 Zeichen), Keywords (Pflicht, bis 100 Bytes), Support URL (Pflicht, mit Kontaktdaten), Marketing URL (optional), Promotional Text (optional, 170 Zeichen), Copyright (Pflicht, Jahr plus Rechteinhaber), Version Release Settings, Privacy Policy URL, App Privacy, Altersfreigabe, Kategorie, App Review Information mit Kontakt. Preis und Verfügbarkeit (Länder, Frankreich siehe Abschnitt 5): Maske nicht gelesen (UNKLAR). Wetterdaten-Attribution: DWD-Quellenvermerk in App und Beschreibung; WeatherKit-Attribution entfällt, da nicht genutzt. Außerdem: Privacy-Policy-URL in den Metadaten (der Link im Info-Sheet ist mit Build 11 enthalten), Foundation-Models-Richtlinien prüfen.
 
 ## 10. Checkliste
 
 Vorbereitung
-- [ ] Build 10 (oder neuer) **ohne** „Internal Only“ hochgeladen und in App Store Connect verarbeitet
-- [ ] Eigener interner Test auf dem Gerät erfolgreich
-- [ ] `https://showernow.linolaske.de/datenschutz` erreichbar (nicht 404)
-- [ ] `https://showernow.linolaske.de/marketing` erreichbar
-- [ ] `https://showernow.linolaske.de/support` erreichbar (Kontaktdaten im Impressum-Sinn geklärt)
+- [x] Build 11 **ohne** „Internal Only“ hochgeladen und von Apple angenommen (31. Oktober 2026)
+- [ ] Build 11 in App Store Connect verarbeitet und auf einem Gerät installierbar
+- [ ] Eigener interner Test auf dem Gerät erfolgreich (Build 11, inkl. Scrub-Geste und Einstellung „Maximale Vergangenheit“)
+- [ ] Backend ab `sha-e80b6b8` ausgerollt; `/v1/radar/history.json` liefert HTTP 200 (am 31. Oktober 04:59: 404)
+- [x] `https://showernow.linolaske.de/datenschutz` erreichbar (HTTP 200 am 31. Oktober; Inhalt noch gegenlesen)
+- [x] `https://showernow.linolaske.de/marketing` erreichbar (HTTP 200 am 31. Oktober)
+- [x] `https://showernow.linolaske.de/support` erreichbar (HTTP 200 am 31. Oktober)
+- [ ] Kontaktdaten der Support-Seite im Impressum-Sinn geklärt
 - [ ] Proxy-Protokollierung der IP-Adressen geklärt (beeinflusst App-Privacy-Antwort)
 
 TestFlight-Maske
@@ -225,7 +251,8 @@ Datenschutz und Recht
 - [ ] App-Privacy-Variante A oder B entschieden und in `decisions.md` festgehalten
 - [ ] Export Compliance: Schlüssel `false` im hochgeladenen Build bestätigt
 - [ ] Frankreich in der Verfügbarkeit bewusst entschieden
-- [ ] Datenschutzlink in der App ergänzt (vor App Store)
+- [x] Datenschutzlink im Info-Sheet (Build 11)
+- [ ] Privacy-Policy-URL in den Metadaten gesetzt (vor App Store)
 
 App Store (später)
 - [ ] Screenshots 5 bis 6 Motive für iPhone und iPad, echter Regen, Light/Dark
@@ -240,7 +267,8 @@ App Store (später)
 - Apples Auslegung zu Koordinaten an den DWD: nicht belegbar; Entscheidung A/B offen.
 - Rechtliche Einordnung (Exportkontrolle, Impressum, DWD-Lizenz): kein Rechtsrat.
 - Foundation-Models-Nutzungsbedingungen, App-Store-Kategorieliste, Preis/Verfügbarkeit-Masken: nicht gelesen.
-- Backend-URLs: am 30. Oktober 2026 noch 404.
+- Backend-URLs: am 31. Oktober 2026 (04:59 Uhr MEZ) HTTP 200 für `/datenschutz`, `/marketing`, `/support`; `history.json` HTTP 404. Inhalte und Serverstand gegen das Repo nicht geprüft.
+- Zuordenbarkeit von Build 11 zu externen Gruppen: nur in App Store Connect sichtbar, nicht gesehen.
 
 ## Quellen (Abruf jeweils 30. Oktober 2026)
 
@@ -264,4 +292,4 @@ App Store (später)
 | Q16 | Export compliance documentation for encryption | https://developer.apple.com/help/app-store-connect/reference/app-information/export-compliance-documentation-for-encryption |
 | Q17 | Acceptable use requirements for the Foundation Models framework (nur Existenz geprüft, nicht gelesen) | https://developer.apple.com/apple-intelligence/acceptable-use-requirements-for-the-foundation-models-framework/ |
 
-Hinweis: Q5 wurde abgerufen, die 90-Tage-Aussage stammt aus Q1.
+Hinweis: Q5 wurde abgerufen, die 90-Tage-Aussage stammt aus Q1. Für Build 11 (31. Oktober 2026) wurden die Apple-Quellen nicht erneut abgerufen.

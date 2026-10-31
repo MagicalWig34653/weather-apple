@@ -1,14 +1,15 @@
 # Datenschutz
 
-Datenschutz ist eine Produktanforderung. Stand: Build 9 (hochgeladen, Installierbarkeit noch nicht bestätigt). Gegenüber Build 8 ändert sich der Weg der Radarbilder; das ist unten gekennzeichnet.
+Datenschutz ist eine Produktanforderung. Stand: Build 11 (hochgeladen, Installierbarkeit noch nicht bestätigt). Gegenüber Build 8 ändert sich der Weg der Radarbilder; das ist unten gekennzeichnet.
 
 - **Kein Tracking, keine Werbung, keine Analyse-SDKs, keine Benutzerkonten.**
 - **Standort nur optional und nur bei Nutzung.** Die Berechtigung wird erst angefragt, wenn du den Standort verwenden willst. Es gibt keine Hintergrundortung und keine Standortverläufe.
 - **Ortsnamen und gespeicherte Orte bleiben lokal auf dem Gerät.**
-- **Radarbilder vom ShowerNow-Cache (ab Build 9).** Die App lädt Radarbilder für ganz Deutschland vom ShowerNow-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung.
+- **Radarbilder vom ShowerNow-Cache (ab Build 9).** Die App lädt Radarbilder für ganz Deutschland vom ShowerNow-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Dasselbe gilt für die Zeitpunktliste `history.json` (ab Build 11), die vom selben Server kommt.
 - **Radarbilder direkt beim DWD (Build 8 und Fallback).** Bei Fehlern oder Daten älter als 20 Minuten lädt die App die Radarbilder direkt beim Deutschen Wetterdienst. Dieser sieht dabei den abgefragten Kartenausschnitt und – wie bei jeder Verbindung – die IP-Adresse.
 - **Punktprognose direkt beim DWD.** Dabei sind – wie bei jeder Netzverbindung – IP-Adresse und der abgefragte Punkt für den Betreiber des Dienstes sichtbar. Dieser Weg bleibt vorerst unverändert.
 - **Kartenansicht und Ortssuche (Apple).** Die Karte und die Ortssuche nutzen Apple MapKit. Für die Basiskarte ruft dein Gerät die Kartendaten des angezeigten Ausschnitts bei Apple ab. Wenn du einen Ort suchst, gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple; Apple sieht dabei technisch bedingt die IP-Adresse. Der Suchtext geht nicht an den Radar-Dienst und nicht an den DWD. Die Verarbeitung durch Apple richtet sich nach Apples Datenschutzbestimmungen. Ein gewählter Punkt (Suche, langer Druck auf die Karte oder Standort) wird nur lokal gespeichert; an den DWD geht für die Prognose nur dieser Punkt. Der Radar-Dienst erhält keinen Ort.
+- **Datenschutzerklärung im Web.** Das Info-Sheet der App enthält seit Build 11 einen Link auf die Datenschutzerklärung im Web.
 - **Keine identifizierenden Debuglogs.** URLs, Standorte und Fehler-Rohdaten werden nicht geloggt; Zwischenspeicher liegen im Arbeitsspeicher.
 - **Lokale KI-Einordnung** läuft ausschließlich auf dem Gerät und erhält keine Koordinaten oder Ortsnamen.
 
