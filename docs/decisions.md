@@ -222,3 +222,19 @@ Last je aktivem Client (Simulation in `RadarPollScheduleTests.testExpectedLoadPe
 Offen: am Gerät nicht erprobt; Fenster-Lage (+180 s, −15 s/+120 s) beruht auf der Messung des Backend-Teams und sollte nach einigen Tagen gegen echte `generated_at`-Werte geprüft werden; bei höherer Aktivenzahl Serverlast beobachten.
 
 **Support- und Über-Links im Info-Sheet (31. Oktober 2026, Kandidat Build 12):** Neben „Datenschutzerklärung“ zwei weitere `Link`-Zeilen „Support“ (`https://showernow.linolaske.de/support`) und „Über ShowerNow“ (`https://showernow.linolaske.de/marketing`), zentral als `RadarBackendConfig.supportURL`/`marketingURL`. Begründung: App-Store-Connect-Testinformationen und Pages verweisen auf diese Seiten; die Links öffnen nur den Browser, die App ist nicht vom Netz oder von der Seitenverfügbarkeit abhängig. Gleiche Gestaltung und Accessibility-Hinweise wie der Datenschutz-Link; Test `SiteLinkTests` sichert https und Radar-Host.
+
+## Nutzerentscheidungen und offene Punkte (31. Oktober 2026)
+
+Entschieden:
+- Team-ID `J2DU2P47XW` und Bundle-ID `de.linolaske.showernow` sind endgültig (E9; die frühere Vorläufigkeit entfällt).
+- Push-Benachrichtigungen für Orte sind freigegeben (E1/E2): Opt-in je Ort per Server-Push (APNs); lokale Mitteilungen höchstens als Zusatz. Entwurf: [research/push-benachrichtigungen.md](research/push-benachrichtigungen.md).
+- Regenradar-Legende (aufklappbare DWD-Farblegende in mm/h) ist umgesetzt (Commit `141d38b`); die Datenmengenanzeige oben rechts wurde entfernt.
+
+Noch NICHT entschieden (Empfehlung des Entwurfs in Klammern):
+- E3 Serverraster: Pixelraster des Ingests, ~1 km, nicht feiner (Alternative 3x3 gröber).
+- E4 Intensitätsquelle: Palettenfarben, HDF5 erst bei Bedarf.
+- E5 Regel: nur „Regen beginnt in N Minuten“ (N = 10/20/30), Hysterese, Sperrzeit.
+- E6 Aufbewahrung: 60 Tage Inaktivität, Löschung sofort bei 410 und per DELETE.
+- E7 Rechtsgrundlage, Verantwortlicher/Impressum, Zoraxy-Logging (Einwilligung; Zoraxy ohne IP-Zugriffslog oder gekürzt; vor Livegang klären).
+- E8 Missbrauchsschutz: Limit Subs je Install (10), Rate-Limit am Proxy, App Attest erst bei realem Missbrauch.
+- Reihenfolge weiterer Karten (Empfehlung: Luftdruck, Blitze, Wolken über EUMETSAT MTG geocolour). Klärung der EUMETSAT-Weiterverteilung für abgeleitete Bilder steht aus. Quellen: [research/weitere-radarkarten.md](research/weitere-radarkarten.md), [research/wolkenradar-quellen.md](research/wolkenradar-quellen.md).
