@@ -148,8 +148,13 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         persistPlaces()
     }
 
+    /// Called with the IDs of deleted places (push subscriptions are removed there).
+    @ObservationIgnored var onPlacesRemoved: (([UUID]) -> Void)?
+
     func deletePlaces(at offsets: IndexSet) {
+        let removed = offsets.compactMap { places.indices.contains($0) ? places[$0].id : nil }
         places.remove(atOffsets: offsets)
+        if !removed.isEmpty { onPlacesRemoved?(removed) }
         persistPlaces()
     }
 

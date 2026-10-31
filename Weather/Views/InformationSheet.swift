@@ -2,16 +2,28 @@ import SwiftUI
 
 struct InformationSheet: View {
     var store: WeatherStore
+    @Environment(PushManager.self) private var push
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             List {
                 Section("ShowerNow · frühe Testversion") {
-                    Text("Regenradar und kurzfristige Ortsprognose für Deutschland. Noch keine automatischen Regenwarnungen, Widgets oder Watch-App.")
+                    Text("Regenradar und kurzfristige Ortsprognose für Deutschland. Regenhinweise als Mitteilung sind optional je gespeichertem Ort. Noch keine Widgets oder Watch-App.")
                     Text("Die Karte zeigt Messbilder und Radarvorhersagen getrennt. Die Punktprognose basiert auf Fünf-Minuten-Intervallen; minutengenaue Zusagen sind daraus nicht ableitbar.")
                 }
                 pastSection
+                Section {
+                    Text(push.summary).accessibilityIdentifier("push-status")
+                    if push.isAnyEnabled {
+                        Button("Alle Mitteilungen ausschalten", role: .destructive) { Task { await push.resetAll() } }
+                    }
+                    Link("Datenschutzerklärung", destination: RadarBackendConfig.privacyPolicyURL)
+                } header: {
+                    Text("Mitteilungen")
+                } footer: {
+                    Text("Einstellen kannst du Regenhinweise je Ort unter „Deine Orte“ (Glockensymbol). Ausschalten löscht die Registrierung auf dem Server.")
+                }
                 Section("Datenquellen") {
                     Text("\(store.radarAttribution.attribution). \(store.radarAttribution.modificationNotice). Niederschlagswerte für die Ortsprognose umgerechnet und aufbereitet.")
                     Text("Radarbilder aktuell: \(store.radarSource.label). Normalerweise liefert der ShowerNow-Radar-Server die Bilder; bei Fehlern oder veralteten Daten lädt die App sie selbstständig direkt vom DWD-Kartendienst.")
@@ -23,6 +35,7 @@ struct InformationSheet: View {
                     Text("Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben lokal.")
                     Text("Radarbilder lädt die App vom ShowerNow-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab.")
                     Text("Für eine Ortsprognose erhält der DWD weiterhin direkt einen Kartenausschnitt um die ausgewählte Position. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.")
+                    Text("Nur wenn du Regenhinweise für einen Ort einschaltest: Der ShowerNow-Server erhält dein Gerätetoken, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km um den Ort (keine Koordinaten, kein Ortsname) sowie Schwelle und Vorlaufzeit; kein Konto. Beim Ausschalten, Löschen des Orts oder Zurücksetzen werden diese Daten gelöscht.")
                     Text("Standortzugriff ist optional und wird nur bei Nutzung angefordert. Keine Hintergrundortung. Punktanfragen werden nicht in einem Festplatten-Netzwerkcache gespeichert.")
                     Link("Datenschutzerklärung", destination: RadarBackendConfig.privacyPolicyURL)
                         .accessibilityHint("Öffnet die Datenschutzerklärung im Browser")

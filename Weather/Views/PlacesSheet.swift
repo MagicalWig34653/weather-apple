@@ -11,6 +11,8 @@ struct PlacesSheet: View {
     @State private var renamePlace: SavedPlace?
     @State private var newName = ""
     @State private var searchGeneration = UUID()
+    @State private var pushPlaceID: UUID?
+    @Environment(PushManager.self) private var push
 
     var body: some View {
         NavigationStack {
@@ -21,15 +23,27 @@ struct PlacesSheet: View {
                 if !store.places.isEmpty {
                     Section("Gespeicherte Orte") {
                         ForEach(store.places) { place in
-                            Button {
-                                store.select(place)
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    Label(place.name, systemImage: "mappin.circle.fill")
-                                    Spacer()
-                                    if place.id == store.selectedPlace.id { Image(systemName: "checkmark") }
-                                }.foregroundStyle(.primary)
+                            HStack {
+                                Button {
+                                    store.select(place)
+                                    dismiss()
+                                } label: {
+                                    HStack {
+                                        Label(place.name, systemImage: "mappin.circle.fill")
+                                        Spacer()
+                                        if place.id == store.selectedPlace.id { Image(systemName: "checkmark") }
+                                    }.foregroundStyle(.primary).contentShape(Rectangle())
+                                }
+                                .buttonStyle(.borderless)
+                                Button {
+                                    pushPlaceID = place.id
+                                } label: {
+                                    Image(systemName: push.settings(for: place.id) != nil ? "bell.fill" : "bell")
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel("Regenhinweis")
+                                .accessibilityValue(push.settings(for: place.id) != nil ? "An" : "Aus")
+                                .accessibilityIdentifier("place-push")
                             }
                             .swipeActions(edge: .leading) {
                                 Button("Umbenennen") { newName = place.name; renamePlace = place }.tint(.blue)
@@ -83,6 +97,9 @@ struct PlacesSheet: View {
                 }
             }
             .navigationTitle("Deine Orte")
+            .navigationDestination(item: $pushPlaceID) { id in
+                if let place = store.places.first(where: { $0.id == id }) { PlacePushSettingsView(place: place) }
+            }
             .searchable(text: $query, prompt: "Stadt, Adresse oder Ort")
             .onSubmit(of: .search) { Task { await search() } }
             .onChange(of: query) { _, value in

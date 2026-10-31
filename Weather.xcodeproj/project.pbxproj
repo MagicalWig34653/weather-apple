@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */; };
 		0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166813EB890F40B10B45EC0F /* RadarBackend.swift */; };
+		2CD5AE787F1A1C3084FFA463 /* PushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05E42607D07EFF4916F6D7D /* PushTests.swift */; };
 		2DD5FF78C21C8E03F62B8073 /* WeatherStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */; };
 		35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF405ABCD119D3DE565984B0 /* RadarHistory.swift */; };
 		3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */; };
@@ -16,7 +17,9 @@
 		439BD00528C4DD7AB2610BB2 /* ForecastResilienceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDCFF7534843CDCBAD6352D /* ForecastResilienceTests.swift */; };
 		4F9D9E40C3F059C9A00DE6F2 /* Fixtures in Resources */ = {isa = PBXBuildFile; fileRef = AA76D542667074A3AA33EFA0 /* Fixtures */; };
 		59C05B2C531A8C515A468777 /* RadarPollScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBC9EBD9EB7EC18BA4EE6C0D /* RadarPollScheduleTests.swift */; };
+		5A327499E6EDC83F1132B90B /* PushKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2901C92E5F1E1C1E706A6AE6 /* PushKeychain.swift */; };
 		6142E6AB3EFBE4055C6E4E53 /* RadarPollSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD166EB5A565C647DE18DAFF /* RadarPollSchedule.swift */; };
+		64DDC32E997D39887A3D44E9 /* PushGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8174F0961CBA8C530C9B30C0 /* PushGrid.swift */; };
 		64E13A277E0DCDBA13FDE619 /* ForecastInterpretation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408AB90A46B56EE3B628B952 /* ForecastInterpretation.swift */; };
 		64FEC0D54D545515DD2E9798 /* SolarPositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0381B38C8CCD1EB6F664EA1 /* SolarPositionTests.swift */; };
 		776A1E417B65F359D480C74F /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D547F6AB1F520F3FE1F00BB /* DWDClient.swift */; };
@@ -38,7 +41,10 @@
 		D96D87F150B51A0FD853996B /* TimelineSlotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */; };
 		D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */; };
 		DFFFA7BE418E3D0B142CE4B3 /* RainForecast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6208E34C71F4CA9DBAA42C13 /* RainForecast.swift */; };
+		E568B96A170F5AEE5C3E0866 /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCB2C1112479F903D8978745 /* PushManager.swift */; };
+		E7E600D48BEEE6C89A8DF88A /* PlacePushSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9952910B477FF2C7B3DFAA1 /* PlacePushSettingsView.swift */; };
 		EC19D2C4FFE3A6BAC77E14AC /* TimelineScrub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29217E1E77DCB0CF4795AABE /* TimelineScrub.swift */; };
+		F08BB2B74CEDC7C627060B3B /* PushGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = B920639E02C1140F70C713AE /* PushGateway.swift */; };
 		FC53F4ADAD5AE068572020BE /* RadarPrefetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */; };
 		FE729001EDD401716B119CC1 /* RadarMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */; };
 /* End PBXBuildFile section */
@@ -69,6 +75,7 @@
 		18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPrefetch.swift; sourceTree = "<group>"; };
 		23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherStore.swift; sourceTree = "<group>"; };
 		278042B07E146BB0A122BD1C /* Weather.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Weather.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2901C92E5F1E1C1E706A6AE6 /* PushKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushKeychain.swift; sourceTree = "<group>"; };
 		29217E1E77DCB0CF4795AABE /* TimelineScrub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineScrub.swift; sourceTree = "<group>"; };
 		36810EBB689143D24E645BAD /* PlacesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacesSheet.swift; sourceTree = "<group>"; };
 		3B01B3F12274A8B6A7652EA2 /* WeatherUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WeatherUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -82,6 +89,7 @@
 		6F7B3D1CE91807719FEDFDD2 /* RadarLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegend.swift; sourceTree = "<group>"; };
 		72CFC446C21AB47F0E3115CD /* DWDResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDResponse.swift; sourceTree = "<group>"; };
 		73971DC8BB40190DE67EE4F9 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		8174F0961CBA8C530C9B30C0 /* PushGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGrid.swift; sourceTree = "<group>"; };
 		953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSlotTests.swift; sourceTree = "<group>"; };
 		9D547F6AB1F520F3FE1F00BB /* DWDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDClient.swift; sourceTree = "<group>"; };
 		A2E378685B6423E6A54BB754 /* WeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherApp.swift; sourceTree = "<group>"; };
@@ -90,7 +98,11 @@
 		AA76D542667074A3AA33EFA0 /* Fixtures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fixtures; path = WeatherTests/Fixtures; sourceTree = SOURCE_ROOT; };
 		B41AD6A302CA6A069044C960 /* ForecastInterpretationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastInterpretationSection.swift; sourceTree = "<group>"; };
 		B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDDataTests.swift; sourceTree = "<group>"; };
+		B920639E02C1140F70C713AE /* PushGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGateway.swift; sourceTree = "<group>"; };
+		B9952910B477FF2C7B3DFAA1 /* PlacePushSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacePushSettingsView.swift; sourceTree = "<group>"; };
+		BCB2C1112479F903D8978745 /* PushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushManager.swift; sourceTree = "<group>"; };
 		BF405ABCD119D3DE565984B0 /* RadarHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistory.swift; sourceTree = "<group>"; };
+		C05E42607D07EFF4916F6D7D /* PushTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushTests.swift; sourceTree = "<group>"; };
 		CD166EB5A565C647DE18DAFF /* RadarPollSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPollSchedule.swift; sourceTree = "<group>"; };
 		D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSmokeTests.swift; sourceTree = "<group>"; };
 		DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistoryTests.swift; sourceTree = "<group>"; };
@@ -133,6 +145,7 @@
 				AA76D542667074A3AA33EFA0 /* Fixtures */,
 				A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */,
 				0CDCFF7534843CDCBAD6352D /* ForecastResilienceTests.swift */,
+				C05E42607D07EFF4916F6D7D /* PushTests.swift */,
 				F074EE7537C4C452040B4523 /* RadarBackendTests.swift */,
 				DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */,
 				4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */,
@@ -150,6 +163,7 @@
 			children = (
 				B41AD6A302CA6A069044C960 /* ForecastInterpretationSection.swift */,
 				EBEB273A74F0043348EF420D /* InformationSheet.swift */,
+				B9952910B477FF2C7B3DFAA1 /* PlacePushSettingsView.swift */,
 				36810EBB689143D24E645BAD /* PlacesSheet.swift */,
 				A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */,
 				29217E1E77DCB0CF4795AABE /* TimelineScrub.swift */,
@@ -163,6 +177,17 @@
 				408AB90A46B56EE3B628B952 /* ForecastInterpretation.swift */,
 			);
 			path = Intelligence;
+			sourceTree = "<group>";
+		};
+		61F7329D77EB762FD23F21C0 /* Push */ = {
+			isa = PBXGroup;
+			children = (
+				B920639E02C1140F70C713AE /* PushGateway.swift */,
+				8174F0961CBA8C530C9B30C0 /* PushGrid.swift */,
+				2901C92E5F1E1C1E706A6AE6 /* PushKeychain.swift */,
+				BCB2C1112479F903D8978745 /* PushManager.swift */,
+			);
+			path = Push;
 			sourceTree = "<group>";
 		};
 		6D74AB06AA4AFA7E4EB5980F /* Map */ = {
@@ -192,6 +217,7 @@
 				56498D04FE568997FD075C8E /* Intelligence */,
 				6D74AB06AA4AFA7E4EB5980F /* Map */,
 				FD0C0E1BC0970EED5C111B49 /* Models */,
+				61F7329D77EB762FD23F21C0 /* Push */,
 				932CC6413882D948A00BAE9D /* Resources */,
 				51A3C79697AE9BE8FF7E3A68 /* Views */,
 			);
@@ -383,7 +409,12 @@
 				64E13A277E0DCDBA13FDE619 /* ForecastInterpretation.swift in Sources */,
 				90FAC3EC054A2F0EE95D5FE8 /* ForecastInterpretationSection.swift in Sources */,
 				BBCAFC6177CAE2EE714406F2 /* InformationSheet.swift in Sources */,
+				E7E600D48BEEE6C89A8DF88A /* PlacePushSettingsView.swift in Sources */,
 				D2A91364788C1F526A607365 /* PlacesSheet.swift in Sources */,
+				F08BB2B74CEDC7C627060B3B /* PushGateway.swift in Sources */,
+				64DDC32E997D39887A3D44E9 /* PushGrid.swift in Sources */,
+				5A327499E6EDC83F1132B90B /* PushKeychain.swift in Sources */,
+				E568B96A170F5AEE5C3E0866 /* PushManager.swift in Sources */,
 				0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */,
 				35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */,
 				833B08E15FD8FA6A2A9DF0F8 /* RadarImageOverlay.swift in Sources */,
@@ -407,6 +438,7 @@
 				3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */,
 				D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */,
 				439BD00528C4DD7AB2610BB2 /* ForecastResilienceTests.swift in Sources */,
+				2CD5AE787F1A1C3084FFA463 /* PushTests.swift in Sources */,
 				79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */,
 				0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */,
 				C47A6FE5458CA968A49A5BF7 /* RadarLegendTests.swift in Sources */,

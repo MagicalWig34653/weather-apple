@@ -2,13 +2,27 @@ import SwiftUI
 
 @main
 struct WeatherApp: App {
+    @UIApplicationDelegateAdaptor(PushAppDelegate.self) private var appDelegate
     @State private var store = WeatherStore()
+    @State private var push: PushManager
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        let manager = PushManager.live()
+        PushAppDelegate.manager = manager
+        _push = State(initialValue: manager)
+    }
 
     var body: some Scene {
         WindowGroup {
             RadarScreen(store: store)
                 .tint(.cyan)
+                .environment(push)
+                .task { store.onPlacesRemoved = { ids in Task { await push.placesRemoved(ids) } } }
+                .task(id: scenePhase) {
+                    guard scenePhase == .active else { return }
+                    await push.start()
+                }
                 .task { await store.refresh() }
                 .task(id: scenePhase) {
                     guard scenePhase == .active else { return }
