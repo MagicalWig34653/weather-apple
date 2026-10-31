@@ -72,7 +72,7 @@ Liefert der Radar-Cache einen frischen Lauf, ersetzt ein einziges `RadarImageOve
 - Manifest: `RadarManifest` (Validierung: Schema 1, Pflichtfelder, bbox, Zeiten sortiert, Referenz-Slot vorhanden, Pfade nur `<run>/<slot>.webp`). Slotzahl variabel (bis zu 12 frühere Analysen plus 25), nie hartkodiert.
 - Vorladen: `BackendRadarLoader.prefetch` lädt alle Slots in der Reihenfolge `RadarPrefetchPolicy.order` (selected, -1, +1, ...) mit 4 parallelen Requests (je Bild etwa 6 KB, gesamt etwa 150-300 KB). Komprimierte Bilder im bestehenden 50-MB-`TileMemoryCache`, höchstens 8 dekodierte Bilder zugleich; Fehler eines Bildes haben 5 s Abkühlung, kein Sturm.
 - Der DWD-`RadarPrefetcher` wird auf dem Backendweg nicht aktualisiert und bricht laufende Arbeit ab; beide Wege laufen nie zugleich.
-- Aktualisierung: `WeatherStore.pollRadar` (alle 60 s, aktiv); ein neuer Lauf behält den gewählten Zeitpunkt (`RadarTimelineSelection`), „Jetzt“ folgt der neuen Referenz.
+- Aktualisierung: `WeatherStore.runRadarPolling`/`pollRadar` (adaptiver Takt, `RadarPollSchedule`, siehe decisions.md; vorher starr 60 s; aktiv); ein neuer Lauf behält den gewählten Zeitpunkt (`RadarTimelineSelection`), „Jetzt“ folgt der neuen Referenz.
 
 ### Retry-Budgets (DWD-Direktweg, Nachbesserung Build 9)
 

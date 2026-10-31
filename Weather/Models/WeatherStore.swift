@@ -59,6 +59,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private let client: DWDClient
     @ObservationIgnored private let backend: RadarBackendClient
     @ObservationIgnored private var backendBlockedUntil = Date.distantPast
+    @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var waitingForLocation = false
@@ -206,21 +207,40 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
 
     /// Visible-app poll of the cache manifest (ETag, 304 is cheap). A new run replaces the
     /// slots and keeps the selected instant; a returning backend ends a direct-DWD fallback.
-    func pollRadar() async {
-        guard !isRadarLoading, Date() >= backendBlockedUntil else { return }
+    @discardableResult
+    func pollRadar() async -> RadarPollOutcome {
+        guard !isRadarLoading, Date() >= backendBlockedUntil else { return .skipped }
         let outcome = await backend.latest()
-        guard !isRadarLoading, !Task.isCancelled, Date() >= backendBlockedUntil else { return }
+        guard !isRadarLoading, !Task.isCancelled, Date() >= backendBlockedUntil else { return .skipped }
         switch outcome {
         case .fresh(let manifest, _):
-            if radarSource == .cache, latestManifest == manifest { return }
+            if radarSource == .cache, latestManifest == manifest { return .succeeded }
             let merged = await resolveBackendTimeline(manifest, retryHistory: false)
-            guard !isRadarLoading, !Task.isCancelled else { return }
+            guard !isRadarLoading, !Task.isCancelled else { return .skipped }
             apply(merged.timeline, source: .cache, attribution: RadarAttribution(manifest), keepSelection: true)
             radarNotice = nil
+            return .succeeded
         case .fallback:
-            guard radarSource == .cache, let timeline,
-                  Date().timeIntervalSince(timeline.referenceTime) > RadarBackendConfig.maximumDataAge else { return }
-            await switchToDirectRadar(notice: nil)
+            if radarSource == .cache, let timeline,
+               Date().timeIntervalSince(timeline.referenceTime) > RadarBackendConfig.maximumDataAge {
+                await switchToDirectRadar(notice: nil)
+            }
+            return .failed
+        }
+    }
+
+    /// Adaptive loop for the visible app: poll, then wait as `RadarPollSchedule` says. Ends on cancellation.
+    func runRadarPolling(schedule: RadarPollSchedule = RadarPollSchedule(),
+                         now: @escaping () -> Date = { Date() },
+                         restricted: (() -> Bool)? = nil,
+                         sleep: (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }) async {
+        var schedule = schedule
+        while !Task.isCancelled {
+            let outcome = await pollRadar()
+            let limited = restricted?() ?? (ProcessInfo.processInfo.isLowPowerModeEnabled || pathGate.isConstrained)
+            let delay = schedule.nextDelay(now: now(), latestReference: latestManifest?.referenceTime,
+                                           failed: outcome == .failed, restricted: limited)
+            do { try await sleep(delay) } catch { return }
         }
     }
 
@@ -417,3 +437,5 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         } catch { storageMessage = "Die Änderung konnte nicht auf dem Gerät gespeichert werden." }
     }
 }
+
+enum RadarPollOutcome: Equatable, Sendable { case succeeded, failed, skipped }

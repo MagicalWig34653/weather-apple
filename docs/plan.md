@@ -54,7 +54,7 @@ iPad und Mac erhalten passende Navigation, Fenster-/Tastaturbedienung und Karten
 
 Beobachtete Probleme priorisieren, Abrufvolumen/Cache/Energieverbrauch verbessern und Prognoseabweichungen nachvollziehbar erfassen. Erst nach einer nutzbaren App den zentralen Pushdienst implementieren. Dafür gilt der separate Backend-Plan.
 
-- Folgeaufgabe (vorgemerkt, nicht umgesetzt): Adaptiver Poll-Takt für `latest.json`: statt starr 60 s kurz vor dem erwarteten Erscheinen eines neuen Laufs (ca. 3–3,5 min nach Nominalzeit im 5-min-Raster) etwa alle 10 s nachfragen, bis der neue Lauf da ist, sonst selten. Websocket bewusst nicht (Akku/Hintergrund/Zustand), SSE nur falls später zeitkritische Live-Warnungen nötig; Benachrichtigungen über APNs.
+- **Umgesetzt (31. Oktober 2026, Kandidat für Build 12, am Gerät nicht erprobt; Regeln und Last in [decisions.md](decisions.md)):** Adaptiver Poll-Takt für `latest.json`: statt starr 60 s kurz vor dem erwarteten Erscheinen eines neuen Laufs (ca. 3–3,5 min nach Nominalzeit im 5-min-Raster) etwa alle 10 s nachfragen, bis der neue Lauf da ist, sonst selten. Websocket bewusst nicht (Akku/Hintergrund/Zustand), SSE nur falls später zeitkritische Live-Warnungen nötig; Benachrichtigungen über APNs.
 
 ## 6. Spätere Erweiterungen
 
