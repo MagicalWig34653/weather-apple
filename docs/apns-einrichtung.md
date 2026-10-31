@@ -6,7 +6,7 @@ Markierung: **[NUTZER]** nur der Kontoinhaber kann es tun. **[APP FEHLT]** in de
 
 ## 1. Apple Developer [NUTZER]
 
-- [ ] App-ID `de.linolaske.showernow` (Team `J2DU2P47XW`, beides vorläufig laut `AGENTS.md`): unter Certificates, Identifiers & Profiles → Identifiers die Capability **Push Notifications** aktivieren. Provisioning-Profile danach neu erzeugen; bei automatischem Signing macht Xcode das (UNGEPRÜFT).
+- [x] Capability erledigt (31.10.2026, siehe [signing.md](signing.md)): Entitlement im Projekt, per `-allowProvisioningUpdates` in Development- und Store-Profil enthalten. Ursprüngliche Anleitung (nur falls erneut nötig): App-ID `de.linolaske.showernow` (Team `J2DU2P47XW`, beides vorläufig laut `AGENTS.md`): unter Certificates, Identifiers & Profiles → Identifiers die Capability **Push Notifications** aktivieren. Provisioning-Profile danach neu erzeugen; bei automatischem Signing macht Xcode das (UNGEPRÜFT).
 - [ ] **APNs-Auth-Key** anlegen: Keys → „+“ → Apple Push Notifications service (APNs). Optionen (BESTÄTIGT, Apple-Quelle in der Recherche):
   - **Team-scoped, nur Sandbox** und **team-scoped, nur Produktion**: je Umgebung begrenzbar, höchstens zwei je Umgebung; Apple empfiehlt umgebungsspezifische Keys. Sinnvoll, wenn Debug-Läufe (Sandbox) und TestFlight/App Store (Produktion) getrennte Schlüssel haben sollen.
   - **Key für beide Umgebungen** (älteres Modell, bleibt gültig): ein Key für alles; einfacher, aber größerer Schaden bei Verlust.
@@ -69,7 +69,7 @@ APNS_ENV=production      # sandbox | production | both; muss zu den registrieren
 
 ## 4. Reihenfolge Sandbox und Produktion
 
-1. **[APP FEHLT]** Zuerst App-Seite bauen: Capability Push Notifications (Entitlement `aps-environment`), Berechtigungsanfrage mit Erklärung, Token-Registrierung, Einwilligung/Datenschutztext. Ohne sie ist serverseitig nichts testbar.
+1. **[APP FEHLT]** Zuerst App-Seite bauen: (Capability/Entitlement `aps-environment` ist seit 31.10.2026 vorhanden), Berechtigungsanfrage mit Erklärung, Token-Registrierung, Einwilligung/Datenschutztext. Ohne sie ist serverseitig nichts testbar.
 2. **Sandbox-Test** (Xcode-Debug-Build auf echtem Gerät): `APNS_ENV=sandbox` (oder `both`) und Sandbox-fähiger Key. Das Entitlement folgt dem Profil: Development-Profil → `development` (= Sandbox) (BESTÄTIGT).
 3. **Produktion/TestFlight:** `APNS_ENV=production` mit Produktions-fähigem Key. Dass TestFlight-Builds Produktionstokens erhalten, folgt aus „Distribution-Profil → `production`“, steht aber **nicht ausdrücklich** auf den gelesenen Apple-Seiten (**UNGEPRÜFT**). Beim ersten TestFlight-Test deshalb auf `400 BadDeviceToken` achten: Umgebung/Key passt nicht zum Token.
 4. Token und Umgebung müssen zusammenpassen, sonst `BadDeviceToken` (BESTÄTIGT). Es ist daher wichtig, dass die App ihre Umgebung meldet (Entwurf: DEBUG → sandbox, sonst production).
