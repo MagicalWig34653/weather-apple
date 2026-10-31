@@ -27,13 +27,14 @@ struct InformationSheet: View {
                 Section("Datenquellen") {
                     Text("\(store.radarAttribution.attribution). \(store.radarAttribution.modificationNotice). Niederschlagswerte für die Ortsprognose umgerechnet und aufbereitet.")
                     Text("Radarbilder aktuell: \(store.radarSource.label). Normalerweise liefert der ShowerNow-Radar-Server die Bilder; bei Fehlern oder veralteten Daten lädt die App sie selbstständig direkt vom DWD-Kartendienst.")
+                    layerSources
                     Link("Deutscher Wetterdienst · Open Data", destination: URL(string: "https://opendata.dwd.de/weather/radar/composite/rv/")!)
                     Link("DWD · Nutzungsbedingungen", destination: URL(string: "https://www.dwd.de/DE/service/copyright/copyright_node.html")!)
                     Text("Karte und Ortssuche: Apple MapKit. Quellenhinweise der Karte bleiben eingeblendet.")
                 }
                 Section("Datenschutz") {
                     Text("Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben lokal.")
-                    Text("Radarbilder lädt die App vom ShowerNow-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab.")
+                    Text("Radarbilder lädt die App vom ShowerNow-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab. Bilder der Zusatzebenen kommen nur vom ShowerNow-Server. Blendest du die Legende der Blitze ein, lädt die App das Legendenbild direkt vom DWD (bei Wolken ggf. von EUMETSAT); dabei sieht der Anbieter technisch bedingt deine IP-Adresse, aber keinen Ort.")
                     Text("Für eine Ortsprognose erhält der DWD weiterhin direkt einen Kartenausschnitt um die ausgewählte Position. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.")
                     Text("Nur wenn du Regenhinweise für einen Ort einschaltest: Der ShowerNow-Server erhält dein Gerätetoken, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km um den Ort (keine Koordinaten, kein Ortsname) sowie Schwelle und Vorlaufzeit; kein Konto. Beim Ausschalten, Löschen des Orts oder Zurücksetzen werden diese Daten gelöscht.")
                     Text("Standortzugriff ist optional und wird nur bei Nutzung angefordert. Keine Hintergrundortung. Punktanfragen werden nicht in einem Festplatten-Netzwerkcache gespeichert.")
@@ -53,6 +54,27 @@ struct InformationSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
         }
+    }
+
+    // MARK: Layer sources
+
+    /// Source line and modification notice of every optional layer the backend currently offers (from its manifest).
+    @ViewBuilder private var layerSources: some View {
+        ForEach(RadarLayer.selectable.filter(\.isBackendLayer)) { layer in
+            if let manifest = store.layers.snapshot(layer).manifest {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(layer.title).font(.subheadline.weight(.semibold))
+                    Text("\(manifest.attribution). \(manifest.modificationNotice).")
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("layer-source-\(layer.rawValue)")
+            }
+        }
+        if store.layers.snapshot(.clouds).manifest != nil {
+            Link("EUMETSAT · EUMETView", destination: URL(string: "https://view.eumetsat.int")!)
+        }
+        Text("Zusatzebenen (Luftdruck, Blitze, Wolken) liefert der ShowerNow-Server nur, wenn sie dort aktiviert sind; sonst sind sie ausgegraut. Einen Ersatzweg direkt beim DWD gibt es für sie nicht.")
+            .font(.footnote).foregroundStyle(.secondary)
     }
 
     // MARK: Radar past setting

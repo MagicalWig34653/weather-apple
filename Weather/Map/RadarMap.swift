@@ -10,6 +10,9 @@ struct RadarMap: UIViewRepresentable {
     let timeline: RadarTimeline?
     let prefetchActive: Bool
     let bottomInset: CGFloat
+    /// Which overlay the map shows. Optional layers have no DWD tile fallback: without their own
+    /// manifest the map shows no overlay at all (never the radar).
+    var layer: RadarLayer = .radar
     let onSelect: (CLLocationCoordinate2D) -> Void
     /// Called when a backend image failed; the argument is the number of images loaded so far.
     var onBackendFailure: @MainActor (Int) -> Void = { _ in }
@@ -52,6 +55,14 @@ struct RadarMap: UIViewRepresentable {
             pin.title = place.name
             map.addAnnotation(pin)
             coordinator.placeID = place.id
+        }
+        if layer != .radar {
+            if let manifest = timeline?.backend {
+                coordinator.updateBackend(map: map, manifest: manifest)
+            } else {
+                coordinator.clearOverlays(map: map)
+            }
+            return
         }
         if let manifest = timeline?.backend {
             // Cache backend: one whole-image overlay; DWD tile overlay and prefetch stay off.
@@ -136,6 +147,17 @@ struct RadarMap: UIViewRepresentable {
             date = nil; referenceTime = nil
         }
 
+        /// Removes every data overlay (an optional layer without data must not leave radar tiles behind).
+        func clearOverlays(map: MKMapView) {
+            prefetcher.cancel()
+            RadarPrefetchFlight.shared.cancelHandoff()
+            overlay?.cancelLoading()
+            backendOverlay?.loader.cancelPrefetch()
+            map.removeOverlays(map.overlays)
+            overlay = nil; backendOverlay = nil; activeContextID = nil; currentState = nil
+            date = nil; referenceTime = nil; reloadRevision = -1
+        }
+
         /// Shows the selected slot from the cache backend. Slot changes only redraw the same
         /// overlay (from memory when preloaded); a new run swaps the overlay.
         func updateBackend(map: MKMapView, manifest: RadarManifest) {
@@ -148,7 +170,9 @@ struct RadarMap: UIViewRepresentable {
             }
             var replaced = false
             if backendOverlay?.loader.manifest != manifest {
-                let created = RadarImageOverlay(loader: BackendRadarLoader(manifest: manifest))
+                let isRadar = parent.layer == .radar
+                let created = RadarImageOverlay(loader: BackendRadarLoader(manifest: manifest, trimsCache: isRadar),
+                                                opacity: parent.layer.overlayOpacity)
                 map.addOverlay(created, level: .aboveRoads)
                 if let old = backendOverlay { old.loader.cancelPrefetch(); map.removeOverlay(old) }
                 backendOverlay = created
@@ -189,7 +213,7 @@ struct RadarMap: UIViewRepresentable {
             guard active, !ProcessInfo.processInfo.isLowPowerModeEnabled, !gate.isConstrained else {
                 loader.cancelPrefetch(); return
             }
-            loader.prefetch(selected: selected) {
+            loader.prefetch(selected: selected, limit: parent.layer.prefetchSlotLimit) {
                 !ProcessInfo.processInfo.isLowPowerModeEnabled && !gate.isConstrained
             }
         }
@@ -270,7 +294,7 @@ struct RadarMap: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if overlay is RadarImageOverlay {
                 let renderer = RadarImageRenderer(overlay: overlay)
-                renderer.alpha = 0.72
+                renderer.alpha = (overlay as? RadarImageOverlay)?.opacity ?? 0.72
                 return renderer
             }
             guard let tiles = overlay as? MKTileOverlay else { return MKOverlayRenderer(overlay: overlay) }

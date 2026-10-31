@@ -58,6 +58,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
 
     @ObservationIgnored private let client: DWDClient
     @ObservationIgnored private let backend: RadarBackendClient
+    /// Optional map layers (pressure, lightning, clouds) with their own manifests; the radar logic above is independent of it.
+    let layers: RadarLayerStore
     @ObservationIgnored private var backendBlockedUntil = Date.distantPast
     @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
@@ -78,9 +80,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     }
 
     init(client: DWDClient, backend: RadarBackendClient = RadarBackendClient(),
-         defaults: UserDefaults = .standard) {
+         defaults: UserDefaults = .standard, layers: RadarLayerStore? = nil) {
         self.client = client
         self.backend = backend
+        self.layers = layers ?? RadarLayerStore(radarBaseURL: backend.baseURL)
         self.defaults = defaults
         super.init()
         pastHours = RadarPastWindow.load(defaults)

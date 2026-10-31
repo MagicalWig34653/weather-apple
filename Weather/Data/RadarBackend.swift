@@ -216,22 +216,25 @@ actor RadarBackendClient {
          clock: @escaping @Sendable () -> Date = { Date() }) {
         self.baseURL = baseURL
         self.clock = clock
-        if let transport { self.transport = transport } else {
-            let configuration = URLSessionConfiguration.ephemeral
-            configuration.urlCache = nil
-            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-            configuration.httpCookieStorage = nil
-            configuration.httpShouldSetCookies = false
-            configuration.urlCredentialStorage = nil
-            configuration.timeoutIntervalForRequest = 6
-            configuration.timeoutIntervalForResource = 10
-            configuration.waitsForConnectivity = false
-            let session = URLSession(configuration: configuration)
-            self.transport = { request in
-                let (data, response) = try await session.data(for: request)
-                guard let response = response as? HTTPURLResponse else { throw RadarBackendError.invalid }
-                return (data, response)
-            }
+        self.transport = transport ?? Self.makeTransport()
+    }
+
+    /// Ephemeral session without cookies, credentials or disk cache (shared with `RadarLayerClient`).
+    static func makeTransport() -> Transport {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.urlCredentialStorage = nil
+        configuration.timeoutIntervalForRequest = 6
+        configuration.timeoutIntervalForResource = 10
+        configuration.waitsForConnectivity = false
+        let session = URLSession(configuration: configuration)
+        return { request in
+            let (data, response) = try await session.data(for: request)
+            guard let response = response as? HTTPURLResponse else { throw RadarBackendError.invalid }
+            return (data, response)
         }
     }
 

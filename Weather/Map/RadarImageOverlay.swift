@@ -73,7 +73,10 @@ final class BackendRadarLoader: @unchecked Sendable {
     private var successes = 0
     private var failures = 0
 
+    /// `trimsCache: false` for optional layers: they must not evict the radar's images from the shared cache
+    /// (its byte limit and LRU still apply to everything together).
     init(manifest: RadarManifest, cache: TileMemoryCache = BackendRadarLoader.sharedCache,
+         trimsCache: Bool = true,
          prefetchCeiling: Int = RadarBackendPolicy.prefetchCacheCeiling,
          fetch: Fetch? = nil, decode: Decode? = nil) {
         self.manifest = manifest
@@ -82,7 +85,7 @@ final class BackendRadarLoader: @unchecked Sendable {
         self.fetch = fetch ?? BackendRadarLoader.makeFetch()
         let width = manifest.imageWidth, height = manifest.imageHeight
         self.decode = decode ?? { RadarImageDecoder.decode($0, width: width, height: height) }
-        cache.retain(Set(manifest.slots.map(\.url)))
+        if trimsCache { cache.retain(Set(manifest.slots.map(\.url))) }
     }
 
     deinit { prefetchTask?.cancel() }
@@ -135,8 +138,10 @@ final class BackendRadarLoader: @unchecked Sendable {
     }
 
     /// Alternating left/right from the selected slot with a few parallel requests.
-    func prefetch(selected: Int, allowed: @escaping @Sendable () -> Bool) {
-        let urls = RadarPrefetchPolicy.order(selected: selected, count: manifest.slots.count).map { manifest.slots[$0].url }
+    /// `limit` caps the number of slots around the selected one (large images); `nil` = all.
+    func prefetch(selected: Int, limit: Int? = nil, allowed: @escaping @Sendable () -> Bool) {
+        let order = RadarPrefetchPolicy.order(selected: selected, count: manifest.slots.count)
+        let urls = (limit.map { Array(order.prefix(max(1, $0))) } ?? order).map { manifest.slots[$0].url }
         let queue = PrefetchQueue(urls)
         let task = Task { [self] in
             await withTaskGroup(of: Void.self) { group in
@@ -210,9 +215,11 @@ final class RadarImageOverlay: NSObject, MKOverlay, @unchecked Sendable {
     let coordinate: CLLocationCoordinate2D
     private let lock = NSLock()
     private var shownURL: URL?
+    let opacity: CGFloat
 
-    init(loader: BackendRadarLoader) {
+    init(loader: BackendRadarLoader, opacity: CGFloat = 0.72) {
         self.loader = loader
+        self.opacity = opacity
         let rect = RadarImageGeometry.mapRect(for: loader.manifest.bounds)
         boundingMapRect = MKMapRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height)
         coordinate = MKMapPoint(x: rect.x + rect.width / 2, y: rect.y + rect.height / 2).coordinate

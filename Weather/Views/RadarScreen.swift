@@ -26,21 +26,24 @@ struct RadarScreen: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            RadarMap(place: store.selectedPlace, date: store.frameDate,
-                     referenceTime: store.frameReference, centerRevision: store.centerRevision,
+            RadarMap(place: store.selectedPlace, date: store.displayFrameDate,
+                     referenceTime: store.displayFrameReference, centerRevision: store.centerRevision,
                      reloadRevision: store.radarReloadRevision,
-                     timeline: store.timeline, prefetchActive: scenePhase == .active && !store.isPlaying,
-                     bottomInset: mapBottomInset,
+                     timeline: store.displayTimeline, prefetchActive: scenePhase == .active && !store.isPlaying,
+                     bottomInset: mapBottomInset, layer: store.activeLayer,
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
-                     onBackendFailure: { loaded in if loaded == 0 { store.backendImagesUnavailable() } },
+                     onBackendFailure: { loaded in
+                         // Optional layers have no fallback: a failed layer image never switches the radar source.
+                         if loaded == 0, store.activeLayer == .radar { store.backendImagesUnavailable() }
+                     },
                      onLoadState: { state in
-                         guard state.frameDate == store.frameDate, state.referenceTime == store.frameReference,
+                         guard state.frameDate == store.displayFrameDate, state.referenceTime == store.displayFrameReference,
                                state.reloadRevision == store.radarReloadRevision else { return }
                          radarLoadState = state
-                         store.acceptRadarLoadState(state)
+                         if store.activeLayer == .radar { store.acceptRadarLoadState(state) }
                      })
                 .ignoresSafeArea()
-                .accessibilityLabel("Regenradar für \(store.selectedPlace.name)")
+                .accessibilityLabel("\(store.activeLayer.spokenName) für \(store.selectedPlace.name)")
                 .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
             VStack(spacing: 6) {
                 Spacer()
@@ -58,10 +61,10 @@ struct RadarScreen: View {
                         .background(.regularMaterial, in: Capsule())
                         .accessibilityIdentifier("radar-slot-status")
                 }
-                if store.timeline != nil {
-                    Text("\(store.radarAttribution.attribution) · \(store.radarSource.label)"
-                         + (store.historyStatus == .unavailable && store.radarSource == .cache ? " · Historie nicht verfügbar" : ""))
+                if let line = store.displayAttributionLine {
+                    Text(line)
                         .font(.caption2).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(.thinMaterial, in: Capsule())
                         .accessibilityIdentifier("radar-attribution")
@@ -81,17 +84,24 @@ struct RadarScreen: View {
                 }
                 HStack(alignment: .top) {
                     Spacer()
-                    if showLegend { RadarLegendPanel(legend: .precipitationRadar) }
+                    if showLegend {
+                        if store.activeLayer == .radar {
+                            RadarLegendPanel(legend: .precipitationRadar)
+                        } else {
+                            RadarLayerLegendPanel(layer: store.activeLayer, manifest: store.layers.activeManifest)
+                        }
+                    }
                     VStack(spacing: 14) {
                         Button { store.requestLocation() } label: {
                             Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
                         }.accessibilityLabel("Aktuellen Standort verwenden")
+                        layerMenu
                         Button { withAnimation(reduceMotion ? nil : .snappy) { showLegend.toggle() } } label: {
                             Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
                         }
-                        .accessibilityLabel("Legende Regenradar")
+                        .accessibilityLabel("Legende \(store.activeLayer.title)")
                         .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
-                        .accessibilityHint("Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde")
+                        .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
                         .accessibilityIdentifier("radar-legend-toggle")
                         Button { sheet = .information } label: {
                             Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
@@ -128,18 +138,18 @@ struct RadarScreen: View {
         .task(id: store.isPlaying) {
             guard store.isPlaying else { return }
             // Playback covers only a window (at most 3 h of past); start there if the slider is further back.
-            if let timeline = store.timeline {
+            if let timeline = store.displayTimeline {
                 let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.pastHours)
-                if store.selectedFrame < start { store.selectedFrame = start }
+                if store.displayFrameIndex < start { store.displayFrameIndex = start }
             }
-            var waitingFrame = store.frameDate
+            var waitingFrame = store.displayFrameDate
             var waitingSince = Date()
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .milliseconds(reduceMotion ? 3000 : 2000)) }
                 catch { return }
-                guard let timeline = store.timeline, !timeline.dates.isEmpty else { return }
-                if waitingFrame != store.frameDate {
-                    waitingFrame = store.frameDate
+                guard let timeline = store.displayTimeline, !timeline.dates.isEmpty else { return }
+                if waitingFrame != store.displayFrameDate {
+                    waitingFrame = store.displayFrameDate
                     waitingSince = Date()
                 }
                 if let load = currentRadarLoadState, load.shouldStopPlayback {
@@ -149,9 +159,9 @@ struct RadarScreen: View {
                 // Wait for actual requests, but keep offline/no-event frames from stalling playback forever.
                 let frameFinished = currentRadarLoadState.map { $0.requested > 0 && $0.pending == 0 } ?? false
                 guard frameFinished || Date().timeIntervalSince(waitingSince) >= 12 else { continue }
-                store.selectedFrame = PlaybackWindow.nextIndex(after: store.selectedFrame, dates: timeline.dates,
-                                                               reference: timeline.referenceTime, pastHours: store.pastHours)
-                waitingFrame = store.frameDate
+                store.displayFrameIndex = PlaybackWindow.nextIndex(after: store.displayFrameIndex, dates: timeline.dates,
+                                                                   reference: timeline.referenceTime, pastHours: store.pastHours)
+                waitingFrame = store.displayFrameDate
                 waitingSince = Date()
             }
         }
@@ -163,12 +173,55 @@ struct RadarScreen: View {
                 catch { return }
             }
         }
+        .task(id: scenePhase) {
+            // Which optional layers exist (404 -> greyed out). Throttled; restricted modes ask only the active one.
+            guard scenePhase == .active else { return }
+            await store.layers.probeAll(restricted: ProcessInfo.processInfo.isLowPowerModeEnabled)
+        }
+        .task(id: LayerPollKey(layer: store.activeLayer, active: scenePhase == .active)) {
+            guard scenePhase == .active else { return }
+            await store.layers.runPolling(for: store.activeLayer, restricted: { ProcessInfo.processInfo.isLowPowerModeEnabled })
+        }
+        .onChange(of: store.activeLayer) { _, _ in
+            store.isPlaying = false
+            radarLoadState = nil
+            scrubIndex = nil
+        }
         .onChange(of: sheet) { _, value in
             if value != nil { store.isPlaying = false }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { store.isPlaying = false }
         }
+    }
+
+    private struct LayerPollKey: Equatable { let layer: RadarLayer; let active: Bool }
+
+    /// One active overlay. Layers the backend does not offer (404) stay visible but disabled.
+    private var layerMenu: some View {
+        Menu {
+            ForEach(RadarLayer.selectable) { layer in
+                let availability = store.layers.availability(layer)
+                Button {
+                    store.isPlaying = false
+                    showLegend = false
+                    store.layers.select(layer)
+                } label: {
+                    Label(layer.title + (availability.hint.map { " (\($0))" } ?? ""),
+                          systemImage: layer == store.activeLayer ? "checkmark" : layer.symbolName)
+                }
+                .disabled(!availability.isSelectable)
+                .accessibilityLabel(layer.spokenName + (availability.hint.map { ", \($0)" } ?? "")
+                                    + (layer == store.activeLayer ? ", ausgewählt" : ""))
+                .accessibilityIdentifier("radar-layer-\(layer.rawValue)")
+            }
+        } label: {
+            Image(systemName: "square.3.layers.3d").font(.system(size: 20)).frame(width: 46, height: 46)
+        }
+        .accessibilityLabel("Kartenebene wählen")
+        .accessibilityValue(store.activeLayer.spokenName)
+        .accessibilityHint("Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze oder Wolken")
+        .accessibilityIdentifier("radar-layer-menu")
     }
 
     private var header: some View {
@@ -197,32 +250,43 @@ struct RadarScreen: View {
 
     private var currentRadarLoadState: RadarLoadState? {
         guard let state = radarLoadState,
-              state.frameDate == store.frameDate,
-              state.referenceTime == store.frameReference,
+              state.frameDate == store.displayFrameDate,
+              state.referenceTime == store.displayFrameReference,
               state.reloadRevision == store.radarReloadRevision else { return nil }
         return state
     }
 
     /// Slot shown by thumb and label: the scrub position wins over the store while dragging.
-    private var displayedIndex: Int { scrubIndex ?? store.selectedFrame }
+    private var displayedIndex: Int { scrubIndex ?? store.displayFrameIndex }
 
     private var displayedDate: Date? {
-        guard let dates = store.timeline?.dates, dates.indices.contains(displayedIndex) else { return store.frameDate }
+        guard let dates = store.displayTimeline?.dates, dates.indices.contains(displayedIndex) else { return store.displayFrameDate }
         return dates[displayedIndex]
     }
 
     /// Honest per-slot hint: the map never shows another slot's image as this slot's state.
     private var slotFeedback: (text: String, failed: Bool)? {
-        guard store.timeline != nil, !store.isPlaying, let date = displayedDate else { return nil }
+        let layer = store.activeLayer
+        if layer != .radar, store.displayTimeline == nil {
+            // No data for the chosen layer (outage): a quiet hint instead of an error banner.
+            if store.layers.isLoading { return ("\(layer.title) lädt …", false) }
+            return ("\(layer.title) derzeit nicht verfügbar", true)
+        }
+        guard store.displayTimeline != nil, !store.isPlaying, let date = displayedDate else { return nil }
         let time = date.formatted(date: .omitted, time: .shortened)
+        let name = layer == .radar ? "Radar" : layer.title
         switch TimelineSlot.status(for: currentRadarLoadState) {
         case .ready: return nil
-        case .loading: return ("Radar für \(time) lädt …", false)
-        case .failed: return ("Radar für \(time) nicht geladen", true)
+        case .loading: return ("\(name) für \(time) lädt …", false)
+        case .failed: return ("\(name) für \(time) nicht geladen", true)
         }
     }
 
     private var radarIsLoading: Bool {
+        if store.activeLayer != .radar {
+            if store.layers.isLoading { return true }
+            if store.displayTimeline == nil { return false }
+        }
         if store.isRadarLoading { return true }
         if let state = currentRadarLoadState { return !state.isSettled }
         return refreshTapFeedback || (store.radarError == nil && store.timeline != nil)
@@ -251,6 +315,7 @@ struct RadarScreen: View {
             radarLoadState = nil
             refreshTapFeedback = true
             Task { await store.refresh() }
+            Task { await store.layers.probeAll(force: true, restricted: ProcessInfo.processInfo.isLowPowerModeEnabled) }
             // Keep immediate tap acknowledgement visible even when all metadata is cached.
             Task {
                 try? await Task.sleep(for: .milliseconds(600))
@@ -319,12 +384,12 @@ struct RadarScreen: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(store.timeline == nil)
-        .accessibilityLabel(store.isPlaying ? "Animation pausieren" : "Radaranimation starten")
+        .disabled(store.displayTimeline == nil)
+        .accessibilityLabel(store.isPlaying ? "Animation pausieren" : (store.activeLayer == .radar ? "Radaranimation starten" : "Animation starten"))
     }
 
     private var displayedIsForecast: Bool {
-        guard let date = displayedDate, let timeline = store.timeline else { return false }
+        guard let date = displayedDate, let timeline = store.displayTimeline else { return false }
         return date > timeline.referenceTime
     }
 
@@ -336,7 +401,7 @@ struct RadarScreen: View {
                     Text(day).font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            Text(displayedIsForecast ? "Vorhersage" : "Messung")
+            Text(store.activeLayer.frameCaption(isForecast: displayedIsForecast))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(displayedIsForecast ? .orange : .cyan)
         }
@@ -347,16 +412,16 @@ struct RadarScreen: View {
 
     /// With up to 48 hours of past the time alone is ambiguous: name the day when it is not the reference day.
     private func otherDayLabel(for date: Date) -> String? {
-        guard let reference = store.timeline?.referenceTime,
+        guard let reference = store.displayTimeline?.referenceTime,
               !Calendar.current.isDate(date, inSameDayAs: reference) else { return nil }
         return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
     }
 
     @ViewBuilder private var nowButton: some View {
-        if let timeline = store.timeline {
+        if let timeline = store.displayTimeline {
             Button {
                 store.isPlaying = false
-                store.selectedFrame = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
+                store.displayFrameIndex = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
             } label: {
                 Text("Jetzt").font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: true, vertical: true)
@@ -368,11 +433,11 @@ struct RadarScreen: View {
     }
 
     @ViewBuilder private var timeSlider: some View {
-        if let timeline = store.timeline, timeline.dates.count > 1 {
+        if let timeline = store.displayTimeline, timeline.dates.count > 1 {
             TimelineScrubSlider(count: timeline.dates.count, displayedIndex: displayedIndex, onScrub: { index in
                 store.isPlaying = false
                 if scrubIndex != index { scrubIndex = index }
-                if store.selectedFrame != index { store.selectedFrame = index }
+                if store.displayFrameIndex != index { store.displayFrameIndex = index }
             }, onEnd: { scrubIndex = nil }, stage: $scrubStage)
             .sensoryFeedback(.selection, trigger: scrubIndex) { _, new in new != nil }
             .sensoryFeedback(.impact(weight: .light), trigger: scrubStage) { old, new in old != nil && new != nil }
@@ -397,20 +462,22 @@ struct RadarScreen: View {
                 Slider(value: Binding(get: { Double(displayedIndex) }, set: {
                     let index = TimelineSlot.index(for: $0, count: timeline.dates.count)
                     store.isPlaying = false
-                    if store.selectedFrame != index { store.selectedFrame = index }
+                    if store.displayFrameIndex != index { store.displayFrameIndex = index }
                 }), in: 0...Double(timeline.dates.count - 1), step: 1)
-                .accessibilityLabel("Radarzeitpunkt")
+                .accessibilityLabel(store.activeLayer.timeAxisLabel)
                 .accessibilityAdjustableAction { direction in
                     let step = direction == .increment ? 1 : -1
                     let index = TimelineAccessibility.adjusted(index: displayedIndex, by: step, count: timeline.dates.count)
                     store.isPlaying = false
-                    if store.selectedFrame != index { store.selectedFrame = index }
+                    if store.displayFrameIndex != index { store.displayFrameIndex = index }
                 }
-                .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime))
+                .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime,
+                                                                caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast)))
                 .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened)). Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.")
             }
         } else {
-            Text(store.isLoading ? "Radar lädt …" : "Keine Radarzeiten")
+            Text(store.activeLayer != .radar ? (store.layers.isLoading ? "\(store.activeLayer.title) lädt …" : "Keine Zeiten für \(store.activeLayer.title)")
+                 : store.isLoading ? "Radar lädt …" : "Keine Radarzeiten")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -459,10 +526,12 @@ struct RadarScreen: View {
         if let message = store.locationMessage { return message }
         if let message = store.storageMessage { return message }
         if let state = currentRadarLoadState, state.failed > 0 {
+            if store.activeLayer != .radar { return "Das Bild der Ebene \(store.activeLayer.title) für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren." }
             return store.radarSource == .cache
                 ? "Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren."
                 : "Einige Radarkacheln fehlen. Bitte erneut aktualisieren."
         }
+        if store.activeLayer != .radar { return nil }
         if let error = store.radarError { return "Radar: \(error)" }
         if let error = store.forecastError { return "Ortsprognose: \(error)" }
         if let notice = store.radarNotice { return notice }

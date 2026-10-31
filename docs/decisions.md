@@ -240,6 +240,7 @@ Noch NICHT entschieden bzw. offen (Empfehlung des Entwurfs in Klammern):
 - E7 Rechtsgrundlage, Verantwortlicher/Impressum, Zoraxy-Logging (Einwilligung; Zoraxy ohne IP-Zugriffslog oder gekürzt; vor Livegang klären).
 - E8 Missbrauchsschutz: Limit Subs je Install (10), Rate-Limit am Proxy, App Attest erst bei realem Missbrauch.
 - Reihenfolge weiterer Karten: bestätigt (Luftdruck, Blitze, Wolken über EUMETSAT MTG geocolour). Alternativanbieter geprüft, keiner gleichwertig für Europa (wolkenradar-quellen.md, Abschnitt 7). EUMETSAT-Klärung: siehe Eintrag unten. Quellen: [research/weitere-radarkarten.md](research/weitere-radarkarten.md), [research/wolkenradar-quellen.md](research/wolkenradar-quellen.md).
+- Ebenenwahl in der App (31.10.2026 umgesetzt, Arbeitsentscheidung): genau eine aktive Ebene, Standard Regenradar; Zusatzebenen nur über den Backend-Cache (`/v1/layers/<ebene>/`), kein WMS-Fallback; 404 = Ebene ausgegraut ohne Fehlerbanner. Frischegrenzen je Ebene (Blitze 30 min, Wolken 2 h, Luftdruck Lauf 18 h) sind Startwerte. Details: [status.md](status.md).
 
 ## EUMETSAT-Klärung (31. Oktober 2026)
 

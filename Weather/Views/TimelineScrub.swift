@@ -117,13 +117,13 @@ enum PlaybackWindow {
 enum TimelineAccessibility {
     /// "HH:mm, Messung" / "Vorhersage"; names the day (e.g. "Fr., 30. Okt., 23:55, Messung") when it is not the reference day.
     static func value(date: Date?, isForecast: Bool, reference: Date?, calendar: Calendar = .current,
-                      locale: Locale = Locale(identifier: "de_DE")) -> String {
+                      locale: Locale = Locale(identifier: "de_DE"), caption: String? = nil) -> String {
         guard let date else { return "Unbekannt" }
         var text = date.formatted(.dateTime.hour().minute().locale(locale))
         if let reference, !calendar.isDate(date, inSameDayAs: reference) {
             text = date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(locale)) + ", " + text
         }
-        return "\(text), \(isForecast ? "Vorhersage" : "Messung")"
+        return "\(text), \(caption ?? (isForecast ? "Vorhersage" : "Messung"))"
     }
 
     /// Index after a VoiceOver increment (+1) or decrement (-1); stays within the slots.
