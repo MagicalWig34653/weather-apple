@@ -8,6 +8,10 @@ Stand: 31. Oktober 2026.
 - **Kandidat Build 12** (Buildnummer im Repo weiterhin 11, kein Archiv/Upload): Build 11 plus adaptiver Poll-Takt für `latest.json` (`d6f5dff`) plus Links „Support“ und „Über ShowerNow“ im Info-Sheet.
 - **Live-Messung vom 31.10.2026 04:59 MEZ (Messung des Auftraggebers, hier nicht erneut geprüft):** `/datenschutz`, `/marketing` und `/support` antworten HTTP 200; `history.json` liefert noch 404. Folgerung: Der Swarm ist älter als `sha-e80b6b8` (vermutlich `sha-6402a6a`, nur Vermutung). Der Inhalt des Apple-Abschnitts der Datenschutzseite ist nur im Backend-Repo bestätigt. Die App hängt von keiner dieser Seiten ab (die Links öffnen nur den Browser).
 
+### UI-Test-Reparatur (31. Oktober 2026)
+
+Drei deterministische Fehler in `WeatherSmokeTests` (iPhone 18 Pro, iOS 27.2), keine App-Regression: (1) `slider.adjust(toNormalizedSliderPosition:)` scheitert an der Slider-Accessibility-Repräsentation über dem eigenen Drag-Regler (Scrubber-Positionen 0); Test zieht jetzt per Koordinaten-Drag. (2) Beim Speichern/Umbenennen schluckt bei sichtbarer Tastatur der erste Tap auf „Speichern“; Test wiederholt ihn einmal. Ergebnis: zwei volle Läufe von `WeatherSmokeTests` grün (6/6 je Lauf). Gesamte Scheme danach nicht erneut ausgeführt.
+
 ### Änderungen für Build 12 (Kandidat)
 
 - **Sonnenstand-Baustein S1 (31.10.2026):** `Weather/Data/SolarPosition.swift` (NOAA/Meeus, reine Logik, UTC-Basis): Azimut/Höhe, Dämmerungsklassen (`Phase`), Auf-/Untergangsdurchgänge (`crossings`, Polartag/-nacht leer), `elevationGrid`/`phaseGrid` (Zeitparameter einmal je Raster, Datumsgrenze), `sunLabel` („Sonne bis HH:mm“), optionale Refraktion. Keine UI, noch nicht eingebunden. `SolarPositionTests` (19) mit Referenzwerten aus JPL Horizons (API, abgerufen 31.10.2026, airless; Quelle im Testkopf): Berlin 31.10., 48N/8E am 21.6./21.12./20.3.2027, 45S, 78N (Polar), Datumsgrenze; Toleranz 0,5 Grad. Geprüft: volle `WeatherTests` 175 Tests, 0 Fehler. Nicht geprüft: UI-Suite, Genauigkeit der Auf-/Untergangszeiten gegen eine externe Zeitreferenz (nur Klammerung durch Horizons-Höhen), Nähe zu Streifkulminationen (<10 min, bewusst nicht erfasst).

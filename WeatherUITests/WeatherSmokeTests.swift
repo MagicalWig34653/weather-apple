@@ -30,7 +30,7 @@ final class WeatherSmokeTests: XCTestCase {
         guard slider.waitForExistence(timeout: 25) else {
             throw XCTSkip("Der Live-Kartendienst hat keine Radarzeitpunkte geliefert.")
         }
-        slider.adjust(toNormalizedSliderPosition: 1)
+        dragSlider(slider, to: 1)
         XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
         app.buttons["Jetzt"].tap()
         XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
@@ -103,7 +103,7 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(label.exists)
         XCTAssertLessThanOrEqual(label.frame.maxY, play.frame.minY)
         XCTAssertTrue(app.buttons["forecast-details"].isHittable)
-        slider.adjust(toNormalizedSliderPosition: 1)
+        dragSlider(slider, to: 1)
         XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
         now.tap()
         XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
@@ -133,7 +133,7 @@ final class WeatherSmokeTests: XCTestCase {
         let saveAlert = app.alerts["Ort speichern"]
         XCTAssertTrue(saveAlert.waitForExistence(timeout: 5))
         replaceText(in: saveAlert.textFields.firstMatch, with: originalName)
-        saveAlert.buttons["Speichern"].tap()
+        confirm(saveAlert)
         XCTAssertTrue(app.buttons["Ort auswählen: \(originalName)"].waitForExistence(timeout: 5))
 
         openPlaces(in: app)
@@ -149,7 +149,7 @@ final class WeatherSmokeTests: XCTestCase {
         }
         XCTAssertTrue(renameAlert.waitForExistence(timeout: 5))
         replaceText(in: renameAlert.textFields.firstMatch, with: renamedName)
-        renameAlert.buttons["Speichern"].tap()
+        confirm(renameAlert)
         let renamedRow = placeButton(in: app, named: renamedName)
         XCTAssertTrue(renamedRow.waitForExistence(timeout: 5))
         renamedRow.tap()
@@ -187,6 +187,19 @@ final class WeatherSmokeTests: XCTestCase {
         // The map header is also exposed behind the sheet as "Ort auswählen: <name>".
         // Exact equality selects only this test's saved-place row, never that header.
         app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
+    }
+
+    /// With the keyboard up, the first tap on an alert button can be swallowed (keyboard/autocorrect commit); retry once.
+    private func confirm(_ alert: XCUIElement) {
+        alert.buttons["Speichern"].tap()
+        if !alert.waitForNonExistence(timeout: 2) { alert.buttons["Speichern"].tap() }
+    }
+
+    /// The timeline slider is an accessibility representation over a custom drag control, so
+    /// `adjust(toNormalizedSliderPosition:)` cannot read scrubber attributes; drag on its frame instead.
+    private func dragSlider(_ slider: XCUIElement, to position: CGFloat) {
+        let start = slider.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
+        start.press(forDuration: 0.1, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: position, dy: 0.5)))
     }
 
     private func replaceText(in field: XCUIElement, with text: String) {
