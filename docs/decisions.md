@@ -244,3 +244,7 @@ Noch NICHT entschieden bzw. offen (Empfehlung des Entwurfs in Klammern):
 ## EUMETSAT-Klärung (31. Oktober 2026)
 
 Nach EUMETSAT Data Policy (Jan. 2026, Art. 5.1, 6.1, 6.3, Annex II) sind die geplanten Wolkenlayer (`mtg_fd:rgb_geocolour`, `rgb_cloudtype`, `msg_fes:cth`, `clm`, `ir108`) Core (CC BY 4.0, „Free and Unrestricted“): Weiterverteilung abgeleiteter Bilder und Caching im Backend sind zulässig, für EUMETView-WMS ist keine Registrierung und keine Lizenzvereinbarung nötig. Pflicht: Attribution „Contains modified EUMETSAT Meteosat data 2026“ (Art. 6.3, Jahr anpassen) zusätzlich zur DWD-Quelle. Die Produktseiten-Lizenzfelder wurden nicht gelesen (nur Policy-Text); eine Rückfrage an EUMETSAT ist nicht erforderlich, nur optional zu Lastgrenzen. Details und Quellen: [research/wolkenradar-quellen.md](research/wolkenradar-quellen.md), Abschnitt 3.
+
+## Sonnenradar (31. Oktober 2026)
+
+Nutzerentscheidung: Start mit Weg A (Wolkenmaske plus Sonnenhöhe; Terminator/Nachtschattierung in der App gerechnet). Die Kurzfrist-Extrapolation („Sonne in 30 min“, als „Schätzung“ gekennzeichnet) ist ebenfalls gewünscht, kommt aber zuletzt, nach der Wolkenebene. Grundlage: [research/sonnenradar.md](research/sonnenradar.md). Baustein S1 (`Weather/Data/SolarPosition.swift`) ist umgesetzt, siehe [status.md](status.md).
