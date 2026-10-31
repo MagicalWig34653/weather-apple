@@ -11,7 +11,9 @@ struct RadarScreen: View {
     @State private var showLegend = false
     @State private var placeName = ""
     @State private var radarLoadState: RadarLoadState?
-    @State private var refreshTapFeedback = false
+    /// Calms the per-slot loading hint (see `SlotFeedbackGate`); `heldFeedback` is what is currently shown.
+    @State private var feedbackGate = SlotFeedbackGate()
+    @State private var heldFeedback: (text: String, failed: Bool)?
     @State private var displayNow = Date()
     /// Slot index under the finger while scrubbing; drives thumb and time label independent of tile loading.
     @State private var scrubIndex: Int?
@@ -54,11 +56,12 @@ struct RadarScreen: View {
                         .background(.regularMaterial, in: Capsule())
                         .accessibilityHidden(true)
                 }
-                if let slot = slotFeedback {
+                if let slot = heldFeedback {
                     Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 12).padding(.vertical, 7)
                         .background(.regularMaterial, in: Capsule())
+                        .transition(.opacity)
                         .accessibilityIdentifier("radar-slot-status")
                 }
                 if let line = store.displayAttributionLine {
@@ -95,7 +98,6 @@ struct RadarScreen: View {
                         Button { store.requestLocation() } label: {
                             Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
                         }.accessibilityLabel("Aktuellen Standort verwenden")
-                        layerMenu
                         Button { withAnimation(reduceMotion ? nil : .snappy) { showLegend.toggle() } } label: {
                             Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
                         }
@@ -182,6 +184,15 @@ struct RadarScreen: View {
             guard scenePhase == .active else { return }
             await store.layers.runPolling(for: store.activeLayer, restricted: { ProcessInfo.processInfo.isLowPowerModeEnabled })
         }
+        .onChange(of: feedbackInput) { _, _ in reevaluateFeedback() }
+        .task(id: feedbackInput) {
+            // Re-evaluate when the show delay or the minimum display time of the hint runs out.
+            while !Task.isCancelled {
+                guard let wait = feedbackGate.nextCheck(wanted: feedbackInput.wanted, now: Date()) else { return }
+                do { try await Task.sleep(for: .seconds(wait)) } catch { return }
+                reevaluateFeedback()
+            }
+        }
         .onChange(of: store.activeLayer) { _, _ in
             store.isPlaying = false
             radarLoadState = nil
@@ -197,30 +208,62 @@ struct RadarScreen: View {
 
     private struct LayerPollKey: Equatable { let layer: RadarLayer; let active: Bool }
 
-    /// One active overlay. Layers the backend does not offer (404) stay visible but disabled.
+    /// Top right: layer choice (capsule with the active layer) plus manual reload. Reload used to be its own button;
+    /// the adaptive poll already fetches `latest.json` every 10 to 60 s, so a manual reload is a rare action.
     private var layerMenu: some View {
         Menu {
-            ForEach(RadarLayer.selectable) { layer in
-                let availability = store.layers.availability(layer)
+            Section("Kartenebene") {
+                ForEach(RadarLayer.selectable) { layer in
+                    let availability = store.layers.availability(layer)
+                    Button {
+                        store.isPlaying = false
+                        showLegend = false
+                        store.layers.select(layer)
+                    } label: {
+                        Label(layer.title + (availability.hint.map { " (\($0))" } ?? ""),
+                              systemImage: layer == store.activeLayer ? "checkmark" : layer.symbolName)
+                    }
+                    .disabled(!availability.isSelectable)
+                    .accessibilityLabel(layer.spokenName + (availability.hint.map { ", \($0)" } ?? "")
+                                        + (layer == store.activeLayer ? ", ausgewählt" : ""))
+                    .accessibilityIdentifier("radar-layer-\(layer.rawValue)")
+                }
+            }
+            Section {
                 Button {
                     store.isPlaying = false
-                    showLegend = false
-                    store.layers.select(layer)
+                    radarLoadState = nil
+                    Task { await store.refresh() }
+                    Task { await store.layers.probeAll(force: true, restricted: ProcessInfo.processInfo.isLowPowerModeEnabled) }
                 } label: {
-                    Label(layer.title + (availability.hint.map { " (\($0))" } ?? ""),
-                          systemImage: layer == store.activeLayer ? "checkmark" : layer.symbolName)
+                    Label("Daten neu laden", systemImage: "arrow.clockwise")
                 }
-                .disabled(!availability.isSelectable)
-                .accessibilityLabel(layer.spokenName + (availability.hint.map { ", \($0)" } ?? "")
-                                    + (layer == store.activeLayer ? ", ausgewählt" : ""))
-                .accessibilityIdentifier("radar-layer-\(layer.rawValue)")
+                .disabled(store.isRadarLoading)
+                .accessibilityHint("Lädt den aktuellen Datenstand der Karte neu")
+                .accessibilityIdentifier("radar-refresh")
             }
         } label: {
-            Image(systemName: "square.3.layers.3d").font(.system(size: 20)).frame(width: 46, height: 46)
+            HStack(spacing: 6) {
+                if store.isRadarLoading || store.layers.isLoading {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: store.activeLayer.symbolName).font(.system(size: 17, weight: .semibold))
+                }
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text(store.activeLayer.title).font(.subheadline.weight(.semibold)).lineLimit(1)
+                }
+                Image(systemName: "chevron.down").font(.caption.bold())
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 44)
+            .contentShape(Capsule())
+            .glassEffect(.regular.interactive(), in: Capsule())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("Kartenebene wählen")
         .accessibilityValue(store.activeLayer.spokenName)
-        .accessibilityHint("Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze oder Wolken")
+        .accessibilityHint("Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken oder Sonne. Enthält auch Daten neu laden.")
         .accessibilityIdentifier("radar-layer-menu")
     }
 
@@ -243,8 +286,7 @@ struct RadarScreen: View {
                 .glassEffect(.regular, in: Capsule())
             }.buttonStyle(.plain).accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
-            refreshControl
-
+            layerMenu
         }
     }
 
@@ -282,72 +324,29 @@ struct RadarScreen: View {
         }
     }
 
-    private var radarIsLoading: Bool {
-        if store.activeLayer != .radar {
-            if store.layers.isLoading { return true }
-            if store.displayTimeline == nil { return false }
-        }
-        if store.isRadarLoading { return true }
-        if let state = currentRadarLoadState { return !state.isSettled }
-        return refreshTapFeedback || (store.radarError == nil && store.timeline != nil)
+    /// Raw wish plus the slot it belongs to; changes drive `reevaluateFeedback`.
+    private struct FeedbackInput: Equatable {
+        let wanted: SlotFeedbackGate.Wanted
+        let slot: Date?
+        let text: String?
     }
 
-    private var refreshAccessibilityStatus: String {
-        if store.isRadarLoading { return "Radar-Datenstand wird aktualisiert" }
-        if refreshTapFeedback && currentRadarLoadState == nil { return "Radar wird aktualisiert" }
-        if let error = store.radarError { return "Radar konnte nicht aktualisiert werden: \(error). Erneut versuchen." }
-        guard let state = currentRadarLoadState else { return "Radar wartet auf Kartendaten" }
-        let bytes = ByteCountFormatter.string(fromByteCount: state.receivedBodyBytes, countStyle: .file)
-        let prefetched = ByteCountFormatter.string(fromByteCount: state.prefetchedBodyBytes, countStyle: .file)
-        let preloadStatus = " Vorladen in dieser Sitzung: \(prefetched)."
-        if state.failed > 0 { return "\(state.failed) Radarkacheln fehlen, \(state.succeeded) geladen. \(bytes) empfangen. Erneut versuchen." }
-        if state.pending > 0 { return "Radar lädt. \(state.succeeded) Kacheln empfangen, \(state.pending) Anfragen offen. \(bytes) empfangen." }
-        if state.requested == 0 && state.isViewportIdle { return "Für diesen Kartenausschnitt wurden keine neuen Radarkacheln angefordert." }
-        if state.requested == 0 { return "Radar wartet auf Kachelanfragen" }
-        let pointStatus = store.isForecastLoading ? "lädt noch" : store.forecastError != nil ? "nicht aktualisiert" : store.forecast != nil ? "verfügbar" : "nicht verfügbar"
-        let cacheStatus = state.receivedBodyBytes == 0 && state.cacheHits > 0 && state.cacheHits == state.succeeded ? " Aus dem Zwischenspeicher, kein neuer Radar-Download." : " \(bytes) empfangen."
-        return "\(state.succeeded) angeforderte Radarkacheln geladen.\(cacheStatus) Ortsprognose \(pointStatus)." + preloadStatus
+    private var feedbackInput: FeedbackInput {
+        guard let raw = slotFeedback else { return FeedbackInput(wanted: .none, slot: nil, text: nil) }
+        return FeedbackInput(wanted: raw.failed ? .failed : .loading, slot: displayedDate, text: raw.text)
     }
 
-    private var refreshControl: some View {
-        Button {
-            store.isPlaying = false
-            radarLoadState = nil
-            refreshTapFeedback = true
-            Task { await store.refresh() }
-            Task { await store.layers.probeAll(force: true, restricted: ProcessInfo.processInfo.isLowPowerModeEnabled) }
-            // Keep immediate tap acknowledgement visible even when all metadata is cached.
-            Task {
-                try? await Task.sleep(for: .milliseconds(600))
-                refreshTapFeedback = false
-            }
-        } label: {
-            HStack(spacing: 5) {
-                ZStack {
-                    if radarIsLoading {
-                        if reduceMotion {
-                            Image(systemName: "arrow.down.circle").font(.system(size: 18))
-                        } else {
-                            ProgressView().controlSize(.small)
-                        }
-                    } else {
-                        Image(systemName: (currentRadarLoadState?.failed ?? 0) > 0 || store.radarError != nil ? "exclamationmark.arrow.circlepath" : currentRadarLoadState?.isSettled == true && (currentRadarLoadState?.succeeded ?? 0) > 0 ? "checkmark" : "arrow.clockwise")
-                            .font(.system(size: 18))
-                    }
-                }
-                .frame(width: 28, height: 28)
-                .overlay { Circle().strokeBorder(.secondary.opacity(0.35), lineWidth: 1) }
-            }
-            .padding(.horizontal, 10)
-            .frame(minHeight: 44)
-            .glassEffect(.regular.interactive(), in: Capsule())
+    private func reevaluateFeedback() {
+        let input = feedbackInput
+        let before = feedbackGate.display
+        let display = feedbackGate.update(wanted: input.wanted, slot: input.slot, now: Date())
+        let next: (text: String, failed: Bool)? = switch display {
+        case .hidden: nil
+        // While held after the state ended, keep the last text instead of an empty pill.
+        case .loading, .failed: input.text.map { ($0, display == .failed) } ?? heldFeedback
         }
-        .buttonStyle(.plain)
-        .disabled(refreshTapFeedback || store.isRadarLoading)
-        .accessibilityLabel("Wetterdaten aktualisieren")
-        .accessibilityValue(refreshAccessibilityStatus)
-        .accessibilityHint("Empfangene Datenmenge nur für Radarbilder dieses Karten-Ladevorgangs; ohne Grundkarte und Ortsprognose")
-        .accessibilityIdentifier("radar-refresh")
+        if display == before, display != .hidden, let text = input.text, heldFeedback?.text == text { return }
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) { heldFeedback = next }
     }
 
     private var timeline: some View {

@@ -182,3 +182,65 @@ struct TimelineScrubSlider: View {
         .frame(minWidth: 50, minHeight: height, maxHeight: height)
     }
 }
+
+/// Calms the per-slot hint ("Radar für 12:05 lädt …") above the timeline. While the slider moves, every step
+/// is a new slot without a load state, which used to flash the pill on and off. The gate shows "loading" only
+/// after the same slot has waited `showDelay` (a slot change restarts the wait, so fast scrubbing never shows it),
+/// keeps a shown hint at least `minimumVisible` and switches loading <-> failed without hiding in between.
+/// A failed slot is shown at once (it is a final state). Time is passed in, so it is unit-testable.
+struct SlotFeedbackGate {
+    enum Wanted: Equatable { case none, loading, failed }
+    enum Display: Equatable { case hidden, loading, failed }
+
+    var showDelay: TimeInterval = 0.7
+    var minimumVisible: TimeInterval = 0.6
+    private(set) var display: Display = .hidden
+    private var key: Date?
+    private var waitingSince: Date?
+    private var shownSince: Date?
+
+    /// Feeds the current wish; returns what to display now. `slot` identifies the slot (nil = no slot).
+    @discardableResult
+    mutating func update(wanted: Wanted, slot: Date?, now: Date) -> Display {
+        let slotChanged = slot != key
+        key = slot
+        switch wanted {
+        case .failed:
+            show(.failed, now: now)
+            waitingSince = nil
+        case .loading:
+            if display == .hidden {
+                if slotChanged || waitingSince == nil { waitingSince = now }
+                if let since = waitingSince, now.timeIntervalSince(since) >= showDelay { show(.loading, now: now) }
+            } else {
+                show(.loading, now: now)
+            }
+        case .none:
+            waitingSince = nil
+            if display != .hidden, let since = shownSince, now.timeIntervalSince(since) >= minimumVisible {
+                display = .hidden
+                shownSince = nil
+            }
+        }
+        return display
+    }
+
+    private mutating func show(_ target: Display, now: Date) {
+        if display == .hidden { shownSince = now }
+        display = target
+    }
+
+    /// Seconds until `update` should be called again without a new input (nil: nothing pending).
+    func nextCheck(wanted: Wanted, now: Date) -> TimeInterval? {
+        switch wanted {
+        case .loading where display == .hidden:
+            guard let waitingSince else { return showDelay }
+            return max(0.01, showDelay - now.timeIntervalSince(waitingSince))
+        case .none where display != .hidden:
+            guard let shownSince else { return nil }
+            return max(0.01, minimumVisible - now.timeIntervalSince(shownSince))
+        default:
+            return nil
+        }
+    }
+}

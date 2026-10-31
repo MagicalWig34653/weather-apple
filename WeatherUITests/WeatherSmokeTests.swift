@@ -63,20 +63,20 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
     }
 
-    func testRefreshImmediatelyAcknowledgesTap() throws {
+    func testLayerMenuTopRightOffersLayersAndReload() throws {
         let app = launchApp()
-        let refresh = app.buttons["radar-refresh"]
-        XCTAssertTrue(refresh.waitForExistence(timeout: 15))
-        let ready = NSPredicate(format: "enabled == true")
-        expectation(for: ready, evaluatedWith: refresh)
-        waitForExpectations(timeout: 25)
-        XCTAssertGreaterThanOrEqual(refresh.frame.height, 44)
-        XCTAssertGreaterThanOrEqual(refresh.frame.width, 44)
-        refresh.tap()
-        let value = refresh.value as? String ?? ""
-        XCTAssertTrue(value.contains("wird aktualisiert") || value.contains("geladen") || value.contains("fehlen") || value.contains("lädt"), "Der Tap muss auch bei Cachetreffern sofort einen ehrlichen Lade- oder Ergebniszustand zeigen.")
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 15))
+        XCTAssertGreaterThanOrEqual(menu.frame.height, 44)
+        XCTAssertGreaterThan(menu.frame.midX, app.frame.midX, "Die Ebenenwahl sitzt oben rechts.")
+        XCTAssertLessThan(menu.frame.minY, 160)
+        XCTAssertEqual(menu.value as? String, "Regenradar")
+        XCTAssertFalse(app.buttons["Wetterdaten aktualisieren"].exists, "Kein eigener Neuladen-Knopf mehr.")
+        menu.tap()
+        XCTAssertTrue(app.buttons["Regenradar"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Daten neu laden"].exists)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
-        screenshot.name = "refresh-immediate-feedback"
+        screenshot.name = "layer-menu-open"
         screenshot.lifetime = .keepAlways
         add(screenshot)
     }

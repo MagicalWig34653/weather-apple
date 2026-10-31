@@ -108,3 +108,66 @@ final class TimelineAccessibilityTests: XCTestCase {
         XCTAssertEqual(TimelineAccessibility.adjusted(index: 3, by: 1, count: 0), 0)
     }
 }
+
+final class SlotFeedbackGateTests: XCTestCase {
+    private let t0 = Date(timeIntervalSince1970: 1_793_000_000)
+    private func slot(_ i: Int) -> Date { t0.addingTimeInterval(Double(i) * 300) }
+    private func at(_ s: Double) -> Date { t0.addingTimeInterval(s) }
+
+    func testLoadingAppearsOnlyAfterDelay() {
+        var gate = SlotFeedbackGate()
+        XCTAssertEqual(gate.update(wanted: .loading, slot: slot(1), now: at(0)), .hidden)
+        XCTAssertEqual(gate.update(wanted: .loading, slot: slot(1), now: at(0.5)), .hidden)
+        XCTAssertEqual(gate.update(wanted: .loading, slot: slot(1), now: at(0.7)), .loading)
+    }
+
+    func testFastScrubbingNeverShowsLoading() {
+        var gate = SlotFeedbackGate()
+        for i in 0..<40 {
+            XCTAssertEqual(gate.update(wanted: .loading, slot: slot(i), now: at(Double(i) * 0.1)), .hidden, "Schritt \(i)")
+        }
+    }
+
+    func testShortLoadingNeverShown() {
+        var gate = SlotFeedbackGate()
+        gate.update(wanted: .loading, slot: slot(1), now: at(0))
+        XCTAssertEqual(gate.update(wanted: .none, slot: slot(1), now: at(0.3)), .hidden)
+        // A new wait starts from zero.
+        XCTAssertEqual(gate.update(wanted: .loading, slot: slot(1), now: at(1)), .hidden)
+        XCTAssertEqual(gate.update(wanted: .loading, slot: slot(1), now: at(1.5)), .hidden)
+    }
+
+    func testShownHintStaysForMinimumDurationThenHides() {
+        var gate = SlotFeedbackGate()
+        gate.update(wanted: .loading, slot: slot(1), now: at(0))
+        gate.update(wanted: .loading, slot: slot(1), now: at(0.8))
+        XCTAssertEqual(gate.update(wanted: .none, slot: slot(1), now: at(0.9)), .loading)
+        XCTAssertEqual(gate.nextCheck(wanted: .none, now: at(0.9))!, 0.5, accuracy: 0.001)
+        XCTAssertEqual(gate.update(wanted: .none, slot: slot(1), now: at(1.3)), .loading)
+        XCTAssertEqual(gate.update(wanted: .none, slot: slot(1), now: at(1.41)), .hidden)
+    }
+
+    func testVisibleHintSurvivesSlotChangeWithoutFlicker() {
+        var gate = SlotFeedbackGate()
+        gate.update(wanted: .loading, slot: slot(1), now: at(0))
+        gate.update(wanted: .loading, slot: slot(1), now: at(0.8))
+        XCTAssertEqual(gate.update(wanted: .loading, slot: slot(2), now: at(0.9)), .loading)
+        XCTAssertEqual(gate.update(wanted: .failed, slot: slot(2), now: at(1.0)), .failed)
+        XCTAssertEqual(gate.update(wanted: .loading, slot: slot(3), now: at(1.1)), .loading)
+    }
+
+    func testFailureIsShownImmediatelyAndHeld() {
+        var gate = SlotFeedbackGate()
+        XCTAssertEqual(gate.update(wanted: .failed, slot: slot(1), now: at(0)), .failed)
+        XCTAssertEqual(gate.update(wanted: .none, slot: slot(1), now: at(0.2)), .failed)
+        XCTAssertEqual(gate.update(wanted: .none, slot: slot(1), now: at(0.7)), .hidden)
+    }
+
+    func testNextCheckSchedulesTheDelay() {
+        var gate = SlotFeedbackGate()
+        gate.update(wanted: .loading, slot: slot(1), now: at(0))
+        XCTAssertEqual(gate.nextCheck(wanted: .loading, now: at(0.2))!, 0.5, accuracy: 0.001)
+        XCTAssertNil(gate.nextCheck(wanted: .failed, now: at(0.2)))
+        XCTAssertNil(gate.nextCheck(wanted: .none, now: at(0.2)))
+    }
+}
