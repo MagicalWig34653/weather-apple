@@ -193,3 +193,5 @@ Widgets/Watch, Push und angepasste iPad-/Mac-Oberflächen folgen gemäß Plan.
 ## Notiz: Radar-Cache-Backend (30. Oktober 2026)
 
 Der Nutzer hat ein Radar-Cache-Backend beauftragt; Stufe 1 liegt im Backend-Repo und ist seit dem 30. Oktober 2026 in Swift/Vapor umgesetzt (Python ersetzt; HTTP-Vertrag unverändert; lokal getestet, auf einem lokalen Wegwerf-Swarm geprüft; inzwischen produktiv unter https://showernow.linolaske.de, zwei Replikate, extern geprüft: `/healthz` 200, `latest.json` 200 mit 25 Slots, ETag/304). Entscheidungen: [decisions.md](decisions.md), Messung: [research/backend-radar-cache.md](research/backend-radar-cache.md). App-Code und Release-Stand (Build 8) unverändert; die Client-Anbindung folgt als Build 9.
+
+**Test-Flakiness RadarPrefetchTests (31. Oktober 2026):** Ursache Testaufbau (statisches Prefetch-Budget nicht zurückgesetzt; verspätete `stopLoading` zwischen Tests), kein Produktionsfehler. Behoben, Belege in [prefetch-tests.md](prefetch-tests.md). Offen: `DWDDataTests` bei `-test-iterations` im selben Prozess nicht wiederholbar.

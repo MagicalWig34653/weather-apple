@@ -82,6 +82,7 @@ final class RadarPrefetchBudget: @unchecked Sendable {
     init(maxRequests: Int = 240, interval: TimeInterval = 60, maxBytes: Int = 8_000_000) {
         self.maxRequests = maxRequests; self.interval = interval; self.maxBytes = maxBytes
     }
+    func resetForTesting() { lock.withLock { start = nil; requests = 0; bytes = 0 } }
     private func reset(_ now: Date) {
         if start == nil || now.timeIntervalSince(start!) >= interval {
             start = now; requests = 0; bytes = 0
@@ -318,6 +319,7 @@ struct RadarTileCoordinate: Hashable, Sendable { let x: Int; let y: Int; let z: 
     }
     static func resetSharedStateForTesting() {
         cooldown = [:]; failedURLs = []; RadarNetworkPriority.shared.resetForTesting()
+        budget.resetForTesting()
     }
     func cancel() {
         generation = UUID(); work?.cancel(); work = nil; signature = nil

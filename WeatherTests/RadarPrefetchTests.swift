@@ -16,6 +16,11 @@ final class RadarPrefetchTests: XCTestCase {
         RadarPrefetcher.resetSharedStateForTesting()
     }
     override func tearDown() async throws {
+        // The session of this test is already invalidated by its defer. Its URLProtocol
+        // instances receive stopLoading asynchronously; wait until all did, otherwise a late
+        // stop would be counted by the next test's gate (observed as stops == 1 in the
+        // frame handoff test after a preceding test cancelled transports).
+        for _ in 0..<500 where PrefetchGateProtocol.gate.outstanding > 0 { try? await Task.sleep(for: .milliseconds(10)) }
         RadarPrefetcher.resetSharedStateForTesting()
     }
 
@@ -542,19 +547,21 @@ private final class PrefetchProtocolGate: @unchecked Sendable {
     private var started: XCTestExpectation?
     private var startCount = 0
     private var stopCount = 0
+    private var live = 0
     private var urls: [URL] = []
     var starts: Int { lock.withLock { startCount } }
     var stops: Int { lock.withLock { stopCount } }
+    var outstanding: Int { lock.withLock { live } }
     var startedURLs: [URL] { lock.withLock { urls } }
     func reset(started: XCTestExpectation? = nil) {
         lock.withLock { pending = []; self.started = started; startCount = 0; stopCount = 0; urls = [] }
     }
     func start(_ request: PrefetchGateProtocol) {
-        let event = lock.withLock { pending.append(request); startCount += 1; urls.append(request.request.url!); return started }
+        let event = lock.withLock { pending.append(request); startCount += 1; live += 1; urls.append(request.request.url!); return started }
         event?.fulfill()
     }
     func expectFurtherStarts(_ event: XCTestExpectation) { lock.withLock { started = event } }
-    func stop() { lock.withLock { stopCount += 1 } }
+    func stop() { lock.withLock { stopCount += 1; live = max(0, live - 1) } }
     func finish(data: Data) {
         let requests = lock.withLock { let value = pending; pending = []; return value }
         requests.forEach { $0.finish(data: data) }
