@@ -43,9 +43,29 @@ struct PlacePushSettings: Codable, Equatable, Sendable {
     var subscriptionID: String?
     /// Local changes not yet confirmed by the server.
     var needsUpload = true
+    /// Default off: time-sensitive delivery breaks through Focus and Notification Summary.
+    var timeSensitive = false
+
+    init(cell: PushGrid.Cell, leadMinutes: Int = PushLead.defaultMinutes, sensitivity: PushSensitivity = .moderate,
+         subscriptionID: String? = nil, needsUpload: Bool = true, timeSensitive: Bool = false) {
+        self.cell = cell; self.leadMinutes = leadMinutes; self.sensitivity = sensitivity
+        self.subscriptionID = subscriptionID; self.needsUpload = needsUpload; self.timeSensitive = timeSensitive
+    }
+
+    /// State stored by earlier versions has no `timeSensitive` key.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        cell = try c.decode(PushGrid.Cell.self, forKey: .cell)
+        leadMinutes = try c.decode(Int.self, forKey: .leadMinutes)
+        sensitivity = try c.decode(PushSensitivity.self, forKey: .sensitivity)
+        subscriptionID = try c.decodeIfPresent(String.self, forKey: .subscriptionID)
+        needsUpload = try c.decode(Bool.self, forKey: .needsUpload)
+        timeSensitive = try c.decodeIfPresent(Bool.self, forKey: .timeSensitive) ?? false
+    }
 
     var request: PushSubscriptionRequest {
-        PushSubscriptionRequest(cell: cell, threshold: sensitivity.threshold, leadMinutes: leadMinutes, enabled: true)
+        PushSubscriptionRequest(cell: cell, threshold: sensitivity.threshold, leadMinutes: leadMinutes, enabled: true,
+                                timeSensitive: timeSensitive)
     }
 }
 
@@ -172,14 +192,72 @@ final class PushManager {
         return true
     }
 
-    func update(placeID: UUID, leadMinutes: Int? = nil, sensitivity: PushSensitivity? = nil) async {
+    func update(placeID: UUID, leadMinutes: Int? = nil, sensitivity: PushSensitivity? = nil, timeSensitive: Bool? = nil) async {
         guard var settings = state.places[placeID] else { return }
         if let leadMinutes, PushLead.options.contains(leadMinutes) { settings.leadMinutes = leadMinutes }
         if let sensitivity { settings.sensitivity = sensitivity }
+        if let timeSensitive { settings.timeSensitive = timeSensitive }
         settings.needsUpload = true
         state.places[placeID] = settings
         persist()
         await sync()
+    }
+
+    // MARK: Test notification
+
+    enum TestState: Equatable { case idle, sending, sent, failed(String) }
+    private(set) var testState: TestState = .idle
+
+    /// Test button visible only when notifications are allowed and at least one place is active.
+    var canSendTest: Bool { isAnyEnabled && authorization == .authorized && deviceToken != nil }
+
+    func sendTest() async {
+        guard testState != .sending else { return }
+        guard canSendTest, let identity = secrets.load() else {
+            testState = .failed("Mitteilungen sind noch nicht eingerichtet. Bitte kurz warten oder die App neu öffnen.")
+            return
+        }
+        testState = .sending
+        do {
+            _ = try await gateway.sendTestNotification(identity)
+            testState = .sent
+        } catch {
+            testState = .failed(Self.testMessage(for: error))
+            if case PushGatewayError.test(.tokenUnregistered) = error {
+                // The server dropped the installation: register again and recreate the subscriptions.
+                for id in state.places.keys { state.places[id]?.subscriptionID = nil; state.places[id]?.needsUpload = true }
+                persist()
+                await sync()
+            }
+        }
+    }
+
+    static func testMessage(for error: Error) -> String {
+        guard let error = error as? PushGatewayError else { return "Die Testmeldung konnte nicht gesendet werden." }
+        switch error {
+        case .offline: return "Keine Internetverbindung."
+        case .transport, .server: return "Der Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen."
+        case .unauthorized: return "Dieses Gerät ist beim Server nicht (mehr) registriert. Beim nächsten Start wird es neu eingerichtet."
+        case .notFound: return "Der Mitteilungsdienst ist auf dem Server derzeit nicht aktiv."
+        case .test(let failure):
+            switch failure {
+            case .environmentNotAllowed: return "Der Server nimmt diese App-Variante (Entwicklung oder Store) nicht an."
+            case .apnsUnavailable503: return "Der Server kann Mitteilungen derzeit nicht senden (Apple-Zugang nicht eingerichtet)."
+            case .badDeviceToken: return "Apple lehnt das Gerätetoken ab. Es passt nicht zur Umgebung dieser App-Variante."
+            case .keyRejected: return "Apple lehnt den Zugangsschlüssel des Servers ab. Das muss der Betreiber beheben."
+            case .apnsUnavailable: return "Apples Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen."
+            case .apnsRejected: return "Apple hat die Testmeldung abgelehnt."
+            case .tokenUnregistered: return "Das Gerätetoken ist nicht mehr gültig. Das Gerät wird neu registriert; danach erneut versuchen."
+            case .rateLimited(let after):
+                if let after, after > 0 {
+                    let minutes = max(1, Int((Double(after) / 60).rounded(.up)))
+                    return "Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte in etwa \(minutes) Minuten erneut versuchen."
+                }
+                return "Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte später erneut versuchen."
+            case .other: return "Die Testmeldung konnte nicht gesendet werden."
+            }
+        default: return "Die Testmeldung konnte nicht gesendet werden."
+        }
     }
 
     /// Opt-out or place removal: delete the subscription (and the installation with the last one).

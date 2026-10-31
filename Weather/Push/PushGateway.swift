@@ -36,6 +36,21 @@ struct PushSubscriptionRequest: Equatable, Sendable {
     let threshold: Int
     let leadMinutes: Int
     let enabled: Bool
+    /// Backend field `time_sensitive`; PUT replaces all fields, so it is always sent.
+    var timeSensitive = false
+}
+
+/// Failures of `POST .../test`, derived from the backend `error` code (never from Apple text).
+enum PushTestFailure: Equatable, Sendable {
+    case environmentNotAllowed
+    case apnsUnavailable503
+    case badDeviceToken
+    case keyRejected
+    case apnsUnavailable
+    case apnsRejected
+    case tokenUnregistered
+    case rateLimited(retryAfter: Int?)
+    case other(Int)
 }
 
 enum PushGatewayError: Error, Equatable, Sendable {
@@ -48,6 +63,7 @@ enum PushGatewayError: Error, Equatable, Sendable {
     case rejected(Int)
     case server(Int)
     case invalidResponse
+    case test(PushTestFailure)
 }
 
 protocol PushGateway: Sendable {
@@ -56,6 +72,8 @@ protocol PushGateway: Sendable {
     func createSubscription(_ identity: PushIdentity, _ request: PushSubscriptionRequest) async throws -> String
     func updateSubscription(_ identity: PushIdentity, id: String, _ request: PushSubscriptionRequest) async throws
     func deleteSubscription(_ identity: PushIdentity, id: String) async throws
+    /// `POST installations/<uuid>/test`; returns the environment the server used. No retries (each call counts against 3/h).
+    func sendTestNotification(_ identity: PushIdentity) async throws -> String
 }
 
 enum PushBackendConfig {
@@ -126,13 +144,43 @@ struct HTTPPushGateway: PushGateway {
                            body: nil, success: [204])
     }
 
+    func sendTestNotification(_ identity: PushIdentity) async throws -> String {
+        let data = try await send("POST", "installations/\(identity.installationID)/test", identity, body: nil,
+                                  success: [200], retry: false, mapError: Self.testError)
+        struct Sent: Decodable { let sent: Bool; let environment: String? }
+        guard let sent = try? JSONDecoder().decode(Sent.self, from: data), sent.sent else { throw PushGatewayError.invalidResponse }
+        return sent.environment ?? ""
+    }
+
+    static func testError(statusCode: Int, data: Data, retryAfter: Int?) -> PushGatewayError {
+        struct Payload: Decodable { let error: String? }
+        let code = (try? JSONDecoder().decode(Payload.self, from: data))?.error
+        switch (statusCode, code) {
+        case (401, _): return .unauthorized
+        case (404, _): return .notFound
+        case (409, "environment_not_allowed"): return .test(.environmentNotAllowed)
+        case (429, "test_rate_limited"): return .test(.rateLimited(retryAfter: retryAfter))
+        case (503, "apns_unavailable"): return .test(.apnsUnavailable503)
+        case (502, "apns_bad_device_token"): return .test(.badDeviceToken)
+        case (502, "apns_key_rejected"): return .test(.keyRejected)
+        case (502, "apns_unavailable"): return .test(.apnsUnavailable)
+        case (502, "apns_rejected"): return .test(.apnsRejected)
+        case (410, "token_unregistered"): return .test(.tokenUnregistered)
+        case (429, _): return .test(.rateLimited(retryAfter: retryAfter))
+        case (500..., _): return .server(statusCode)
+        default: return .test(.other(statusCode))
+        }
+    }
+
     static func body(_ request: PushSubscriptionRequest) -> [String: Any] {
         ["grid_version": PushGrid.version, "cell_x": request.cell.x, "cell_y": request.cell.y,
-         "threshold": request.threshold, "lead_minutes": request.leadMinutes, "enabled": request.enabled]
+         "threshold": request.threshold, "lead_minutes": request.leadMinutes, "enabled": request.enabled,
+         "time_sensitive": request.timeSensitive]
     }
 
     private func send(_ method: String, _ path: String, _ identity: PushIdentity, body: [String: Any]?,
-                      success: Set<Int>) async throws -> Data {
+                      success: Set<Int>, retry: Bool = true,
+                      mapError: (@Sendable (Int, Data, Int?) -> PushGatewayError)? = nil) async throws -> Data {
         guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else { throw PushGatewayError.invalidResponse }
         var request = URLRequest(url: url)
         request.httpMethod = method
@@ -147,7 +195,7 @@ struct HTTPPushGateway: PushGateway {
             do {
                 let (data, response) = try await transport(request)
                 if success.contains(response.statusCode) { return data }
-                if (response.statusCode == 429 || RadarRetryPolicy.isTransient(statusCode: response.statusCode)),
+                if retry, (response.statusCode == 429 || RadarRetryPolicy.isTransient(statusCode: response.statusCode)),
                    attempt < RadarRetryPolicy.maxAttempts {
                     var delay = RadarRetryPolicy.delay(afterAttempt: attempt)
                     if response.statusCode == 429, let after = response.value(forHTTPHeaderField: "Retry-After").flatMap(Double.init) {
@@ -157,10 +205,13 @@ struct HTTPPushGateway: PushGateway {
                     attempt += 1
                     continue
                 }
+                if let mapError {
+                    throw mapError(response.statusCode, data, response.value(forHTTPHeaderField: "Retry-After").flatMap { Int($0) })
+                }
                 throw Self.error(statusCode: response.statusCode, data: data)
             } catch let error as URLError {
                 if error.code == .cancelled { throw CancellationError() }
-                if RadarRetryPolicy.isTransient(error), attempt < RadarRetryPolicy.maxAttempts {
+                if retry, RadarRetryPolicy.isTransient(error), attempt < RadarRetryPolicy.maxAttempts {
                     try await sleep(RadarRetryPolicy.delay(afterAttempt: attempt))
                     attempt += 1
                     continue

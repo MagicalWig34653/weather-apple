@@ -47,6 +47,10 @@ final class FakeGateway: PushGateway, @unchecked Sendable {
         lock.withLock { lastRequests.append(request) }
     }
     func deleteSubscription(_ identity: PushIdentity, id: String) async throws { try record("deleteSubscription", identity) }
+    func sendTestNotification(_ identity: PushIdentity) async throws -> String {
+        try record("sendTestNotification", identity)
+        return "sandbox"
+    }
 }
 
 final class FakeAuthorizer: PushAuthorizing, @unchecked Sendable {
@@ -111,6 +115,72 @@ final class PushManagerTests: XCTestCase {
         let identity = secrets.load()!
         XCTAssertTrue((32...128).contains(identity.secret.count))
         XCTAssertNotNil(UUID(uuidString: identity.installationID))
+    }
+
+    func testTimeSensitiveDefaultsOffAndIsUploadedOnUpdate() async {
+        let (manager, gateway, _, _, _) = make()
+        let id = UUID()
+        _ = await manager.enable(placeID: id, latitude: berlin.lat, longitude: berlin.lon)
+        await deliverToken(manager)
+        XCTAssertEqual(manager.settings(for: id)?.timeSensitive, false)
+        XCTAssertEqual(gateway.lastRequests.last?.timeSensitive, false)
+        await manager.update(placeID: id, timeSensitive: true)
+        XCTAssertEqual(gateway.lastRequests.last?.timeSensitive, true)
+        await manager.update(placeID: id, leadMinutes: 30)
+        XCTAssertEqual(gateway.lastRequests.last?.timeSensitive, true, "PUT replaces all fields: keep the flag")
+        XCTAssertEqual(manager.status(for: id), .active)
+    }
+
+    func testOldPersistedStateWithoutTimeSensitiveStillDecodes() throws {
+        let old = #"{"cell":{"x":1,"y":2},"leadMinutes":20,"sensitivity":"moderate","needsUpload":false}"#
+        let decoded = try JSONDecoder().decode(PlacePushSettings.self, from: Data(old.utf8))
+        XCTAssertFalse(decoded.timeSensitive)
+        XCTAssertEqual(decoded.cell, PushGrid.Cell(x: 1, y: 2))
+    }
+
+    func testSendTestNeedsAuthorizationAndSucceeds() async {
+        let (manager, gateway, _, _, _) = make()
+        XCTAssertFalse(manager.canSendTest)
+        _ = await manager.enable(placeID: UUID(), latitude: berlin.lat, longitude: berlin.lon)
+        XCTAssertFalse(manager.canSendTest, "no token yet")
+        await deliverToken(manager)
+        XCTAssertTrue(manager.canSendTest)
+        await manager.sendTest()
+        XCTAssertEqual(manager.testState, .sent)
+        XCTAssertEqual(gateway.calls.last, "sendTestNotification")
+    }
+
+    func testSendTestShowsGermanMessagePerCode() async {
+        let failures: [(PushGatewayError, String)] = [
+            (.test(.rateLimited(retryAfter: 3600)), "60 Minuten"),
+            (.test(.environmentNotAllowed), "App-Variante"),
+            (.test(.apnsUnavailable503), "nicht eingerichtet"),
+            (.test(.badDeviceToken), "Gerätetoken"),
+            (.test(.keyRejected), "Zugangsschlüssel"),
+            (.test(.apnsUnavailable), "Apples Mitteilungsdienst"),
+            (.test(.apnsRejected), "abgelehnt"),
+            (.notFound, "nicht aktiv"), (.offline, "Internetverbindung"),
+        ]
+        for (error, fragment) in failures {
+            let (manager, gateway, _, _, _) = make()
+            _ = await manager.enable(placeID: UUID(), latitude: berlin.lat, longitude: berlin.lon)
+            await deliverToken(manager)
+            gateway.fail("sendTestNotification", with: error)
+            await manager.sendTest()
+            guard case .failed(let message) = manager.testState else { XCTFail("\(error)"); continue }
+            XCTAssertTrue(message.contains(fragment), "\(error): \(message)")
+        }
+    }
+
+    func testUnregisteredTokenTriggersReRegistration() async {
+        let (manager, gateway, _, _, _) = make()
+        let id = UUID()
+        _ = await manager.enable(placeID: id, latitude: berlin.lat, longitude: berlin.lon)
+        await deliverToken(manager)
+        gateway.fail("sendTestNotification", with: .test(.tokenUnregistered))
+        await manager.sendTest()
+        XCTAssertEqual(Array(gateway.calls.suffix(3)), ["sendTestNotification", "putInstallation", "createSubscription"])
+        XCTAssertEqual(manager.status(for: id), .active)
     }
 
     func testDeviceTokenAndSecretAreNeverPersistedInDefaults() async {
@@ -432,9 +502,60 @@ final class HTTPPushGatewayTests: XCTestCase {
         }
         XCTAssertEqual(String(data: r[0].httpBody!, encoding: .utf8), "{\"env\":\"production\",\"locale\":\"de\",\"token\":\"abcd\"}")
         let body = try JSONSerialization.jsonObject(with: r[1].httpBody!) as! [String: Int]
-        XCTAssertEqual(body, ["grid_version": 1, "cell_x": 783, "cell_y": 395, "threshold": 5, "lead_minutes": 20, "enabled": 1])
+        XCTAssertEqual(body, ["grid_version": 1, "cell_x": 783, "cell_y": 395, "threshold": 5, "lead_minutes": 20, "enabled": 1, "time_sensitive": 0])
         XCTAssertNil(r[3].httpBody)
         XCTAssertLessThan(r[1].httpBody!.count, 2048)
+    }
+
+    func testTimeSensitiveIsAlwaysSentAsBooleanInPutAndPost() async throws {
+        let recorder = Recorder([.success((204, "", [:])), .success((204, "", [:]))])
+        let gw = gateway(recorder)
+        let on = PushSubscriptionRequest(cell: .init(x: 1, y: 2), threshold: 5, leadMinutes: 20, enabled: true, timeSensitive: true)
+        try await gw.updateSubscription(identity, id: "aaaaaaaa-2222-3333-4444-555555555555", on)
+        try await gw.updateSubscription(identity, id: "aaaaaaaa-2222-3333-4444-555555555555", request)
+        let texts = recorder.requests.map { String(data: $0.httpBody!, encoding: .utf8)! }
+        XCTAssertTrue(texts[0].contains("\"time_sensitive\":true"), texts[0])
+        XCTAssertTrue(texts[1].contains("\"time_sensitive\":false"), texts[1])
+        XCTAssertEqual(recorder.requests.map(\.httpMethod), ["PUT", "PUT"])
+    }
+
+    func testTestNotificationRequestAndSuccess() async throws {
+        let recorder = Recorder([.success((200, "{\"sent\":true,\"environment\":\"sandbox\"}", [:]))])
+        let env = try await gateway(recorder).sendTestNotification(identity)
+        XCTAssertEqual(env, "sandbox")
+        let r = recorder.requests[0]
+        XCTAssertEqual(r.httpMethod, "POST")
+        XCTAssertEqual(r.url?.path, "/v1/push/installations/\(identity.installationID)/test")
+        XCTAssertNil(r.httpBody)
+        XCTAssertEqual(r.value(forHTTPHeaderField: "X-Installation-Secret"), identity.secret)
+    }
+
+    func testTestNotificationMapsEveryErrorCodeWithoutRetry() async {
+        let cases: [(Int, String, [String: String], PushGatewayError)] = [
+            (409, "{\"error\":\"environment_not_allowed\"}", [:], .test(.environmentNotAllowed)),
+            (503, "{\"error\":\"apns_unavailable\"}", [:], .test(.apnsUnavailable503)),
+            (502, "{\"error\":\"apns_bad_device_token\",\"reason\":\"BadDeviceToken\"}", [:], .test(.badDeviceToken)),
+            (502, "{\"error\":\"apns_key_rejected\"}", [:], .test(.keyRejected)),
+            (502, "{\"error\":\"apns_unavailable\"}", [:], .test(.apnsUnavailable)),
+            (502, "{\"error\":\"apns_rejected\"}", [:], .test(.apnsRejected)),
+            (410, "{\"error\":\"token_unregistered\"}", [:], .test(.tokenUnregistered)),
+            (429, "{\"error\":\"test_rate_limited\"}", ["Retry-After": "3600"], .test(.rateLimited(retryAfter: 3600))),
+            (404, "", [:], .notFound), (401, "{\"error\":\"unauthorized\"}", [:], .unauthorized),
+        ]
+        for (code, body, headers, expected) in cases {
+            let recorder = Recorder([.success((code, body, headers))])
+            do { _ = try await gateway(recorder).sendTestNotification(identity); XCTFail("\(code)") }
+            catch { XCTAssertEqual(error as? PushGatewayError, expected, "\(code) \(body)") }
+            XCTAssertEqual(recorder.requests.count, 1, "\(code): a test must never be retried")
+            XCTAssertTrue(recorder.sleeps.isEmpty)
+        }
+    }
+
+    func testTestNotificationOfflineIsNotRetried() async {
+        let recorder = Recorder([.failure(URLError(.timedOut))])
+        do { _ = try await gateway(recorder).sendTestNotification(identity); XCTFail() }
+        catch { XCTAssertEqual(error as? PushGatewayError, .transport) }
+        XCTAssertEqual(recorder.requests.count, 1)
     }
 
     func testRetriesTransientFailuresThenSucceeds() async throws {

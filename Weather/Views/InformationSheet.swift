@@ -5,6 +5,28 @@ struct InformationSheet: View {
     @Environment(PushManager.self) private var push
     @Environment(\.dismiss) private var dismiss
 
+    @ViewBuilder private var testRow: some View {
+        Button {
+            Task { await push.sendTest() }
+        } label: {
+            HStack {
+                Text("Testmeldung senden")
+                if push.testState == .sending { Spacer(); ProgressView() }
+            }
+        }
+        .disabled(push.testState == .sending || !push.canSendTest)
+        .accessibilityIdentifier("push-test-button")
+        switch push.testState {
+        case .sent:
+            Label("Testmeldung gesendet. Sie sollte gleich ankommen (höchstens 3 pro Stunde).", systemImage: "checkmark.circle")
+                .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("push-test-result")
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle")
+                .font(.footnote).foregroundStyle(.orange).accessibilityIdentifier("push-test-result")
+        case .idle, .sending: EmptyView()
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -17,6 +39,9 @@ struct InformationSheet: View {
                     Text(push.summary).accessibilityIdentifier("push-status")
                     if push.isAnyEnabled {
                         Button("Alle Mitteilungen ausschalten", role: .destructive) { Task { await push.resetAll() } }
+                    }
+                    if push.canSendTest || push.testState != .idle {
+                        testRow
                     }
                     Link("Datenschutzerklärung", destination: RadarBackendConfig.privacyPolicyURL)
                 } header: {

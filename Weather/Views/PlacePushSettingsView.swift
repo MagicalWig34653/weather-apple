@@ -40,10 +40,14 @@ struct PlacePushSettingsView: View {
                         set: { value in Task { await push.update(placeID: place.id, sensitivity: value) } })) {
                         ForEach(PushSensitivity.allCases) { Text("\($0.title) (\($0.detail))").tag($0) }
                     }
+                    Toggle("Zeitkritisch", isOn: Binding(
+                        get: { settings.timeSensitive },
+                        set: { value in Task { await push.update(placeID: place.id, timeSensitive: value) } }))
+                    .accessibilityIdentifier("push-time-sensitive")
                 } header: {
                     Text("Einstellungen")
                 } footer: {
-                    Text("Hinweis, wenn es innerhalb der Vorlaufzeit mindestens so stark regnen soll (Stufen der Radar-Legende). Danach höchstens eine Meldung pro Stunde und Ort.")
+                    Text("Hinweis, wenn es innerhalb der Vorlaufzeit mindestens so stark regnen soll (Stufen der Radar-Legende). Danach höchstens eine Meldung pro Stunde und Ort. Zeitkritisch: Die Meldung durchbricht Fokus und Mitteilungszusammenfassung. Den Stummschalter umgeht sie nicht. In den Systemeinstellungen kannst du das für ShowerNow abschalten.")
                 }
             }
 
@@ -59,7 +63,7 @@ struct PlacePushSettingsView: View {
             }
 
             Section("Zustellung") {
-                Label("Zeitkritisch: Meldungen können einen Fokus oder die Mitteilungszusammenfassung durchbrechen. Du kannst das in den Systemeinstellungen für ShowerNow abschalten.", systemImage: "bell.badge")
+                Label("Zeitkritisch (oben, standardmäßig aus): Meldungen können einen Fokus oder die Mitteilungszusammenfassung durchbrechen, den Stummschalter aber nicht.", systemImage: "bell.badge")
                 Label("Apple Watch: Ist dein iPhone gesperrt, erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen ShowerNow spiegeln lassen.", systemImage: "applewatch")
                 Label("Radfahren: Trage ShowerNow im Fokus „Radfahren“ (oder „Fahren“) als erlaubte App ein, sonst bleibt die Meldung dort stumm.", systemImage: "figure.outdoor.cycle")
             }

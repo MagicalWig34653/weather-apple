@@ -37,6 +37,7 @@ targets:
       path: Configuration/Weather.entitlements
       properties:
         aps-environment: development
+        com.apple.developer.usernotifications.time-sensitive: true
     scheme:
       testTargets: [WeatherTests, WeatherUITests]
       gatherCoverageData: false
