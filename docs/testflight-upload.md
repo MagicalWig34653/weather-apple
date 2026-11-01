@@ -211,3 +211,13 @@ Veröffentlichter Quellencheckpoint `de280c1` (`CURRENT_PROJECT_VERSION = 12`), 
 | Verarbeitung / externe Zuordenbarkeit | Nicht geprüft |
 
 Der Nutzer muss Build 12 nach der Verarbeitung in App Store Connect einer externen Gruppe zuordnen.
+
+## ShowerNow Build 13: Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint `f1310e8` (`CURRENT_PROJECT_VERSION = 13`, Code `f5d9e96`), Archiv/Export aus `git archive`-Kopie mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR`; vorher `WeatherTests` 315 Tests ohne Fehler. Optionen wie Build 12. **Genau ein Upload, 1. November 2026 von 20:45:43 bis 20:47:04 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Entitlements: `aps-environment=production`, `time-sensitive=true`, `get-task-allow=false`; `Localizable.strings` de/en enthalten; IPA-SHA-256 `75ca540ec0712c17d4767f91893cc49e03cfdef2b8666ffc145e2eb3d07976aa`.
+
+| Zustand Build 13 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 |
+| Verarbeitung / Installierbarkeit / externe Zuordnung | Nicht geprüft |
