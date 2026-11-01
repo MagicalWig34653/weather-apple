@@ -1,8 +1,8 @@
 # Fortsetzbarer Arbeitsstand
 
 Stand: 1. November 2026 (Verdichtung; Einzelheiten und frühere Prüfprotokolle stehen in Git, ab `a15ca77` rückwärts, sowie in `research/`, `signing.md`, `testflight-upload.md`).
+
 Kurzfassung: Letzter hochgeladener Build ist **Build 13** (`0.1.0 (13)`, Quelle `f1310e8`). Backend-Stand und Betreiberaufgaben: Schwesterrepo (`docs/status.md` dort).
-Kurzfassung: Letzter hochgeladener Build ist **Build 12** (`0.1.0 (12)`). `main` enthält seitdem weitere Arbeit, die in **keinem** Build ist. Backend-Stand und Betreiberaufgaben: Schwesterrepo (`docs/status.md` dort). Keine Buildnummer-Änderung seit Build 12.
 
 ## Builds
 
