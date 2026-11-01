@@ -37,7 +37,7 @@ struct PushRegionSpec: Equatable, Sendable {
     let minSharePercent: Int
 }
 
-/// Wire names of the region extension at one place (backend draft, to be confirmed against `api.md`).
+/// Wire names of the region extension at one place (checked against backend `api.md` and `PushApi.swift`, commit 34e6416).
 enum PushRegionWire {
     static let kindKey = "kind", kindCircle = "circle"
     static let radiusKey = "radius_cells", shareKey = "min_share_percent"
@@ -77,7 +77,7 @@ enum PushGatewayError: Error, Equatable, Sendable {
     case subscriptionLimit
     /// 409 `region_capacity`: server-wide region budget exhausted.
     case regionCapacity
-    /// 409 `region_limit`: too many regions for this installation.
+    /// 409 `region_limit`: more than 3 regions or more than 8000 cells (sum of the circle areas) for this installation.
     case regionLimit
     case rateLimited
     case rejected(Int)
@@ -288,11 +288,13 @@ struct HTTPPushGateway: PushGateway {
         case 404: return .notFound
         case 429: return .rateLimited
         case 409:
-            let text = String(data: data.prefix(256), encoding: .utf8) ?? ""
-            if text.contains("subscription_limit") { return .subscriptionLimit }
-            if text.contains("region_capacity") { return .regionCapacity }
-            if text.contains("region_limit") { return .regionLimit }
-            return .rejected(409)
+            struct Payload: Decodable { let error: String? }
+            switch (try? JSONDecoder().decode(Payload.self, from: data))?.error {
+            case "subscription_limit": return .subscriptionLimit
+            case "region_capacity": return .regionCapacity
+            case "region_limit": return .regionLimit
+            default: return .rejected(409)
+            }
         case 400..<500: return .rejected(statusCode)
         case 500...: return .server(statusCode)
         default: return .invalidResponse

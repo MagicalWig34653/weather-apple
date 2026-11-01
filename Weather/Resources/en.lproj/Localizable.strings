@@ -1,0 +1,3 @@
+/* Push texts: the backend sends only loc-key and loc-args (minutes); no finished text in the payload. */
+"RAIN_STARTS_IN" = "Rain starts in %@ min";
+"RAIN_REGION_STARTS_IN" = "Rain reaches your area in %@ min";

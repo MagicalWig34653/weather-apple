@@ -248,3 +248,126 @@ final class PushRegionManagerTests: XCTestCase {
         XCTAssertEqual(manager.regionCount, 0)
     }
 }
+
+/// Wire format against the real backend API (`api.md`, `PushApi.swift`, `PushTests.swift` of commit 34e6416).
+final class PushRegionWireTests: XCTestCase {
+    private final class Recorder: @unchecked Sendable {
+        private let lock = NSLock()
+        var requests: [URLRequest] = []
+        private var responses: [(Int, String)]
+        init(_ responses: [(Int, String)]) { self.responses = responses }
+        func next(_ request: URLRequest) -> (Data, HTTPURLResponse) {
+            lock.withLock {
+                requests.append(request)
+                let (code, body) = responses.isEmpty ? (204, "") : responses.removeFirst()
+                return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: code, httpVersion: nil, headerFields: nil)!)
+            }
+        }
+    }
+
+    private let identity = PushIdentity(installationID: "11111111-2222-3333-4444-555555555555", secret: String(repeating: "a", count: 43))
+
+    private func gateway(_ recorder: Recorder) -> HTTPPushGateway {
+        HTTPPushGateway(baseURL: URL(string: "https://example.test/v1/push/")!, transport: { recorder.next($0) }, sleep: { _ in })
+    }
+
+    func testCircleBodyHasExactlyTheBackendFields() throws {
+        let request = PushSubscriptionRequest(cell: .init(x: 40, y: 50), threshold: 3, leadMinutes: 20, enabled: true,
+                                              region: PushRegionSpec(radiusCells: 14, minSharePercent: 10))
+        let body = HTTPPushGateway.body(request)
+        XCTAssertEqual(Set(body.keys), ["grid_version", "cell_x", "cell_y", "threshold", "lead_minutes", "enabled", "time_sensitive",
+                                        "kind", "radius_cells", "min_share_percent"])
+        XCTAssertEqual(body["kind"] as? String, "circle")
+        XCTAssertEqual(body["radius_cells"] as? Int, 14)
+        XCTAssertEqual(body["min_share_percent"] as? Int, 10)
+        // a point never carries region fields (the backend answers 400 invalid_subscription otherwise)
+        let point = HTTPPushGateway.body(PushSubscriptionRequest(cell: .init(x: 40, y: 50), threshold: 3, leadMinutes: 20, enabled: true))
+        XCTAssertNil(point["kind"]); XCTAssertNil(point["radius_cells"]); XCTAssertNil(point["min_share_percent"])
+    }
+
+    func testAllowedValuesMatchBackendRanges() {
+        XCTAssertEqual(PushGrid.regionRadiusCellsRange, 3...40)
+        XCTAssertEqual(PushGrid.regionSharePercents, [1, 10, 25])
+        XCTAssertEqual(PushGrid.defaultRegionSharePercent, 10)
+        XCTAssertEqual(PushGrid.maxRegions, 3)
+        // api.md: x' = min(floor(x/3)*3+1, 1023), y' analogous (y max 1310)
+        for (x, y) in [(0, 0), (41, 52), (1023, 1310), (1022, 1309)] {
+            let c = PushGrid.coarseCenter(of: .init(x: x, y: y))
+            XCTAssertEqual(c.x, min(x / 3 * 3 + 1, 1023)); XCTAssertEqual(c.y, min(y / 3 * 3 + 1, 1310))
+        }
+    }
+
+    func testErrorCodesFromBackendBodies() {
+        let cases: [(Int, String, PushGatewayError)] = [
+            (409, "{\"error\":\"subscription_limit\"}", .subscriptionLimit),
+            (409, "{\"error\":\"region_limit\"}", .regionLimit),
+            (409, "{\"error\":\"region_capacity\"}", .regionCapacity),
+            (409, "{\"error\":\"other\"}", .rejected(409)),
+            (400, "{\"error\":\"invalid_subscription\"}", .rejected(400)),
+            (400, "{\"error\":\"invalid_id\"}", .rejected(400)),
+            (413, "{\"error\":\"too_large\"}", .rejected(413)),
+            (401, "{\"error\":\"unauthorized\"}", .unauthorized),
+            (404, "{\"error\":\"not_found\"}", .notFound),
+            (429, "{\"error\":\"rate_limited\"}", .rateLimited),
+            (503, "{\"error\":\"unavailable\"}", .server(503)),
+        ]
+        for (status, body, expected) in cases {
+            XCTAssertEqual(HTTPPushGateway.error(statusCode: status, data: Data(body.utf8)), expected, body)
+        }
+    }
+
+    func testRegionPostAndPutRoundTripWithBackendResponses() async throws {
+        let recorder = Recorder([(201, "{\"id\":\"AAAAAAAA-2222-3333-4444-555555555555\"}"), (204, ""), (409, "{\"error\":\"region_limit\"}")])
+        let gw = gateway(recorder)
+        let request = PushSubscriptionRequest(cell: .init(x: 41, y: 52), threshold: 3, leadMinutes: 20, enabled: true,
+                                              region: PushRegionSpec(radiusCells: 14, minSharePercent: 10))
+        let id = try await gw.createSubscription(identity, request)
+        XCTAssertEqual(id, "aaaaaaaa-2222-3333-4444-555555555555")
+        try await gw.updateSubscription(identity, id: id, request)
+        do { _ = try await gw.createSubscription(identity, request); XCTFail("expected region_limit") }
+        catch { XCTAssertEqual(error as? PushGatewayError, .regionLimit) }
+        let sent = try JSONSerialization.jsonObject(with: XCTUnwrap(recorder.requests[0].httpBody)) as! [String: Any]
+        XCTAssertEqual(sent["kind"] as? String, "circle")
+        XCTAssertEqual(sent["radius_cells"] as? Int, 14)
+        XCTAssertEqual(recorder.requests.map(\.httpMethod), ["POST", "PUT", "POST"])
+    }
+
+    func testCapabilitiesFixturesFromStatusEndpoint() async throws {
+        for (body, expected) in [("{\"schema\":1,\"push\":true,\"capabilities\":[\"regions\"],\"layers\":[]}", Set(["regions"])),
+                                 ("{\"schema\":1,\"push\":false,\"capabilities\":[],\"layers\":[]}", Set<String>()),
+                                 ("{\"schema\":1,\"layers\":[]}", Set<String>())] {
+            let gw = gateway(Recorder([(200, body)]))
+            let capabilities = try await gw.capabilities()
+            XCTAssertEqual(capabilities, expected, body)
+            XCTAssertEqual(capabilities.contains(PushRegionWire.capability), expected.contains("regions"))
+        }
+    }
+
+    func testListFixtureIncludesKindAndRegionFields() throws {
+        // GET .../subscriptions fixture as described in api.md; the app does not read the list, the fixture pins the field names.
+        let json = "[{\"id\":\"a\",\"grid_version\":1,\"cell_x\":40,\"cell_y\":50,\"threshold\":3,\"lead_minutes\":20,\"enabled\":true,\"time_sensitive\":false,\"kind\":\"circle\",\"radius_cells\":14,\"min_share_percent\":10}]"
+        let entry = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [[String: Any]]).first
+        XCTAssertEqual(entry?[PushRegionWire.kindKey] as? String, PushRegionWire.kindCircle)
+        XCTAssertEqual(entry?[PushRegionWire.radiusKey] as? Int, 14)
+        XCTAssertEqual(entry?[PushRegionWire.shareKey] as? Int, 10)
+    }
+
+    /// The backend sends only `loc-key` + `loc-args` (minutes); the strings must exist in the app in de and en.
+    func testPushLocKeysResolveInGermanAndEnglish() throws {
+        let payload = "{\"aps\":{\"alert\":{\"loc-args\":[\"10\"],\"loc-key\":\"RAIN_REGION_STARTS_IN\"},\"sound\":\"default\",\"thread-id\":\"x\"},\"minutes\":10,\"region\":true,\"type\":\"rain-start\"}"
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any])
+        let alert = try XCTUnwrap((object["aps"] as? [String: Any])?["alert"] as? [String: Any])
+        let args = try XCTUnwrap(alert["loc-args"] as? [String])
+        let main = Bundle(for: PushManager.self)
+        func text(_ key: String, _ language: String) throws -> String {
+            let path = try XCTUnwrap(main.path(forResource: language, ofType: "lproj"), "\(language).lproj missing")
+            let format = try XCTUnwrap(Bundle(path: path)).localizedString(forKey: key, value: "MISSING", table: nil)
+            return String(format: format, arguments: args)
+        }
+        XCTAssertEqual(alert["loc-key"] as? String, "RAIN_REGION_STARTS_IN")
+        XCTAssertEqual(try text("RAIN_REGION_STARTS_IN", "de"), "Regen erreicht deine Region in 10 min")
+        XCTAssertEqual(try text("RAIN_REGION_STARTS_IN", "en"), "Rain reaches your area in 10 min")
+        XCTAssertEqual(try text("RAIN_STARTS_IN", "de"), "Regen beginnt in 10 min")
+        XCTAssertEqual(try text("RAIN_STARTS_IN", "en"), "Rain starts in 10 min")
+    }
+}

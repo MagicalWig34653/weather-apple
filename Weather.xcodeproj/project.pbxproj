@@ -27,6 +27,7 @@
 		776A1E417B65F359D480C74F /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D547F6AB1F520F3FE1F00BB /* DWDClient.swift */; };
 		79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F074EE7537C4C452040B4523 /* RadarBackendTests.swift */; };
 		833B08E15FD8FA6A2A9DF0F8 /* RadarImageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5864651A53DB9067C466A451 /* RadarImageOverlay.swift */; };
+		845937E398253D207942E0DB /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F58F400011A498A20F125A50 /* Localizable.strings */; };
 		86B36E4BDF49626AAF532EB6 /* WeatherSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */; };
 		87244A65B1B89E175793640A /* RegionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B9E745B76776395FB5B9E8 /* RegionViews.swift */; };
 		8C841CAE839A94657CA0DF81 /* TimelineScrubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */; };
@@ -99,9 +100,11 @@
 		6F7B3D1CE91807719FEDFDD2 /* RadarLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegend.swift; sourceTree = "<group>"; };
 		72CFC446C21AB47F0E3115CD /* DWDResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDResponse.swift; sourceTree = "<group>"; };
 		73971DC8BB40190DE67EE4F9 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		79D9621EDC8DF18025B8A7C8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		8174F0961CBA8C530C9B30C0 /* PushGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGrid.swift; sourceTree = "<group>"; };
 		953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSlotTests.swift; sourceTree = "<group>"; };
 		97B9E745B76776395FB5B9E8 /* RegionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionViews.swift; sourceTree = "<group>"; };
+		987572FA387C745671A2FD5C /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9D547F6AB1F520F3FE1F00BB /* DWDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDClient.swift; sourceTree = "<group>"; };
 		A2E378685B6423E6A54BB754 /* WeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherApp.swift; sourceTree = "<group>"; };
 		A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarScreen.swift; sourceTree = "<group>"; };
@@ -250,6 +253,7 @@
 			isa = PBXGroup;
 			children = (
 				3A15995D1DE20A517ED8506A /* Icon */,
+				F58F400011A498A20F125A50 /* Localizable.strings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -388,6 +392,7 @@
 			knownRegions = (
 				Base,
 				de,
+				en,
 			);
 			mainGroup = 980CE069C9D8D6DF46D5BEA0;
 			minimizedProjectReferenceProxies = 1;
@@ -417,6 +422,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B030A0A201C54569AC941360 /* AppIcon.icon in Resources */,
+				845937E398253D207942E0DB /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -504,6 +510,18 @@
 			targetProxy = AC8C997189C69DF0BC5DF8B9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		F58F400011A498A20F125A50 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				987572FA387C745671A2FD5C /* de */,
+				79D9621EDC8DF18025B8A7C8 /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		112A50D283663EAFE8F07C57 /* Debug */ = {

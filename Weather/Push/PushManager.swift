@@ -513,8 +513,12 @@ final class PushManager {
                     regionNotice = Self.regionCapacityMessage
                 } else { messages[regionID] = Self.regionCapacityMessage }
             } catch PushGatewayError.regionLimit {
-                state.regions[regionID] = nil
-                regionNotice = "Der Server nimmt höchstens \(PushGrid.maxRegions) Regionen je Gerät an."
+                // 409 region_limit also covers the cell budget (8000 per installation), not only the 3 regions.
+                if settings.subscriptionID == nil {
+                    state.regions[regionID] = nil
+                    messages[regionID] = nil
+                    regionNotice = Self.regionLimitMessage
+                } else { messages[regionID] = Self.regionLimitMessage }
             } catch PushGatewayError.subscriptionLimit {
                 state.regions[regionID] = nil
                 regionNotice = "Der Server nimmt höchstens \(Self.maxSubscriptions) Hinweise an."
@@ -525,6 +529,7 @@ final class PushManager {
         }
     }
 
+    static let regionLimitMessage = "Der Server nimmt höchstens \(PushGrid.maxRegions) Regionen je Gerät an, deren Gesamtfläche begrenzt ist. Wähle einen kleineren Radius oder lösche eine Region."
     static let regionCapacityMessage = "Der Server hat gerade keine Kapazität für weitere Regionen. Wähle einen kleineren Radius oder versuche es später erneut."
 
     private func resetSubscriptionIDs() {
