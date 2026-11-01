@@ -6,14 +6,26 @@ import Observation
 /// (`/v1/layers/<id>/`) and have NO direct DWD fallback. `cloudmask` is shown as the "Sonne" layer: the app
 /// combines the cloud mask with the computed sun position (`SunOverlay`).
 enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
-    case radar, pressure, lightning, clouds, cloudmask
+    case radar, pressure, pressureEU = "pressure_eu", lightning, clouds, cloudmask
+    /// Visible channel (Germany grid): never chosen by the user, only refines the sun layer by day.
+    case cloudmaskVis = "cloudmask_vis"
 
     var id: String { rawValue }
 
-    /// Layers the user can choose (the cloud mask is the data basis of the sun layer).
-    static let selectable: [RadarLayer] = [.radar, .pressure, .lightning, .clouds, .cloudmask]
+    /// Layers the user can choose (the cloud mask is the data basis of the sun layer). Europe is its own entry
+    /// (no zoom automatism); `pressureEU` is only offered once the backend reports it (`isOfferedWhenUnavailable`).
+    static let selectable: [RadarLayer] = [.radar, .pressure, .pressureEU, .lightning, .clouds, .cloudmask]
+    /// Helper layers fetched with their parent layer, not chosen and not probed on their own.
+    static let auxiliary: [RadarLayer] = [.cloudmaskVis]
     /// Layers fetched from the backend's `/v1/layers/<id>/` API.
-    static let backendLayers: [RadarLayer] = [.pressure, .lightning, .clouds, .cloudmask]
+    static let backendLayers: [RadarLayer] = [.pressure, .pressureEU, .lightning, .clouds, .cloudmask, .cloudmaskVis]
+
+    /// `false` for layers newer than the first backend release: while the backend does not report them
+    /// (404, not yet asked, unreachable) they are not shown in the menu at all instead of greyed out.
+    var isOfferedWhenUnavailable: Bool { self != .pressureEU }
+
+    /// Layer that is drawn with the Europe extent (own bounds from its manifest).
+    var isEurope: Bool { self == .pressureEU }
 
     var isBackendLayer: Bool { self != .radar }
 
@@ -21,9 +33,11 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .radar: "Regenradar"
         case .pressure: "Luftdruck"
+        case .pressureEU: "Luftdruck Europa"
         case .lightning: "Blitze"
         case .clouds: "Wolken"
         case .cloudmask: "Sonne"
+        case .cloudmaskVis: "Sonne (sichtbarer Kanal)"
         }
     }
 
@@ -32,19 +46,20 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .radar: "Regenradar"
         case .pressure: "Luftdruck, Isobaren"
+        case .pressureEU: "Luftdruck Europa, Isobaren"
         case .lightning: "Blitze"
         case .clouds: "Wolken, Satellitenbild"
-        case .cloudmask: "Sonne, Rückblick aus Satellit und Sonnenstand"
+        case .cloudmask, .cloudmaskVis: "Sonne, Rückblick aus Satellit und Sonnenstand"
         }
     }
 
     var symbolName: String {
         switch self {
         case .radar: "cloud.rain"
-        case .pressure: "gauge.with.dots.needle.33percent"
+        case .pressure, .pressureEU: "gauge.with.dots.needle.33percent"
         case .lightning: "bolt.fill"
         case .clouds: "cloud"
-        case .cloudmask: "sun.max"
+        case .cloudmask, .cloudmaskVis: "sun.max"
         }
     }
 
@@ -55,9 +70,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var nominalStepMinutes: Int {
         switch self {
         case .radar, .lightning: 5
-        case .clouds: 10
+        case .clouds, .cloudmaskVis: 10
         case .cloudmask: 15
-        case .pressure: 60
+        case .pressure, .pressureEU: 60
         }
     }
 
@@ -65,8 +80,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var pollInterval: TimeInterval {
         switch self {
         case .radar, .lightning: 60
-        case .clouds, .cloudmask: 120
-        case .pressure: 300
+        case .clouds, .cloudmask, .cloudmaskVis: 120
+        case .pressure, .pressureEU: 300
         }
     }
 
@@ -74,8 +89,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var maximumObservationAge: TimeInterval {
         switch self {
         case .lightning: 30 * 60
-        case .clouds, .cloudmask: 2 * 3600
-        case .pressure, .radar: 0
+        case .clouds, .cloudmask, .cloudmaskVis: 2 * 3600
+        case .pressure, .pressureEU, .radar: 0
         }
     }
 
@@ -87,6 +102,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var prefetchSlotLimit: Int? {
         switch self {
         case .clouds, .cloudmask: 19
+        // Europe isobars are transparent lossless images, but decode to 17.8 MB each: only a window is preloaded.
+        case .pressureEU: 13
         default: nil
         }
     }
@@ -97,7 +114,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .radar: 0.72
         case .clouds: 0.8
         case .cloudmask: 0.85
-        case .pressure, .lightning: 0.9
+        case .pressure, .pressureEU, .lightning, .cloudmaskVis: 0.9
         }
     }
 
@@ -106,7 +123,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .cloudmask: "Rückblick"
         case .radar, .lightning, .clouds: isForecast ? "Vorhersage" : "Messung"
-        case .pressure: isForecast ? "Vorhersage" : "Modell"
+        case .pressure, .pressureEU: isForecast ? "Vorhersage" : "Modell"
+        case .cloudmaskVis: "Rückblick"
         }
     }
 
@@ -390,6 +408,22 @@ final class RadarLayerStore {
         layer == .radar ? .available : snapshot(layer).availability
     }
     func isSelectable(_ layer: RadarLayer) -> Bool { availability(layer).isSelectable }
+    /// Shown in the layer menu: everything selectable; newer layers (Europe) only after the backend reported them.
+    func isOffered(_ layer: RadarLayer) -> Bool {
+        layer.isOfferedWhenUnavailable || availability(layer) == .available
+    }
+    var offeredLayers: [RadarLayer] { RadarLayer.selectable.filter(isOffered) }
+
+    /// Manifest of the visible-channel helper layer for the sun layer, only when it is fresh and has the same
+    /// extent as the cloud mask (else `nil`: the sun layer uses the mask alone).
+    var sunVisibleManifest: RadarLayerManifest? {
+        let vis = snapshot(.cloudmaskVis)
+        guard vis.availability == .available, let manifest = vis.manifest,
+              let mask = snapshot(.cloudmask).manifest, manifest.backend.bounds == mask.backend.bounds,
+              manifest.backend.imageWidth == mask.backend.imageWidth,
+              manifest.backend.imageHeight == mask.backend.imageHeight else { return nil }
+        return manifest
+    }
     var isLoading: Bool { loading.contains(active) }
 
     var activeTimeline: RadarTimeline? { active == .radar ? nil : snapshot(active).timeline }
@@ -398,7 +432,7 @@ final class RadarLayerStore {
     /// Chooses a layer. Unavailable layers (404, invalid, stale) are refused; the data is loaded right away.
     @discardableResult
     func select(_ layer: RadarLayer) -> Bool {
-        guard RadarLayer.selectable.contains(layer), isSelectable(layer) else { return false }
+        guard RadarLayer.selectable.contains(layer), isSelectable(layer), isOffered(layer) else { return false }
         active = layer
         if layer.isBackendLayer { Task { await refresh(layer) } }
         return true
@@ -419,6 +453,8 @@ final class RadarLayerStore {
         let outcome = await client.latest(layer)
         loading.remove(layer)
         apply(outcome, to: layer, now: clock())
+        // The sun layer's visible-channel helper follows its parent; a 404 there is silent (mask only).
+        if layer == .cloudmask, availability(.cloudmask) == .available { await refresh(.cloudmaskVis) }
     }
 
     func apply(_ outcome: RadarLayerClient.Outcome, to layer: RadarLayer, now: Date) {
@@ -461,6 +497,7 @@ final class RadarLayerStore {
         let now = clock()
         guard force || now.timeIntervalSince(lastProbe) >= Self.probeInterval else { return }
         lastProbe = now
+        // The visible-channel helper is refreshed together with the cloud mask (`refresh`), not probed on its own.
         let targets = restricted ? [active].filter(\.isBackendLayer) : RadarLayer.selectable.filter(\.isBackendLayer)
         let tasks = targets.map { layer in Task { await self.refresh(layer) } }
         for task in tasks { await task.value }

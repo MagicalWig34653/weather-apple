@@ -13,6 +13,8 @@ struct RadarMap: UIViewRepresentable {
     /// Which overlay the map shows. Optional layers have no DWD tile fallback: without their own
     /// manifest the map shows no overlay at all (never the radar).
     var layer: RadarLayer = .radar
+    /// Sun layer only: manifest of the visible-channel helper layer (`nil` = backend does not offer it, mask only).
+    var visibleManifest: RadarManifest?
     let onSelect: (CLLocationCoordinate2D) -> Void
     /// Called when a backend image failed; the argument is the number of images loaded so far.
     var onBackendFailure: @MainActor (Int) -> Void = { _ in }
@@ -134,6 +136,9 @@ struct RadarMap: UIViewRepresentable {
         var backendOverlay: RadarImageOverlay?
         private var backendContextID = UUID()
         private var backendSequence = 0
+        private var visibleLoader: BackendRadarLoader?
+        private var visibleShown: URL?
+        private var visibleRequested: URL?
         private let pathGate = RadarPathGate()
         private var lastSequence = -1
         let prefetcher = RadarPrefetcher()
@@ -171,12 +176,17 @@ struct RadarMap: UIViewRepresentable {
             var replaced = false
             if backendOverlay?.loader.manifest != manifest {
                 let isRadar = parent.layer == .radar
-                let created = RadarImageOverlay(loader: BackendRadarLoader(manifest: manifest, trimsCache: isRadar),
+                // Sun layer: composed images are cached separately, so fewer decoded mask images are kept
+                // (decoded budget: 3 mask + 2 visible + 4 composed German-grid images, about 45 MB).
+                let isSun = parent.layer == .cloudmask
+                let created = RadarImageOverlay(loader: BackendRadarLoader(manifest: manifest, trimsCache: isRadar,
+                                                                           decodedLimit: isSun ? 3 : RadarBackendPolicy.decodedImageLimit),
                                                 opacity: parent.layer.overlayOpacity,
                                                 sunComposer: parent.layer == .cloudmask ? SunOverlayComposer(bounds: manifest.bounds) : nil)
                 map.addOverlay(created, level: .aboveRoads)
                 if let old = backendOverlay { old.loader.cancelPrefetch(); map.removeOverlay(old) }
                 backendOverlay = created
+                visibleShown = nil; visibleRequested = nil
                 replaced = true
             }
             guard let backendOverlay, let date = parent.date, let reference = parent.referenceTime else { return }
@@ -190,6 +200,8 @@ struct RadarMap: UIViewRepresentable {
             if changed {
                 backendOverlay.slotTime = slot.time
                 backendOverlay.slotURL = slot.url
+                visibleShown = nil; visibleRequested = nil
+                backendOverlay.setVisible(loader: visibleLoader, url: nil)
                 map.renderer(for: backendOverlay)?.setNeedsDisplay()
                 if loader.image(for: slot.url) != nil {
                     reportBackend(.ready, date: date, reference: reference, loader: loader)
@@ -206,7 +218,50 @@ struct RadarMap: UIViewRepresentable {
                     }
                 }
             }
+            if parent.layer == .cloudmask { syncVisible(overlay: backendOverlay, slot: slot, map: map) }
             startBackendPrefetch(loader: loader, selected: index)
+        }
+
+        /// Sun layer: fetches only the one visible-channel slot matched to the shown mask slot (no prefetch,
+        /// nothing under Low Power / Low Data) and redraws once it is there. Any miss leaves the mask alone.
+        private func syncVisible(overlay: RadarImageOverlay, slot: RadarManifest.Slot, map: MKMapView) {
+            guard let manifest = parent.visibleManifest, !ProcessInfo.processInfo.isLowPowerModeEnabled,
+                  !pathGate.isConstrained else {
+                if visibleShown != nil || visibleRequested != nil { overlay.setVisible(loader: nil, url: nil) }
+                visibleShown = nil; visibleRequested = nil
+                return
+            }
+            if visibleLoader?.manifest != manifest {
+                visibleLoader?.cancelPrefetch()
+                visibleLoader = BackendRadarLoader(manifest: manifest, trimsCache: false, decodedLimit: 2)
+                visibleShown = nil; visibleRequested = nil
+            }
+            guard let visibleLoader, let match = SunVisibleMatch.nearest(to: slot.time, in: manifest.slots) else {
+                if visibleShown != nil { overlay.setVisible(loader: nil, url: nil) }
+                visibleShown = nil; visibleRequested = nil
+                return
+            }
+            if visibleShown == match.url { return }
+            if visibleLoader.image(for: match.url) != nil {
+                visibleShown = match.url
+                overlay.setVisible(loader: visibleLoader, url: match.url)
+                map.renderer(for: overlay)?.setNeedsDisplay()
+                return
+            }
+            guard visibleRequested != match.url else { return }
+            visibleRequested = match.url
+            let maskURL = slot.url
+            Task { @MainActor [weak self, weak overlay, weak map] in
+                let ok = await visibleLoader.demand(match.url)
+                guard let self, let overlay, self.backendOverlay === overlay, overlay.slotURL == maskURL else { return }
+                if ok {
+                    self.visibleShown = match.url
+                    overlay.setVisible(loader: visibleLoader, url: match.url)
+                    map?.renderer(for: overlay)?.setNeedsDisplay()
+                } else if self.visibleRequested == match.url {
+                    self.visibleRequested = nil
+                }
+            }
         }
 
         private func startBackendPrefetch(loader: BackendRadarLoader, selected: Int) {

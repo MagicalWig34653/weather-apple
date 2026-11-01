@@ -7,6 +7,9 @@ enum RadarBackendPolicy {
     static let prefetchParallelism = 4
     /// Decoded 1024 x 1311 RGBA images are about 5 MB each, so only a few stay decoded.
     static let decodedImageLimit = 8
+    /// Byte budget of decoded images: the Europe extent (2048 x 2168) is about 17 MB per image, so there only
+    /// two stay decoded (the 8 images of the German grid are about 43 MB).
+    static let decodedImageByteBudget = 48_000_000
     /// A failed image is not requested again for this long (draw callbacks must not hammer).
     static let failureCooldown: TimeInterval = 5
     /// Prefetch stops adding images once the compressed cache holds this much (80 % of the 50 MB
@@ -31,8 +34,13 @@ enum RadarImageDecoder {
 final class DecodedImageCache: @unchecked Sendable {
     private let lock = NSLock()
     private let limit: Int
+    private let byteLimit: Int
     private var entries: [(url: URL, image: CGImage)] = []
-    init(limit: Int = RadarBackendPolicy.decodedImageLimit) { self.limit = max(1, limit) }
+    init(limit: Int = RadarBackendPolicy.decodedImageLimit, byteLimit: Int = RadarBackendPolicy.decodedImageByteBudget) {
+        self.limit = max(1, limit)
+        self.byteLimit = max(1, byteLimit)
+    }
+    var byteCount: Int { lock.withLock { entries.reduce(0) { $0 + $1.image.bytesPerRow * $1.image.height } } }
     func image(for url: URL) -> CGImage? {
         lock.withLock {
             guard let index = entries.firstIndex(where: { $0.url == url }) else { return nil }
@@ -45,7 +53,11 @@ final class DecodedImageCache: @unchecked Sendable {
         lock.withLock {
             entries.removeAll { $0.url == url }
             entries.append((url, image))
-            if entries.count > limit { entries.removeFirst(entries.count - limit) }
+            // Oldest first, never the one just inserted.
+            while entries.count > 1,
+                  entries.count > limit || entries.reduce(0, { $0 + $1.image.bytesPerRow * $1.image.height }) > byteLimit {
+                entries.removeFirst()
+            }
         }
     }
     var count: Int { lock.withLock { entries.count } }
@@ -62,7 +74,7 @@ final class BackendRadarLoader: @unchecked Sendable {
     let manifest: RadarManifest
     private let cache: TileMemoryCache
     private let prefetchCeiling: Int
-    private let decoded = DecodedImageCache()
+    private let decoded: DecodedImageCache
     private let fetch: Fetch
     private let decode: Decode
     private let lock = NSLock()
@@ -76,12 +88,13 @@ final class BackendRadarLoader: @unchecked Sendable {
     /// `trimsCache: false` for optional layers: they must not evict the radar's images from the shared cache
     /// (its byte limit and LRU still apply to everything together).
     init(manifest: RadarManifest, cache: TileMemoryCache = BackendRadarLoader.sharedCache,
-         trimsCache: Bool = true,
+         trimsCache: Bool = true, decodedLimit: Int = RadarBackendPolicy.decodedImageLimit,
          prefetchCeiling: Int = RadarBackendPolicy.prefetchCacheCeiling,
          fetch: Fetch? = nil, decode: Decode? = nil) {
         self.manifest = manifest
         self.cache = cache
         self.prefetchCeiling = prefetchCeiling
+        self.decoded = DecodedImageCache(limit: decodedLimit)
         self.fetch = fetch ?? BackendRadarLoader.makeFetch()
         let width = manifest.imageWidth, height = manifest.imageHeight
         self.decode = decode ?? { RadarImageDecoder.decode($0, width: width, height: height) }
@@ -219,6 +232,8 @@ final class RadarImageOverlay: NSObject, MKOverlay, @unchecked Sendable {
     let opacity: CGFloat
     /// Sun layer: the mask slot is turned into the sun overlay (slot time = sun position time) before drawing.
     let sunComposer: SunOverlayComposer?
+    private var visibleLoader: BackendRadarLoader?
+    private var visibleURLShown: URL?
 
     init(loader: BackendRadarLoader, opacity: CGFloat = 0.72, sunComposer: SunOverlayComposer? = nil) {
         self.loader = loader
@@ -241,12 +256,19 @@ final class RadarImageOverlay: NSObject, MKOverlay, @unchecked Sendable {
         set { lock.withLock { shownTime = newValue } }
     }
 
+    /// Sun layer: visible-channel loader and the URL of the slot matched to the shown mask slot. The URL is set
+    /// only once that image is decoded and cached, so drawing never waits for it (mask alone until then).
+    func setVisible(loader: BackendRadarLoader?, url: URL?) {
+        lock.withLock { visibleLoader = loader; visibleURLShown = url }
+    }
+
     func currentImage() -> CGImage? {
-        let (url, time) = lock.withLock { (shownURL, shownTime) }
+        let (url, time, visLoader, visURL) = lock.withLock { (shownURL, shownTime, visibleLoader, visibleURLShown) }
         guard let url else { return nil }
         if let sunComposer {
             guard let time else { return nil }
-            return sunComposer.image(for: url, time: time) { [loader] in loader.image(for: url) }
+            return sunComposer.image(for: url, time: time, visibleURL: visURL, mask: { [loader] in loader.image(for: url) },
+                                     visible: { visURL.flatMap { visLoader?.image(for: $0) } })
         }
         return loader.image(for: url)
     }

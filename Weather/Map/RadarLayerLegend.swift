@@ -7,14 +7,14 @@ enum RadarLayerLegendText {
     static func hint(for layer: RadarLayer) -> String {
         switch layer {
         case .radar: "Niederschlag in Millimeter pro Stunde."
-        case .pressure:
-            "Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage. Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind."
+        case .pressure, .pressureEU:
+            "Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage\(layer == .pressureEU ? ", Ausschnitt Europa" : ""). Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind."
         case .lightning:
             "Blitzdichte der letzten 15 Minuten (NowCastMIX des DWD). Je kräftiger die Farbe, desto mehr Blitze in dem Gebiet."
         case .clouds:
             "Satellitenbild von Meteosat: Wolken erscheinen weiß bis grau. Es gibt keine Farbskala, und das Bild zeigt Bewölkung, keinen Niederschlag."
-        case .cloudmask:
-            "Rückblick, keine Vorhersage: Wolkenmaske von Meteosat (Satellit, 25 bis 40 Minuten alt) kombiniert mit dem berechneten Sonnenstand. Die Maske kennt nur klar oder bewölkt, keine Wolkendicke: dünne Wolken zählen als bewölkt. Kein Schattenwurf, Nebel kann als klar erscheinen."
+        case .cloudmask, .cloudmaskVis:
+            "Rückblick, keine Vorhersage: Wolkenmaske von Meteosat (Satellit, 25 bis 40 Minuten alt) kombiniert mit dem berechneten Sonnenstand. Die Maske kennt nur klar oder bewölkt, keine Wolkendicke: dünne Wolken zählen als bewölkt. Tagsüber verfeinert, wenn der Server ihn liefert, der sichtbare Kanal die Bewölkung weich; bei tiefem Sonnenstand und nachts gilt nur die Maske. Kein Schattenwurf, Nebel kann als klar erscheinen."
         }
     }
 
@@ -22,9 +22,10 @@ enum RadarLayerLegendText {
         switch layer {
         case .radar: "Niederschlag in mm/h"
         case .pressure: "Luftdruck (Isobaren)"
+        case .pressureEU: "Luftdruck Europa (Isobaren)"
         case .lightning: "Blitzdichte"
         case .clouds: "Wolken"
-        case .cloudmask: "Sonne"
+        case .cloudmask, .cloudmaskVis: "Sonne"
         }
     }
 
@@ -32,10 +33,10 @@ enum RadarLayerLegendText {
     static func toggleHint(for layer: RadarLayer) -> String {
         switch layer {
         case .radar: "Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde"
-        case .pressure: "Zeigt oder verbirgt den Hinweis zu den Isobaren"
+        case .pressure, .pressureEU: "Zeigt oder verbirgt den Hinweis zu den Isobaren"
         case .lightning: "Zeigt oder verbirgt die Legende der Blitzdichte"
         case .clouds: "Zeigt oder verbirgt den Hinweis zum Satellitenbild"
-        case .cloudmask: "Zeigt oder verbirgt die Legende der Sonnenebene"
+        case .cloudmask, .cloudmaskVis: "Zeigt oder verbirgt die Legende der Sonnenebene"
         }
     }
 }

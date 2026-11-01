@@ -81,7 +81,7 @@ struct InformationSheet: View {
 
     /// Source line and modification notice of every optional layer the backend currently offers (from its manifest).
     @ViewBuilder private var layerSources: some View {
-        ForEach(RadarLayer.selectable.filter(\.isBackendLayer)) { layer in
+        ForEach((RadarLayer.selectable + RadarLayer.auxiliary).filter(\.isBackendLayer)) { layer in
             if let manifest = store.layers.snapshot(layer).manifest {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(layer.title).font(.subheadline.weight(.semibold))

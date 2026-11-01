@@ -11,7 +11,9 @@ enum RadarBackendConfig {
     /// After the backend delivered no usable images, stay on the direct path for a while.
     static let imageFailureBlockInterval: TimeInterval = 300
     static let maximumManifestBytes = 256 * 1024
-    static let maximumImageBytes = 1_048_576
+    /// Upper bound of one slot image. The Europe visible-channel images (2048 x 2168, lossless WebP) reach about
+    /// 1.2 MB at midday (backend estimate), so 1 MiB would reject them; German-grid images stay far below.
+    static let maximumImageBytes = 2_097_152
     /// Privacy policy page of the ShowerNow site (opened in the browser; no network dependency in the app).
     static let privacyPolicyURL = URL(string: "https://showernow.linolaske.de/datenschutz")!
     /// Support page of the ShowerNow site (opened in the browser; no network dependency in the app).

@@ -287,4 +287,163 @@ final class SunMaskTests: XCTestCase {
         XCTAssertTrue(RadarLayerLegendText.hint(for: .cloudmask).contains("keine Vorhersage"))
         XCTAssertTrue(RadarLayerLegendText.hint(for: .cloudmask).contains("keine Wolkendicke"))
     }
+
+    // MARK: Visible channel (cloudmask_vis, backend format: R = G = B, raw 0...~180, alpha 255)
+
+    private func gray(_ value: UInt8, count: Int) -> [UInt8] {
+        (0..<count).flatMap { _ in [value, value, value, 255] }
+    }
+
+    func testCloudinessNormalisesBySunHeight() {
+        // The same surface (normalised value 180) is half cloudy at any sun height: raw = 180 * sin(h).
+        let high = VisibleChannel.cloudiness(raw: UInt8((180 * sin(40.0 * .pi / 180)).rounded()), sinElevation: sin(40.0 * .pi / 180))
+        let low = VisibleChannel.cloudiness(raw: UInt8((180 * sin(15.0 * .pi / 180)).rounded()), sinElevation: sin(15.0 * .pi / 180))
+        XCTAssertEqual(high, low, accuracy: 0.05)
+        XCTAssertEqual(VisibleChannel.cloudiness(raw: 0, sinElevation: 0.9), 0)
+        XCTAssertEqual(VisibleChannel.cloudiness(raw: 200, sinElevation: 0.5), 1)
+        XCTAssertGreaterThan(VisibleChannel.cloudiness(raw: 70, sinElevation: 0.5), VisibleChannel.cloudiness(raw: 60, sinElevation: 0.5))
+        XCTAssertEqual(VisibleChannel.weight(elevation: 3), 0)
+        XCTAssertEqual(VisibleChannel.weight(elevation: 12), 1)
+        XCTAssertEqual(VisibleChannel.weight(elevation: 7.5), 0.5, accuracy: 0.001)
+    }
+
+    func testVisibleChannelSoftensDayColoursAndFallsBackAtNight() {
+        // 4 x 4 image, Germany bounds. Day: 11:00 UTC (sun > 10 degrees everywhere); the mask says "clear" (green).
+        let n = 16
+        let green: [UInt8] = (0..<n).flatMap { _ in [0, 192, 0, 255] }
+        let day = utc("2026-10-31T11:00:00Z")
+        let maskOnly = SunOverlay.render(rgba: green, width: 4, height: 4, bounds: bounds, date: day)
+        XCTAssertEqual(maskOnly[3], 140, "mask only: clear = sunny alpha 0.55")
+        // Bright visible pixels (normalised far above the cloud value) turn the cell grey, dark ones stay sunny.
+        let cloudy = SunOverlay.render(rgba: green, width: 4, height: 4, bounds: bounds, date: day, visible: gray(150, count: n))
+        XCTAssertEqual(cloudy[3], 97, accuracy: 3, "0.38 alpha")
+        let clear = SunOverlay.render(rgba: green, width: 4, height: 4, bounds: bounds, date: day, visible: gray(0, count: n))
+        XCTAssertEqual(clear[3], 140)
+        // Soft in between: alpha lies strictly between sunny and cloudy.
+        let mid = SunOverlay.render(rgba: green, width: 4, height: 4, bounds: bounds, date: day, visible: gray(54, count: n))
+        XCTAssertLessThan(mid[3], 140); XCTAssertGreaterThan(mid[3], 97)
+        // Night: the (black or noisy) visible image is ignored, shade only.
+        let night = SunOverlay.render(rgba: green, width: 4, height: 4, bounds: bounds, date: utc("2026-10-31T00:00:00Z"),
+                                      visible: gray(150, count: n))
+        XCTAssertEqual(night[3], UInt8((0.68 * 255).rounded()))
+        // A visible image of the wrong size is ignored (mask result).
+        let wrong = SunOverlay.render(rgba: green, width: 4, height: 4, bounds: bounds, date: day, visible: gray(150, count: 3))
+        XCTAssertEqual(wrong, maskOnly)
+    }
+
+    func testComposeIgnoresVisibleImageOfAnotherExtent() throws {
+        let image = try mask("clm-20261031T1100Z")
+        let small = try XCTUnwrap(SunOverlay.image(rgba: gray(150, count: 16), width: 4, height: 4))
+        let a = try XCTUnwrap(SunOverlay.compose(mask: image, visible: small, bounds: bounds, date: utc("2026-10-31T11:00:00Z")))
+        let b = try XCTUnwrap(SunOverlay.compose(mask: image, bounds: bounds, date: utc("2026-10-31T11:00:00Z")))
+        XCTAssertEqual(SunOverlay.pixels(of: a), SunOverlay.pixels(of: b))
+    }
+
+    // MARK: Europe extent (manifest bounds per layer, memory)
+
+    /// Backend `RadarConstants.europeBBox` (lon -25..45, lat 30..72), image 2048 x 2168.
+    let europe = RadarBounds(minX: -2782987, minY: 3503550, maxX: 5009377, maxY: 11753185)
+
+    func testEuropeManifestImageInfoGivesItsOwnBoundsAndMapRect() throws {
+        let json = #"{"format":"image/webp","width":2048,"height":2168,"projection":"EPSG:3857","bbox":[-2782987.0,3503550.0,5009377.0,11753185.0],"bbox_wgs84":[-25.0,30.0,45.0,72.0]}"#
+        let info = try JSONDecoder().decode(RadarImageInfo.self, from: Data(json.utf8))
+        XCTAssertEqual(info.validatedBounds, europe)
+        let germany = RadarImageGeometry.mapRect(for: bounds), eu = RadarImageGeometry.mapRect(for: europe)
+        XCTAssertGreaterThan(eu.width, germany.width * 5)
+        XCTAssertLessThan(eu.x, germany.x)
+        // The pixel mapping uses the bounds of the given image: Berlin lies in both, at other pixels.
+        let inGermany = try XCTUnwrap(SunGeometry.pixel(latitude: 52.52, longitude: 13.405, bounds: bounds, width: 1024, height: 1311))
+        let inEurope = try XCTUnwrap(SunGeometry.pixel(latitude: 52.52, longitude: 13.405, bounds: europe, width: 2048, height: 2168))
+        XCTAssertNotEqual(inGermany.x, inEurope.x)
+        XCTAssertNotNil(SunGeometry.pixel(latitude: 40, longitude: -5, bounds: europe, width: 2048, height: 2168), "Spain is inside")
+        XCTAssertNil(SunGeometry.pixel(latitude: 40, longitude: -5, bounds: bounds, width: 1024, height: 1311))
+    }
+
+    func testEuropeSunOverlayUsesBoundsAndSpansTimeZones() {
+        // 16:00 UTC on 1 Nov: sun still up in the west (Lisbon, about 6 degrees), night in the east (Volga, 44 E).
+        let w = 64, h = 68
+        let clearMask: [UInt8] = (0..<(w * h)).flatMap { _ in [0, 192, 0, 255] }
+        let out = SunOverlay.render(rgba: clearMask, width: w, height: h, bounds: europe, date: utc("2026-11-01T16:00:00Z"))
+        func alpha(lat: Double, lon: Double) -> UInt8 {
+            let p = SunGeometry.pixel(latitude: lat, longitude: lon, bounds: europe, width: w, height: h)!
+            return out[(p.y * w + p.x) * 4 + 3]
+        }
+        XCTAssertEqual(alpha(lat: 38.7, lon: -9.1), 140, "Lisbon, sun up: sunny")
+        XCTAssertEqual(alpha(lat: 45, lon: 44), UInt8((SunOverlay.shadeAlpha(elevation: -30) * 255).rounded()),
+                       accuracy: 8, "far east: night shade")
+    }
+
+    func testCachesStayWithinByteBudgetForEuropeImages() throws {
+        // 2048 x 2168 x 4 = 17.8 MB per image: a 48 MB decoded budget keeps two, a 40 MB composer budget two.
+        let cache = DecodedImageCache()
+        let big = try XCTUnwrap(SunOverlay.image(rgba: [UInt8](repeating: 0, count: 2048 * 2168 * 4), width: 2048, height: 2168))
+        for index in 0..<5 { cache.insert(big, for: URL(string: "https://radar.example.invalid/\(index).webp")!) }
+        XCTAssertEqual(cache.count, 2)
+        XCTAssertLessThanOrEqual(cache.byteCount, RadarBackendPolicy.decodedImageByteBudget)
+        let small = try XCTUnwrap(SunOverlay.image(rgba: [UInt8](repeating: 0, count: 1024 * 1311 * 4), width: 1024, height: 1311))
+        let smallCache = DecodedImageCache()
+        for index in 0..<12 { smallCache.insert(small, for: URL(string: "https://radar.example.invalid/\(index).webp")!) }
+        XCTAssertEqual(smallCache.count, RadarBackendPolicy.decodedImageLimit, "German grid keeps the old count")
+
+        let composer = SunOverlayComposer(bounds: europe, limit: 4)
+        let mask = try XCTUnwrap(SunOverlay.image(rgba: (0..<(2048 * 2168)).flatMap { _ in [255, 255, 255, 255] }, width: 2048, height: 2168))
+        for index in 0..<3 {
+            XCTAssertNotNil(composer.image(for: URL(string: "https://radar.example.invalid/m\(index).webp")!,
+                                           time: utc("2026-11-01T12:00:00Z")) { mask })
+        }
+        XCTAssertLessThanOrEqual(composer.cachedBytes, SunOverlayComposer.byteBudget)
+        XCTAssertGreaterThanOrEqual(composer.cachedBytes, 1)
+    }
+
+    func testSunTimeZoneOnlyForTheGermanGridIsBerlin() {
+        XCTAssertEqual(SunPlace.timeZone(latitude: 52.52, longitude: 13.405).identifier, "Europe/Berlin")
+        XCTAssertEqual(SunPlace.timeZone(latitude: 38.7, longitude: -9.1), TimeZone.current, "Lisbon: device zone, not Berlin")
+        XCTAssertEqual(SunPlace.timeZone(latitude: 60.17, longitude: 24.94), TimeZone.current, "Helsinki")
+    }
+
+    // MARK: Welle 2: vis-Slot-Zuordnung
+
+    private func visSlots(_ times: [String]) -> [RadarManifest.Slot] {
+        times.map { RadarManifest.Slot(time: utc($0), kind: .analysis, path: "r/\($0).webp",
+                                      url: URL(string: "https://radar.example.invalid/v1/layers/cloudmask_vis/r/\($0).webp")!) }
+    }
+
+    func testVisibleSlotMatchesNearestWithinTenMinutes() {
+        let slots = visSlots(["2026-11-01T11:00:00Z", "2026-11-01T11:10:00Z", "2026-11-01T11:20:00Z", "2026-11-01T11:30:00Z"])
+        func match(_ text: String) -> String? { SunVisibleMatch.nearest(to: utc(text), in: slots).map { $0.path } }
+        XCTAssertEqual(match("2026-11-01T11:15:00Z"), "r/2026-11-01T11:10:00Z.webp", "tie: the earlier slot")
+        XCTAssertEqual(match("2026-11-01T11:30:00Z"), "r/2026-11-01T11:30:00Z.webp")
+        XCTAssertNil(match("2026-11-01T11:44:00Z"), "14 min after the last slot is too far")
+        XCTAssertEqual(match("2026-11-01T11:39:59Z"), "r/2026-11-01T11:30:00Z.webp", "inside 10 min")
+        XCTAssertNil(match("2026-11-01T11:40:01Z"), "beyond 10 min: mask only")
+        XCTAssertNil(match("2026-11-01T10:49:00Z"))
+        XCTAssertNil(SunVisibleMatch.nearest(to: Date(), in: []))
+    }
+
+    func testVisibleSlotGapFallsBackToMask() {
+        // Source gap (night outage): slots at 11:00 and 12:00, the mask slot at 11:30 has no partner.
+        let slots = visSlots(["2026-11-01T11:00:00Z", "2026-11-01T12:00:00Z"])
+        XCTAssertNil(SunVisibleMatch.nearest(to: utc("2026-11-01T11:30:00Z"), in: slots))
+        XCTAssertNil(SunVisibleMatch.nearest(to: utc("2026-11-01T11:45:00Z"), in: slots), "15 min from 12:00")
+        XCTAssertNotNil(SunVisibleMatch.nearest(to: utc("2026-11-01T11:51:00Z"), in: slots))
+    }
+
+    func testComposerKeepsMaskOnlyAndVisibleCompositionsApart() throws {
+        let image = try mask("clm-20261031T1100Z")
+        let composer = SunOverlayComposer(bounds: bounds, limit: 4)
+        let url = URL(string: "https://radar.example.invalid/a.webp")!
+        let vis = URL(string: "https://radar.example.invalid/v.webp")!
+        let time = utc("2026-10-31T11:00:00Z")
+        let plain = composer.image(for: url, time: time, mask: { image })
+        let again = composer.image(for: url, time: time, visibleURL: nil, mask: { image })
+        XCTAssertTrue(plain === again)
+        var visibleAsked = 0
+        let refined = composer.image(for: url, time: time, visibleURL: vis, mask: { image }, visible: { visibleAsked += 1; return image })
+        XCTAssertNotNil(refined)
+        XCTAssertFalse(plain === refined, "the visible image arriving later replaces the mask-only composition")
+        XCTAssertEqual(visibleAsked, 1)
+        _ = composer.image(for: url, time: time, visibleURL: vis, mask: { image }, visible: { visibleAsked += 1; return image })
+        XCTAssertEqual(visibleAsked, 1, "cached")
+        XCTAssertEqual(composer.composeCount, 2)
+    }
 }

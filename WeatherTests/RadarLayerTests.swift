@@ -165,7 +165,11 @@ final class RadarLayerTests: XCTestCase {
         let date = utc("2026-10-31T13:00:00Z")
         XCTAssertTrue(TimelineAccessibility.value(date: date, isForecast: false, reference: date, caption: "Modell").hasSuffix(", Modell"))
         XCTAssertTrue(TimelineAccessibility.value(date: date, isForecast: false, reference: date).hasSuffix(", Messung"), "radar wording unchanged")
-        XCTAssertEqual(RadarLayer.selectable, [.radar, .pressure, .lightning, .clouds, .cloudmask], "cloudmask is the sun layer")
+        XCTAssertEqual(RadarLayer.selectable, [.radar, .pressure, .pressureEU, .lightning, .clouds, .cloudmask], "cloudmask is the sun layer")
+        XCTAssertFalse(RadarLayer.selectable.contains(.cloudmaskVis), "the visible channel is a helper, not a menu entry")
+        XCTAssertEqual(RadarLayer.pressureEU.title, "Luftdruck Europa")
+        XCTAssertEqual(RadarLayer.pressureEU.rawValue, "pressure_eu")
+        XCTAssertEqual(RadarLayer.cloudmaskVis.rawValue, "cloudmask_vis")
         XCTAssertEqual(RadarLayer.cloudmask.title, "Sonne")
         XCTAssertEqual(RadarLayer.cloudmask.frameCaption(isForecast: false), "Rückblick")
         XCTAssertEqual(RadarLayer.cloudmask.nominalStepMinutes, 15)
@@ -283,13 +287,13 @@ final class RadarLayerTests: XCTestCase {
         let responder = Responder { _ in (404, Data(), [:]) }
         let layers = store(responder)
         await layers.probeAll(force: true)
-        for layer in [RadarLayer.pressure, .lightning, .clouds, .cloudmask] {
+        for layer in [RadarLayer.pressure, .pressureEU, .lightning, .clouds, .cloudmask] {
             XCTAssertEqual(layers.availability(layer), .notPublished)
             XCTAssertFalse(layers.isSelectable(layer))
             XCTAssertFalse(layers.select(layer), "a layer the server does not offer cannot be chosen")
         }
         XCTAssertEqual(layers.active, .radar)
-        XCTAssertEqual(responder.paths.count, 4, "one request per optional layer, including the sun layer")
+        XCTAssertEqual(responder.paths.count, 5, "one request per optional layer, including the sun layer; no helper request without the sun layer")
         XCTAssertEqual(layers.availability(.pressure).hint, "nicht verfügbar")
     }
 
@@ -298,11 +302,11 @@ final class RadarLayerTests: XCTestCase {
         let responder = try backendResponder()
         let layers = store(responder)
         await layers.probeAll()
-        XCTAssertEqual(responder.paths.count, 4)
+        XCTAssertEqual(responder.paths.count, 6, "five optional layers plus the visible-channel helper of the available sun layer")
         await layers.probeAll()
-        XCTAssertEqual(responder.paths.count, 4, "throttled")
+        XCTAssertEqual(responder.paths.count, 6, "throttled")
         await layers.probeAll(force: true, restricted: true)
-        XCTAssertEqual(responder.paths.count, 4, "restricted with the radar active: no layer requests")
+        XCTAssertEqual(responder.paths.count, 6, "restricted with the radar active: no layer requests")
         for layer in [RadarLayer.pressure, .lightning, .clouds, .cloudmask] { XCTAssertEqual(layers.availability(layer), .available) }
     }
 
@@ -516,4 +520,117 @@ final class RadarLayerTests: XCTestCase {
                                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
         return context.makeImage()!
     }()
+
+    // MARK: Welle 2: Europa-Auswahl, Sonnen-Hilfsebene
+
+    /// A fixture re-labelled as another layer (no new fixture files): `pressure_eu` with the Europe extent,
+    /// `cloudmask_vis` with the 10 min grid.
+    private func europeData() throws -> Data {
+        try modified("layer-pressure") { object in
+            object["layer"] = "pressure_eu"
+            object["image"] = ["format": "image/webp", "width": 2048, "height": 2168, "projection": "EPSG:3857",
+                               "bbox": [-2782987.0, 3503550.0, 5009377.0, 11753185.0], "bbox_wgs84": [-25.0, 30.0, 45.0, 72.0]]
+        }
+    }
+
+    private func visibleData(extent: Bool = true, newest: String = "2026-10-31T12:30:00Z") throws -> Data {
+        try modified("layer-cloudmask") { object in
+            object["layer"] = "cloudmask_vis"
+            object["step_minutes"] = 10
+            object["reference_time"] = newest
+            object["slots"] = [["time": "2026-10-31T09:10:00Z", "kind": "observation", "path": "20261031T1215Z/20261031T0910Z.webp"],
+                               ["time": newest, "kind": "observation", "path": "20261031T1215Z/\(newest.replacingOccurrences(of: "-", with: "").replacingOccurrences(of: ":", with: "").replacingOccurrences(of: "00Z", with: "Z")).webp"]]
+            if !extent {
+                object["image"] = ["format": "image/webp", "width": 2048, "height": 2168, "projection": "EPSG:3857",
+                                   "bbox": [-2782987.0, 3503550.0, 5009377.0, 11753185.0], "bbox_wgs84": [-25.0, 30.0, 45.0, 72.0]]
+            }
+        }
+    }
+
+    private func responder(europe: Bool, visible: Data?) throws -> Responder {
+        var files = ["pressure": try fixture("layer-pressure"), "lightning": try fixture("layer-lightning"),
+                     "clouds": try fixture("layer-clouds"), "cloudmask": try fixture("layer-cloudmask")]
+        if europe { files["pressure_eu"] = try europeData() }
+        if let visible { files["cloudmask_vis"] = visible }
+        let served = files
+        return Responder { request in
+            let id = request.url!.pathComponents.dropLast().last!
+            if let data = served[id] { return (200, data, [:]) }
+            return (404, Data(), [:])
+        }
+    }
+
+    func testEuropeManifestKeepsItsOwnBounds() throws {
+        let value = try RadarLayerManifest.parse(europeData(), expected: .pressureEU, layersBaseURL: base(.pressureEU))
+        XCTAssertEqual(value.layer, .pressureEU)
+        XCTAssertEqual(value.backend.bounds, RadarBounds(minX: -2782987, minY: 3503550, maxX: 5009377, maxY: 11753185))
+        XCTAssertEqual(value.backend.imageWidth, 2048)
+        XCTAssertEqual(base(.pressureEU).absoluteString, "https://radar.example.invalid/v1/layers/pressure_eu/")
+        XCTAssertThrowsError(try RadarLayerManifest.parse(europeData(), expected: .pressure, layersBaseURL: base(.pressure)),
+                             "pressure_eu must not pass as the German layer")
+    }
+
+    @MainActor
+    func testEuropeIsOnlyOfferedWhenTheBackendReportsIt() async throws {
+        let without = store(try responder(europe: false, visible: nil))
+        XCTAssertFalse(without.isOffered(.pressureEU), "not asked yet: not offered (no greyed-out entry)")
+        await without.probeAll(force: true)
+        XCTAssertEqual(without.availability(.pressureEU), .notPublished)
+        XCTAssertFalse(without.offeredLayers.contains(.pressureEU))
+        XCTAssertEqual(without.offeredLayers, [.radar, .pressure, .lightning, .clouds, .cloudmask],
+                       "German layers keep their (greyed-out) entries")
+        XCTAssertFalse(without.select(.pressureEU))
+        XCTAssertEqual(without.active, .radar, "no fallback banner state, just refused")
+
+        let with = store(try responder(europe: true, visible: nil))
+        await with.probeAll(force: true)
+        XCTAssertTrue(with.offeredLayers.contains(.pressureEU))
+        XCTAssertEqual(with.offeredLayers.firstIndex(of: .pressureEU), with.offeredLayers.firstIndex(of: .pressure)! + 1)
+        XCTAssertTrue(with.select(.pressureEU))
+        XCTAssertEqual(with.active, .pressureEU)
+        XCTAssertEqual(with.activeManifest?.backend.bounds.minX, -2782987)
+    }
+
+    @MainActor
+    func testEuropeThatDisappearsHandsTheMapBackToTheRadarSilently() async throws {
+        let layers = store(try responder(europe: true, visible: nil))
+        await layers.refresh(.pressureEU)
+        XCTAssertTrue(layers.select(.pressureEU))
+        layers.apply(.notPublished, to: .pressureEU, now: utc("2026-10-31T13:00:00Z"))
+        XCTAssertEqual(layers.active, .radar)
+        XCTAssertFalse(layers.isOffered(.pressureEU))
+    }
+
+    @MainActor
+    func testSunUsesTheVisibleHelperOnlyWhenItIsFreshAndMatchesTheMaskExtent() async throws {
+        let none = store(try responder(europe: false, visible: nil))
+        await none.refresh(.cloudmask)
+        XCTAssertEqual(none.availability(.cloudmaskVis), .notPublished)
+        XCTAssertNil(none.sunVisibleManifest, "404: mask only")
+        XCTAssertEqual(none.availability(.cloudmask), .available, "a missing helper never degrades the sun layer")
+
+        let ok = store(try responder(europe: false, visible: try visibleData()))
+        await ok.refresh(.cloudmask)
+        XCTAssertEqual(ok.sunVisibleManifest?.layer, .cloudmaskVis)
+        XCTAssertEqual(ok.sunVisibleManifest?.slots.count, 2)
+
+        let other = store(try responder(europe: false, visible: try visibleData(extent: false)))
+        await other.refresh(.cloudmask)
+        XCTAssertNil(other.sunVisibleManifest, "a helper with another extent cannot be matched pixel by pixel")
+
+        // Helper older than two hours (e.g. night outage at the source): stale, mask only.
+        let old = store(try responder(europe: false, visible: try visibleData(newest: "2026-10-31T10:30:00Z")), now: "2026-10-31T13:00:00Z")
+        await old.refresh(.cloudmask)
+        XCTAssertEqual(old.availability(.cloudmaskVis), .stale)
+        XCTAssertNil(old.sunVisibleManifest)
+        XCTAssertEqual(old.availability(.cloudmask), .available)
+    }
+
+    @MainActor
+    func testHelperIsNotRequestedWithoutTheSunLayer() async throws {
+        let responder = try responder(europe: false, visible: try visibleData())
+        let layers = store(responder)
+        await layers.refresh(.pressure)
+        XCTAssertFalse(responder.paths.contains { $0.contains("cloudmask_vis") })
+    }
 }

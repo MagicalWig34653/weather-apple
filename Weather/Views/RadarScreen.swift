@@ -33,6 +33,7 @@ struct RadarScreen: View {
                      reloadRevision: store.radarReloadRevision,
                      timeline: store.displayTimeline, prefetchActive: scenePhase == .active && !store.isPlaying,
                      bottomInset: mapBottomInset, layer: store.activeLayer,
+                     visibleManifest: store.activeLayer == .cloudmask ? store.layers.sunVisibleManifest?.backend : nil,
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
                      onBackendFailure: { loaded in
                          // Optional layers have no fallback: a failed layer image never switches the radar source.
@@ -213,7 +214,7 @@ struct RadarScreen: View {
     private var layerMenu: some View {
         Menu {
             Section("Kartenebene") {
-                ForEach(RadarLayer.selectable) { layer in
+                ForEach(store.layers.offeredLayers) { layer in
                     let availability = store.layers.availability(layer)
                     Button {
                         store.isPlaying = false

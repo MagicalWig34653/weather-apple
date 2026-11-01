@@ -38,6 +38,54 @@ enum CloudMaskClass: UInt8, Equatable, Sendable {
     }
 }
 
+/// Cloudiness from the visible channel (`mtg_fd:vis06_hrfi`, layers `cloudmask_vis` / `cloudmask_vis_eu`).
+///
+/// Backend format (Backend commit 881edeb, docs-site api.md): lossless WebP, RGB with R = G = B, raw channel value
+/// 0 to about 180 (Europe up to 206), NOT normalised, alpha 255; at night only noise (0 to 3). Reflectance is
+/// proportional to the raw value divided by sin(sun height), so the raw value is normalised per pixel.
+/// Hypothesis, not yet measured with live images (the layers were not enabled on the server on 1 Nov 2026): the
+/// research means of 31 Oct 2026, 11:00 UTC (sin h about 0.42) were 51 under clear sky and 107 under cloud, i.e.
+/// 120 and 255 after normalisation; `clear` and `cloud` are rounded values between them. Re-measure with real images.
+enum VisibleChannel {
+    /// Normalised value up to which a pixel counts as clear / from which it counts as fully cloudy.
+    static let clear = 130.0, cloud = 230.0
+    /// Below this sun height the visible channel is too noisy / dark; the cloud mask is used (fully below
+    /// `maskBelow`, fully visible from `visibleFrom`, smooth in between), in degrees.
+    static let maskBelow = 5.0, visibleFrom = 10.0
+
+    /// Cloudiness 0 (clear) ... 1 (cloudy) for a raw value and the sin of the sun height (>= sin(`maskBelow`)).
+    static func cloudiness(raw: UInt8, sinElevation: Double) -> Double {
+        let value = Double(raw) / max(0.05, sinElevation)
+        let t = min(1, max(0, (value - clear) / (cloud - clear)))
+        return t * t * (3 - 2 * t)
+    }
+
+    /// Weight of the visible channel at a sun height (degrees), 0 ... 1.
+    static func weight(elevation h: Double) -> Double {
+        let t = min(1, max(0, (h - maskBelow) / (visibleFrom - maskBelow)))
+        return t * t * (3 - 2 * t)
+    }
+}
+
+/// Assigns a visible-channel slot (10 min grid) to a cloud-mask slot (15 min grid, the sun layer's time axis).
+enum SunVisibleMatch {
+    /// Largest sensible distance between the two observation times; beyond it (gaps, night outages) the
+    /// sun layer falls back to the mask alone.
+    static let maximumDistance: TimeInterval = 10 * 60
+
+    /// The slot nearest in time to `time` within `maximumDistance` (the earlier one on a tie), else `nil`.
+    static func nearest(to time: Date, in slots: [RadarManifest.Slot],
+                        maximumDistance: TimeInterval = SunVisibleMatch.maximumDistance) -> RadarManifest.Slot? {
+        var best: RadarManifest.Slot?
+        var bestDistance = TimeInterval.infinity
+        for slot in slots {
+            let distance = abs(slot.time.timeIntervalSince(time))
+            if distance < bestDistance { best = slot; bestDistance = distance }
+        }
+        return bestDistance <= maximumDistance ? best : nil
+    }
+}
+
 /// Web-Mercator helpers for the fixed whole-image grid (EPSG:3857, bbox of the manifest).
 enum SunGeometry {
     static let earthRadius = 6_378_137.0
@@ -89,9 +137,14 @@ enum SunOverlay {
         return shadeStops[shadeStops.count - 1].1
     }
 
-    /// Core: `rgba` is the premultiplied RGBA mask (4 bytes per pixel, row 0 = north).
-    static func render(rgba: [UInt8], width: Int, height: Int, bounds: RadarBounds, date: Date) -> [UInt8] {
+    /// Core: `rgba` is the premultiplied RGBA mask (4 bytes per pixel, row 0 = north). `visible` (optional, same
+    /// size, any RGB with R = G = B) refines the day colours by cloudiness where the sun is high enough
+    /// (`VisibleChannel`); without it, or where the sun is low, the mask classes decide (night fallback).
+    static func render(rgba: [UInt8], width: Int, height: Int, bounds: RadarBounds, date: Date,
+                       visible: [UInt8]? = nil) -> [UInt8] {
         precondition(width >= 1 && height >= 1 && rgba.count == width * height * 4)
+        let visible = visible.flatMap { $0.count == rgba.count ? $0 : nil }
+        let empty: [UInt8] = []
         let p = SolarPosition.Parameters(date: date)
         let deltaRad = p.declination * .pi / 180
         let sinD = sin(deltaRad), cosD = cos(deltaRad)
@@ -102,6 +155,7 @@ enum SunOverlay {
         }
         var out = [UInt8](repeating: 0, count: rgba.count)
         let top = SolarPosition.sunriseElevation
+        (visible ?? empty).withUnsafeBufferPointer { vis in
         rgba.withUnsafeBufferPointer { src in
             out.withUnsafeMutableBufferPointer { dst in
                 for r in 0..<height {
@@ -118,6 +172,24 @@ enum SunOverlay {
                             case .clearLand, .clearWater: (cr, cg, cb, ca) = (sunny.r, sunny.g, sunny.b, sunny.a)
                             case .cloud: (cr, cg, cb, ca) = (cloudy.r, cloudy.g, cloudy.b, cloudy.a)
                             case .unknown: break
+                            }
+                            if !vis.isEmpty, vis[i + 3] >= 200 {
+                                let w = VisibleChannel.weight(elevation: h)
+                                if w > 0 {
+                                    let c = VisibleChannel.cloudiness(raw: vis[i], sinElevation: sin(h * .pi / 180))
+                                    let va = sunny.a + (cloudy.a - sunny.a) * c
+                                    let vr = sunny.r + (cloudy.r - sunny.r) * c
+                                    let vg = sunny.g + (cloudy.g - sunny.g) * c
+                                    let vb = sunny.b + (cloudy.b - sunny.b) * c
+                                    // Blend premultiplied, then back to straight colour for the composition below.
+                                    let pa = ca * (1 - w) + va * w
+                                    if pa > 0 {
+                                        cr = (cr * ca * (1 - w) + vr * va * w) / pa
+                                        cg = (cg * ca * (1 - w) + vg * va * w) / pa
+                                        cb = (cb * ca * (1 - w) + vb * va * w) / pa
+                                    }
+                                    ca = pa
+                                }
                             }
                         }
                         // Premultiplied composition: shade over tint, then the terminator line over both.
@@ -144,6 +216,7 @@ enum SunOverlay {
                 }
             }
         }
+        }
         return out
     }
 
@@ -165,9 +238,11 @@ enum SunOverlay {
         return drawn ? data : nil
     }
 
-    static func compose(mask: CGImage, bounds: RadarBounds, date: Date) -> CGImage? {
+    static func compose(mask: CGImage, visible: CGImage? = nil, bounds: RadarBounds, date: Date) -> CGImage? {
         guard let rgba = pixels(of: mask) else { return nil }
-        let out = render(rgba: rgba, width: mask.width, height: mask.height, bounds: bounds, date: date)
+        // A visible image of another size cannot be matched pixel by pixel (different bbox): ignore it.
+        let vis = visible.flatMap { $0.width == mask.width && $0.height == mask.height ? pixels(of: $0) : nil }
+        let out = render(rgba: rgba, width: mask.width, height: mask.height, bounds: bounds, date: date, visible: vis)
         return image(rgba: out, width: mask.width, height: mask.height)
     }
 
@@ -180,35 +255,54 @@ enum SunOverlay {
     }
 }
 
-/// Composes and caches sun overlay images per mask slot (a few images of about 5 MB). Called from the
-/// map renderer's drawing thread, never from the main thread; the lock makes a slot compose only once.
+/// Composes and caches sun overlay images per mask slot. Called from the map renderer's drawing thread,
+/// never from the main thread; the lock makes a slot compose only once. The cache is bounded by count and by
+/// bytes (an image of the Europe extent, 2048 x 2168, is about 17 MB; the 1024 x 1311 image about 5 MB).
 final class SunOverlayComposer: @unchecked Sendable {
+    /// Total bytes of cached overlay images (the shared compressed cache has its own 50 MB budget).
+    static let byteBudget = 40_000_000
+
     let bounds: RadarBounds
     private let limit: Int
+    private let byteLimit: Int
     private let lock = NSLock()
-    private var entries: [(url: URL, image: CGImage)] = []
+    private var entries: [(key: String, image: CGImage)] = []
     private(set) var composeCount = 0
     private(set) var lastDuration: TimeInterval = 0
 
-    init(bounds: RadarBounds, limit: Int = 4) {
+    init(bounds: RadarBounds, limit: Int = 4, byteLimit: Int = SunOverlayComposer.byteBudget) {
         self.bounds = bounds
         self.limit = max(1, limit)
+        self.byteLimit = max(1, byteLimit)
     }
 
-    func image(for url: URL, time: Date, mask: () -> CGImage?) -> CGImage? {
+    static func cost(of image: CGImage) -> Int { image.bytesPerRow * image.height }
+
+    var cachedBytes: Int { lock.withLock { entries.reduce(0) { $0 + Self.cost(of: $1.image) } } }
+
+    /// `visible` (optional) delivers the visible-channel image of the same extent; it is only asked for
+    /// when the slot has to be composed. `visibleURL` is part of the cache key: a mask slot composed without
+    /// the visible image is replaced as soon as the visible image of its time is available.
+    func image(for url: URL, time: Date, visibleURL: URL? = nil, mask: () -> CGImage?,
+               visible: () -> CGImage? = { nil }) -> CGImage? {
         lock.lock(); defer { lock.unlock() }
-        if let index = entries.firstIndex(where: { $0.url == url }) {
+        let key = url.absoluteString + "|" + (visibleURL?.absoluteString ?? "")
+        if let index = entries.firstIndex(where: { $0.key == key }) {
             let entry = entries.remove(at: index)
             entries.append(entry)
             return entry.image
         }
         guard let maskImage = mask() else { return nil }
         let start = Date()
-        guard let composed = SunOverlay.compose(mask: maskImage, bounds: bounds, date: time) else { return nil }
+        guard let composed = SunOverlay.compose(mask: maskImage, visible: visible(), bounds: bounds, date: time) else { return nil }
         lastDuration = Date().timeIntervalSince(start)
         composeCount += 1
-        entries.append((url, composed))
-        if entries.count > limit { entries.removeFirst(entries.count - limit) }
+        entries.append((key, composed))
+        // Evict the oldest entries, but never the one just composed.
+        while entries.count > 1,
+              entries.count > limit || entries.reduce(0, { $0 + Self.cost(of: $1.image) }) > byteLimit {
+            entries.removeFirst()
+        }
         return composed
     }
 }
@@ -218,11 +312,19 @@ final class SunOverlayComposer: @unchecked Sendable {
 /// Text lines of the place view: sun times (always from the sun position) and, only when the cloud mask is
 /// unambiguous at the place, the current cloud state.
 enum SunPlace {
-    /// All maps of the app cover Germany and its neighbours (bbox 5.5 to 15.6 degrees east): one time zone.
+    /// Time zone of the radar grid (Germany and neighbours, bbox 5.5 to 15.6 degrees east, 47 to 55.1 north).
     static let regionTimeZone = TimeZone(identifier: "Europe/Berlin") ?? .current
 
-    static func sunLine(at date: Date, latitude: Double, longitude: Double, timeZone: TimeZone = regionTimeZone) -> String {
-        SolarPosition.sunLabel(at: date, latitude: latitude, longitude: longitude, timeZone: timeZone)
+    /// Time zone for the sun times of a place. The Europe layers reach from -25 to 45 degrees east (several time
+    /// zones) and places carry no time zone, so only the German grid is known to be Europe/Berlin; everywhere
+    /// else the device time zone is used (documented limit, no geocoding).
+    static func timeZone(latitude: Double, longitude: Double) -> TimeZone {
+        (5.5...15.6).contains(longitude) && (47.0...55.1).contains(latitude) ? regionTimeZone : .current
+    }
+
+    static func sunLine(at date: Date, latitude: Double, longitude: Double, timeZone: TimeZone? = nil) -> String {
+        SolarPosition.sunLabel(at: date, latitude: latitude, longitude: longitude,
+                               timeZone: timeZone ?? Self.timeZone(latitude: latitude, longitude: longitude))
     }
 
     /// Cloud class at the place: the 3 x 3 pixels around it must all be clear or all cloud, otherwise `nil`
