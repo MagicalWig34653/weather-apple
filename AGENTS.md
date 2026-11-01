@@ -3,7 +3,7 @@
 ## Zuerst lesen
 
 0. `docs/status.md`: Arbeitsstand, Prüfungen und nächste Schritte.
-1. `docs/decisions.md`: aktueller Umfang, Reihenfolge, vorläufige Kennungen.
+1. `docs/decisions.md`: aktueller Umfang, Reihenfolge, Kennungen.
 2. `docs/concept-v2.md`: detailliertes ursprüngliches Konzept.
 3. `README.md`: aktueller Repository-Status.
 4. `docs/team.md`: Rollen, Dateibesitz, Parallelität und Aufgabenübergabe.
@@ -33,4 +33,4 @@ Native Swift-/SwiftUI-App für iOS, iPadOS, macOS und watchOS; später tvOS und 
 - Build-/Testbefehle stehen im `README.md`; der ausführende Build-Agent prüft den tatsächlichen Projektstand. Nur tatsächlich ausgeführte Prüfungen als erfolgreich melden; Build-, Signing- und TestFlight-Status unterscheiden.
 - Keine unaufgeforderten Infrastrukturkomponenten oder plattformübergreifenden Abstraktionen einführen.
 - Änderungen an Produktumfang und Entscheidungen in `docs/decisions.md` nachvollziehbar festhalten. Das ursprüngliche Konzept nicht stillschweigend überschreiben.
-- App-Name, Bundle-ID und Team-ID sind vorläufig; keine Signing-/Store-Ressourcen ohne den entsprechenden Arbeitsauftrag anlegen.
+- Bundle-ID und Team-ID sind endgültig (31.10.2026: `de.linolaske.showernow`, Team `J2DU2P47XW`); keine Signing-/Store-Ressourcen ohne den entsprechenden Arbeitsauftrag anlegen.

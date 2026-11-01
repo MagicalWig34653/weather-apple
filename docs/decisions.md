@@ -32,9 +32,9 @@ Widgets sollen Regenstatus und/oder Niederschlagsverlauf für einen ausgewählte
 - Lokale Zielordner heißen jeweils `weather`.
 - Vorgesehene GitHub-Namen: `weather-apple` und `weather-backend`; öffentlich, sobald Zugang und Veröffentlichung möglich sind.
 - Aktuelle Haupt-Bundle-ID: `de.linolaske.showernow`; App-Name: ShowerNow.
-- Apple Team ID: `J2DU2P47XW`, durch bisheriges Signing bestätigt.
+- Apple Team ID: `J2DU2P47XW`, durch bisheriges Signing bestätigt; Team-ID und Bundle-ID sind endgültig (31.10.2026).
 - App-Name und Bundle-ID werden jetzt gemeinsam geändert; technische Module/Projektname Weather und Ordner weather bleiben zulässig. Abhängige IDs für Widgets, Watch, App Groups etc. erst bei Target-Einrichtung festlegen.
-- Aktueller Release-Kandidat: `0.1.0 (4)`; Build 3 ist intern nutzbar bestätigt. Der Nutzer hat die Umstellung seines aktuellen App-Store-Connect-Eintrags auf die neue Bundle-ID bestätigt.
+- Historisch (28.10.): Kandidat `0.1.0 (4)`; Build 3 ist intern nutzbar bestätigt. Aktueller Build: [status.md](status.md). Der Nutzer hat die Umstellung seines aktuellen App-Store-Connect-Eintrags auf die neue Bundle-ID bestätigt.
 - AGPLv3 ist angestrebt. Lizenzentscheidung und mögliche Zusatzerlaubnisse für App-Store-Veröffentlichung sind offen. Es wird deshalb noch keine endgültige Lizenz behauptet.
 
 ## Quellenhierarchie
@@ -230,15 +230,17 @@ Entschieden:
 - Push-Benachrichtigungen für Orte sind freigegeben (E1/E2): Opt-in je Ort per Server-Push (APNs); lokale Mitteilungen höchstens als Zusatz. Entwurf: [research/push-benachrichtigungen.md](research/push-benachrichtigungen.md).
 - Regenradar-Legende (aufklappbare DWD-Farblegende in mm/h) ist umgesetzt (Commit `141d38b`); die Datenmengenanzeige oben rechts wurde entfernt.
 
-Am 31. Oktober 2026 vom Nutzer gemäß Empfehlung des Entwurfs zugestimmt: E3 bis E6 und E8 (Details unten) sowie die Kartenreihenfolge Luftdruck, Blitze, Wolken. E7 (Rechtsgrundlage, Impressum, Zoraxy-Logging) klärt der Nutzer selbst und bleibt offen.
+Nutzerzustimmung zu den Empfehlungen des Push-Entwurfs: E1/E2 (31.10.), E3 bis E6 und E8 (31.10.), Kartenreihenfolge Luftdruck, Blitze, Wolken (31.10.), Regionen Version 1 nur Umkreis (1.11.), Backend-Welle 2 (Ebenen `pressure_eu`, `cloudmask_vis`, `cloudmask_vis_eu`, eigene bbox je Ebene; 1.11.). **Offen beim Nutzer: E7** (Rechtsgrundlage, Verantwortlicher/Impressum, Zoraxy-Logging ohne bzw. mit gekürzter IP, vor Livegang) sowie die Druck-Farbfläche (siehe unten).
 
-Noch NICHT entschieden bzw. offen (Empfehlung des Entwurfs in Klammern):
-- E3 Serverraster: Pixelraster des Ingests, ~1 km, nicht feiner (Alternative 3x3 gröber).
+Inhalt der zugestimmten Punkte (Empfehlung des Entwurfs, jetzt gültig):
+- E3 Serverraster: Pixelraster des Ingests, ~1 km, nicht feiner.
 - E4 Intensitätsquelle: Palettenfarben, HDF5 erst bei Bedarf.
 - E5 Regel: nur „Regen beginnt in N Minuten“ (N = 10/20/30), Hysterese, Sperrzeit.
 - E6 Aufbewahrung: 60 Tage Inaktivität, Löschung sofort bei 410 und per DELETE.
-- E7 Rechtsgrundlage, Verantwortlicher/Impressum, Zoraxy-Logging (Einwilligung; Zoraxy ohne IP-Zugriffslog oder gekürzt; vor Livegang klären).
-- E8 Missbrauchsschutz: Limit Subs je Install (10), Rate-Limit am Proxy, App Attest erst bei realem Missbrauch.
+- E8 Missbrauchsschutz: Limit Abos je Installation (10), Rate-Limit am Proxy, App Attest erst bei realem Missbrauch.
+- Regionen Version 1: nur Umkreis (Mittelpunkt + Radius 5/10/25 km, Auslöseanteil 1/10/25 %, bis 3 Regionen im Limit von 10); Polygone/Bundesländer später. Entwurf: [research/push-regionen.md](research/push-regionen.md).
+- Sonnenkarte Welle 2: weichere Darstellung aus `vis06`-Rotkanal und sin(Sonnenhöhe), nachts Rückfall auf `cloudmask` (EUMETView lieferte nachts ca. 22:30 bis 01:30 UTC keine Bilder); Europa-Overlays mit Bildausdehnung je Ebene aus dem Manifest. App-Umsetzung steht aus (siehe status.md).
+- Offen, nicht entschieden: Luftdruck als Farbfläche (nur über GRIB-Rohdaten im Backend, Aufwand 3 bis 5 Tage, [research/druck-farboverlay.md](research/druck-farboverlay.md)); Live Activities später, Critical Alerts nicht beantragen (Empfehlung, [research/live-activities-und-kritische-mitteilungen.md](research/live-activities-und-kritische-mitteilungen.md)).
 - Reihenfolge weiterer Karten: bestätigt (Luftdruck, Blitze, Wolken über EUMETSAT MTG geocolour). Alternativanbieter geprüft, keiner gleichwertig für Europa (wolkenradar-quellen.md, Abschnitt 7). EUMETSAT-Klärung: siehe Eintrag unten. Quellen: [research/weitere-radarkarten.md](research/weitere-radarkarten.md), [research/wolkenradar-quellen.md](research/wolkenradar-quellen.md).
 - Ebenenwahl in der App (31.10.2026 umgesetzt, Arbeitsentscheidung): genau eine aktive Ebene, Standard Regenradar; Zusatzebenen nur über den Backend-Cache (`/v1/layers/<ebene>/`), kein WMS-Fallback; 404 = Ebene ausgegraut ohne Fehlerbanner. Frischegrenzen je Ebene (Blitze 30 min, Wolken 2 h, Luftdruck Lauf 18 h) sind Startwerte. Details: [status.md](status.md).
 
