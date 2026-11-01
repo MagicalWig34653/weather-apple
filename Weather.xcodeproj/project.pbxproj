@@ -28,6 +28,7 @@
 		79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F074EE7537C4C452040B4523 /* RadarBackendTests.swift */; };
 		833B08E15FD8FA6A2A9DF0F8 /* RadarImageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5864651A53DB9067C466A451 /* RadarImageOverlay.swift */; };
 		86B36E4BDF49626AAF532EB6 /* WeatherSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */; };
+		87244A65B1B89E175793640A /* RegionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B9E745B76776395FB5B9E8 /* RegionViews.swift */; };
 		8C841CAE839A94657CA0DF81 /* TimelineScrubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */; };
 		90FAC3EC054A2F0EE95D5FE8 /* ForecastInterpretationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41AD6A302CA6A069044C960 /* ForecastInterpretationSection.swift */; };
 		9C6486E379CED3B3F1C0C685 /* RadarLayerLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EFBC30D1D558ABDB1F74AC /* RadarLayerLegend.swift */; };
@@ -43,6 +44,7 @@
 		D2A91364788C1F526A607365 /* PlacesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36810EBB689143D24E645BAD /* PlacesSheet.swift */; };
 		D38FAC7702DE3A5C0B2EB57E /* WeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E378685B6423E6A54BB754 /* WeatherApp.swift */; };
 		D491729D707221D3DF027EDD /* DWDRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE19E74BAAAE195B28694A9 /* DWDRequest.swift */; };
+		D65844AAA670D09854C083AE /* PushRegionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8C7A91E68D4D7D9EB20A5E /* PushRegionTests.swift */; };
 		D96D87F150B51A0FD853996B /* TimelineSlotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */; };
 		D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */; };
 		DFFFA7BE418E3D0B142CE4B3 /* RainForecast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6208E34C71F4CA9DBAA42C13 /* RainForecast.swift */; };
@@ -80,6 +82,7 @@
 		166813EB890F40B10B45EC0F /* RadarBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarBackend.swift; sourceTree = "<group>"; };
 		18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPrefetch.swift; sourceTree = "<group>"; };
 		1B2783C476525B964D6423D7 /* RadarLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLayerTests.swift; sourceTree = "<group>"; };
+		1D8C7A91E68D4D7D9EB20A5E /* PushRegionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegionTests.swift; sourceTree = "<group>"; };
 		23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherStore.swift; sourceTree = "<group>"; };
 		278042B07E146BB0A122BD1C /* Weather.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Weather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2901C92E5F1E1C1E706A6AE6 /* PushKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushKeychain.swift; sourceTree = "<group>"; };
@@ -98,6 +101,7 @@
 		73971DC8BB40190DE67EE4F9 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		8174F0961CBA8C530C9B30C0 /* PushGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGrid.swift; sourceTree = "<group>"; };
 		953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSlotTests.swift; sourceTree = "<group>"; };
+		97B9E745B76776395FB5B9E8 /* RegionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionViews.swift; sourceTree = "<group>"; };
 		9D547F6AB1F520F3FE1F00BB /* DWDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDClient.swift; sourceTree = "<group>"; };
 		A2E378685B6423E6A54BB754 /* WeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherApp.swift; sourceTree = "<group>"; };
 		A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarScreen.swift; sourceTree = "<group>"; };
@@ -157,6 +161,7 @@
 				AA76D542667074A3AA33EFA0 /* Fixtures */,
 				A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */,
 				0CDCFF7534843CDCBAD6352D /* ForecastResilienceTests.swift */,
+				1D8C7A91E68D4D7D9EB20A5E /* PushRegionTests.swift */,
 				C05E42607D07EFF4916F6D7D /* PushTests.swift */,
 				F074EE7537C4C452040B4523 /* RadarBackendTests.swift */,
 				DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */,
@@ -180,6 +185,7 @@
 				B9952910B477FF2C7B3DFAA1 /* PlacePushSettingsView.swift */,
 				36810EBB689143D24E645BAD /* PlacesSheet.swift */,
 				A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */,
+				97B9E745B76776395FB5B9E8 /* RegionViews.swift */,
 				FEBA2774C202317C41D89E31 /* SitePageSheet.swift */,
 				29217E1E77DCB0CF4795AABE /* TimelineScrub.swift */,
 			);
@@ -444,6 +450,7 @@
 				C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */,
 				CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */,
 				DFFFA7BE418E3D0B142CE4B3 /* RainForecast.swift in Sources */,
+				87244A65B1B89E175793640A /* RegionViews.swift in Sources */,
 				21CC8AB097B09F01B0F39EDF /* SitePageSheet.swift in Sources */,
 				415AED64B3975EB34CAAE185 /* SolarPosition.swift in Sources */,
 				A42BCE0EE2A3168BF93401E9 /* SunMask.swift in Sources */,
@@ -460,6 +467,7 @@
 				3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */,
 				D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */,
 				439BD00528C4DD7AB2610BB2 /* ForecastResilienceTests.swift in Sources */,
+				D65844AAA670D09854C083AE /* PushRegionTests.swift in Sources */,
 				2CD5AE787F1A1C3084FFA463 /* PushTests.swift in Sources */,
 				79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */,
 				0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */,

@@ -51,6 +51,21 @@ final class FakeGateway: PushGateway, @unchecked Sendable {
         try record("sendTestNotification", identity)
         return "sandbox"
     }
+    /// Capabilities announced by `/v1/status`; tests set this to `["regions"]`.
+    var capabilitySet: Set<String> {
+        get { lock.withLock { _capabilities } }
+        set { lock.withLock { _capabilities = newValue } }
+    }
+    private var _capabilities: Set<String> = []
+    func capabilities() async throws -> Set<String> {
+        let error: PushGatewayError? = lock.withLock {
+            _calls.append("capabilities")
+            guard var queue = failures["capabilities"], !queue.isEmpty else { return nil }
+            let first = queue.removeFirst(); failures["capabilities"] = queue; return first
+        }
+        if let error { throw error }
+        return capabilitySet
+    }
 }
 
 final class FakeAuthorizer: PushAuthorizing, @unchecked Sendable {
@@ -608,6 +623,44 @@ final class HTTPPushGatewayTests: XCTestCase {
         XCTAssertTrue((32...128).contains(identity.secret.count))
         XCTAssertTrue(identity.secret.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") })
         XCTAssertNotEqual(identity.secret, PushIdentity.make().secret)
+    }
+
+    func testRegionBodyAddsCircleFieldsAndNoCoordinates() async throws {
+        let recorder = Recorder([.success((201, "{\"id\":\"AAAAAAAA-2222-3333-4444-555555555555\"}", [:]))])
+        let region = PushSubscriptionRequest(cell: .init(x: 784, y: 395), threshold: 5, leadMinutes: 20, enabled: true,
+                                             region: PushRegionSpec(radiusCells: 14, minSharePercent: 10))
+        _ = try await gateway(recorder).createSubscription(identity, region)
+        let body = try JSONSerialization.jsonObject(with: recorder.requests[0].httpBody!) as! [String: Any]
+        XCTAssertEqual(body["kind"] as? String, "circle")
+        XCTAssertEqual(body["radius_cells"] as? Int, 14)
+        XCTAssertEqual(body["min_share_percent"] as? Int, 10)
+        XCTAssertEqual(Set(body.keys), ["grid_version", "cell_x", "cell_y", "threshold", "lead_minutes", "enabled", "time_sensitive",
+                                        "kind", "radius_cells", "min_share_percent"])
+        let place = HTTPPushGateway.body(request)
+        XCTAssertNil(place["kind"], "places keep the unchanged wire format")
+    }
+
+    func testRegionConflictCodesAreMapped() async {
+        for (body, expected) in [("{\"error\":\"region_capacity\"}", PushGatewayError.regionCapacity),
+                                 ("{\"error\":\"region_limit\"}", .regionLimit)] {
+            let recorder = Recorder([.success((409, body, [:]))])
+            do { _ = try await gateway(recorder).createSubscription(identity, request); XCTFail() }
+            catch { XCTAssertEqual(error as? PushGatewayError, expected) }
+        }
+    }
+
+    func testCapabilitiesReadStatusWithoutSecret() async throws {
+        let recorder = Recorder([.success((200, "{\"schema\":1,\"push\":true,\"capabilities\":[\"regions\"]}", [:])),
+                                 .success((200, "{\"schema\":1,\"push\":true}", [:])),
+                                 .success((500, "", [:]))])
+        let gw = gateway(recorder)
+        let first = try await gw.capabilities()
+        XCTAssertEqual(first, ["regions"])
+        XCTAssertEqual(recorder.requests[0].url?.absoluteString, "https://example.test/v1/status")
+        XCTAssertNil(recorder.requests[0].value(forHTTPHeaderField: "X-Installation-Secret"))
+        let second = try await gw.capabilities()
+        XCTAssertEqual(second, [], "old server without the field")
+        do { _ = try await gw.capabilities(); XCTFail() } catch { XCTAssertEqual(error as? PushGatewayError, .server(500)) }
     }
 
     func testBaseURLDerivedFromRadarURL() {

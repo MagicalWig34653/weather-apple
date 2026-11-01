@@ -1,6 +1,8 @@
 import MapKit
 import SwiftUI
 
+private enum RegionRoute: Hashable { case new, edit(UUID) }
+
 struct PlacesSheet: View {
     @Bindable var store: WeatherStore
     @Environment(\.dismiss) private var dismiss
@@ -12,6 +14,7 @@ struct PlacesSheet: View {
     @State private var newName = ""
     @State private var searchGeneration = UUID()
     @State private var pushPlaceID: UUID?
+    @State private var regionRoute: RegionRoute?
     @Environment(PushManager.self) private var push
 
     var body: some View {
@@ -60,6 +63,7 @@ struct PlacesSheet: View {
                         }.onDelete(perform: store.deletePlaces)
                     }
                 }
+                regionsSection
                 Section {
                     Button {
                         store.requestLocation()
@@ -100,6 +104,13 @@ struct PlacesSheet: View {
             .navigationDestination(item: $pushPlaceID) { id in
                 if let place = store.places.first(where: { $0.id == id }) { PlacePushSettingsView(place: place) }
             }
+            .navigationDestination(item: $regionRoute) { route in
+                switch route {
+                case .new: RegionCreateView(store: store)
+                case .edit(let id): RegionSettingsView(regionID: id)
+                }
+            }
+            .task { await push.refreshRegionSupport() }
             .searchable(text: $query, prompt: "Stadt, Adresse oder Ort")
             .onSubmit(of: .search) { Task { await search() } }
             .onChange(of: query) { _, value in
@@ -120,6 +131,37 @@ struct PlacesSheet: View {
                 Button("Abbrechen", role: .cancel) { renamePlace = nil }
             }
         }
+    }
+
+    @ViewBuilder private var regionsSection: some View {
+        Section {
+            ForEach(push.regionsSorted, id: \.id) { entry in
+                Button { regionRoute = .edit(entry.id) } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Label(RegionText.title(entry.settings), systemImage: "circle.dashed").foregroundStyle(.primary)
+                            Text(RegionText.detail(entry.settings)).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: push.regionStatus(for: entry.id) == .active ? "bell.fill" : "clock").foregroundStyle(.secondary)
+                    }.contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("region-row")
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) { Task { await push.removeRegion(id: entry.id) } } label: { Label("Löschen", systemImage: "trash") }
+                }
+            }
+            Button { regionRoute = .new } label: { Label("Region hinzufügen", systemImage: "plus.circle") }
+                .disabled(push.regionSupport != .supported || !push.canAddRegion)
+                .accessibilityIdentifier("region-new")
+            if push.regionSupport != .supported { RegionSupportNote(support: push.regionSupport).font(.footnote) }
+            else if !push.canAddRegion {
+                Label("Höchstens \(PushGrid.maxRegions) Regionen (insgesamt höchstens \(PushManager.maxSubscriptions) Hinweise).", systemImage: "info.circle")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if let notice = push.regionNotice { Label(notice, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange) }
+        } header: { Text("Regionen") }
+        footer: { Text("Regenhinweis für einen Umkreis (5, 10 oder 25 km) statt für einen einzelnen Ort. Name und Mittelpunkt bleiben auf diesem Gerät; der Server erhält nur einen groben Bereich.") }
     }
 
     @MainActor private func search() async {

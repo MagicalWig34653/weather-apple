@@ -31,6 +31,20 @@ struct PushIdentity: Codable, Equatable, Sendable {
     }
 }
 
+/// Circle region as sent to the server: the (coarse) center is the request cell; no coordinates.
+struct PushRegionSpec: Equatable, Sendable {
+    let radiusCells: Int
+    let minSharePercent: Int
+}
+
+/// Wire names of the region extension at one place (backend draft, to be confirmed against `api.md`).
+enum PushRegionWire {
+    static let kindKey = "kind", kindCircle = "circle"
+    static let radiusKey = "radius_cells", shareKey = "min_share_percent"
+    /// Entry of `capabilities` in `GET /v1/status`.
+    static let capability = "regions"
+}
+
 struct PushSubscriptionRequest: Equatable, Sendable {
     let cell: PushGrid.Cell
     let threshold: Int
@@ -38,6 +52,8 @@ struct PushSubscriptionRequest: Equatable, Sendable {
     let enabled: Bool
     /// Backend field `time_sensitive`; PUT replaces all fields, so it is always sent.
     var timeSensitive = false
+    /// `nil` = single place (unchanged wire format).
+    var region: PushRegionSpec?
 }
 
 /// Failures of `POST .../test`, derived from the backend `error` code (never from Apple text).
@@ -59,6 +75,10 @@ enum PushGatewayError: Error, Equatable, Sendable {
     case unauthorized
     case notFound
     case subscriptionLimit
+    /// 409 `region_capacity`: server-wide region budget exhausted.
+    case regionCapacity
+    /// 409 `region_limit`: too many regions for this installation.
+    case regionLimit
     case rateLimited
     case rejected(Int)
     case server(Int)
@@ -74,6 +94,8 @@ protocol PushGateway: Sendable {
     func deleteSubscription(_ identity: PushIdentity, id: String) async throws
     /// `POST installations/<uuid>/test`; returns the environment the server used. No retries (each call counts against 3/h).
     func sendTestNotification(_ identity: PushIdentity) async throws -> String
+    /// `GET /v1/status` (no authentication): the `capabilities` strings; empty for servers without that field.
+    func capabilities() async throws -> Set<String>
 }
 
 enum PushBackendConfig {
@@ -144,6 +166,36 @@ struct HTTPPushGateway: PushGateway {
                            body: nil, success: [204])
     }
 
+    func capabilities() async throws -> Set<String> {
+        guard let url = URL(string: "../status", relativeTo: baseURL)?.absoluteURL else { throw PushGatewayError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.httpShouldHandleCookies = false
+        var attempt = 1
+        while true {
+            do {
+                let (data, response) = try await transport(request)
+                if response.statusCode == 200 {
+                    struct Status: Decodable { let capabilities: [String]? }
+                    guard let status = try? JSONDecoder().decode(Status.self, from: data) else { throw PushGatewayError.invalidResponse }
+                    return Set(status.capabilities ?? [])
+                }
+                if RadarRetryPolicy.isTransient(statusCode: response.statusCode), attempt < RadarRetryPolicy.maxAttempts {
+                    try await sleep(RadarRetryPolicy.delay(afterAttempt: attempt)); attempt += 1; continue
+                }
+                throw Self.error(statusCode: response.statusCode, data: data)
+            } catch let error as URLError {
+                if error.code == .cancelled { throw CancellationError() }
+                if RadarRetryPolicy.isTransient(error), attempt < RadarRetryPolicy.maxAttempts {
+                    try await sleep(RadarRetryPolicy.delay(afterAttempt: attempt)); attempt += 1; continue
+                }
+                switch error.code {
+                case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff: throw PushGatewayError.offline
+                default: throw PushGatewayError.transport
+                }
+            }
+        }
+    }
+
     func sendTestNotification(_ identity: PushIdentity) async throws -> String {
         let data = try await send("POST", "installations/\(identity.installationID)/test", identity, body: nil,
                                   success: [200], retry: false, mapError: Self.testError)
@@ -173,9 +225,15 @@ struct HTTPPushGateway: PushGateway {
     }
 
     static func body(_ request: PushSubscriptionRequest) -> [String: Any] {
-        ["grid_version": PushGrid.version, "cell_x": request.cell.x, "cell_y": request.cell.y,
-         "threshold": request.threshold, "lead_minutes": request.leadMinutes, "enabled": request.enabled,
-         "time_sensitive": request.timeSensitive]
+        var body: [String: Any] = ["grid_version": PushGrid.version, "cell_x": request.cell.x, "cell_y": request.cell.y,
+                                   "threshold": request.threshold, "lead_minutes": request.leadMinutes,
+                                   "enabled": request.enabled, "time_sensitive": request.timeSensitive]
+        if let region = request.region {
+            body[PushRegionWire.kindKey] = PushRegionWire.kindCircle
+            body[PushRegionWire.radiusKey] = region.radiusCells
+            body[PushRegionWire.shareKey] = region.minSharePercent
+        }
+        return body
     }
 
     private func send(_ method: String, _ path: String, _ identity: PushIdentity, body: [String: Any]?,
@@ -231,7 +289,10 @@ struct HTTPPushGateway: PushGateway {
         case 429: return .rateLimited
         case 409:
             let text = String(data: data.prefix(256), encoding: .utf8) ?? ""
-            return text.contains("subscription_limit") ? .subscriptionLimit : .rejected(409)
+            if text.contains("subscription_limit") { return .subscriptionLimit }
+            if text.contains("region_capacity") { return .regionCapacity }
+            if text.contains("region_limit") { return .regionLimit }
+            return .rejected(409)
         case 400..<500: return .rejected(statusCode)
         case 500...: return .server(statusCode)
         default: return .invalidResponse

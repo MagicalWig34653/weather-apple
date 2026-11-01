@@ -69,12 +69,49 @@ struct PlacePushSettings: Codable, Equatable, Sendable {
     }
 }
 
+/// Circle region opt-in. Stores only the coarse center cell (3 x 3 cells, about 2 km), never a coordinate.
+/// The optional name stays on the device and is never sent.
+struct RegionPushSettings: Codable, Equatable, Sendable {
+    var name: String?
+    var center: PushGrid.Cell
+    var radiusKm = 10
+    var sharePercent = PushGrid.defaultRegionSharePercent
+    var leadMinutes = PushLead.defaultMinutes
+    var sensitivity = PushSensitivity.moderate
+    var timeSensitive = false
+    var subscriptionID: String?
+    var needsUpload = true
+
+    /// Cell latitude is only needed to convert km into grid cells.
+    var request: PushSubscriptionRequest {
+        let latitude = PushGrid.coordinate(of: center).latitude
+        return PushSubscriptionRequest(
+            cell: center, threshold: sensitivity.threshold, leadMinutes: leadMinutes, enabled: true, timeSensitive: timeSensitive,
+            region: PushRegionSpec(radiusCells: PushGrid.radiusCells(km: radiusKm, latitude: latitude), minSharePercent: sharePercent))
+    }
+}
+
 /// Persisted push state: no device token, no secret, no coordinates.
 struct PushState: Codable, Equatable, Sendable {
     var places: [UUID: PlacePushSettings] = [:]
+    var regions: [UUID: RegionPushSettings] = [:]
     var pendingSubscriptionDeletes: [String] = []
     var pendingInstallationDelete = false
+
+    init() {}
+
+    /// State stored by earlier versions has no `regions` key (existing place subscriptions stay untouched).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        places = try c.decodeIfPresent([UUID: PlacePushSettings].self, forKey: .places) ?? [:]
+        regions = try c.decodeIfPresent([UUID: RegionPushSettings].self, forKey: .regions) ?? [:]
+        pendingSubscriptionDeletes = try c.decodeIfPresent([String].self, forKey: .pendingSubscriptionDeletes) ?? []
+        pendingInstallationDelete = try c.decodeIfPresent(Bool.self, forKey: .pendingInstallationDelete) ?? false
+    }
 }
+
+/// Whether the server announces region support in `GET /v1/status`.
+enum PushRegionSupport: Equatable, Sendable { case unknown, unsupported, supported }
 
 enum PlacePushStatus: Equatable {
     case off, pending, active
@@ -91,6 +128,10 @@ final class PushManager {
     private(set) var messages: [UUID: String] = [:]
     private(set) var isSyncing = false
 
+    /// Memory only; checked via `/v1/status` so that no region request ever hits an old server (no 400).
+    private(set) var regionSupport: PushRegionSupport = .unknown
+    /// Region-level notice for the list (e.g. limit reached); memory only.
+    private(set) var regionNotice: String?
     @ObservationIgnored private var deviceToken: String?
     @ObservationIgnored private var syncAgain = false
     @ObservationIgnored private let gateway: PushGateway
@@ -122,7 +163,19 @@ final class PushManager {
 
     // MARK: Queries
 
-    var enabledCount: Int { state.places.count }
+    var enabledCount: Int { state.places.count + state.regions.count }
+    var regionCount: Int { state.regions.count }
+    var canAddRegion: Bool { regionCount < PushGrid.maxRegions && enabledCount < Self.maxSubscriptions }
+    var regionsSorted: [(id: UUID, settings: RegionPushSettings)] {
+        state.regions.map { ($0.key, $0.value) }.sorted {
+            ($0.1.name ?? "", $0.0.uuidString) < ($1.1.name ?? "", $1.0.uuidString)
+        }
+    }
+    func region(for id: UUID) -> RegionPushSettings? { state.regions[id] }
+    func regionStatus(for id: UUID) -> PlacePushStatus {
+        guard let settings = state.regions[id] else { return .off }
+        return settings.subscriptionID != nil && !settings.needsUpload ? .active : .pending
+    }
     var isAnyEnabled: Bool { enabledCount > 0 }
     var canAddSubscription: Bool { enabledCount < Self.maxSubscriptions }
 
@@ -144,8 +197,16 @@ final class PushManager {
     /// Call at launch and when the app becomes active: refresh authorization, register for a fresh token, retry open work.
     func start() async {
         await refreshAuthorization()
+        if !state.regions.isEmpty { await refreshRegionSupport() }
         if isAnyEnabled, authorization == .authorized { registrar.register() }
         await sync()
+    }
+
+    /// `GET /v1/status`; on failure the support stays `.unknown` (no region upload, no 400).
+    func refreshRegionSupport() async {
+        do { regionSupport = try await gateway.capabilities().contains(PushRegionWire.capability) ? .supported : .unsupported }
+        catch is CancellationError {}
+        catch { regionSupport = .unknown }
     }
 
     func refreshAuthorization() async { authorization = await authorizer.status() }
@@ -157,7 +218,7 @@ final class PushManager {
     }
 
     func didFailToRegister() {
-        for id in state.places.keys { messages[id] = "Das Gerät konnte keinen Mitteilungs-Token abrufen. Es wird später erneut versucht." }
+        for id in Array(state.places.keys) + Array(state.regions.keys) { messages[id] = "Das Gerät konnte keinen Mitteilungs-Token abrufen. Es wird später erneut versucht." }
     }
 
     // MARK: Changes
@@ -174,13 +235,7 @@ final class PushManager {
             messages[placeID] = "Höchstens \(Self.maxSubscriptions) Orte können Hinweise senden."
             return false
         }
-        var current = await authorizer.status()
-        if current == .notDetermined {
-            _ = await authorizer.requestAuthorization()
-            current = await authorizer.status()
-        }
-        authorization = current
-        guard current == .authorized else {
+        guard await ensureAuthorized() else {
             messages[placeID] = "Mitteilungen sind für ShowerNow in den Systemeinstellungen ausgeschaltet."
             return false
         }
@@ -190,6 +245,82 @@ final class PushManager {
         registrar.register()
         await sync()
         return true
+    }
+
+    private func ensureAuthorized() async -> Bool {
+        var current = await authorizer.status()
+        if current == .notDetermined {
+            _ = await authorizer.requestAuthorization()
+            current = await authorizer.status()
+        }
+        authorization = current
+        return current == .authorized
+    }
+
+    // MARK: Regions
+
+    enum RegionAddResult: Equatable { case added(UUID), failed(String) }
+
+    /// Opt-in for a circle region. The explanation text has already been shown by the caller. `latitude`/`longitude` are
+    /// reduced to the coarse center cell immediately and are not stored.
+    func addRegion(latitude: Double, longitude: Double, radiusKm: Int, sharePercent: Int, name: String?) async -> RegionAddResult {
+        regionNotice = nil
+        if regionSupport != .supported { await refreshRegionSupport() }
+        guard regionSupport == .supported else {
+            return .failed(regionSupport == .unsupported ? "Der Server unterstützt noch keine Regionen."
+                           : "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Bitte später erneut versuchen.")
+        }
+        guard let cell = PushGrid.cell(latitude: latitude, longitude: longitude) else {
+            return .failed("Dieser Mittelpunkt liegt außerhalb des Radargebiets.")
+        }
+        guard regionCount < PushGrid.maxRegions else { return .failed("Höchstens \(PushGrid.maxRegions) Regionen sind möglich.") }
+        guard enabledCount < Self.maxSubscriptions else { return .failed("Höchstens \(Self.maxSubscriptions) Hinweise (Orte und Regionen) sind möglich.") }
+        guard PushGrid.regionRadiusPresetsKm.contains(radiusKm), PushGrid.regionSharePercents.contains(sharePercent) else {
+            return .failed("Ungültiger Radius oder Auslöseanteil.")
+        }
+        guard await ensureAuthorized() else {
+            return .failed("Mitteilungen sind für ShowerNow in den Systemeinstellungen ausgeschaltet.")
+        }
+        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let id = UUID()
+        state.regions[id] = RegionPushSettings(name: (trimmed?.isEmpty ?? true) ? nil : trimmed, center: PushGrid.coarseCenter(of: cell),
+                                               radiusKm: radiusKm, sharePercent: sharePercent)
+        state.pendingInstallationDelete = false
+        persist()
+        registrar.register()
+        await sync()
+        // The server may refuse right away (limit): then the region is gone and the notice explains why.
+        if state.regions[id] == nil { return .failed(regionNotice ?? "Die Region konnte nicht eingerichtet werden.") }
+        return .added(id)
+    }
+
+    func updateRegion(id: UUID, name: String?? = nil, radiusKm: Int? = nil, sharePercent: Int? = nil, leadMinutes: Int? = nil,
+                      sensitivity: PushSensitivity? = nil, timeSensitive: Bool? = nil) async {
+        guard var settings = state.regions[id] else { return }
+        if let name {
+            let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+            settings.name = (trimmed?.isEmpty ?? true) ? nil : trimmed
+        }
+        if let radiusKm, PushGrid.regionRadiusPresetsKm.contains(radiusKm) { settings.radiusKm = radiusKm }
+        if let sharePercent, PushGrid.regionSharePercents.contains(sharePercent) { settings.sharePercent = sharePercent }
+        if let leadMinutes, PushLead.options.contains(leadMinutes) { settings.leadMinutes = leadMinutes }
+        if let sensitivity { settings.sensitivity = sensitivity }
+        if let timeSensitive { settings.timeSensitive = timeSensitive }
+        // A pure rename is local only.
+        let nameOnly = settings.request == state.regions[id]?.request
+        if !nameOnly { settings.needsUpload = true }
+        state.regions[id] = settings
+        persist()
+        if !nameOnly { await sync() }
+    }
+
+    /// Opt-out / delete: removes the server subscription (and the installation with the last one).
+    func removeRegion(id: UUID) async {
+        guard let settings = state.regions.removeValue(forKey: id) else { return }
+        if let sub = settings.subscriptionID { state.pendingSubscriptionDeletes.append(sub) }
+        messages[id] = nil
+        persist()
+        await sync()
     }
 
     func update(placeID: UUID, leadMinutes: Int? = nil, sensitivity: PushSensitivity? = nil, timeSensitive: Bool? = nil) async {
@@ -225,7 +356,7 @@ final class PushManager {
             testState = .failed(Self.testMessage(for: error))
             if case PushGatewayError.test(.tokenUnregistered) = error {
                 // The server dropped the installation: register again and recreate the subscriptions.
-                for id in state.places.keys { state.places[id]?.subscriptionID = nil; state.places[id]?.needsUpload = true }
+                resetSubscriptionIDs()
                 persist()
                 await sync()
             }
@@ -280,9 +411,11 @@ final class PushManager {
     /// App reset / "alle Mitteilungen aus": DELETE of the whole installation (server removes subscriptions and outbox).
     func resetAll() async {
         state.places = [:]
+        state.regions = [:]
         state.pendingSubscriptionDeletes = []
         state.pendingInstallationDelete = true
         messages = [:]
+        regionNotice = nil
         persist()
         await sync()
     }
@@ -300,12 +433,12 @@ final class PushManager {
     }
 
     private func runSync() async {
-        let orphan = state.places.isEmpty && secrets.load() != nil
+        let orphan = state.places.isEmpty && state.regions.isEmpty && secrets.load() != nil
         if state.pendingInstallationDelete || orphan {
             await deleteInstallation()
             return
         }
-        guard !state.places.isEmpty, let token = deviceToken, authorization != .denied else { return }
+        guard !(state.places.isEmpty && state.regions.isEmpty), let token = deviceToken, authorization != .denied else { return }
         guard var identity = secrets.load() ?? createIdentity() else { return fail("Die Kennung konnte nicht sicher gespeichert werden.") }
 
         do { try await gateway.putInstallation(identity, token: token, environment: environment, locale: locale) }
@@ -313,7 +446,7 @@ final class PushManager {
             // Installation ID taken with an unknown secret (e.g. restored keychain): start over with a new identity.
             guard let fresh = createIdentity() else { return fail("Die Kennung konnte nicht sicher gespeichert werden.") }
             identity = fresh
-            for id in state.places.keys { state.places[id]?.subscriptionID = nil; state.places[id]?.needsUpload = true }
+            resetSubscriptionIDs()
             state.pendingSubscriptionDeletes = []
             persist()
             do { try await gateway.putInstallation(identity, token: token, environment: environment, locale: locale) }
@@ -331,12 +464,7 @@ final class PushManager {
 
         for (placeID, settings) in state.places.sorted(by: { $0.key.uuidString < $1.key.uuidString }) where settings.needsUpload {
             do {
-                var id = settings.subscriptionID
-                if let existing = id {
-                    do { try await gateway.updateSubscription(identity, id: existing, settings.request) }
-                    catch PushGatewayError.notFound { id = nil }
-                }
-                if id == nil { id = try await gateway.createSubscription(identity, settings.request) }
+                let id = try await upload(identity, existing: settings.subscriptionID, settings.request)
                 state.places[placeID]?.subscriptionID = id
                 state.places[placeID]?.needsUpload = false
                 messages[placeID] = nil
@@ -348,6 +476,60 @@ final class PushManager {
             }
             persist()
         }
+
+        await uploadRegions(identity)
+    }
+
+    private func upload(_ identity: PushIdentity, existing: String?, _ request: PushSubscriptionRequest) async throws -> String {
+        var id = existing
+        if let existing {
+            do { try await gateway.updateSubscription(identity, id: existing, request) }
+            catch PushGatewayError.notFound { id = nil }
+        }
+        if id == nil { id = try await gateway.createSubscription(identity, request) }
+        return id ?? ""
+    }
+
+    private func uploadRegions(_ identity: PushIdentity) async {
+        let open = state.regions.sorted(by: { $0.key.uuidString < $1.key.uuidString }).filter { $0.value.needsUpload }
+        guard !open.isEmpty else { return }
+        if regionSupport != .supported { await refreshRegionSupport() }
+        guard regionSupport == .supported else {
+            // Never send region fields to a server without the capability (it could answer 400).
+            let text = regionSupport == .unsupported ? "Der Server unterstützt noch keine Regionen." : "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Es wird später erneut versucht."
+            for (id, _) in open { messages[id] = text }
+            return
+        }
+        for (regionID, settings) in open {
+            do {
+                let id = try await upload(identity, existing: settings.subscriptionID, settings.request)
+                state.regions[regionID]?.subscriptionID = id
+                state.regions[regionID]?.needsUpload = false
+                messages[regionID] = nil
+            } catch PushGatewayError.regionCapacity {
+                if settings.subscriptionID == nil {
+                    state.regions[regionID] = nil
+                    messages[regionID] = nil
+                    regionNotice = Self.regionCapacityMessage
+                } else { messages[regionID] = Self.regionCapacityMessage }
+            } catch PushGatewayError.regionLimit {
+                state.regions[regionID] = nil
+                regionNotice = "Der Server nimmt höchstens \(PushGrid.maxRegions) Regionen je Gerät an."
+            } catch PushGatewayError.subscriptionLimit {
+                state.regions[regionID] = nil
+                regionNotice = "Der Server nimmt höchstens \(Self.maxSubscriptions) Hinweise an."
+            } catch {
+                messages[regionID] = Self.message(for: error)
+            }
+            persist()
+        }
+    }
+
+    static let regionCapacityMessage = "Der Server hat gerade keine Kapazität für weitere Regionen. Wähle einen kleineren Radius oder versuche es später erneut."
+
+    private func resetSubscriptionIDs() {
+        for id in state.places.keys { state.places[id]?.subscriptionID = nil; state.places[id]?.needsUpload = true }
+        for id in state.regions.keys { state.regions[id]?.subscriptionID = nil; state.regions[id]?.needsUpload = true }
     }
 
     private func deleteInstallation() async {
@@ -375,7 +557,7 @@ final class PushManager {
     }
 
     private func fail(_ message: String) {
-        for id in state.places.keys { messages[id] = message }
+        for id in Array(state.places.keys) + Array(state.regions.keys) { messages[id] = message }
     }
 
     static func message(for error: Error) -> String {
