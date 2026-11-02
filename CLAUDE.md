@@ -11,3 +11,15 @@ Die Apple-App besitzt ein Xcode-Projekt. Vorhandene Build-/Testbefehle stehen im
 Verbindlich: Hauptagent und technischer Lead koordinieren ausschließlich; jede neue Ergebnisaufgabe erhält einen frischen ausführenden Agent. Unabhängige Aufgaben mit getrenntem Dateibesitz parallel bearbeiten, zunächst höchstens drei produktive Worker. Der Ablauf steht in `docs/team.md`.
 
 Möglichst kostensparsam arbeiten. Sessions müssen wegwerfbar sein; das Repo ist Source of Truth. Relevante Ergebnisse, Prüfungen und nächste Schritte gemäß `AGENTS.md` fortlaufend im zugewiesenen Repo-Dokument festhalten. Private lokale Pfade ausschließlich in der ignorierten `LOCAL_WORKSPACE.md` belassen.
+
+<!-- todolino:begin -->
+## Todolino
+
+Dieses Projekt wird in Todolino geplant (Projekt-ID in `.todolino.json`). Das Board laufend nutzen, nicht nur einmal am Ende:
+- Start: `session_start` (Skill `todolino`) oder `get_sync_status`, `get_command_center`, `list_open_questions`, `list_pending_reviews`; ist das Board veraltet, zuerst `sync_project`.
+- Vor der Arbeit: passende Aufgabe suchen oder mit `create_task` anlegen (keine Duplikate), dann `claim_task`.
+- Nach jedem abgeschlossenen Teilschritt und jedem Commit: `post_progress`.
+- Entscheidungen des Nutzers als `ask_question` an der Aufgabe stellen statt nur im Chat zu fragen.
+- Fertig: `request_review`, eigene Arbeit nie selbst auf erledigt setzen. Ende: `record_sync`.
+- Gestartete Agenten bekommen die Aufgaben-ID im Prompt und melden `post_progress` selbst; die Hauptsession stellt das Review.
+<!-- todolino:end -->
