@@ -37,6 +37,18 @@ Kurzfassung: Letzter hochgeladener Build ist **Build 13** (`0.1.0 (13)`, Quelle 
 - Docs: Entwurf Regenwarnungen für Regionen (`db445f1`), Recherchen Karten/Wolken (`28c7c12`), Luftdruck-Farbfläche (`9ed2536`).
 - Geprüft (Stand `821116d`, älter): volle `WeatherTests` 300 Tests, 0 Fehler (iPhone 18 Pro Simulator); UI-Suite zuletzt nach `1806425` (7 UI-Tests grün), danach nicht erneut; Sichtprüfung per Screenshot für Ebenenmenü, Regionen-Abschnitt und Kreisvorschau.
 
+## Einreichung Build 13 und Reviews (1.11.2026)
+
+- **Externe TestFlight-Prüfung:** Build 13 wurde vom Nutzer ab 1./2.11.2026 zur Prüfung für **externe** Tests eingereicht; Ausgang der Prüfung **offen**. Der Testtext „Was soll getestet werden“ wurde formuliert.
+- **Codex-Review** (gpt-6.1-sol, medium, statisch, nichts ausgeführt), 4 Befunde:
+  - P1 `PushManager.swift:505`: Wird eine Region während des ersten POST gelöscht, bleibt das Abo serverseitig bestehen.
+  - P2 `PushManager.swift:507`: `needsUpload = false` durch eine alte Antwort überspringt eine zwischenzeitliche Änderung.
+  - P2 `RadarMap.swift:256`: Veralteter vis-Request überschreibt die Karte.
+  - P2 `SitePageSheet.swift:129`: `.other`-Navigationen ohne Host-/Schemaprüfung.
+  - Dazu Testlücken (je Befund fehlen Regressionstests).
+- **Backend-Security-Review:** [research/security-review-backend-2026-11-01.md](research/security-review-backend-2026-11-01.md): 0 kritisch, 2 hoch (H1/H2), 5 mittel, 9 niedrig.
+- **Nächste Schritte:** (1) App-Fixes der 4 Befunde samt Tests; Build 14 erst nach Prüfungsausgang. (2) Danach Backend-Härtung H1/H2/M1/M2 im Schwesterrepo.
+
 ## Geprüft / nicht geprüft
 
 Build 13 (1.11.): `WeatherTests` einzeln mit Xcode 27.1 auf iPhone 18 Pro Simulator: 315 Tests, 0 Fehler; UI-Suite nicht erneut gelaufen. Archiv, lokaler Export, Upload (Exit 0) erfolgreich; Apple-Verarbeitung und Installierbarkeit von Build 13 **nicht geprüft**.
