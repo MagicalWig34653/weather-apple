@@ -47,7 +47,8 @@ Kurzfassung: Letzter hochgeladener Build ist **Build 13** (`0.1.0 (13)`, Quelle 
   - P2 `SitePageSheet.swift:129`: `.other`-Navigationen ohne Host-/Schemaprüfung.
   - Dazu Testlücken (je Befund fehlen Regressionstests).
 - **Backend-Security-Review:** [research/security-review-backend-2026-11-01.md](research/security-review-backend-2026-11-01.md): 0 kritisch, 2 hoch (H1/H2), 5 mittel, 9 niedrig.
-- **Nächste Schritte:** (1) App-Fixes der 4 Befunde samt Tests; Build 14 erst nach Prüfungsausgang. (2) Danach Backend-Härtung H1/H2/M1/M2 im Schwesterrepo.
+- **Befunde behoben (2.11.2026, auf `main`, in **keinem** Build; Build 13 unberührt):** alle 4 bestätigt und mit zuerst fehlschlagenden Regressionstests behoben. (1) P1 `PushManager`: Antwort-ID einer inzwischen gelöschten Region/Ortes wird zur serverseitigen Löschung vorgemerkt (`discardLate`). (2) P2 `PushManager`: `needsUpload=false` nur, wenn die hochgeladene Anfrage dem aktuellen Stand entspricht, sonst läuft die Synchronisation erneut (gilt auch für Orte). (3) P2 `RadarMap`: vis-Ergebnis wird nur noch gezeichnet, wenn Overlay, vis-Loader, Maskenslot und ausstehende Anfrage noch passen (`SunVisibleMatch.shouldApply`); Fallback setzt die Anfrage zurück. Die Zuordnungsprüfung ist getestet, der Coordinator-Pfad selbst nicht. (4) P2 `SitePageSheet`: Host-/https-Regel gilt für jede Navigationsart (`navigationDecision`), Hauptframe-Antworten fremder Hosts werden verworfen (`allowsResponse`); nur Linktipps im Hauptframe öffnen extern (https/http/mailto). Geprüft: `WeatherTests` einzeln 321 Tests, 0 Fehler; UI-Tests 7, 0 Fehler (iPhone 18 Pro Simulator). Nicht geprüft: WKWebView-Verhalten im Gerät/Simulator (Redirect-Fälle), Karte mit echten vis-Bildern.
+- **Nächste Schritte:** (1) Build 14 mit diesen Fixes erst nach Prüfungsausgang von Build 13. (2) Danach Backend-Härtung H1/H2/M1/M2 im Schwesterrepo.
 
 ## Geprüft / nicht geprüft
 

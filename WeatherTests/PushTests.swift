@@ -37,16 +37,31 @@ final class FakeGateway: PushGateway, @unchecked Sendable {
         lock.withLock { lastToken = token; lastEnvironment = environment }
     }
     func deleteInstallation(_ identity: PushIdentity) async throws { try record("deleteInstallation", identity) }
+    /// Runs while a create/update request is "in flight" (before the response is delivered); lets tests change state meanwhile.
+    var duringCreate: (@Sendable () async -> Void)?
+    var duringUpdate: (@Sendable () async -> Void)?
+    private var _deletedIDs: [String] = []
+    var deletedIDs: [String] { lock.withLock { _deletedIDs } }
+    private var _createdIDs: [String] = []
+    var createdIDs: [String] { lock.withLock { _createdIDs } }
+
     func createSubscription(_ identity: PushIdentity, _ request: PushSubscriptionRequest) async throws -> String {
         try record("createSubscription", identity)
         lock.withLock { lastRequests.append(request) }
-        return UUID().uuidString.lowercased()
+        let id = UUID().uuidString.lowercased()
+        lock.withLock { _createdIDs.append(id) }
+        await duringCreate?()
+        return id
     }
     func updateSubscription(_ identity: PushIdentity, id: String, _ request: PushSubscriptionRequest) async throws {
         try record("updateSubscription", identity)
         lock.withLock { lastRequests.append(request) }
+        await duringUpdate?()
     }
-    func deleteSubscription(_ identity: PushIdentity, id: String) async throws { try record("deleteSubscription", identity) }
+    func deleteSubscription(_ identity: PushIdentity, id: String) async throws {
+        try record("deleteSubscription", identity)
+        lock.withLock { _deletedIDs.append(id) }
+    }
     func sendTestNotification(_ identity: PushIdentity) async throws -> String {
         try record("sendTestNotification", identity)
         return "sandbox"
@@ -247,6 +262,34 @@ final class PushManagerTests: XCTestCase {
         XCTAssertEqual(gateway.calls.suffix(2), ["putInstallation", "updateSubscription"])
         XCTAssertEqual(gateway.lastRequests.last?.leadMinutes, 30)
         XCTAssertEqual(gateway.lastRequests.last?.threshold, 8)
+        XCTAssertEqual(manager.status(for: id), .active)
+    }
+
+    func testPlaceRemovedDuringFirstUploadDeletesTheLateSubscription() async {
+        let (manager, gateway, _, _, _) = make()
+        let id = UUID()
+        let keep = UUID()   // a remaining subscription: the installation is not deleted, so only an explicit delete cleans up
+        _ = await manager.enable(placeID: keep, latitude: 48.14, longitude: 11.58)
+        await deliverToken(manager)
+        gateway.duringCreate = { [manager] in gateway.duringCreate = nil; await manager.disable(placeID: id) }
+        _ = await manager.enable(placeID: id, latitude: berlin.lat, longitude: berlin.lon)   // its first POST is in flight when it is removed
+        XCTAssertEqual(manager.status(for: id), .off)
+        XCTAssertEqual(gateway.createdIDs.count, 2)
+        XCTAssertEqual(gateway.deletedIDs, [gateway.createdIDs[1]], "the subscription created after removal must be deleted on the server")
+    }
+
+    func testPlaceChangedDuringUploadIsUploadedAgain() async {
+        let (manager, gateway, _, _, _) = make()
+        let id = UUID()
+        _ = await manager.enable(placeID: id, latitude: berlin.lat, longitude: berlin.lon)
+        await deliverToken(manager)
+        gateway.duringUpdate = { [manager] in
+            gateway.duringUpdate = nil
+            await manager.update(placeID: id, leadMinutes: 10)
+        }
+        await manager.update(placeID: id, leadMinutes: 30)
+        XCTAssertEqual(gateway.lastRequests.last?.leadMinutes, 10, "the newer value must reach the server")
+        XCTAssertEqual(gateway.calls.filter { $0 == "updateSubscription" }.count, 2)
         XCTAssertEqual(manager.status(for: id), .active)
     }
 

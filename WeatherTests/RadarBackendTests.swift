@@ -558,4 +558,28 @@ final class SitePageTests: XCTestCase {
         XCTAssertFalse(page.allowsInSheet(URL(string: "http://\(page.url.host!)/x")!))
         XCTAssertFalse(page.allowsInSheet(URL(string: "mailto:a@b.de")!))
     }
+
+    func testNavigationPolicyAppliesHostRuleToEveryNavigationType() throws {
+        let page = SitePage.support
+        let own = RadarBackendConfig.supportURL, foreign = try XCTUnwrap(URL(string: "https://example.com/x"))
+        let insecure = try XCTUnwrap(URL(string: "http://\(try XCTUnwrap(page.url.host))/x"))
+        let script = try XCTUnwrap(URL(string: "javascript:alert(1)"))
+        let mail = try XCTUnwrap(URL(string: "mailto:a@b.de"))
+        XCTAssertEqual(page.navigationDecision(for: own, isLinkActivated: false, isMainFrame: true), .allow)
+        XCTAssertEqual(page.navigationDecision(for: foreign, isLinkActivated: false, isMainFrame: true), .cancel, ".other to a foreign host")
+        XCTAssertEqual(page.navigationDecision(for: insecure, isLinkActivated: false, isMainFrame: true), .cancel)
+        XCTAssertEqual(page.navigationDecision(for: foreign, isLinkActivated: true, isMainFrame: false), .cancel, "subframe")
+        XCTAssertEqual(page.navigationDecision(for: foreign, isLinkActivated: true, isMainFrame: true), .openExternally)
+        XCTAssertEqual(page.navigationDecision(for: mail, isLinkActivated: true, isMainFrame: true), .openExternally)
+        XCTAssertEqual(page.navigationDecision(for: script, isLinkActivated: true, isMainFrame: true), .cancel)
+    }
+
+    func testMainFrameResponsesMustStayOnTheOwnHost() throws {
+        let page = SitePage.privacy
+        XCTAssertTrue(page.allowsResponse(from: RadarBackendConfig.privacyPolicyURL, isMainFrame: true))
+        XCTAssertFalse(page.allowsResponse(from: URL(string: "https://example.com/"), isMainFrame: true), "redirect away")
+        XCTAssertFalse(page.allowsResponse(from: URL(string: "http://\(try XCTUnwrap(page.url.host))/"), isMainFrame: true))
+        XCTAssertFalse(page.allowsResponse(from: nil, isMainFrame: true))
+        XCTAssertTrue(page.allowsResponse(from: URL(string: "https://example.com/"), isMainFrame: false))
+    }
 }

@@ -253,7 +253,11 @@ struct RadarMap: UIViewRepresentable {
             let maskURL = slot.url
             Task { @MainActor [weak self, weak overlay, weak map] in
                 let ok = await visibleLoader.demand(match.url)
-                guard let self, let overlay, self.backendOverlay === overlay, overlay.slotURL == maskURL else { return }
+                guard let self, let overlay,
+                      SunVisibleMatch.shouldApply(url: match.url, maskURL: maskURL, currentMaskURL: overlay.slotURL,
+                                                  currentlyRequested: self.visibleRequested,
+                                                  sameLoader: self.visibleLoader === visibleLoader,
+                                                  sameOverlay: self.backendOverlay === overlay) else { return }
                 if ok {
                     self.visibleShown = match.url
                     overlay.setVisible(loader: visibleLoader, url: match.url)

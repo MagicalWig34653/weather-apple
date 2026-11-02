@@ -76,6 +76,37 @@ final class PushRegionManagerTests: XCTestCase {
         XCTAssertEqual(manager.enabledCount, 1)
     }
 
+    func testRegionRemovedDuringFirstUploadDeletesTheLateSubscription() async {
+        let (manager, gateway, _) = make()
+        await token(manager)
+        // A remaining subscription keeps the installation alive, so only an explicit delete cleans up.
+        let keep = await manager.addRegion(latitude: 48.14, longitude: 11.58, radiusKm: 10, sharePercent: 25, name: nil)
+        XCTAssertNotNil(added(keep))
+        gateway.duringCreate = { [manager] in
+            gateway.duringCreate = nil
+            if let id = await manager.regionsSorted.first(where: { $0.settings.name == "weg" })?.id { await manager.removeRegion(id: id) }
+        }
+        _ = await manager.addRegion(latitude: berlin.lat, longitude: berlin.lon, radiusKm: 10, sharePercent: 25, name: "weg")
+        XCTAssertEqual(manager.regionCount, 1)
+        XCTAssertEqual(gateway.createdIDs.count, 2)
+        XCTAssertEqual(gateway.deletedIDs, [gateway.createdIDs[1]])
+    }
+
+    func testRegionChangedDuringUploadIsUploadedAgain() async throws {
+        let (manager, gateway, _) = make()
+        await token(manager)
+        let r = await manager.addRegion(latitude: berlin.lat, longitude: berlin.lon, radiusKm: 10, sharePercent: 25, name: nil)
+        let id = try XCTUnwrap(added(r))
+        gateway.duringUpdate = { [manager] in
+            gateway.duringUpdate = nil
+            await manager.updateRegion(id: id, radiusKm: 25)
+        }
+        await manager.updateRegion(id: id, radiusKm: 5)
+        let latitude = PushGrid.coordinate(of: try XCTUnwrap(manager.region(for: id)).center).latitude
+        XCTAssertEqual(gateway.lastRequests.last?.region?.radiusCells, PushGrid.radiusCells(km: 25, latitude: latitude))
+        XCTAssertEqual(manager.regionStatus(for: id), .active)
+    }
+
     func testNoCapabilityMeansNoRegionRequestAndNoCoordinateState() async {
         let (manager, gateway, _) = make(regions: false)
         await token(manager)

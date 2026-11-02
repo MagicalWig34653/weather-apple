@@ -27,6 +27,23 @@ enum SitePage: String, Identifiable, CaseIterable {
     func allowsInSheet(_ target: URL) -> Bool {
         target.scheme == "https" && target.host == url.host
     }
+
+    enum NavigationDecision: Equatable { case allow, openExternally, cancel }
+
+    /// Applies the host rule to every navigation, including `.other` (redirects, scripted loads). Only taps on
+    /// main-frame links may leave the sheet (to the browser, web links and mail only); everything else is cancelled.
+    func navigationDecision(for target: URL, isLinkActivated: Bool, isMainFrame: Bool) -> NavigationDecision {
+        if allowsInSheet(target) { return .allow }
+        if isLinkActivated, isMainFrame, ["https", "http", "mailto"].contains(target.scheme?.lowercased() ?? "") { return .openExternally }
+        return .cancel
+    }
+
+    /// A main-frame response must come from the page's own https host (a redirect elsewhere is refused).
+    func allowsResponse(from responseURL: URL?, isMainFrame: Bool) -> Bool {
+        guard isMainFrame else { return true }
+        guard let responseURL else { return false }
+        return allowsInSheet(responseURL)
+    }
 }
 
 /// Bottom sheet showing a backend page. Privacy choice: an ephemeral WKWebView (no cookies, no persistent
@@ -126,13 +143,20 @@ private struct SiteWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
             guard let target = action.request.url else { return .cancel }
-            if action.navigationType == .other || parent.page.allowsInSheet(target) { return .allow }
-            parent.openExternally(target)
-            return .cancel
+            switch parent.page.navigationDecision(for: target, isLinkActivated: action.navigationType == .linkActivated,
+                                                  isMainFrame: action.targetFrame?.isMainFrame ?? true) {
+            case .allow: return .allow
+            case .openExternally: parent.openExternally(target); return .cancel
+            case .cancel: return .cancel
+            }
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse) async -> WKNavigationResponsePolicy {
             if let http = response.response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                parent.state = .failed
+                return .cancel
+            }
+            if !parent.page.allowsResponse(from: response.response.url, isMainFrame: response.isForMainFrame) {
                 parent.state = .failed
                 return .cancel
             }

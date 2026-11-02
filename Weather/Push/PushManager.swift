@@ -465,9 +465,13 @@ final class PushManager {
         for (placeID, settings) in state.places.sorted(by: { $0.key.uuidString < $1.key.uuidString }) where settings.needsUpload {
             do {
                 let id = try await upload(identity, existing: settings.subscriptionID, settings.request)
-                state.places[placeID]?.subscriptionID = id
-                state.places[placeID]?.needsUpload = false
-                messages[placeID] = nil
+                if state.places[placeID] == nil { discardLate(subscription: id) }
+                else {
+                    state.places[placeID]?.subscriptionID = id
+                    // Confirm only what was uploaded; a change made meanwhile stays open (sync runs again).
+                    if state.places[placeID]?.request == settings.request { state.places[placeID]?.needsUpload = false }
+                    messages[placeID] = nil
+                }
             } catch PushGatewayError.subscriptionLimit {
                 state.places[placeID] = nil
                 messages[placeID] = "Der Server nimmt höchstens \(Self.maxSubscriptions) Orte an."
@@ -478,6 +482,13 @@ final class PushManager {
         }
 
         await uploadRegions(identity)
+    }
+
+    /// The entry was removed while its request was in flight: the server may now hold a subscription nobody references.
+    /// Queue it for deletion (a repeated delete answers 404, which is ignored).
+    private func discardLate(subscription id: String) {
+        if !state.pendingSubscriptionDeletes.contains(id) { state.pendingSubscriptionDeletes.append(id) }
+        syncAgain = true
     }
 
     private func upload(_ identity: PushIdentity, existing: String?, _ request: PushSubscriptionRequest) async throws -> String {
@@ -503,9 +514,12 @@ final class PushManager {
         for (regionID, settings) in open {
             do {
                 let id = try await upload(identity, existing: settings.subscriptionID, settings.request)
-                state.regions[regionID]?.subscriptionID = id
-                state.regions[regionID]?.needsUpload = false
-                messages[regionID] = nil
+                if state.regions[regionID] == nil { discardLate(subscription: id) }
+                else {
+                    state.regions[regionID]?.subscriptionID = id
+                    if state.regions[regionID]?.request == settings.request { state.regions[regionID]?.needsUpload = false }
+                    messages[regionID] = nil
+                }
             } catch PushGatewayError.regionCapacity {
                 if settings.subscriptionID == nil {
                     state.regions[regionID] = nil

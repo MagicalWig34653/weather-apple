@@ -410,7 +410,22 @@ final class SunMaskTests: XCTestCase {
 
     func testVisibleSlotMatchesNearestWithinTenMinutes() {
         let slots = visSlots(["2026-11-01T11:00:00Z", "2026-11-01T11:10:00Z", "2026-11-01T11:20:00Z", "2026-11-01T11:30:00Z"])
-        func match(_ text: String) -> String? { SunVisibleMatch.nearest(to: utc(text), in: slots).map { $0.path } }
+        func testStaleVisibleResultIsNotApplied() {
+        let vis = URL(string: "https://x/vis1.png")!, mask = URL(string: "https://x/m1.png")!, other = URL(string: "https://x/m2.png")!
+        func apply(url: URL = vis, maskURL: URL = mask, current: URL? = mask, requested: URL? = vis,
+                   sameLoader: Bool = true, sameOverlay: Bool = true) -> Bool {
+            SunVisibleMatch.shouldApply(url: url, maskURL: maskURL, currentMaskURL: current, currentlyRequested: requested,
+                                        sameLoader: sameLoader, sameOverlay: sameOverlay)
+        }
+        XCTAssertTrue(apply())
+        XCTAssertFalse(apply(requested: nil), "fallback to the mask invalidated the pending request")
+        XCTAssertFalse(apply(requested: URL(string: "https://x/vis2.png")), "a newer match replaced it")
+        XCTAssertFalse(apply(sameLoader: false), "the visible loader was swapped")
+        XCTAssertFalse(apply(sameOverlay: false))
+        XCTAssertFalse(apply(current: other), "the mask slot changed")
+    }
+
+    func match(_ text: String) -> String? { SunVisibleMatch.nearest(to: utc(text), in: slots).map { $0.path } }
         XCTAssertEqual(match("2026-11-01T11:15:00Z"), "r/2026-11-01T11:10:00Z.webp", "tie: the earlier slot")
         XCTAssertEqual(match("2026-11-01T11:30:00Z"), "r/2026-11-01T11:30:00Z.webp")
         XCTAssertNil(match("2026-11-01T11:44:00Z"), "14 min after the last slot is too far")

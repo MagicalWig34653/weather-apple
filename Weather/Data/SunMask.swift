@@ -84,6 +84,13 @@ enum SunVisibleMatch {
         }
         return bestDistance <= maximumDistance ? best : nil
     }
+
+    /// Whether a finished visible-channel request may still be drawn. Fallbacks, loader swaps and slot changes
+    /// reset `currentlyRequested` / replace the loader, so a stale result is dropped instead of overwriting the display.
+    static func shouldApply(url: URL, maskURL: URL, currentMaskURL: URL?, currentlyRequested: URL?,
+                            sameLoader: Bool, sameOverlay: Bool) -> Bool {
+        sameOverlay && sameLoader && currentMaskURL == maskURL && currentlyRequested == url
+    }
 }
 
 /// Web-Mercator helpers for the fixed whole-image grid (EPSG:3857, bbox of the manifest).
