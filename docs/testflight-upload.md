@@ -221,3 +221,13 @@ Quellencheckpoint `f1310e8` (`CURRENT_PROJECT_VERSION = 13`, Code `f5d9e96`), Ar
 | Archiv und lokale IPA | Erfolgreich, geprüft |
 | Uploadannahme | Erfolgreich, Exit 0 |
 | Verarbeitung / Installierbarkeit / externe Zuordnung | Nicht geprüft |
+
+## ShowerNow Build 14: Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint `4328f80` (`CURRENT_PROJECT_VERSION = 14`, Basis `1974cd1` mit Codex-Fixes `7b4d8df`), Archiv/Export aus `git archive`-Kopie mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR`; vorher `WeatherTests` 321 Tests ohne Fehler. Optionen wie Build 13 (`testFlightInternalTestingOnly=false`). **Genau ein Upload, 2. November 2026 von 13:46:18 bis 13:47:42 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Entitlements: `aps-environment=production`, `time-sensitive=true`, `get-task-allow=false`; `codesign --verify --strict --deep` ok; CFBundleVersion 14; `Localizable.strings` de/en enthalten; SHA-256 der lokal exportierten IPA (gleiches Archiv) `d7ec8960ce2deb21d866d6a830beec61be307d92ddd2e543e3bc2e4233d84d0e`. Build 13 liegt in der externen Prüfung; Build 14 wurde keiner Gruppe zugeordnet und nicht eingereicht.
+
+| Zustand Build 14 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
