@@ -4,6 +4,12 @@ Stand: 1. November 2026 (Verdichtung; Einzelheiten und frühere Prüfprotokolle 
 
 Kurzfassung: Letzter hochgeladener Build ist **Build 14** (`0.1.0 (14)`, Quelle `4328f80`; Build 13 liegt in der externen TestFlight-Prüfung). Backend-Stand und Betreiberaufgaben: Schwesterrepo (`docs/status.md` dort).
 
+**P0 Gerüst Widgets/Watch (3.11.2026, nicht committet):** `project.yml` mit Targets `WeatherWidgets` (iOS-Extension), `WeatherWatch` (watchOS-App, eingebettet in `Weather`), `WeatherWatchWidgets` (watchOS-Extension, in der Watch-App), je Entitlement `com.apple.security.application-groups` (`group.de.linolaske.showernow`), Info-Plists unter `Configuration/`, App-Plist mit `NSSupportsLiveActivities` und URL-Schema `showernow`, `WATCHOS_DEPLOYMENT_TARGET` in `Base.xcconfig`, Ordner `Shared/` (nur `SharedConfig.swift`, in allen Targets), Platzhalter-Einstiegspunkte. Keine Dateien nach `Shared/` verschoben (P1). Geprüft (Xcode 27.2, einzig installiert; README nennt 27.1): `xcodegen generate`; iOS-Simulator-Build `Weather` (baut Extension und Watch-App mit, Einbettung `Weather.app/Watch/WeatherWatch.app` und `PlugIns/` vorhanden); Scheme `WeatherWatch` für watchOS-Simulator; 321 WeatherTests grün. Nicht geprüft: UI-Tests, signierter Build/Archiv/Export, Portal-IDs, Start auf Gerät/Watch-Simulator, `signing.md` (noch nicht fortgeschrieben).
+
+**P3-P5 Widgets/Watch (3.11.2026, nicht committet, verifiziert):** Widgets (`WeatherWidgets/Logic`), Watch-App (`WeatherWatch/`) und Watch-Widgets (`WeatherWatchWidgets/`) vorhanden. Geprüft (Xcode 27.2, ohne Signing): `xcodegen generate`; Build Schema `Weather` (iOS-Simulator, baut Widgets/Watch/Watch-Widgets mit) und Schema `WeatherWatch` (Apple Watch Series 12 46mm, watchOS 27.2) erfolgreich; volle Tests iPhone 18 Pro Simulator: 371 Unit- und 7 UI-Tests. Fixes: (1) `WeatherTests` linkte `@testable import WeatherWidgets` nicht (Extension ist kein Modul zum Linken): `WeatherWidgets/Logic` als Quellen ins Testtarget, Bedingung `WIDGET_LOGIC_TESTS` (`@testable import Weather` nur dort), Widget-Tests importieren `Weather`; (2) UI-Test Datenschutz scrollt bis zu 10 statt 5 Mal (Info-Sheet länger). `testTimelineAtMaximumDynamicTypeKeepsControlsSeparate` schlug einmal fehl (`isHittable`), einzeln und im ersten Volllauf grün (vermutlich flaky). `WatchLogicTests` bleiben hinter `WATCH_LOGIC_TESTS` (nicht im iOS-Lauf). Nicht geprüft: Widget-/Watch-Laufzeit, Watch-Simulator-Start, WCSession-Zustellung, signierter Build/Archiv/Export, Gerät.
+
+**P1 Shared-Schicht (3.11.2026, nicht committet, verifiziert):** Codex-Code (`Shared/`, `Weather/Data/DWDRadarTimeline+App.swift`, Tests `Shared*Tests`) unter Xcode 27.2 geprüft: `xcodegen generate`; Builds ohne Signing für `Weather` (iOS-Simulator, mit Widgets/Watch) und `WeatherWatch` (watchOS-Simulator) erfolgreich; Shared enthält keine UIKit/WidgetKit/MapKit/CoreLocation-Importe; keine neuen Swift-6-Warnungen (einzige Warnung `RadarMap.swift:587` `withLock` unused, bereits vorhanden). Einziger Fix: ohne Signing fehlt die App-Group-Entitlement, `PlaceStore()`/`ForecastCache()` warfen, dadurch scheiterte der UI-Test zur Orte-Persistenz; neu `SharedConfig.sharedContainerURL()` mit Fallback auf Application Support/SharedFallback nur unter `#if DEBUG` (Release wirft weiter). Danach volle Tests iPhone 18 Pro Simulator: 342 Unit- und 7 UI-Tests, 0 Fehler. Nicht geprüft: Widget-/Watch-Laufzeit, signierter Build mit echter App-Group, Archiv/Export.
+
 ## Builds
 
 | Build | Quelle | Upload (MEZ) | Inhalt / Hinweise |
@@ -72,7 +78,7 @@ Nicht geprüft: echte Zustellung echter Regenmeldungen und Anzeige der Texte, Re
 5. Live Activities später; Critical Alerts nicht beantragen (Empfehlung, [research/live-activities-und-kritische-mitteilungen.md](research/live-activities-und-kritische-mitteilungen.md)).
 6. Push: `env` je Build-Konfiguration (`sandbox` Debug, `production` Release), Backend hat nur eine `APNS_ENV` je Betrieb; systemseitig abgeschaltete Mitteilungen löschen Abos nicht; Ort ohne Radarabdeckung nicht aktivierbar.
 7. Tests: UI-Test `testRadarControlsOpenDetailsAndReturnToCurrentFrame` flaky; Parallelitäts-Crashes („signal kill before establishing connection“) bei gleichzeitigen Läufen; `DWDDataTests` bei `-test-iterations` nicht wiederholbar; Banner „Einige Radarkacheln fehlen“ im DWD-Fallback möglich.
-8. Widgets, Watch, iPad-/Mac-Oberflächen folgen laut [plan.md](plan.md).
+8. Widgets, Watch, iPad-/Mac-Oberflächen folgen laut [plan.md](plan.md). Umsetzungsplan für Widgets, Watch und Live Activity (Targets, Pakete, Nutzerentscheidungen E1 bis E4): [research/widgets-watch-plan.md](research/widgets-watch-plan.md).
 
 ## Nutzeraufgaben (Checkliste)
 
@@ -95,3 +101,33 @@ Nicht geprüft: echte Zustellung echter Regenmeldungen und Anzeige der Texte, Re
 - MapKit-Radarkarte (Backend-Cache zuerst, DWD-Fallback, Analyse, Vorhersage, Play/Pause, adaptiver Poll), Zusatzebenen (Luftdruck, Blitze, Wolken, Sonne) nur über den Backend-Cache, direkte DWD-Punktprognose ([data-contract.md](data-contract.md)), Ortssuche/-speichern, optionaler Standort, Swift Charts, lokale Einordnung, Push je Ort (Opt-in) und Regionen.
 - Speicher: Punktprognosen im Speicher, Radar-Tiles im RAM-Cache (50 MB), kein Festplatten-Netzwerkcache. Details: [timeline-prefetch.md](timeline-prefetch.md), [performance.md](performance.md), [app-glass.md](app-glass.md), [build-and-test.md](build-and-test.md).
 - Früher Prototyp, keine fertige Version 1. Arbeitsweise: `AGENTS.md`, `team.md`.
+
+## Integration P6-P8 (3.11.2026, Teilstand)
+
+- `project.yml`: Target WeatherWatchWidgets bindet zusätzlich `PlaceEntity`, `WidgetForecastLoader`, `WidgetTimelineBuilder` aus `WeatherWidgets/Logic` ein; `xcodegen generate` erfolgreich.
+- Watch-App: `onOpenURL` mit `WidgetDeepLink.placeID(from:)` (unbekannte ID öffnet nichts); `WatchStore` löst `WidgetCenter.reloadAllTimelines()` nach Ortsänderung und gespeichertem Abruf aus (kein URL-Schema in der Info.plist nötig für widgetURL).
+- Geprüft: watchOS-SDK-Typecheck (Swift 6, arm64_32) von Shared + WeatherWatch ohne Fehler/Warnungen.
+- Geprüft (3.11.2026, xcodebuild): Schema Weather (iPhone 18 Pro Simulator, CODE_SIGNING_ALLOWED=NO, inkl. Widgets/Watch/WatchWidgets) BUILD SUCCEEDED; Schema WeatherWatch (Apple Watch Series 12 (42mm) Simulator) BUILD SUCCEEDED; Tests TEST SUCCEEDED: 392 Unit + 7 UI, 0 Fehler (UI-Test Dynamic Type diesmal nicht flaky).
+- Behoben: `RainActivityManager.swift` Swift-6-Fehler "sending 'activity' risks causing data races" (3 Stellen) durch `@preconcurrency import ActivityKit`.
+- NICHT geprüft: Widget-Optik (keine Previews/Screenshots), Geräte-Laufzeit (iPhone/Watch), Signing, APNs/Live-Activity-Push, Archive.
+
+## P6 Teil 2: Live-Activity-Oberfläche (3.11.2026)
+
+- Neu: `WeatherWidgets/LiveActivity/RainLiveActivity.swift` (`ActivityConfiguration<RainActivityAttributes>`: Sperrbildschirm, Dynamic Island compact/minimal/expanded, Previews aller Phasen inkl. veraltet) und `RainActivityPresentation.swift` (Zustandslogik, Ortsauflösung via `placeID(in:)` + `PlaceStore`, Deep Link `WidgetDeepLink`); im `WeatherWidgetsBundle` ergänzt; de/en-Strings ergänzt. `project.yml` unverändert.
+- Veraltet: `context.isStale` oder `ContentState.isStale(at:)`; dann Orange, "Daten veraltet", kein Countdown, nie "trocken". `TimelineView` kippt am `effectiveStaleDate` ohne neues Update. Countdown per `Text(timerInterval:)` aus `eventDate` (2001-Epoche über Standard-Codable).
+- Geprüft: xcodegen, Build Schema Weather (iPhone 18 Pro Sim, ohne Signing) BUILD SUCCEEDED; Unit-Tests 392, 0 Fehler. UI-Tests nicht erneut gelaufen.
+- NICHT geprüft: Optik (Previews nicht gerendert), Gerät, ActivityKit-Laufzeit, Push-to-Start/Updates, ob `TimelineView` in Live Activities im System neu rendert (Gerät).
+
+## Verifikation Backend-Vertrag Live Activity und Review-Fixes (3.11.2026)
+
+- Neu seit 392+7: Codex-Anpassung der Live-Activity-App-Seite an den neuen Backend-Vertrag (Start-Token vor Abo, einmaliger 409-`start_token_required`-Retry, 503 `activity_full`, tokenloses DELETE) und Behebung dreier Review-Befunde (Legacy-`places.json` ohne Re-Import, verwaiste Widget-Cache-Dateien, `PlaceEntity`-Übersetzungen).
+- Geprüft (Xcode 27.2, ohne Signing): `xcodegen generate`; Build Schema Weather (iPhone 18 Pro) und WeatherWatch (Apple Watch Series 12 (42mm)) jeweils BUILD SUCCEEDED, keine Kompilierfehler; volle Tests iPhone 18 Pro: 409 Unit + 7 UI, 0 Fehler. Danach ein Test ergänzt (`RainActivityContractTests`, Phase `raining` ohne `eventDate`, null und fehlender Schlüssel): Klasse 7 Tests grün (insgesamt jetzt 410 Unit; Gesamtlauf nach dem Zusatztest nicht wiederholt).
+- Phase `raining` ohne `eventDate` (Backend: unsicheres Regenende): Decoder (`Date?`) und `RainActivityPresentation` (Countdown nur bei `startsIn`/`endsIn` mit Zukunftsdatum; `raining` zeigt "Es regnet" / "Ende nicht absehbar") brauchen keine Codeänderung. Die UI-Logik selbst ist nicht unit-getestet (Datei nicht im Testtarget) und die Optik nicht gesehen.
+- Aufrufreihenfolge gegen `docs-site/content/api.md` (Backend, nur gelesen) abgeglichen: Installations-PUT mit `live_activity_start_token`, dann Abo-POST/PUT mit `live_activity:true`, dann Activity-PUT; 409 `start_token_required` einmal nachholen, 503 `activity_full` ohne Retry und Opt-in aus, DELETE ohne Body bei tokenloser Reservierung. Stimmt mit Code und Tests (`PushActivityManagerTests`, `PushActivityGatewayTests`) überein; kein Abgleich gegen laufendes Backend.
+- NICHT geprüft: Gerät, Signing/Archiv, Widget-/Live-Activity-Optik, echtes APNs/Push-to-Start, Backend-Rollout.
+
+## Duo-Kompatibilität (3.11.2026, Teilstand)
+
+- Statisch (Weather/, WeatherWidgets/, Shared/, `Configuration/Info.plist`): kein `UIScreen.main`, kein `UIRequiresFullScreen`, keine Orientierungsprüfung im Code, nur kleine feste Frames (Icon-Buttons 44-46 pt, Legende `maxWidth: 150`, Regenchart `height: 220`). Karte mit `ignoresSafeArea`, Zeitleiste per `safeAreaInset(.bottom)`, Overlays ohne Safe-Area-Annahmen. Kein belegter Fehler gefunden; keine Quelländerung (Build 15 läuft parallel). Optionale Vorschläge: Recherche-Datei, Abschnitt "Vorschläge für Build 16".
+- Simulator: NICHT geprüft. `simctl create` für `iPhone-Duo` + iOS 27.2 (24B8117) scheiterte ("Incompatible device"; die Laufzeit listete den Duo nicht unter `supportedDeviceTypes`). Danach verschwand die iOS-27.2-Laufzeit aus dem System (nur iOS 27.0 vorhanden, vorhandene Geräte "unavailable"); Duo braucht Laufzeit ab 27.1. Ursache nicht untersucht (vermutlich paralleler Xcode-/Laufzeitwechsel). Scale, Screenshots, Falten, Quer, Dynamic Type, Split View: nicht geprüft.
+- Tests: nicht wiederholt (kein Code geändert). Gerätetyp-Profil Duo: `minRuntimeVersion` 27.1.

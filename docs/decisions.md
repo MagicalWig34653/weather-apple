@@ -261,3 +261,12 @@ Nutzerwunsch: Datenschutzerklärung, Support und „Über ShowerNow“ öffnen a
 ## Welle 2 in der Oberfläche (1. November 2026)
 
 Nutzerentscheidungen zu den Architekturfragen: (1) **Sonne:** Zeitachse bleibt die der 15-min-`cloudmask`-Slots; je Slot wird der zeitlich nächste `cloudmask_vis`-Slot (höchstens 10 min Abstand, sonst nur die Maske) zusätzlich geladen; nachts/ohne vis die bisherige Maske. (2) **Ebenen:** neu `pressure_eu` und `cloudmask_vis` (nur als Hilfe für die Sonne); Europa ist ein eigener Eintrag im Ebenenmenü (kein Zoom-Automatismus) mit `manifest.bounds` je Ebene; Sonne und Luftdruck bleiben Deutschland-Standard, Luftdruck zusätzlich „Europa“; `cloudmask_vis_eu` wird nicht eingebunden. Speicherbudget 48 MB dekodiert. (3) **Zeitzone** außerhalb Deutschlands: Gerätezeitzone, kein Geocoding. Neue Ebenen werden nur angeboten, wenn das Backend sie meldet (Manifest `available`); 404 bleibt ohne Fehlerbanner. Umsetzung und Prüfstand: [status.md](status.md) Offener Punkt 1.
+
+## Widgets, Watch, Live Activity: Nutzerentscheidungen (3. November 2026)
+
+Plan: [research/widgets-watch-plan.md](research/widgets-watch-plan.md). Entscheidungen des Nutzers (per Auswahl):
+- E1: alles in **einem** Build (Widgets, Watch, Live Activity); Entwicklungsreihenfolge Widgets, dann Watch, dann Live Activity.
+- E2: Automatic Signing darf genau die App-IDs `de.linolaske.showernow.widgets`, `.watchkitapp`, `.watchkitapp.widgets` und die App Group `group.de.linolaske.showernow` anlegen (noch nicht geschehen).
+- E3: Widget-Ortsauswahl nur gespeicherte Orte.
+- E4: Live Activity nur mit Push-to-Start; lokaler Start nur Fallback.
+- Später: App Attest jetzt einplanen (ersetzt "erst bei Missbrauch" aus E8); Luftdruck als Farbfläche im Backend umsetzen (ersetzt "offen" oben).
