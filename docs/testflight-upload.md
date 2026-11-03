@@ -231,3 +231,29 @@ Quellencheckpoint `4328f80` (`CURRENT_PROJECT_VERSION = 14`, Basis `1974cd1` mit
 | Archiv und lokale IPA | Erfolgreich, geprüft |
 | Uploadannahme | Erfolgreich, Exit 0 |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## ShowerNow Build 15: Upload angenommen (Xcode 27.1), erster Build mit Watch-App, Widgets und Live Activity
+
+Quellencheckpoint `3a32f41` (`CURRENT_PROJECT_VERSION = 15`; Feature `c2f52b3`, Buildnummer `f3b19f1`, Docs `eab7f7f`), Archiv/Export aus `git archive`-Kopie mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR`, Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher 3.11.2026: `WeatherTests` 410 und `WeatherUITests` 7 Tests, 0 Fehler. Für Tests unter Xcode 27.1 fehlte die passende iOS-Runtime (SDK 27.1 erwartet 24A94232); lokal `xcrun simctl runtime match set iphoneos27.1 24A434` gesetzt (rücknehmbar mit `match unset`) und ein eigenes Simulatorgerät "B15 iPhone 18 Pro" auf iOS 27.0 angelegt (Maschinen-Einstellung, nicht Repo). Optionen wie Build 14 (`testFlightInternalTestingOnly=false`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`).
+
+**Erster Exportversuch (Upload-Plist, 19:01 bis 19:02) lud nichts hoch:** Die Apple-Validierung lehnte das Paket ab (Exit 70): fehlendes `CFBundleIconName`/Icons der Watch-App und unsignierte Handoff-`.md`-Dateien in den Bundles. Behebung in `3a32f41` (`project.yml`: `**/*.md` aus allen Targets ausgeschlossen, `AppIcon.icon` und `ASSETCATALOG_COMPILER_APPICON_NAME` für die Watch-App, `CFBundleIconName` in `WeatherWatch-Info.plist`). Danach neues Archiv und **genau ein erfolgreicher Upload, 3. November 2026 von 19:07:06 bis 19:09:02 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`.
+
+Paketprüfung (lokal exportierte IPA aus demselben Archiv, SHA-256 `e9fcaef3eb3896b29a342c149f0340135d94ff870259d0077bf03e7be33c65bc`):
+
+| Bundle | Bundle-ID | CFBundleVersion / MinOS | Entitlements |
+|---|---|---|---|
+| App | `de.linolaske.showernow` | 15 / 27.0 | App Group, `aps-environment=production`, `time-sensitive=true`, `get-task-allow=false` |
+| Widgets (`PlugIns/WeatherWidgets.appex`) | `de.linolaske.showernow.widgets` | 15 / 27.0 | App Group, `get-task-allow=false` |
+| Watch-App (`Watch/WeatherWatch.app`) | `de.linolaske.showernow.watchkitapp` | 15 / 27.0, `WKCompanionAppBundleIdentifier=de.linolaske.showernow`, `CFBundleIconName=AppIcon` | App Group, `get-task-allow=false` |
+| Watch-Widgets (in der Watch-App) | `de.linolaske.showernow.watchkitapp.widgets` | 15 / 27.0 | App Group, `get-task-allow=false` |
+
+App Group überall `group.de.linolaske.showernow`; `NSSupportsLiveActivities=true`, URL-Schema `showernow`, `ITSAppUsesNonExemptEncryption=false`; `de.lproj`/`en.lproj` in allen vier Bundles; `codesign --verify --deep --strict` je Bundle ok; keine `.md`-Dateien im Paket.
+
+Portal: Die vier freigegebenen Ressourcen (App-IDs `.widgets`, `.watchkitapp`, `.watchkitapp.widgets`, App Group) wurden nur über Automatic Signing verwendet; die Logs zeigen Team-Provisioning-Profile für alle vier Bundle-IDs. Ob Xcode sie neu angelegt oder vorgefunden hat, ist aus den Logs nicht ablesbar. Sonst keine Signing-/Store-Änderungen; Build keiner Gruppe zugeordnet, nicht eingereicht.
+
+| Zustand Build 15 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (zweiter Exportversuch; erster scheiterte in der Validierung ohne Upload) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+| Gerätelauf (iPhone, Watch), Widgets, Komplikationen, Live Activity, Push | Nicht geprüft |
