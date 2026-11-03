@@ -1,0 +1,72 @@
+{
+  "fill": {
+    "solid": "srgb:0.09020,0.41176,0.87843,1.00000"
+  },
+  "fill-specializations": [
+    {
+      "value": {
+        "solid": "srgb:0.09020,0.41176,0.87843,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "solid": "srgb:0.03922,0.17647,0.43137,1.00000"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "cloud.svg",
+          "name": "Wolke",
+          "glass": true,
+          "fill": "automatic",
+          "opacity": 1,
+          "hidden": false
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "drop.svg",
+          "name": "Tropfen",
+          "glass": true,
+          "fill": "automatic",
+          "opacity": 1,
+          "hidden": false
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

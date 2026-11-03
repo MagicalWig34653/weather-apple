@@ -1,0 +1,16 @@
+name: ShotsWatchUI
+targets:
+  WatchShotsUITests:
+    type: bundle.ui-testing
+    platform: watchOS
+    deploymentTarget: '27.0'
+    sources: [WatchShotsUITests.swift]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.linolaske.showernow.watchshotsuitests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  ShotsWatchUI:
+    build: {targets: {WatchShotsUITests: [test]}}
+    test: {targets: [WatchShotsUITests]}

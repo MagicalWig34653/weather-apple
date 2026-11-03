@@ -1,0 +1,16 @@
+name: ShotsUI
+targets:
+  ShotsUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: '27.0'
+    sources: [ShotsUITests.swift]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.linolaske.showernow.shotsuitests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  ShotsUI:
+    build: {targets: {ShotsUITests: [test]}}
+    test: {targets: [ShotsUITests]}
