@@ -272,3 +272,19 @@ Paketprüfung (lokal exportierte IPA aus demselben Archiv, SHA-256 `1ad856e589db
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
 | Gerät, Watch-Hardware, Krone, Dekoder-Laufzeit, Duo-Innendisplay | Nicht geprüft |
+
+## Showers Build 17: Upload angenommen (Xcode 27.1), Umbenennung
+
+Quellencheckpoint `84d40c2` (`CURRENT_PROJECT_VERSION = 17`; Code `3bd5e3c`), Archiv/Export aus `git archive`-Kopie mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR`, Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher: `Weather`-Schema 417 Tests (410 Unit + 7 UI), 0 Fehler; `WeatherWatch`-Build erfolgreich. Optionen wie Build 16. Die IPA heißt nun `Showers.ipa` (Anzeigename), Bundle-IDs unverändert.
+
+**Genau ein Upload, 3. November 2026 von 23:11:10 bis 23:14:50 Uhr** (`destination=upload`, nach vorherigem lokalem Export zur Paketprüfung): Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `ad36fd33af4598d5237653447d3e871d50f4b5af9ff490897bfe2ca456fb7f88`): vier Bundles (`de.linolaske.showernow`, `.widgets`, `.watchkitapp` mit `WKCompanionAppBundleIdentifier=de.linolaske.showernow` und `CFBundleIconName=AppIcon`, `.watchkitapp.widgets`); `CFBundleDisplayName` überall `Showers`; `CFBundleVersion` 17, Version 0.1.0; App Group `group.de.linolaske.showernow` überall; `aps-environment=production` und `time-sensitive` nur in der App; `get-task-allow=false` (App); `NSSupportsLiveActivities=true`, `ITSAppUsesNonExemptEncryption=false`; `de.lproj`/`en.lproj` in allen vier; `codesign --verify --deep --strict` je Bundle ok; keine `.md` im Paket.
+
+| Zustand Build 17 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
+| Gerät, Watch-Hardware, Anzeige des Namens auf Hardware | Nicht geprüft |
+
