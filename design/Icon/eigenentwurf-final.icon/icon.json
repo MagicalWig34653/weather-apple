@@ -1,0 +1,215 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "extended-gray:0.75000,1.00000",
+          "extended-gray:0.75000,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "srgb:0.10588,0.18824,0.29412,1.00000",
+          "srgb:0.06275,0.11765,0.20392,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance": "tinted",
+      "value": {
+        "linear-gradient": [
+          "extended-gray:0.14000,1.00000",
+          "extended-gray:0.08000,1.00000"
+        ]
+      }
+    }
+  ],
+  "groups": [
+    {
+      "hidden": false,
+      "layers": [
+        {
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.92092,0.21345,0.08536,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:1.00000,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "hidden": false,
+          "image-name": "01-rain-core.svg",
+          "name": "01-rain-core",
+          "opacity": 1,
+          "position": {
+            "scale": 0.95,
+            "translation-in-points": [
+              94.77177076922862,
+              -117
+            ]
+          }
+        },
+        {
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.92092,0.86641,0.19367,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:1.00000,0.84314,0.40000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.86000,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "hidden": false,
+          "image-name": "01-rain-core.svg",
+          "name": "01-rain-core",
+          "opacity": 1,
+          "position": {
+            "scale": 1.94,
+            "translation-in-points": [
+              72,
+              -79.97071240349459
+            ]
+          }
+        }
+      ],
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.22
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "hidden": false,
+      "layers": [
+        {
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.36338,0.86126,0.40828,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.49020,0.95686,0.73725,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.76863,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "hidden": false,
+          "image-name": "02-rain-band.svg",
+          "name": "02-rain-band",
+          "opacity": 1,
+          "position": {
+            "scale": 1.94,
+            "translation-in-points": [
+              48,
+              -89
+            ]
+          }
+        }
+      ],
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.22
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.12
+      }
+    },
+    {
+      "hidden": false,
+      "layers": [
+        {
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.09704,0.61202,0.87833,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.31765,0.82745,0.89020,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.52157,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "hidden": false,
+          "image-name": "03-rain-front.svg",
+          "name": "03-rain-front",
+          "opacity": 1,
+          "position": {
+            "scale": 2.09,
+            "translation-in-points": [
+              234,
+              -134
+            ]
+          }
+        }
+      ],
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.22
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.18
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

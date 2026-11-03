@@ -270,3 +270,9 @@ Plan: [research/widgets-watch-plan.md](research/widgets-watch-plan.md). Entschei
 - E3: Widget-Ortsauswahl nur gespeicherte Orte.
 - E4: Live Activity nur mit Push-to-Start; lokaler Start nur Fallback.
 - Später: App Attest jetzt einplanen (ersetzt "erst bei Missbrauch" aus E8); Luftdruck als Farbfläche im Backend umsetzen (ersetzt "offen" oben).
+
+## App-Icon für Build 16 (3. November 2026)
+
+- Nutzerentscheidung ("nimm erstmal d2"): Das App-Icon ab Build 16 ist `design/Icon/eigenentwurf-dark/d2.icon` (Eigenentwurf des Nutzers mit Dark-Variante "Nachtradar"; Dark-Werte Kern 1.00/0.36/0.12, gelbe Zone 0.66/0.48/0.16, Band 0.10/0.50/0.50, Front 0.07/0.30/0.37). Vorbehalt: "erstmal", spätere Änderung möglich.
+- Übernommen nach `Weather/Resources/Icon/AppIcon.icon` (Ordnername unverändert, `supported-platforms` circles watchOS + squares shared wie zuvor). Vorheriges Icon (Build 15, Kartenmotiv) archiviert in `design/Icon/archiv/AppIcon-build15.icon`.
+- Verworfen bzw. zurückgestellt: Dark-Alternativen d1, d3, d4; Entwürfe v3 und v5 (kein Entwurf erreichte das Niveau des Eigenentwurfs). Details: [icon-eigenentwurf.md](icon-eigenentwurf.md).
