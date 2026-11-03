@@ -1,6 +1,6 @@
-# ShowerNow
+# Showers
 
-Nativer, werbefreier Regenradar für Apple-Plattformen. ShowerNow zeigt das Niederschlagsradar des Deutschen Wetterdienstes (DWD) auf einer Karte mit Zeitleiste und liefert eine kurzfristige Regenprognose für einen gewählten Ort.
+Nativer, werbefreier Regenradar für Apple-Plattformen. Showers zeigt das Niederschlagsradar des Deutschen Wetterdienstes (DWD) auf einer Karte mit Zeitleiste und liefert eine kurzfristige Regenprognose für einen gewählten Ort.
 
 > **Quelle: Deutscher Wetterdienst.** Die Radardaten werden von der App für die Darstellung verändert (Kartenausschnitt, Farbdarstellung, Zeitleiste, Zusammenfassung). Der Veränderungshinweis gehört zur Karte in der App.
 

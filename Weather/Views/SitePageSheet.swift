@@ -1,7 +1,7 @@
 import SwiftUI
 import WebKit
 
-/// The three pages served by the ShowerNow backend that open as a bottom sheet inside the app.
+/// The three pages served by the Showers backend that open as a bottom sheet inside the app.
 enum SitePage: String, Identifiable, CaseIterable {
     case privacy, support, about
 
@@ -19,7 +19,7 @@ enum SitePage: String, Identifiable, CaseIterable {
         switch self {
         case .privacy: "Datenschutzerklärung"
         case .support: "Support"
-        case .about: "Über ShowerNow"
+        case .about: "Über Showers"
         }
     }
 
@@ -91,7 +91,7 @@ struct SitePageSheet: View {
         ContentUnavailableView {
             Label("Seite nicht erreichbar", systemImage: "wifi.slash")
         } description: {
-            Text("Die Seite „\(page.title)“ liegt auf dem ShowerNow-Server und konnte gerade nicht geladen werden. Prüfe deine Internetverbindung oder öffne sie im Browser.")
+            Text("Die Seite „\(page.title)“ liegt auf dem Showers-Server und konnte gerade nicht geladen werden. Prüfe deine Internetverbindung oder öffne sie im Browser.")
         } actions: {
             Button("Erneut versuchen") { state = .loading; reload += 1 }
                 .accessibilityIdentifier("site-retry")

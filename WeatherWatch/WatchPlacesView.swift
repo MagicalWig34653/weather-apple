@@ -33,7 +33,7 @@ struct WatchPlacesView: View {
                     }
                 }
             }
-            .navigationTitle("ShowerNow")
+            .navigationTitle("Showers")
             .navigationDestination(for: UUID.self) { id in
                 WatchForecastView(store: store, placeID: id)
             }

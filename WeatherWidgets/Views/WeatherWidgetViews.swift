@@ -36,7 +36,7 @@ struct WeatherWidgetView: View {
         }
     }
 
-    private var placeName: String { entry.place?.name ?? "ShowerNow" }
+    private var placeName: String { entry.place?.name ?? "Showers" }
 
     private var ageLabel: some View {
         Group {

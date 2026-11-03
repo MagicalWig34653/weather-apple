@@ -261,7 +261,7 @@ final class PushManager {
             return false
         }
         guard await ensureAuthorized() else {
-            messages[placeID] = "Mitteilungen sind für ShowerNow in den Systemeinstellungen ausgeschaltet."
+            messages[placeID] = "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet."
             return false
         }
         if state.places[placeID] == nil { state.places[placeID] = PlacePushSettings(cell: cell) }
@@ -304,7 +304,7 @@ final class PushManager {
             return .failed("Ungültiger Radius oder Auslöseanteil.")
         }
         guard await ensureAuthorized() else {
-            return .failed("Mitteilungen sind für ShowerNow in den Systemeinstellungen ausgeschaltet.")
+            return .failed("Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.")
         }
         let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
         let id = UUID()

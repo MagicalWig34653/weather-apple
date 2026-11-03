@@ -414,7 +414,7 @@ final class RadarLayerTests: XCTestCase {
         weather.selectedFrame = 1
         XCTAssertEqual(weather.displayTimeline?.dates, radar.dates)
         XCTAssertEqual(weather.displayFrameDate, utc("2026-10-31T12:30:00Z"))
-        XCTAssertEqual(weather.displayAttributionLine, "Quelle: Deutscher Wetterdienst · ShowerNow-Cache")
+        XCTAssertEqual(weather.displayAttributionLine, "Quelle: Deutscher Wetterdienst · Showers-Cache")
         weather.displayFrameIndex = 2
         XCTAssertEqual(weather.selectedFrame, 2, "radar index is written through")
         XCTAssertTrue(weather.displayIsForecastFrame)
@@ -428,7 +428,7 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertEqual(weather.selectedFrame, 2, "the radar selection is untouched by the layer")
         XCTAssertEqual(weather.timeline?.dates, radar.dates, "radar timeline untouched")
         XCTAssertFalse(weather.displayIsForecastFrame)
-        XCTAssertEqual(weather.displayAttributionLine, "Contains modified EUMETSAT Meteosat data 2026 · ShowerNow-Cache")
+        XCTAssertEqual(weather.displayAttributionLine, "Contains modified EUMETSAT Meteosat data 2026 · Showers-Cache")
         XCTAssertEqual(weather.displayFrameReference, utc("2026-10-31T11:50:00Z"))
     }
 

@@ -1,4 +1,4 @@
-# Icon-Design-Leitfaden (ShowerNow)
+# Icon-Design-Leitfaden (Showers)
 
 Stand: 3. November 2026. Anlass: Der Nutzer lehnt v2a bis v2c ab ("sprechen mich alle nicht an") und verlangt professionelle Designmethodik. Dieser Leitfaden fasst Primärquellen zusammen, bewertet v2 und begründet v3 (`design/Icon/v3/`). Das produktive `Weather/Resources/Icon/AppIcon.icon` ist unverändert.
 

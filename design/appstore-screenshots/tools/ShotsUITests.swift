@@ -158,7 +158,7 @@ final class ShotsUITests: XCTestCase {
         select(app, env["SHOT_PLACE"] ?? "Hannover")
         sleep(6)
         app.buttons["Datenquellen und Datenschutz"].tap()
-        XCTAssertTrue(app.navigationBars["Über ShowerNow"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 10))
         sleep(3)
         snap(env["SHOT_NAME"] ?? "info")
     }

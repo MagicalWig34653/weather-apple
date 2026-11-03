@@ -51,7 +51,7 @@ struct PlaceEntityQuery: EntityQuery {
 
 struct WeatherWidgetIntent: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Regenprognose"
-    static let description = IntentDescription("Zeigt die Prognose für einen in ShowerNow gespeicherten Ort.")
+    static let description = IntentDescription("Zeigt die Prognose für einen in Showers gespeicherten Ort.")
 
     @Parameter(title: "Ort")
     var place: PlaceEntity?

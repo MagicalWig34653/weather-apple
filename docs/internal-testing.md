@@ -1,6 +1,6 @@
-# Interner iPhone-Test von ShowerNow
+# Interner iPhone-Test von Showers
 
-Aktueller Kandidat: ShowerNow `0.1.0 (5)` / `de.linolaske.showernow`, nach unabhängig geprüftem P0-Fix. Build 4 wurde vom Nutzer verwendet und als langsam/unvollständig kritisiert. Build 5 begrenzt automatische Fehlversuche, erhält gültige Bilder beim Refresh und zeigt Radar-Ladestatus/Cacheergebnis. Archiv/Upload werden getrennt dokumentiert; noch keine neue interne Verfügbarkeit behauptet. Keine Tester-/Rechteänderungen.
+Aktueller Kandidat: Showers `0.1.0 (5)` / `de.linolaske.showernow`, nach unabhängig geprüftem P0-Fix. Build 4 wurde vom Nutzer verwendet und als langsam/unvollständig kritisiert. Build 5 begrenzt automatische Fehlversuche, erhält gültige Bilder beim Refresh und zeigt Radar-Ladestatus/Cacheergebnis. Archiv/Upload werden getrennt dokumentiert; noch keine neue interne Verfügbarkeit behauptet. Keine Tester-/Rechteänderungen.
 
 Nach tatsächlicher Verfügbarkeit von Build 5 gezielt prüfen:
 
@@ -12,7 +12,7 @@ Nach tatsächlicher Verfügbarkeit von Build 5 gezielt prüfen:
 
 Auf dem physischen iPhone prüfen:
 
-- Name ShowerNow und Radar-Icon auf dem Homescreen.
+- Name Showers und Radar-Icon auf dem Homescreen.
 - Radar/Zeitleiste, Messung und Vorhersage sowie Play/Pause.
 - Ort wählen, speichern, umbenennen, nach Neustart auswählen und löschen.
 - Quellen und Datenschutz öffnen; optionalen Standort nur bei Nutzung freigeben.

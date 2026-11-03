@@ -11,7 +11,7 @@
 "Veraltet" = "Veraltet";
 "Keine verlässliche Aussage" = "Keine verlässliche Aussage";
 "Kein Ort" = "Kein Ort";
-"Ort in ShowerNow anlegen" = "Ort in ShowerNow anlegen";
+"Ort in Showers anlegen" = "Ort in Showers anlegen";
 "Ort fehlt" = "Ort fehlt";
 "Widget neu konfigurieren" = "Widget neu konfigurieren";
 "Daten unvollständig" = "Daten unvollständig";
@@ -32,5 +32,5 @@
 "Endet gleich" = "Endet gleich";
 "Gespeicherter Ort" = "Gespeicherter Ort";
 "Regenprognose" = "Regenprognose";
-"Zeigt die Prognose für einen in ShowerNow gespeicherten Ort." = "Zeigt die Prognose für einen in ShowerNow gespeicherten Ort.";
+"Zeigt die Prognose für einen in Showers gespeicherten Ort." = "Zeigt die Prognose für einen in Showers gespeicherten Ort.";
 "Ort" = "Ort";

@@ -1,6 +1,6 @@
-# ShowerNow — Apple-App
+# Showers — Apple-App
 
-Native, datensparsame Regen-App mit SwiftUI und MapKit. Produktname: ShowerNow, Bundle-ID: `de.linolaske.showernow`, Team: `J2DU2P47XW`. Technisches Projekt und Swift-Module heißen weiterhin `Weather`.
+Native, datensparsame Regen-App mit SwiftUI und MapKit. Produktname: Showers, Bundle-ID: `de.linolaske.showernow`, Team: `J2DU2P47XW`. Technisches Projekt und Swift-Module heißen weiterhin `Weather`.
 
 ## Aktueller Stand
 

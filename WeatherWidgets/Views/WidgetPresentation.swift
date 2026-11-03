@@ -39,7 +39,7 @@ struct WidgetPresentation {
             symbol = "exclamationmark.triangle.fill"
             switch entry.issue {
             case .noSavedPlaces:
-                headline = "Kein Ort"; short = "Kein Ort"; detail = "Ort in ShowerNow anlegen"
+                headline = "Kein Ort"; short = "Kein Ort"; detail = "Ort in Showers anlegen"
             case .placeUnavailable:
                 headline = "Ort fehlt"; short = "Kein Ort"; detail = "Widget neu konfigurieren"
             default:

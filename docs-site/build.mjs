@@ -102,19 +102,19 @@ function layout(page, body, toc) {
   const srcLink = page.src ? `<p class="srclink">Quelle: <a href="${GH}/blob/main/${page.src}" rel="noopener"><code>${page.src}</code></a> (wird beim Build eingebunden)</p>` : '';
   return `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(page.title)} – ShowerNow</title>
-<meta name="description" content="ShowerNow: nativer Regenradar für Apple-Plattformen auf Basis der DWD-Radardaten.">
+<title>${esc(page.title)} – Showers</title>
+<meta name="description" content="Showers: nativer Regenradar für Apple-Plattformen auf Basis der DWD-Radardaten.">
 <script>${themeScript}</script><link rel="stylesheet" href="style.css"></head>
 <body><a class="skip" href="#main">Zum Inhalt</a>
 <header class="top"><div class="bar">
-<a class="brand" href="index.html"><span class="logo" aria-hidden="true">S</span>ShowerNow</a>
+<a class="brand" href="index.html"><span class="logo" aria-hidden="true">S</span>Showers</a>
 <button id="menu" class="btn menu" aria-expanded="false" aria-controls="nav">Menü</button>
 <nav id="nav" class="nav" aria-label="Hauptnavigation">${top}<a href="${GH}" rel="noopener">GitHub</a></nav>
 <button id="theme" class="btn" type="button">Dunkel</button>
 </div></header>
 <div class="page with-side"><details class="sided" open><summary>Dokumentation</summary><nav class="side" aria-label="Dokumentation">${side}</nav></details>
 <main id="main" class="doc">${tocHtml}${body}${srcLink}</main></div>
-<footer class="foot"><div class="bar">ShowerNow ist ein früher interner Prototyp. Diese Seite wird beim Build aus dem Repository erzeugt und enthält keine Zugangsdaten und keine Nutzerdaten. Quelle: Deutscher Wetterdienst (Daten verändert dargestellt). <a href="${GH}" rel="noopener">Quellcode</a></div></footer>
+<footer class="foot"><div class="bar">Showers ist ein früher interner Prototyp. Diese Seite wird beim Build aus dem Repository erzeugt und enthält keine Zugangsdaten und keine Nutzerdaten. Quelle: Deutscher Wetterdienst (Daten verändert dargestellt). <a href="${GH}" rel="noopener">Quellcode</a></div></footer>
 <script>${uiScript}</script></body></html>`;
 }
 

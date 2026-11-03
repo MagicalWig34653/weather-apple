@@ -26,7 +26,7 @@ struct PlacePushSettingsView: View {
             } header: {
                 Text(place.name)
             } footer: {
-                Text("Du bekommst eine Mitteilung, wenn es hier bald zu regnen beginnt. Der ShowerNow-Server wertet dafür alle paar Minuten das Radar für diesen Ort aus.")
+                Text("Du bekommst eine Mitteilung, wenn es hier bald zu regnen beginnt. Der Showers-Server wertet dafür alle paar Minuten das Radar für diesen Ort aus.")
             }
 
             if let settings {
@@ -48,7 +48,7 @@ struct PlacePushSettingsView: View {
                 } header: {
                     Text("Einstellungen")
                 } footer: {
-                    Text("Hinweis, wenn es innerhalb der Vorlaufzeit mindestens so stark regnen soll (Stufen der Radar-Legende). Danach höchstens eine Meldung pro Stunde und Ort. Zeitkritisch: Die Meldung durchbricht Fokus und Mitteilungszusammenfassung. Den Stummschalter umgeht sie nicht. In den Systemeinstellungen kannst du das für ShowerNow abschalten.")
+                    Text("Hinweis, wenn es innerhalb der Vorlaufzeit mindestens so stark regnen soll (Stufen der Radar-Legende). Danach höchstens eine Meldung pro Stunde und Ort. Zeitkritisch: Die Meldung durchbricht Fokus und Mitteilungszusammenfassung. Den Stummschalter umgeht sie nicht. In den Systemeinstellungen kannst du das für Showers abschalten.")
                 }
             }
 
@@ -79,14 +79,14 @@ struct PlacePushSettingsView: View {
                     }
                     .accessibilityIdentifier("push-open-settings")
                 } footer: {
-                    Text("Mitteilungen sind für ShowerNow im System ausgeschaltet. Dort kannst du sie wieder erlauben.")
+                    Text("Mitteilungen sind für Showers im System ausgeschaltet. Dort kannst du sie wieder erlauben.")
                 }
             }
 
             Section("Zustellung") {
                 Label("Zeitkritisch (oben, standardmäßig aus): Meldungen können einen Fokus oder die Mitteilungszusammenfassung durchbrechen, den Stummschalter aber nicht.", systemImage: "bell.badge")
-                Label("Apple Watch: Ist dein iPhone gesperrt (etwa beim Sport), erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen ShowerNow spiegeln lassen.", systemImage: "applewatch")
-                Label("Sport: Beim Radfahren, Laufen oder anderem Training trage ShowerNow in dem Fokus, den du dafür nutzt, als erlaubte App ein, sonst bleibt die Meldung dort stumm.", systemImage: "figure.run")
+                Label("Apple Watch: Ist dein iPhone gesperrt (etwa beim Sport), erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen Showers spiegeln lassen.", systemImage: "applewatch")
+                Label("Sport: Beim Radfahren, Laufen oder anderem Training trage Showers in dem Fokus, den du dafür nutzt, als erlaubte App ein, sonst bleibt die Meldung dort stumm.", systemImage: "figure.run")
             }
             .font(.footnote)
             .labelStyle(PushHintLabelStyle())
@@ -115,7 +115,7 @@ struct PlacePushSettingsView: View {
             Button("Datenschutzerklärung lesen") { sitePage = .privacy }
             Button("Abbrechen", role: .cancel) {}
         } message: {
-            Text("ShowerNow meldet dir per Mitteilung, wenn es bei \(place.name) bald zu regnen beginnt. Dafür gehen an den ShowerNow-Server: das Gerätetoken, eine Rasterzelle von etwa 1 km (keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.")
+            Text("Showers meldet dir per Mitteilung, wenn es bei \(place.name) bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine Rasterzelle von etwa 1 km (keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.")
         }
     }
 

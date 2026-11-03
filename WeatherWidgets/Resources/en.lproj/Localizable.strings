@@ -11,7 +11,7 @@
 "Veraltet" = "Outdated";
 "Keine verlässliche Aussage" = "No reliable outlook";
 "Kein Ort" = "No place";
-"Ort in ShowerNow anlegen" = "Add a place in ShowerNow";
+"Ort in Showers anlegen" = "Add a place in Showers";
 "Ort fehlt" = "Place missing";
 "Widget neu konfigurieren" = "Reconfigure widget";
 "Daten unvollständig" = "Data incomplete";
@@ -32,5 +32,5 @@
 "Endet gleich" = "Ends imminently";
 "Gespeicherter Ort" = "Saved place";
 "Regenprognose" = "Rain forecast";
-"Zeigt die Prognose für einen in ShowerNow gespeicherten Ort." = "Shows the forecast for a place saved in ShowerNow.";
+"Zeigt die Prognose für einen in Showers gespeicherten Ort." = "Shows the forecast for a place saved in Showers.";
 "Ort" = "Place";

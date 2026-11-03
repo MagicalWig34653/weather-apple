@@ -276,3 +276,10 @@ Plan: [research/widgets-watch-plan.md](research/widgets-watch-plan.md). Entschei
 - Nutzerentscheidung ("nimm erstmal d2"): Das App-Icon ab Build 16 ist `design/Icon/eigenentwurf-dark/d2.icon` (Eigenentwurf des Nutzers mit Dark-Variante "Nachtradar"; Dark-Werte Kern 1.00/0.36/0.12, gelbe Zone 0.66/0.48/0.16, Band 0.10/0.50/0.50, Front 0.07/0.30/0.37). Vorbehalt: "erstmal", spätere Änderung möglich.
 - Übernommen nach `Weather/Resources/Icon/AppIcon.icon` (Ordnername unverändert, `supported-platforms` circles watchOS + squares shared wie zuvor). Vorheriges Icon (Build 15, Kartenmotiv) archiviert in `design/Icon/archiv/AppIcon-build15.icon`.
 - Verworfen bzw. zurückgestellt: Dark-Alternativen d1, d3, d4; Entwürfe v3 und v5 (kein Entwurf erreichte das Niveau des Eigenentwurfs). Details: [icon-eigenentwurf.md](icon-eigenentwurf.md).
+
+## Umbenennung zu "Showers" (3. November 2026)
+
+- Nutzerentscheidung: Die App heißt ab Build 17 "Showers". Nutzerzitat: "Es reicht, wenn das Optische umbenannt wird. Das Backend kann meinetwegen noch über showernow.linolaske.de laufen. showers.linolaske.de ist aber auch schon aktiv und zeigt aufs selbe Backend." Den Connect-Eintrag (Name, Metadaten) ändert der Nutzer.
+- Umfang Build 17: nur sichtbare Namen und Texte, Home-Screen-Name "Showers". Keine Domain-Umstellung (URL-Konstanten in `RadarBackend.swift` bleiben auf `showernow.linolaske.de`), kein Redirect.
+- Unverändert: Bundle-ID `de.linolaske.showernow` samt `.widgets`/`.watchkitapp`, Team-ID, App-Group, Keychain-Service, URL-Schema `showernow://`, Widget-Kinds, DWD-User-Agent, Modul/Ordner `Weather`, Repo- und Image-Namen.
+- Inventar und Nutzerschritte: [rename-showers-plan.md](rename-showers-plan.md). Offen: Verfügbarkeit des Namens in Connect (Ausweichen z. B. "Showers – Regenradar").

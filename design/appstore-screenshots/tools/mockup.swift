@@ -20,7 +20,7 @@ func button(_ x: CGFloat, _ y: CGFloat) {
     ctx.addPath(CGPath(roundedRect: r, cornerWidth: 40, cornerHeight: 40, transform: nil)); ctx.fillPath(); txt("Laden", x + 52, y + 22, 38, .bold, NSColor.systemBlue) }
 func appRow(_ x: CGFloat, _ y: CGFloat, _ sub: String) {
     clipRound(CGRect(x: x, y: y, width: 150, height: 150), 34) { ctx.draw(icon, in: CGRect(x: x, y: y, width: 150, height: 150)) }
-    txt("ShowerNow", x + 180, y + 80, 48, .semibold); txt(sub, x + 180, y + 28, 36, .regular, .gray); button(x + 720, y + 35) }
+    txt("Showers", x + 180, y + 80, 48, .semibold); txt(sub, x + 180, y + 28, 36, .regular, .gray); button(x + 720, y + 35) }
 // Links: Suchergebnis (Karte 3:2)
 txt("Suchergebnis (Tab Suche)", 100, 1400, 40, .bold, .darkGray)
 let cx: CGFloat = 100, cw: CGFloat = 1000, cy: CGFloat = 560

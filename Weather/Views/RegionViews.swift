@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 enum RegionText {
-    static let explanation = "ShowerNow meldet dir per Mitteilung, wenn Regen diese Region erreicht. Dafür gehen an den ShowerNow-Server: das Gerätetoken, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km, keine Koordinaten), der Radius, Schwelle, Auslöseanteil und Vorlaufzeit; kein Konto, kein Name. Danach fragt iOS, ob Mitteilungen erlaubt sind."
+    static let explanation = "Showers meldet dir per Mitteilung, wenn Regen diese Region erreicht. Dafür gehen an den Showers-Server: das Gerätetoken, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km, keine Koordinaten), der Radius, Schwelle, Auslöseanteil und Vorlaufzeit; kein Konto, kein Name. Danach fragt iOS, ob Mitteilungen erlaubt sind."
     static let privacyFootnote = "An den Server gehen: das Gerätetoken, eine zufällige Installations-Kennung, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), der Radius sowie Schwelle, Auslöseanteil und Vorlaufzeit. Keine Koordinaten, kein Name, kein Konto. Der Name der Region bleibt auf diesem Gerät."
     static let unsupported = "Server unterstützt noch keine Regionen."
     static let unknown = "Ob der Server Regionen unterstützt, konnte nicht geprüft werden."
@@ -223,7 +223,7 @@ struct RegionSettingsView: View {
                         Button("Systemeinstellungen öffnen") {
                             if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
                         }
-                    } footer: { Text("Mitteilungen sind für ShowerNow im System ausgeschaltet.") }
+                    } footer: { Text("Mitteilungen sind für Showers im System ausgeschaltet.") }
                 }
 
                 Section {

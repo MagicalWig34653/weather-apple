@@ -22,7 +22,7 @@ struct WatchRainWidgetView: View {
         case .accessoryInline: inline
         case .accessoryCorner:
             compact.widgetLabel {
-                Text(entry.place?.name ?? "ShowerNow")
+                Text(entry.place?.name ?? "Showers")
             }
         default: compact
         }
@@ -30,7 +30,7 @@ struct WatchRainWidgetView: View {
 
     private var rectangular: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(entry.place?.name ?? "ShowerNow")
+            Text(entry.place?.name ?? "Showers")
                 .font(.headline).lineLimit(1)
             Label(presentation.status, systemImage: presentation.symbolName)
                 .font(.caption).lineLimit(2).minimumScaleFactor(0.8)
@@ -79,7 +79,7 @@ struct WatchRainWidgetView: View {
     }
 
     private var accessibilityText: String {
-        [entry.place?.name ?? "ShowerNow", presentation.status, presentation.age,
+        [entry.place?.name ?? "Showers", presentation.status, presentation.age,
          presentation.isCached ? WatchWidgetText.string("Saved forecast") : nil]
             .compactMap { $0 }.joined(separator: ". ")
     }

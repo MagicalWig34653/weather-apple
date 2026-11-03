@@ -139,7 +139,7 @@ struct RadarScreen: View {
             TextField("Name", text: $placeName)
             Button("Speichern") { store.saveSelection(name: placeName) }
             Button("Abbrechen", role: .cancel) { }
-        } message: { Text("Name und Koordinaten bleiben auf deinem iPhone und werden auch an deine gekoppelte Apple Watch übertragen, wenn dort ShowerNow installiert ist.") }
+        } message: { Text("Name und Koordinaten bleiben auf deinem iPhone und werden auch an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist.") }
         .task(id: store.isPlaying) {
             guard store.isPlaying else { return }
             // Playback covers only a window (at most 3 h of past); start there if the slider is further back.

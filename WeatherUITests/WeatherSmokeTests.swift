@@ -27,7 +27,7 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(information.waitForExistence(timeout: 15))
         information.tap()
 
-        XCTAssertTrue(app.navigationBars["Über ShowerNow"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 5))
         let privacy = app.staticTexts["Datenschutz"]
         for _ in 0..<10 where !privacy.isHittable { app.swipeUp() }
         XCTAssertTrue(privacy.isHittable)

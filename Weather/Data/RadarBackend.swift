@@ -1,6 +1,6 @@
 import Foundation
 
-/// Radar cache backend (public ShowerNow service). The app sends no location, cookies or
+/// Radar cache backend (public Showers service). The app sends no location, cookies or
 /// identifying headers; the server sees only the request itself (IP address technically).
 enum RadarBackendConfig {
     static let productionBaseURL = URL(string: "https://showernow.linolaske.de/v1/radar/")!
@@ -14,11 +14,11 @@ enum RadarBackendConfig {
     /// Upper bound of one slot image. The Europe visible-channel images (2048 x 2168, lossless WebP) reach about
     /// 1.2 MB at midday (backend estimate), so 1 MiB would reject them; German-grid images stay far below.
     static let maximumImageBytes = 2_097_152
-    /// Privacy policy page of the ShowerNow site (opened in the browser; no network dependency in the app).
+    /// Privacy policy page of the Showers site (opened in the browser; no network dependency in the app).
     static let privacyPolicyURL = URL(string: "https://showernow.linolaske.de/datenschutz")!
-    /// Support page of the ShowerNow site (opened in the browser; no network dependency in the app).
+    /// Support page of the Showers site (opened in the browser; no network dependency in the app).
     static let supportURL = URL(string: "https://showernow.linolaske.de/support")!
-    /// Marketing page ("Über ShowerNow") of the ShowerNow site (opened in the browser).
+    /// Marketing page ("Über Showers") of the Showers site (opened in the browser).
     static let marketingURL = URL(string: "https://showernow.linolaske.de/marketing")!
 
     /// Debug builds accept `-radar-backend-url <https-url>` so the fallback path can be exercised.

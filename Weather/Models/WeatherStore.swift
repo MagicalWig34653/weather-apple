@@ -6,7 +6,7 @@ import WidgetKit
 
 enum RadarSource: Equatable, Sendable {
     case cache, direct
-    var label: String { self == .cache ? "ShowerNow-Cache" : "direkt vom DWD" }
+    var label: String { self == .cache ? "Showers-Cache" : "direkt vom DWD" }
 }
 
 struct RadarAttribution: Equatable, Sendable {
