@@ -147,3 +147,44 @@ Drei Entwürfe `design/Icon/v2/v2a|v2b|v2c.icon` mit Vorschauen, Empfehlung v2b 
 
 ## Icon v3 und Designleitfaden (3.11.)
 Recherche (HIG App icons, WWDC25 220/361, WWDC17 822, Microsoft) in `docs/icon-design-guide.md` (Regelwerk, Checkliste, Kritik an v2, Quellen). Vier neue echte `.icon`-Pakete `design/Icon/v3/v3a` (Zeitring), `v3b` (Regenstriche), `v3c` (Sonne + Zelle), `v3d` (Schirm) mit Vorschauen und `previews/overview.png`; ictool rendert Default/Dark/Tinted (1024) und 120/60/29. Empfehlung v3d, aber kein Entwurf erreicht professionelles Niveau ohne Handarbeit. Produktives AppIcon unverändert, nichts committet. **Nicht geprüft:** Icon-Composer-GUI, Clear, actool-Gesamtbuild, Gerät/Watch, Dark-Fills (ictool ignoriert `fill-specializations`).
+
+## Icon-Entwurf Runde 4 (3.11.2026)
+
+- v4a..v4d unter `design/Icon/v4/` (Generator, Render, Tafeln, `previews/overview-v3-v4.png`); Recherche, Befund und Empfehlung in [icon-design-guide.md](icon-design-guide.md) Abschnitt 8. Produktives `AppIcon.icon` unverändert; kein xcodebuild, nichts committet.
+- Befund: Dark/Tinted-`fill-specializations` greifen in ictool nur ohne Basis-`fill` (v2/v3 hatten beides); v4 nutzt handgesetzte Dark-/Tinted-Fills pro Ebene.
+- Empfehlung: v4d (Tropfen-Pin), dann v4a (Schirm). NICHT geprüft: Icon-Composer-GUI, Clear, Gerät/Watch, Gesamt-actool-Build der v4-Pakete, Nutzertest.
+
+## Icon-Übersicht und v5-Rendering (3.11.2026)
+
+- v5a-c erstmals mit ictool gerendert (`design/Icon/v5/previews/`); Paketformat korrigiert (Basis-`fill` entfernt, Dark/Tinted per Specialization), Bewertung in `docs/icon-v5.md` (Abschnitt „Rendering“): v5c am lesbarsten, v5b bei 29 px und Tinted am schwächsten.
+- Aktuelles AppIcon gerendert nach `design/Icon/current/previews/`; fehlende v2-120-px-Vorschauen ergänzt.
+- Gesamtübersicht: `design/Icon/overview/all-icons.png` und `index.html` (Beschreibung im Leitfaden Abschnitt 9). HTML per Skript (wohlgeformt, 135 eingebettete Bilder, keine externen Referenzen, JS-Syntax) und Firefox-Headless-Screenshot geprüft; Umschalter, Klick-Vergrößerung und Hover nicht interaktiv getestet. Lightbox zeigt 512-px-Bilder (1024 hätte ~20 MB ergeben). Keine Geräte-/Simulatorprüfung, nichts committet.
+
+## Icon-Eigenentwurf (3.11.2026)
+
+Nutzer-Entwurf `design/Icon/eigenentwurf.icon` bewertet; Kopie `eigenentwurf-final.icon` mit ergänzten Dark-/Tinted-Werten (gelbe Zone Dark Amber, Tinted-Grau-Staffelung, Tinted-Hintergrund). ictool-Renders und actool-Kompilierung (iOS/watchOS) geprüft; Gerätedarstellung und Xcode-Build nicht geprüft. Details: [icon-eigenentwurf.md](icon-eigenentwurf.md). Galerie `design/Icon/overview/` erweitert. Nächster Schritt: Übernahme in `Weather/Resources/Icon/AppIcon.icon` für Build 16 (Entscheidung des Nutzers).
+
+## Watch-Radarkarte (3.11.2026, nicht committet)
+
+- Variante B umgesetzt (Plan: [research/watch-radar-plan.md](research/watch-radar-plan.md)): `WeatherWatch/Radar/` mit `WatchRadarView` (Karte aus `WatchMapBackdrop` + lokal zugeschnittener Radarausschnitt + Ortsmarker, Digital Crown 5-min-Slots mit Haptik, Messung/Prognose-Kennzeichnung, "Vorschau", Datenstand, Zoom per Tippen 40/70/100 km Radius, Play/Pause nur im Vordergrund, Hinweise bei Fehler/Offline/veraltet, kein DWD-Fallback), `WatchRadarStore`, `RadarCrop`, `WatchMapBackdrop`. Einstieg: Button "Radar" in der Ortsansicht. de/en-Texte in den Watch-`Localizable.strings`.
+- Befund 1: Das Backend liefert gelegentlich 36 statt 37 Slots (Lücke in den Analysen, live 20:50 bei Lauf 21:00). Der Store legt die Slots deshalb auf eine feste 37er-Achse; Lücke = "Bild nicht verfügbar" nur für diesen Slot (Test ergänzt).
+- Befund 2 (wichtig): **watchOS-ImageIO kann kein WebP** (Simulator: `CGImageSourceGetCount` = 0). Die Radarbilder sind verlustfreies WebP (VP8L). Neu: `WebPLosslessDecoder.swift` (Software-Dekoder nach WebP-Lossless-Spezifikation, nur Quellbereich wird als RGBA-Ausschnitt behalten; ImageIO bleibt erster Weg). Geprüft: pixelgleich zu `dwebp` bei allen 36 Live-Frames (Release, ca. 3 ms/Bild auf dem Mac), pixelgleich zu ImageIO (macOS) im Test; beschädigte/abgeschnittene Eingaben liefern Fehler statt Absturz.
+- Datenschutz im Code: Abrufe sind `latest.json` und feste Bild-URLs (`slot.url`), ohne Koordinate, Ortsname oder ID; Cookies aus. Koordinate geht nur an MapKit (Apple-Kartenschnappschuss), nicht ans Backend. Datenschutztext/App-Privacy muss den Kartenhintergrund (Apple Maps) nennen: noch offen.
+- Geprüft: `xcodegen generate`; Build Schema `WeatherWatch` (Apple Watch Ultra 4 49mm, watchOS 27.0 Simulator, ohne Signing): erfolgreich; Unit-Tests iPhone-Simulator (B15 iPhone 18 Pro, iOS 27.0): 410 Tests, 0 Fehler (WatchRadarTests laufen dort nicht, `WATCH_RADAR_TESTS`); Watch-Radar-Harness (macOS, Swift 6): 24 Tests, 0 Fehler; Watch-Simulator: Radar öffnen, Karte + Marker + Zeitleiste sichtbar, Frames laden (Screenshots im Scratchpad).
+- NICHT geprüft: echte Uhr, Digital Crown (Simulator nicht automatisierbar), Haptik, Speicher/Akku/Laufzeit des Software-Dekoders auf Hardware (37 Bilder), Karten-Ausrichtung des Radarausschnitts bei Regenlage (Berlin war trocken), Offline-/Fehlerzustände und Dynamic Type im Simulator, UI-Tests der Watch.
+
+## Eigenentwurf Dark-Varianten (3.11.2026)
+
+Vier Dark-Alternativen `design/Icon/eigenentwurf-dark/d1..d4.icon` (nur Dark-Fills; Vergleichstafel `previews/vergleich.png`), Empfehlung d2 "Nachtradar"; Werte und Bewertung in [icon-eigenentwurf.md](icon-eigenentwurf.md). actool für d2 geprüft; Gerät, Galerie-Erweiterung und Nutzerentscheidung offen. Nichts committet.
+
+## Icon d2 übernommen (3.11.2026)
+
+Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `eigenentwurf-dark/d2.icon` (Build 16); altes Icon in `design/Icon/archiv/AppIcon-build15.icon`. actool (iphoneos, watchos) kompiliert, Light/Dark/Tintable-Renditionen vorhanden; ictool-Renders angesehen. NICHT geprüft: xcodebuild-Gesamtbuild, Gerät/Watch, Clear. Siehe [icon-eigenentwurf.md](icon-eigenentwurf.md), `decisions.md`.
+- Hinweis Debug: Das Argument `-WatchOpenRadar` (nur DEBUG) öffnet das Radar 2 s nach Start, um Simulator-Screenshots zu ermöglichen. Ein sofortiger Sprung beim Start erzeugte tausende "Observation tracking feedback loop"-Meldungen (Navigation während des Starts); mit Verzögerung 0 Meldungen. Echtes Tippen im Simulator ist nicht geprüft (Simulator-App läuft ohne Fenster).
+
+## Build 16 vorbereitet (3.11.2026)
+
+- Inhalt: Watch-Radarkarte (siehe oben), Icon d2, Quellenzeile der Radarkarte bei größter Schrift (`lineLimit(2)`, `dynamicTypeSize` bis `xxxLarge`), Datenschutztext (Info-Sheet und Website `docs-site/content/datenschutz.md`): Kartenhintergrund der Watch über Apple Karten, Ortskoordinate geht an Apple; Radarbilder ohne Ortsangabe vom Server. `CURRENT_PROJECT_VERSION = 16`.
+- Geprüft (Xcode 27.1, iPhone-Simulator B15 iPhone 18 Pro, iOS 27.0, ohne Signing): `Weather`-Schema 417 Tests (410 Unit + 7 UI), 0 Fehler; Schema `WeatherWatch` (Apple Watch Ultra 4, watchOS 27.0) Build erfolgreich.
+- **Vom Nutzer zu prüfen: App-Privacy in App Store Connect** (Standort/ungefährer Standort; Nutzung durch Apple Maps für den Watch-Kartenhintergrund) sowie der Datenschutztext der Website (Seite wird per GitHub Pages aus `docs-site/` gebaut; Deployment nicht geprüft).
+- Die Info-Sheet-Texte der App sind einsprachig deutsch; eine englische Fassung existiert dort nicht.
