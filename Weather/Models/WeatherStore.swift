@@ -2,6 +2,7 @@ import CoreLocation
 import Foundation
 import Observation
 import SwiftUI
+import WidgetKit
 
 enum RadarSource: Equatable, Sendable {
     case cache, direct
@@ -20,12 +21,6 @@ struct RadarAttribution: Equatable, Sendable {
     init(_ manifest: RadarManifest) {
         self.init(attribution: manifest.attribution, modificationNotice: manifest.modificationNotice)
     }
-}
-
-struct SavedPlace: Codable, Identifiable, Equatable {
-    var id = UUID()
-    var name: String
-    var coordinate: WeatherCoordinate
 }
 
 @MainActor @Observable
@@ -56,6 +51,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// Longest past the server currently offers (`history_hours`), if known.
     var serverHistoryHours: Int? { if case .loaded(let hours) = historyStatus { hours } else { nil } }
 
+    @ObservationIgnored private let reloadWidgets: () -> Void
     @ObservationIgnored private let client: DWDClient
     @ObservationIgnored private let backend: RadarBackendClient
     /// Optional map layers (pressure, lightning, clouds) with their own manifests; the radar logic above is independent of it.
@@ -65,11 +61,13 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var waitingForLocation = false
-    /// Last valid point forecast per place, memory only (no disk, no location history); most recent last.
+    /// Flüchtige Auswahlen bleiben nur im RAM; gespeicherte Orte nutzen zusätzlich den App-Group-Cache.
     @ObservationIgnored private var lastValidForecasts: [(placeID: UUID, forecast: RainForecast)] = []
     static let lastForecastLimit = 10
     @ObservationIgnored private var attemptedRadarFallback = false
     @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private var placeStore: PlaceStore?
+    @ObservationIgnored private var forecastCache: ForecastCache?
     @ObservationIgnored private var latestManifest: RadarManifest?
     @ObservationIgnored private var history: RadarHistory?
     @ObservationIgnored private var historyCheckedRun: String?
@@ -80,7 +78,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     }
 
     init(client: DWDClient, backend: RadarBackendClient = RadarBackendClient(),
-         defaults: UserDefaults = .standard, layers: RadarLayerStore? = nil) {
+         defaults: UserDefaults = .standard, layers: RadarLayerStore? = nil,
+         placeStore: PlaceStore? = nil, forecastCache: ForecastCache? = nil,
+         reloadWidgets: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() }) {
+        self.reloadWidgets = reloadWidgets
         self.client = client
         self.backend = backend
         self.layers = layers ?? RadarLayerStore(radarBaseURL: backend.baseURL)
@@ -91,12 +92,17 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         do {
-            let url = try Self.storageURL()
-            if FileManager.default.fileExists(atPath: url.path) {
-                places = try JSONDecoder().decode([SavedPlace].self, from: Data(contentsOf: url))
-                if let first = places.first { selectedPlace = first }
+            let store = try placeStore ?? PlaceStore()
+            self.placeStore = store
+            self.forecastCache = try forecastCache ?? ForecastCache()
+            let snapshot = try store.load()
+            places = snapshot.places
+            if let selected = places.first(where: { $0.id == snapshot.selectedPlaceID }) ?? places.first {
+                selectedPlace = selected
+                forecast = try self.forecastCache?.load(for: selected.id)
             }
-        } catch { storageMessage = "Gespeicherte Orte konnten nicht geladen werden." }
+            try self.forecastCache?.retain(placeIDs: Set(places.map(\.id)))
+        } catch { storageMessage = "Gespeicherte Orte oder Prognosen konnten nicht geladen werden." }
     }
 
     var needsRefresh: Bool {
@@ -118,14 +124,25 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         return frameDate > timeline.referenceTime
     }
 
+    /// Unknown or malformed links leave the current selection untouched.
+    @discardableResult
+    func openWidgetURL(_ url: URL) -> Bool {
+        guard let id = WidgetDeepLink.placeID(from: url),
+              let place = places.first(where: { $0.id == id }) else { return false }
+        select(place)
+        return true
+    }
+
     func select(_ place: SavedPlace) {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
         selectedPlace = place
+        if places.contains(where: { $0.id == place.id }) { persistPlaces() }
         forecast = lastValidForecast(for: place.id)
         forecastError = nil
         isPlaying = false
         centerRevision += 1
+        reloadWidgets()
         Task { await refresh() }
     }
 
@@ -141,6 +158,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             places[index] = selectedPlace
         } else { places.append(selectedPlace) }
         persistPlaces()
+        if let forecast { rememberForecast(forecast, for: selectedPlace.id) }
+        reloadWidgets()
     }
 
     func rename(_ place: SavedPlace, name: String) {
@@ -149,6 +168,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         places[index].name = trimmed
         if selectedPlace.id == place.id { selectedPlace.name = trimmed }
         persistPlaces()
+        reloadWidgets()
     }
 
     /// Called with the IDs of deleted places (push subscriptions are removed there).
@@ -158,7 +178,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         let removed = offsets.compactMap { places.indices.contains($0) ? places[$0].id : nil }
         places.remove(atOffsets: offsets)
         if !removed.isEmpty { onPlacesRemoved?(removed) }
+        lastValidForecasts.removeAll { removed.contains($0.placeID) }
         persistPlaces()
+        do { try forecastCache?.retain(placeIDs: Set(places.map(\.id))) }
+        catch { storageMessage = "Gespeicherte Prognosen konnten nicht entfernt werden." }
+        reloadWidgets()
     }
 
     func refresh() async {
@@ -277,6 +301,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         case .success(let value):
             forecast = value
             rememberForecast(value, for: place.id)
+            reloadWidgets()
         case .failure(let error):
             // Keep (or restore) this place's last valid forecast; the view marks it as not confirmed.
             forecast = lastValidForecast(for: place.id)
@@ -285,10 +310,20 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     }
 
     func lastValidForecast(for placeID: UUID) -> RainForecast? {
-        lastValidForecasts.first { $0.placeID == placeID }?.forecast
+        if let value = lastValidForecasts.first(where: { $0.placeID == placeID })?.forecast { return value }
+        guard places.contains(where: { $0.id == placeID }) else { return nil }
+        do { return try forecastCache?.load(for: placeID) }
+        catch {
+            storageMessage = "Gespeicherte Prognose konnte nicht geladen werden."
+            return nil
+        }
     }
 
     func rememberForecast(_ forecast: RainForecast, for placeID: UUID) {
+        if places.contains(where: { $0.id == placeID }) {
+            do { try forecastCache?.save(forecast, for: placeID) }
+            catch { storageMessage = "Prognose konnte nicht auf dem Gerät gespeichert werden." }
+        }
         lastValidForecasts.removeAll { $0.placeID == placeID }
         lastValidForecasts.append((placeID, forecast))
         if lastValidForecasts.count > Self.lastForecastLimit {
@@ -432,15 +467,12 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         locationMessage = "Der Standort konnte nicht bestimmt werden. Bitte erneut versuchen oder einen Ort suchen."
     }
 
-    private static func storageURL() throws -> URL {
-        let folder = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                                 appropriateFor: nil, create: true)
-        return folder.appendingPathComponent("places.json")
-    }
-
     private func persistPlaces() {
         do {
-            try JSONEncoder().encode(places).write(to: Self.storageURL(), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            guard let placeStore else { throw PlaceStore.StorageError.appGroupUnavailable }
+            let previousSelection = try placeStore.load().selectedPlaceID
+            let selectedID = places.contains(where: { $0.id == selectedPlace.id }) ? selectedPlace.id : previousSelection
+            try placeStore.save(.init(places: places, selectedPlaceID: selectedID))
             storageMessage = nil
         } catch { storageMessage = "Die Änderung konnte nicht auf dem Gerät gespeichert werden." }
     }

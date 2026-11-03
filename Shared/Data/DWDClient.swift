@@ -15,7 +15,7 @@ actor DWDClient {
     private var pointCache: [WeatherCoordinate: (fetchedAt: Date, forecast: RainForecast)] = [:]
 
     init(transport: Transport? = nil, clock: @escaping @Sendable () -> Date = { Date() },
-         retryDelay: @escaping @Sendable (Int) -> TimeInterval = { RadarRetryPolicy.delay(afterAttempt: $0) }) {
+         retryDelay: @escaping @Sendable (Int) -> TimeInterval = { DWDRetryPolicy.delay(afterAttempt: $0) }) {
         self.clock = clock
         self.retryDelay = retryDelay
         if let transport { self.transport = transport }
@@ -76,7 +76,7 @@ actor DWDClient {
         }
     }
 
-    func radarTimeline(before unavailableReference: Date? = nil) async throws -> RadarTimeline {
+    func radarRunTimeline(before unavailableReference: Date? = nil) async throws -> DWDRadarTimeline {
         let runs = try await runs()
         guard let reference = runs.last(where: { date in
             (unavailableReference.map { date < $0 } ?? true)
@@ -84,7 +84,7 @@ actor DWDClient {
         }) else { throw DWDDataError.staleData }
         let history = runs.filter { $0 >= reference.addingTimeInterval(-3600) && $0 < reference }
         let nowcast = (0...24).map { reference.addingTimeInterval(Double($0 * 300)) }
-        return RadarTimeline(referenceTime: reference, dates: history + nowcast)
+        return DWDRadarTimeline(referenceTime: reference, dates: history + nowcast)
     }
 
     private func runs() async throws -> [Date] {
@@ -111,29 +111,29 @@ actor DWDClient {
         }
     }
 
-    /// At most `RadarRetryPolicy.maxAttempts` requests per call. Retries cover the HTTP-200
+    /// At most `DWDRetryPolicy.maxAttempts` requests per call. Retries cover the HTTP-200
     /// `InvalidDimensionValue` answer, HTTP 502/503/504 and transient `URLError`s only.
     private func fetch(_ url: URL, attempt: Int = 1) async throws -> Data {
         try Task.checkCancellation()
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
         request.setValue("Weather/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
-        let canRetry = attempt < RadarRetryPolicy.maxAttempts
+        let canRetry = attempt < DWDRetryPolicy.maxAttempts
         let (data, response): (Data, HTTPURLResponse)
         do { (data, response) = try await transport(request) }
         catch is CancellationError { throw CancellationError() }
         catch let error as URLError where error.code == .cancelled { throw CancellationError() }
-        catch let error as URLError where canRetry && RadarRetryPolicy.isTransient(error) {
+        catch let error as URLError where canRetry && DWDRetryPolicy.isTransient(error) {
             return try await retry(url, attempt: attempt)
         }
         catch { throw DWDDataError.unavailable }
-        if canRetry, RadarRetryPolicy.isTransient(statusCode: response.statusCode) {
+        if canRetry, DWDRetryPolicy.isTransient(statusCode: response.statusCode) {
             return try await retry(url, attempt: attempt)
         }
         guard (200...299).contains(response.statusCode) else { throw DWDDataError.unavailable }
         guard !data.isEmpty else { throw DWDDataError.emptyBody }
         guard data.count <= 2 * 1024 * 1024 else { throw DWDDataError.oversizedBody }
         if let error = DWDResponse.serviceError(in: data) {
-            if RadarRetryPolicy.shouldRetry(error, attempt: attempt) { return try await retry(url, attempt: attempt) }
+            if DWDRetryPolicy.shouldRetry(error, attempt: attempt) { return try await retry(url, attempt: attempt) }
             throw error
         }
         return data

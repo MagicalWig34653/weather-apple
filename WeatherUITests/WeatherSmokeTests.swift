@@ -29,7 +29,7 @@ final class WeatherSmokeTests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Über ShowerNow"].waitForExistence(timeout: 5))
         let privacy = app.staticTexts["Datenschutz"]
-        for _ in 0..<5 where !privacy.isHittable { app.swipeUp() }
+        for _ in 0..<10 where !privacy.isHittable { app.swipeUp() }
         XCTAssertTrue(privacy.isHittable)
         let explanation = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Kein Konto und keine")).firstMatch
         XCTAssertTrue(explanation.exists)

@@ -52,6 +52,26 @@ struct PlacePushSettingsView: View {
                 }
             }
 
+            if let settings, push.liveActivitySupport == .supported || settings.liveActivity {
+                Section {
+                    Toggle(RainActivityText.title.text(), isOn: Binding(
+                        get: { settings.liveActivity },
+                        set: { enabled in Task { await push.setLiveActivity(placeID: place.id, enabled: enabled) } }))
+                    .disabled(!settings.liveActivity && (!push.liveActivitiesEnabled || push.liveActivitySupport != .supported))
+                    .accessibilityIdentifier("push-live-activity")
+                    if let message = push.liveActivityMessages[place.id] {
+                        Text(message).font(.footnote).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("push-live-activity-status")
+                    }
+                    Text(RainActivityText.explanation.text()).font(.footnote).foregroundStyle(.secondary)
+                    if !push.liveActivitiesEnabled || push.liveActivitySupport != .supported {
+                        Text(RainActivityText.unavailable.text()).font(.footnote).foregroundStyle(.secondary)
+                    }
+                } footer: {
+                    Text(RainActivityText.privacy.text())
+                }
+            }
+
             if push.authorization == .denied {
                 Section {
                     Button("Systemeinstellungen öffnen") {
@@ -79,7 +99,10 @@ struct PlacePushSettingsView: View {
         }
         .navigationTitle("Regenhinweis")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await push.refreshAuthorization() }
+        .task {
+            await push.refreshAuthorization()
+            await push.refreshLiveActivitySupport()
+        }
         .sitePageSheet($sitePage)
         .alert("Regenhinweis aktivieren?", isPresented: $confirmEnable) {
             Button("Weiter") {

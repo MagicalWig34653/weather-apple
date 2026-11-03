@@ -3,6 +3,7 @@ options:
   minimumXcodeGenVersion: 2.46.0
   deploymentTarget:
     iOS: '27.0'
+    watchOS: '27.0'
   createIntermediateGroups: true
   developmentLanguage: de
   knownRegions: [de, en, Base]
@@ -23,6 +24,7 @@ targets:
     sources:
       - path: Weather
         excludes: [Resources/Icon]
+      - path: Shared
       - path: Weather/Resources/Icon/AppIcon.icon
         type: file
         buildPhase: resources
@@ -33,14 +35,76 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Configuration/Info.plist
+    dependencies:
+      - target: WeatherWidgets
+        embed: true
+      - target: WeatherWatch
+        embed: true
     entitlements:
       path: Configuration/Weather.entitlements
       properties:
         aps-environment: development
         com.apple.developer.usernotifications.time-sensitive: true
+        com.apple.security.application-groups: [group.de.linolaske.showernow]
     scheme:
       testTargets: [WeatherTests, WeatherUITests]
       gatherCoverageData: false
+  WeatherWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [WeatherWidgets, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).widgets
+        PRODUCT_NAME: WeatherWidgets
+        TARGETED_DEVICE_FAMILY: '1,2'
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Configuration/WeatherWidgets-Info.plist
+        SKIP_INSTALL: YES
+    entitlements:
+      path: Configuration/WeatherWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.de.linolaske.showernow]
+  WeatherWatch:
+    type: application
+    platform: watchOS
+    sources: [WeatherWatch, Shared]
+    dependencies:
+      - target: WeatherWatchWidgets
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).watchkitapp
+        PRODUCT_NAME: WeatherWatch
+        TARGETED_DEVICE_FAMILY: '4'
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Configuration/WeatherWatch-Info.plist
+        SKIP_INSTALL: YES
+    entitlements:
+      path: Configuration/WeatherWatch.entitlements
+      properties:
+        com.apple.security.application-groups: [group.de.linolaske.showernow]
+  WeatherWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - WeatherWatchWidgets
+      - Shared
+      - WeatherWidgets/Logic/PlaceEntity.swift
+      - WeatherWidgets/Logic/WidgetForecastLoader.swift
+      - WeatherWidgets/Logic/WidgetTimelineBuilder.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).watchkitapp.widgets
+        PRODUCT_NAME: WeatherWatchWidgets
+        TARGETED_DEVICE_FAMILY: '4'
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Configuration/WeatherWatchWidgets-Info.plist
+        SKIP_INSTALL: YES
+    entitlements:
+      path: Configuration/WeatherWatchWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.de.linolaske.showernow]
   WeatherTests:
     type: bundle.unit-test
     platform: iOS
@@ -50,12 +114,14 @@ targets:
       - path: WeatherTests/Fixtures
         buildPhase: resources
         type: folder
+      - path: WeatherWidgets/Logic
     dependencies:
       - target: Weather
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).tests
         GENERATE_INFOPLIST_FILE: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) WIDGET_LOGIC_TESTS'
   WeatherUITests:
     type: bundle.ui-testing
     platform: iOS

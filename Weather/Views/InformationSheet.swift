@@ -32,8 +32,12 @@ struct InformationSheet: View {
         NavigationStack {
             List {
                 Section("ShowerNow · frühe Testversion") {
-                    Text("Regenradar und kurzfristige Ortsprognose für Deutschland. Regenhinweise als Mitteilung sind optional je gespeichertem Ort oder für einen Umkreis (Region). Noch keine Widgets oder Watch-App.")
+                    Text("Regenradar und kurzfristige Ortsprognose für Deutschland. Regenhinweise als Mitteilung sind optional je gespeichertem Ort oder für einen Umkreis (Region).")
                     Text("Die Karte zeigt Messbilder und Radarvorhersagen getrennt. Die Punktprognose basiert auf Fünf-Minuten-Intervallen; minutengenaue Zusagen sind daraus nicht ableitbar.")
+                }
+                Section("Widgets und Apple Watch") {
+                    Text("Widgets verwenden deine gespeicherten Orte. Den Ort wählst du beim Bearbeiten des Widgets; Antippen öffnet ihn in der App. Die Aktualisierung im Hintergrund bestimmt das System. Achte auf das angezeigte Datenalter.")
+                    Text("Deine gespeicherten Orte werden mit Name, Koordinate und Kennung an deine gekoppelte Apple Watch übertragen, wenn dort ShowerNow installiert ist. Die Übertragung kann verzögert erfolgen. Ein aktueller, nicht gespeicherter Standort wird nicht übertragen.")
                 }
                 pastSection
                 Section {
@@ -59,7 +63,8 @@ struct InformationSheet: View {
                     Text("Karte und Ortssuche: Apple MapKit. Quellenhinweise der Karte bleiben eingeblendet.")
                 }
                 Section("Datenschutz") {
-                    Text("Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben lokal.")
+                    Text("Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben auf deinem iPhone und deiner gekoppelten Apple Watch; sie werden nicht an den ShowerNow-Server übertragen.")
+                    Text("Widgets und Apple Watch verwenden ausschließlich gespeicherte Orte und rufen deren Prognosen direkt beim DWD ab. Die Kopplung überträgt nur die aktuelle Ortsliste, keinen Standortverlauf. Die zuletzt gültige Prognose je Ort wird lokal für Widgets gespeichert.")
                     Text("Radarbilder lädt die App vom ShowerNow-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab. Bilder der Zusatzebenen kommen nur vom ShowerNow-Server. Blendest du die Legende der Blitze ein, lädt die App das Legendenbild direkt vom DWD (bei Wolken ggf. von EUMETSAT); dabei sieht der Anbieter technisch bedingt deine IP-Adresse, aber keinen Ort.")
                     Text("Für eine Ortsprognose erhält der DWD weiterhin direkt einen Kartenausschnitt um die ausgewählte Position. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.")
                     Text("Nur wenn du Regenhinweise für einen Ort einschaltest: Der ShowerNow-Server erhält dein Gerätetoken, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km um den Ort (keine Koordinaten, kein Ortsname) sowie Schwelle und Vorlaufzeit; kein Konto. Bei einer Region speichert der Server stattdessen einen groben Bereich: den Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), den Radius und den Auslöseanteil; der Name der Region bleibt auf dem Gerät. Beim Ausschalten, Löschen des Orts oder der Region oder Zurücksetzen werden diese Daten gelöscht.")

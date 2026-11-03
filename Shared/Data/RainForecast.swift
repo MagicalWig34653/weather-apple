@@ -41,30 +41,10 @@ struct RainForecast: Codable, Sendable {
     }
 
     func summary(at now: Date) -> String {
-        guard !isStale(at: now) else { return "Prognosedaten sind veraltet" }
-        let remaining = samples.filter { $0.date >= now }
-        guard !remaining.isEmpty else { return "Keine aktuelle Prognose verfügbar" }
-        let firstRain = remaining.first { ($0.rateMMPerHour ?? -1) >= Self.rainThresholdMMPerHour }
-        if let firstRain {
-            let earlierUnknown = remaining.contains { $0.date <= firstRain.date && $0.amountMM == nil }
-            if earlierUnknown { return "Regen möglich · Daten teilweise unvollständig" }
-            let minutes = Int(max(0, firstRain.date.timeIntervalSince(now) / 60))
-            if minutes < 5 { return "Regen am ausgewählten Ort" }
-            return "Regen voraussichtlich in etwa \(minutes) Min."
-        }
-        guard remaining.allSatisfy({ $0.amountMM != nil }) else {
-            return "Keine verlässliche Regenaussage verfügbar"
-        }
-        return "Vorerst kein messbarer Regen erwartet"
+        RainOutlook.evaluate(self, at: now).summary
     }
 }
 
-struct RadarTimeline: Sendable {
-    let referenceTime: Date
-    let dates: [Date]
-    /// Set when the frames come from the radar cache backend; `nil` means direct DWD tiles.
-    var backend: RadarManifest?
-}
 
 enum DWDDataError: LocalizedError, Equatable {
     case unsupportedLocation

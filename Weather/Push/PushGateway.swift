@@ -54,6 +54,8 @@ struct PushSubscriptionRequest: Equatable, Sendable {
     var timeSensitive = false
     /// `nil` = single place (unchanged wire format).
     var region: PushRegionSpec?
+    /// nil omits the additive field on servers without the capability. Never sent for regions.
+    var liveActivity: Bool?
 }
 
 /// Failures of `POST .../test`, derived from the backend `error` code (never from Apple text).
@@ -79,6 +81,11 @@ enum PushGatewayError: Error, Equatable, Sendable {
     case regionCapacity
     /// 409 `region_limit`: more than 3 regions or more than 8000 cells (sum of the circle areas) for this installation.
     case regionLimit
+    case invalidActivityToken
+    case activityNotEligible
+    case activityLimit
+    case startTokenRequired
+    case activityFull
     case rateLimited
     case rejected(Int)
     case server(Int)
@@ -96,6 +103,17 @@ protocol PushGateway: Sendable {
     func sendTestNotification(_ identity: PushIdentity) async throws -> String
     /// `GET /v1/status` (no authentication): the `capabilities` strings; empty for servers without that field.
     func capabilities() async throws -> Set<String>
+    func putLiveActivityStartToken(_ identity: PushIdentity, deviceToken: String, environment: PushEnvironment,
+                                   locale: String, startToken: String?) async throws
+    func putActivityToken(_ identity: PushIdentity, subscriptionID: String, token: String) async throws
+    func deleteActivityToken(_ identity: PushIdentity, subscriptionID: String, token: String?) async throws
+}
+
+extension PushGateway {
+    func putLiveActivityStartToken(_ identity: PushIdentity, deviceToken: String, environment: PushEnvironment,
+                                   locale: String, startToken: String?) async throws { throw PushGatewayError.notFound }
+    func putActivityToken(_ identity: PushIdentity, subscriptionID: String, token: String) async throws { throw PushGatewayError.notFound }
+    func deleteActivityToken(_ identity: PushIdentity, subscriptionID: String, token: String?) async throws { throw PushGatewayError.notFound }
 }
 
 enum PushBackendConfig {
@@ -141,6 +159,33 @@ struct HTTPPushGateway: PushGateway {
     func putInstallation(_ identity: PushIdentity, token: String, environment: PushEnvironment, locale: String) async throws {
         let body: [String: Any] = ["token": token, "env": environment.rawValue, "locale": locale]
         _ = try await send("PUT", "installations/\(identity.installationID)", identity, body: body, success: [201, 204])
+    }
+
+    func putLiveActivityStartToken(_ identity: PushIdentity, deviceToken: String, environment: PushEnvironment,
+                                   locale: String, startToken: String?) async throws {
+        if let startToken, !PushActivityWire.isValidToken(startToken) { throw PushGatewayError.invalidActivityToken }
+        let body: [String: Any] = ["token": deviceToken, "env": environment.rawValue, "locale": locale,
+                                   "live_activity_start_token": startToken.map { $0 as Any } ?? NSNull()]
+        _ = try await send("PUT", "installations/\(identity.installationID)", identity, body: body, success: [201, 204])
+    }
+
+    func putActivityToken(_ identity: PushIdentity, subscriptionID: String, token: String) async throws {
+        try await activityTokenRequest("PUT", identity, subscriptionID: subscriptionID, token: token)
+    }
+
+    func deleteActivityToken(_ identity: PushIdentity, subscriptionID: String, token: String?) async throws {
+        guard UUID(uuidString: subscriptionID) != nil,
+              token.map(PushActivityWire.isValidToken) ?? true else { throw PushGatewayError.invalidActivityToken }
+        _ = try await send("DELETE", "subscriptions/\(subscriptionID)/activity", identity,
+                           body: token.map { ["activity_token": $0] }, success: [204])
+    }
+
+    private func activityTokenRequest(_ method: String, _ identity: PushIdentity, subscriptionID: String, token: String) async throws {
+        guard UUID(uuidString: subscriptionID) != nil, PushActivityWire.isValidToken(token) else {
+            throw PushGatewayError.invalidActivityToken
+        }
+        _ = try await send(method, "subscriptions/\(subscriptionID)/activity", identity,
+                           body: ["activity_token": token], success: [204])
     }
 
     func deleteInstallation(_ identity: PushIdentity) async throws {
@@ -233,6 +278,7 @@ struct HTTPPushGateway: PushGateway {
             body[PushRegionWire.radiusKey] = region.radiusCells
             body[PushRegionWire.shareKey] = region.minSharePercent
         }
+        if request.region == nil, let liveActivity = request.liveActivity { body["live_activity"] = liveActivity }
         return body
     }
 
@@ -253,6 +299,10 @@ struct HTTPPushGateway: PushGateway {
             do {
                 let (data, response) = try await transport(request)
                 if success.contains(response.statusCode) { return data }
+                // Capacity exhaustion requires a new user opt-in, never transport backoff retries.
+                if Self.error(statusCode: response.statusCode, data: data) == .activityFull {
+                    throw PushGatewayError.activityFull
+                }
                 if retry, (response.statusCode == 429 || RadarRetryPolicy.isTransient(statusCode: response.statusCode)),
                    attempt < RadarRetryPolicy.maxAttempts {
                     var delay = RadarRetryPolicy.delay(afterAttempt: attempt)
@@ -293,9 +343,20 @@ struct HTTPPushGateway: PushGateway {
             case "subscription_limit": return .subscriptionLimit
             case "region_capacity": return .regionCapacity
             case "region_limit": return .regionLimit
+            case "activity_not_eligible": return .activityNotEligible
+            case "activity_limit": return .activityLimit
+            case "start_token_required": return .startTokenRequired
             default: return .rejected(409)
             }
-        case 400..<500: return .rejected(statusCode)
+        case 400:
+            struct Payload: Decodable { let error: String? }
+            return (try? JSONDecoder().decode(Payload.self, from: data))?.error == "invalid_activity_token"
+                ? .invalidActivityToken : .rejected(400)
+        case 401..<500: return .rejected(statusCode)
+        case 503:
+            struct Payload: Decodable { let error: String? }
+            return (try? JSONDecoder().decode(Payload.self, from: data))?.error == "activity_full"
+                ? .activityFull : .server(503)
         case 500...: return .server(statusCode)
         default: return .invalidResponse
         }
