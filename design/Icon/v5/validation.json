@@ -1,0 +1,41 @@
+{
+  "structural_checks": [
+    {
+      "package": "v5a.icon",
+      "groups": 2,
+      "assets": [
+        "01-canopy.svg",
+        "02-handle.svg"
+      ],
+      "json_xml_references": "passed"
+    },
+    {
+      "package": "v5b.icon",
+      "groups": 3,
+      "assets": [
+        "01-rain-core.svg",
+        "02-rain-band.svg",
+        "03-rain-front.svg"
+      ],
+      "json_xml_references": "passed"
+    },
+    {
+      "package": "v5c.icon",
+      "groups": 3,
+      "assets": [
+        "01-leading-rain.svg",
+        "02-near-rain.svg",
+        "03-far-rain.svg"
+      ],
+      "json_xml_references": "passed"
+    }
+  ],
+  "ictool": "Exit 255: new v5a and existing v3a could not be opened; cause unconfirmed",
+  "not_checked": [
+    "Apple rendering",
+    "Composer GUI",
+    "device",
+    "build",
+    "visual small-size review"
+  ]
+}

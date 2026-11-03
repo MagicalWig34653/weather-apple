@@ -1,0 +1,184 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "srgb:0.40000,0.35686,0.81569,1.00000",
+          "srgb:0.18824,0.17255,0.47059,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "srgb:0.19216,0.17647,0.37647,1.00000",
+          "srgb:0.12549,0.11373,0.25882,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "name": "01-leading-rain",
+          "image-name": "01-leading-rain.svg",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:1.00000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 1.0
+            }
+          ],
+          "hidden": false
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.22
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "name": "02-near-rain",
+          "image-name": "02-near-rain.svg",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.64314,0.96078,0.92549,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.72941,1.00000,0.95686,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.80000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 1.0
+            }
+          ],
+          "hidden": false
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.22
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.08
+      }
+    },
+    {
+      "layers": [
+        {
+          "name": "03-far-rain",
+          "image-name": "03-far-rain.svg",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.76863,0.72157,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.83922,0.80000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.62745,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 1.0
+            }
+          ],
+          "hidden": false
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.22
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.08
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}
