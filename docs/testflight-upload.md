@@ -257,3 +257,18 @@ Portal: Die vier freigegebenen Ressourcen (App-IDs `.widgets`, `.watchkitapp`, `
 | Uploadannahme | Erfolgreich, Exit 0 (zweiter Exportversuch; erster scheiterte in der Validierung ohne Upload) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
 | Gerätelauf (iPhone, Watch), Widgets, Komplikationen, Live Activity, Push | Nicht geprüft |
+
+## ShowerNow Build 16: Upload angenommen (Xcode 27.1), Watch-Radarkarte, Icon d2
+
+Quellencheckpoint `69c1f87` (`CURRENT_PROJECT_VERSION = 16`; Code `5392783`, `cd132dd`, `2b4ce87`, Doku `69c1f87`), Archiv/Export aus `git archive`-Kopie mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR`, Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher 3.11.2026: `Weather`-Schema 417 Tests (410 Unit + 7 UI), 0 Fehler, iPhone-Simulator iOS 27.0; `WeatherWatch`-Build (watchOS 27.0 Simulator) erfolgreich. Optionen wie Build 15 (`testFlightInternalTestingOnly=false`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`).
+
+**Genau ein Upload, 3. November 2026 von 22:49:33 bis 22:55:23 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokal exportierte IPA aus demselben Archiv, SHA-256 `1ad856e589db2c237db885db766c802ac4242a15076df215a68ae065a7432405`): vier Bundles (App `de.linolaske.showernow`, Widgets `.widgets`, Watch-App `.watchkitapp` mit `WKCompanionAppBundleIdentifier=de.linolaske.showernow` und `CFBundleIconName=AppIcon`, Watch-Widgets `.watchkitapp.widgets`), `CFBundleVersion` überall 16; App Group `group.de.linolaske.showernow` überall; `aps-environment=production` und `time-sensitive=true` nur in der App; `get-task-allow=false`; `NSSupportsLiveActivities=true`, `ITSAppUsesNonExemptEncryption=false`; `de.lproj`/`en.lproj` in allen vier; `codesign --verify --deep --strict` je Bundle ok; keine `.md` im Paket; `Assets.car` in App und Watch-App vorhanden (Inhalt des Watch-Icons d2 nicht einzeln geprüft).
+
+| Zustand Build 16 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
+| Gerät, Watch-Hardware, Krone, Dekoder-Laufzeit, Duo-Innendisplay | Nicht geprüft |

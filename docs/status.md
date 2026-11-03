@@ -182,9 +182,10 @@ Vier Dark-Alternativen `design/Icon/eigenentwurf-dark/d1..d4.icon` (nur Dark-Fil
 Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `eigenentwurf-dark/d2.icon` (Build 16); altes Icon in `design/Icon/archiv/AppIcon-build15.icon`. actool (iphoneos, watchos) kompiliert, Light/Dark/Tintable-Renditionen vorhanden; ictool-Renders angesehen. NICHT geprüft: xcodebuild-Gesamtbuild, Gerät/Watch, Clear. Siehe [icon-eigenentwurf.md](icon-eigenentwurf.md), `decisions.md`.
 - Hinweis Debug: Das Argument `-WatchOpenRadar` (nur DEBUG) öffnet das Radar 2 s nach Start, um Simulator-Screenshots zu ermöglichen. Ein sofortiger Sprung beim Start erzeugte tausende "Observation tracking feedback loop"-Meldungen (Navigation während des Starts); mit Verzögerung 0 Meldungen. Echtes Tippen im Simulator ist nicht geprüft (Simulator-App läuft ohne Fenster).
 
-## Build 16 vorbereitet (3.11.2026)
+## Build 16 hochgeladen (3.11.2026)
 
 - Inhalt: Watch-Radarkarte (siehe oben), Icon d2, Quellenzeile der Radarkarte bei größter Schrift (`lineLimit(2)`, `dynamicTypeSize` bis `xxxLarge`), Datenschutztext (Info-Sheet und Website `docs-site/content/datenschutz.md`): Kartenhintergrund der Watch über Apple Karten, Ortskoordinate geht an Apple; Radarbilder ohne Ortsangabe vom Server. `CURRENT_PROJECT_VERSION = 16`.
 - Geprüft (Xcode 27.1, iPhone-Simulator B15 iPhone 18 Pro, iOS 27.0, ohne Signing): `Weather`-Schema 417 Tests (410 Unit + 7 UI), 0 Fehler; Schema `WeatherWatch` (Apple Watch Ultra 4, watchOS 27.0) Build erfolgreich.
 - **Vom Nutzer zu prüfen: App-Privacy in App Store Connect** (Standort/ungefährer Standort; Nutzung durch Apple Maps für den Watch-Kartenhintergrund) sowie der Datenschutztext der Website (Seite wird per GitHub Pages aus `docs-site/` gebaut; Deployment nicht geprüft).
 - Die Info-Sheet-Texte der App sind einsprachig deutsch; eine englische Fassung existiert dort nicht.
+- **Upload:** Quellencheckpoint `69c1f87`, genau ein Upload 22:49 bis 22:55 Uhr, Exit 0, `Upload succeeded`, `Uploaded package is processing`. Paketprüfung (Bundles, Versionen 16, Entitlements, Icons, Signatur) siehe [testflight-upload.md](testflight-upload.md). NICHT geprüft: Apple-Verarbeitung, Installierbarkeit, Gerät/Watch-Hardware, Krone, Dekoder-Laufzeit auf der Uhr, Duo-Innendisplay. Keiner Gruppe zugeordnet, nicht eingereicht.
