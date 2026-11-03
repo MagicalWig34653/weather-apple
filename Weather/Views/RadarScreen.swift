@@ -68,6 +68,8 @@ struct RadarScreen: View {
                 if let line = store.displayAttributionLine {
                     Text(line)
                         .font(.caption2).foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(.thinMaterial, in: Capsule())
