@@ -38,6 +38,14 @@ struct WatchPlacesView: View {
                 WatchForecastView(store: store, placeID: id)
             }
         }
+        .onAppear {
+            #if DEBUG
+            // Simulator screenshots only: open the first place directly (a Watch simulator cannot be tapped from the CLI).
+            if ProcessInfo.processInfo.arguments.contains("-WatchOpenRadar"), let first = store.places.first {
+                Task { try? await Task.sleep(for: .seconds(3)); path = [first.id] }
+            }
+            #endif
+        }
         .onOpenURL { url in
             // Unknown or removed IDs never open a different place.
             guard let id = WidgetDeepLink.placeID(from: url),
@@ -62,6 +70,7 @@ private struct WatchForecastView: View {
     @ObservedObject var store: WatchStore
     let placeID: UUID
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showRadar = false
     private var place: SavedPlace? { store.places.first { $0.id == placeID } }
 
     var body: some View {
@@ -72,6 +81,17 @@ private struct WatchForecastView: View {
             .padding(.horizontal)
         }
         .navigationTitle(place?.name ?? WatchText.string("Places"))
+        .navigationDestination(isPresented: $showRadar) {
+            if let place { WatchRadarView(place: place) }
+        }
+        .onAppear {
+            #if DEBUG
+            // Simulator screenshots: the Watch simulator cannot be tapped from the command line.
+            if ProcessInfo.processInfo.arguments.contains("-WatchOpenRadar") {
+                Task { try? await Task.sleep(for: .seconds(2)); showRadar = true }
+            }
+            #endif
+        }
         .task(id: RefreshKey(coordinate: place?.coordinate, phase: scenePhase)) {
             if scenePhase == .active { await store.refresh(placeID: placeID) }
         }
@@ -121,6 +141,11 @@ private struct WatchForecastView: View {
                 }
                 .disabled(store.loading.contains(placeID))
                 .accessibilityLabel(WatchText.string("Refresh"))
+                if place != nil {
+                    Button { showRadar = true } label: {
+                        Label(WatchText.string("Radar"), systemImage: "map")
+                    }
+                }
                 Text(WatchText.string("Source: DWD · radar nowcast"))
                     .font(.caption2).foregroundStyle(.secondary)
             }

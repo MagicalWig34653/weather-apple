@@ -78,6 +78,9 @@ targets:
         excludes: ['**/*.md']
       - path: Shared
         excludes: ['**/*.md']
+      - Weather/Data/RadarBackend.swift
+      - Weather/Data/RadarHistory.swift
+      - Weather/Data/DWDRadarTimeline+App.swift
       - path: Weather/Resources/Icon/AppIcon.icon
         type: file
         buildPhase: resources
