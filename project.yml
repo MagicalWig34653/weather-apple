@@ -23,8 +23,9 @@ targets:
     platform: iOS
     sources:
       - path: Weather
-        excludes: [Resources/Icon]
+        excludes: [Resources/Icon, '**/*.md']
       - path: Shared
+        excludes: ['**/*.md']
       - path: Weather/Resources/Icon/AppIcon.icon
         type: file
         buildPhase: resources
@@ -52,7 +53,11 @@ targets:
   WeatherWidgets:
     type: app-extension
     platform: iOS
-    sources: [WeatherWidgets, Shared]
+    sources:
+      - path: WeatherWidgets
+        excludes: ['**/*.md']
+      - path: Shared
+        excludes: ['**/*.md']
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).widgets
@@ -68,7 +73,14 @@ targets:
   WeatherWatch:
     type: application
     platform: watchOS
-    sources: [WeatherWatch, Shared]
+    sources:
+      - path: WeatherWatch
+        excludes: ['**/*.md']
+      - path: Shared
+        excludes: ['**/*.md']
+      - path: Weather/Resources/Icon/AppIcon.icon
+        type: file
+        buildPhase: resources
     dependencies:
       - target: WeatherWatchWidgets
         embed: true
@@ -76,6 +88,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).watchkitapp
         PRODUCT_NAME: WeatherWatch
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: '4'
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Configuration/WeatherWatch-Info.plist
@@ -88,8 +101,10 @@ targets:
     type: app-extension
     platform: watchOS
     sources:
-      - WeatherWatchWidgets
-      - Shared
+      - path: WeatherWatchWidgets
+        excludes: ['**/*.md']
+      - path: Shared
+        excludes: ['**/*.md']
       - WeatherWidgets/Logic/PlaceEntity.swift
       - WeatherWidgets/Logic/WidgetForecastLoader.swift
       - WeatherWidgets/Logic/WidgetTimelineBuilder.swift
