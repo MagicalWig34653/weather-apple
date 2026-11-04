@@ -288,3 +288,20 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `ad36fd33af4598d52376534
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
 | Gerät, Watch-Hardware, Anzeige des Namens auf Hardware | Nicht geprüft |
 
+
+## Showers Build 18: Upload angenommen (Xcode 27.1), App-Symbol-Auswahl
+
+Quellencheckpoint `ee78b43` (`CURRENT_PROJECT_VERSION = 18`; Feature `52f50da`), Archiv/Export aus `git archive`-Kopie mit Xcode 27.1 (27A9275) per `DEVELOPER_DIR`, Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher: `Weather`-Schema 416 Unit-Tests, 0 Fehler; UI-Tests siehe [icon-auswahl.md](icon-auswahl.md); `WeatherWatch`-Build erfolgreich. Optionen wie Build 17 (`testFlightInternalTestingOnly=false`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`).
+
+**Genau ein Upload, 4. November 2026 von 11:00:14 bis 11:02:27 Uhr** (`destination=upload`, nach vorherigem lokalem Export zur Paketprüfung): Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `08e48d1509d70a57f4372a95972c087acad9713952d867b89432161d3d3055ee`): vier Bundles (`de.linolaske.showernow`, `.widgets`, `.watchkitapp`, `.watchkitapp.widgets`); `CFBundleDisplayName` überall `Showers`; `CFBundleVersion` überall 18; `codesign --verify --deep --strict` je Bundle ok; `aps-environment=production`, `time-sensitive`, `get-task-allow=false`, App Group in der App; keine `.md` im Paket. App-`Info.plist`: je 16 `CFBundleAlternateIcons` in `CFBundleIcons` und `CFBundleIcons~ipad`, primär `AppIcon`; `Assets.car` der App enthält alle 16 Alternativen. Watch-App: nur `CFBundleIconName=AppIcon`, keine `Alt`-Renditionen in ihrem `Assets.car`.
+
+**Paketgröße:** IPA Build 17 (`10e7ef9`, gleiche Exportoptionen, lokal) 8.409.378 Byte; Build 18 87.749.697 Byte (+79,3 MB). Ursache: `Assets.car` der App wächst von etwa 4,6 MB auf 85,4 MB; jedes Alternativ-Icon bringt etwa 4,5 bis 6,8 MB vorgerenderte Renditionen (alle Größen und Darstellungen). Die tatsächliche App-Store-Downloadgröße (App Thinning) wurde nicht gemessen.
+
+| Zustand Build 18 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
+| Gerät, Alert-Verhalten auf Hardware, Dark/Tinted der Alternativen | Nicht geprüft |
