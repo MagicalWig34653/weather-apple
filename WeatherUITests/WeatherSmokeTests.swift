@@ -38,6 +38,78 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(information.waitForExistence(timeout: 5))
     }
 
+    func testIconPickerListsAllOptions() throws {
+        let app = launchApp()
+        let information = app.buttons["Datenquellen und Datenschutz"]
+        XCTAssertTrue(information.waitForExistence(timeout: 15))
+        information.tap()
+        let link = app.buttons["icon-picker-link"]
+        for _ in 0..<10 where !link.isHittable { app.swipeUp() }
+        XCTAssertTrue(link.isHittable)
+        link.tap()
+        XCTAssertTrue(app.navigationBars["App-Symbol"].waitForExistence(timeout: 5))
+
+        let ids = ["Standard", "Karte", "Eigenentwurf", "V2A", "V2B", "V2C", "V3A", "V3B", "V3C", "V3D",
+                   "V4A", "V4B", "V4C", "V4D", "V5A", "V5B", "V5C"]
+        var missing = Set(ids)
+        for _ in 0..<8 {
+            for id in missing where app.buttons["icon-option-\(id)"].exists { missing.remove(id) }
+            if missing.isEmpty { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(missing.isEmpty, "Fehlende Optionen: \(missing.sorted())")
+        // The standard icon is the selected one on a fresh install.
+        for _ in 0..<8 where !app.buttons["icon-option-Standard"].isHittable { app.swipeDown() }
+        XCTAssertTrue(app.buttons["icon-option-Standard"].isSelected)
+        XCTAssertTrue(app.staticTexts["icon-picker-footer"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Apple Watch")).firstMatch.exists)
+    }
+
+    /// Switches to an alternate icon and back. The system shows its own "Symbol geändert" alert, which is confirmed via SpringBoard.
+    func testSwitchingAppIconAndBack() throws {
+        let app = launchApp()
+        let information = app.buttons["Datenquellen und Datenschutz"]
+        XCTAssertTrue(information.waitForExistence(timeout: 15))
+        information.tap()
+        let link = app.buttons["icon-picker-link"]
+        for _ in 0..<10 where !link.isHittable { app.swipeUp() }
+        link.tap()
+        XCTAssertTrue(app.navigationBars["App-Symbol"].waitForExistence(timeout: 5))
+
+        // The "Symbol geändert" alert belongs to SpringBoard, not to the app; confirm it there.
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        func choose(_ id: String) {
+            let option = app.buttons["icon-option-\(id)"]
+            for _ in 0..<8 where !option.isHittable { app.swipeUp() }
+            option.tap()
+            let ok = springboard.buttons["OK"]
+            let inApp = app.buttons["OK"]
+            let deadline = Date().addingTimeInterval(4)
+            while !ok.exists && !inApp.exists && Date() < deadline { usleep(200_000) }
+            // Fallback: the alert is not always exposed in the accessibility tree; its OK button sits at a fixed place.
+            if ok.exists || inApp.exists {
+                (ok.exists ? ok : inApp).tap()
+            } else {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.578)).tap()
+            }
+            XCTAssertTrue(option.waitForExistence(timeout: 5))
+            let selected = NSPredicate(format: "isSelected == true")
+            expectation(for: selected, evaluatedWith: option)
+            waitForExpectations(timeout: 10)
+        }
+        choose("V4D")
+        add(XCTAttachment(screenshot: app.screenshot()))
+        XCUIDevice.shared.press(.home)
+        sleep(5)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Homescreen mit V4D"; shot.lifetime = .keepAlways; add(shot)
+        app.activate()
+        choose("Standard")
+        XCUIDevice.shared.press(.home)
+        sleep(5)
+        let shot2 = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot2.name = "Homescreen mit Standard"; shot2.lifetime = .keepAlways; add(shot2)
+    }
+
     func testRadarControlsOpenDetailsAndReturnToCurrentFrame() throws {
         let app = launchApp()
         let slider = app.sliders["Radarzeitpunkt"]

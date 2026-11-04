@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct InformationSheet: View {
     var store: WeatherStore
@@ -38,6 +39,14 @@ struct InformationSheet: View {
                 Section("Widgets und Apple Watch") {
                     Text("Widgets verwenden deine gespeicherten Orte. Den Ort wählst du beim Bearbeiten des Widgets; Antippen öffnet ihn in der App. Die Aktualisierung im Hintergrund bestimmt das System. Achte auf das angezeigte Datenalter.")
                     Text("Deine gespeicherten Orte werden mit Name, Koordinate und Kennung an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist. Die Übertragung kann verzögert erfolgen. Ein aktueller, nicht gespeicherter Standort wird nicht übertragen.")
+                }
+                Section("App-Symbol") {
+                    NavigationLink {
+                        IconPickerView()
+                    } label: {
+                        LabeledContent("Symbol wählen", value: AppIconOption.option(forAlternateIconName: UIApplication.shared.alternateIconName).name())
+                    }
+                    .accessibilityIdentifier("icon-picker-link")
                 }
                 pastSection
                 Section {

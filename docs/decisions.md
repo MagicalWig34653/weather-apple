@@ -283,3 +283,8 @@ Plan: [research/widgets-watch-plan.md](research/widgets-watch-plan.md). Entschei
 - Umfang Build 17: nur sichtbare Namen und Texte, Home-Screen-Name "Showers". Keine Domain-Umstellung (URL-Konstanten in `RadarBackend.swift` bleiben auf `showernow.linolaske.de`), kein Redirect.
 - Unverändert: Bundle-ID `de.linolaske.showernow` samt `.widgets`/`.watchkitapp`, Team-ID, App-Group, Keychain-Service, URL-Schema `showernow://`, Widget-Kinds, DWD-User-Agent, Modul/Ordner `Weather`, Repo- und Image-Namen.
 - Inventar und Nutzerschritte: [rename-showers-plan.md](rename-showers-plan.md). Offen: Verfügbarkeit des Namens in Connect (Ausweichen z. B. "Showers – Regenradar").
+
+## App-Symbol-Auswahl (4. November 2026)
+
+- Nutzerauftrag: "Mach mal in Build 17 eine Option, dass man selber das Icon wählen kann, also zwischen allen Vorschlägen, die bis jetzt waren, inkl. des alten." Build 17 war bereits hochgeladen, daher Umsetzung in Build 18.
+- Umfang: Standard bleibt d2 (Nachtradar, `AppIcon`); 16 Alternativen (Build-15-Icon "Karte", Eigenentwurf final, v2a-c, v3a-d, v4a-d, v5a-c). d1, d3, d4 sind bewusst nicht enthalten. Einstieg: Info-Sheet, Abschnitt "App-Symbol". Die Apple Watch behält das Standard-Symbol (watchOS kennt keine alternativen App-Symbole); das System zeigt bei jedem Wechsel einen Hinweis, der sich nicht unterdrücken lässt. Details, Quellen, Prüfungen: [icon-auswahl.md](icon-auswahl.md).
