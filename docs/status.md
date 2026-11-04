@@ -14,6 +14,8 @@ Kurzfassung: Letzter hochgeladener Build ist **Build 17** (`0.1.0 (17)`, Quelle 
 
 **App-Store-Screenshots (3.11.2026, nicht committet):** `design/appstore-screenshots/<plattform>/<maße>/de/` (iPhone 1206x2622 x5 und 1320x2868 x6, iPad 2064x2752 x4, Watch 422x514 x2) plus `de-kopfzeile/` (Überschrift-Varianten, `tools/headline.swift`); Details, Quellen, Feld-Zuordnung und Reproduktion in [appstore-screenshots.md](appstore-screenshots.md). Ursache der Ablehnung: 1320x2868 gehört ins 6,9"-Feld, das Feld "6,1"/6,3"" nimmt nur 1179x2556/1206x2622 (daher neu vom iPhone 17 Pro aufgenommen). Geprüft: Sichtprüfung und `sips` (Maße, kein Alphakanal). Nicht geprüft: Upload in App Store Connect, Preview-Tool. Radar zeigt Archivregen vom 2.11. (Banner "kein Regen" widerspricht; Neuaufnahme bei echtem Regen sinnvoll). Nicht erzeugt: Mac, Englisch, Widgets/Komplikationen, Sonne/Blitze/Luftdruck. PNGs (68 MB) nicht committen ohne Entscheidung.
 
+**Store-Assets nach Umbenennung (4.11.2026, nicht committet):** Alle Bilder per Texterkennung auf "ShowerNow" geprüft; neu mit Build 17 erzeugt: iPhone 1206x2622 und 1320x2868 (01, 03, 04, je roh und Kopfzeile), iPad 2064x2752 (01 bis 04, roh und Kopfzeile), Watch 01-ortsliste, 3 Creatives, Mockup, App-Vorschau (13,6 s) samt Poster-Frame. Unverändert (kein Name sichtbar): iPhone 02-orte, 05-orte-dunkel, 07-ortsprognose, Watch 02-ortsprognose. Regen weiter aus dem Archiv (aktuell kein Regen). Textvorschläge auf "Showers" umgestellt, Längen belegt. Nicht geprüft: Upload in Connect. Details: [appstore-screenshots.md](appstore-screenshots.md).
+
 ## Builds
 
 | Build | Quelle | Upload (MEZ) | Inhalt / Hinweise |

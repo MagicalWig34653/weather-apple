@@ -65,13 +65,29 @@ Quellen (abgerufen 3.11.2026): [Asset best practices](https://developer.apple.co
 
 **Reihenfolge der ersten Screenshots (Suche, Hochformat):** 01 Regenradar, 02 Orte, 03 Wolken (Dunkelvarianten danach), unverändert.
 
-**Textvorschläge (nur Vorschlag; Nutzer trägt sie selbst ein; nur Funktionen aus Build 15, keine Live Activity, keine Duo-Optimierung):**
-- Untertitel (30): `Regenradar mit Zeitleiste` (25) oder `Regen im Blick, für deine Orte` (30).
-- Werbetext (170): `Sieh im Regenradar, wann der Regen kommt: mit Zeitleiste, Prognose für deine Orte, Regenhinweis per Push, Widgets und Apple Watch.` (130)
-- Schlüsselwörter (100 Bytes, ohne Leerzeichen nach Komma): `Niederschlag,Prognose,Wetter,Schauer,Regenhinweis,Regenvorhersage,Widget,Gewitter,Wolken,Satellit` (97). Name und Untertitelwörter nicht wiederholen. Offen: "Gewitter" nur, wenn die Blitz-Ebene verfügbar bleibt.
-- Beschreibung, Kopf: `Showers zeigt dir, wann und wo es regnet. Das Regenradar mit Zeitleiste zeigt Messung und kurzfristige Entwicklung auf der Karte; Wolken sind als Satellitenebene zuschaltbar. Speichere Orte und Regionen für die Ortsprognose, lass dir per Push einen Regenhinweis senden und behalte den Regen mit Widgets und der Apple Watch im Blick. Datenquelle ist der Deutsche Wetterdienst.` Vor Einreichung gegen den dann tatsächlichen Funktionsumfang prüfen (Watch/Widgets erst nach Gerätetest bewerben).
+**Textvorschläge (Stand 4.11.2026, Name "Showers", Build 17; nur Vorschlag, Nutzer trägt selbst ein; keine Live Activity, da Backend-Rollout aussteht; Längen mit `wc -m`/`wc -c`):**
+- Untertitel (max. 30 Zeichen): `Regenradar mit Zeitleiste` (25 Zeichen) oder `Regen im Blick, für deine Orte` (30 Zeichen, 31 Bytes).
+- Werbetext (max. 170 Zeichen): `Sieh im Regenradar, wann es regnet: Zeitleiste, Prognose für deine Orte und Regionen, Regenhinweis per Push, Widgets und Apple Watch. Daten vom DWD.` (148 Zeichen). Hinweis: Push hängt vom Backend ab, Watch-Radarkarte ist Vorschau; Wortlaut bei Bedarf entschärfen.
+- Schlüsselwörter (max. 100 Bytes, kein Leerzeichen nach Komma, ohne "Showers"): `Niederschlag,Prognose,Wetter,Schauer,Regenhinweis,Regenvorhersage,Widget,Wolken,Satellit,Radarkarte` (99 Zeichen = 99 Bytes). Untertitelwörter (Regenradar, Zeitleiste) nicht wiederholt.
+- Beschreibung, Kopf: `Showers zeigt dir, wann und wo es regnet. Das Regenradar mit Zeitleiste zeigt Messung und kurzfristige Entwicklung auf der Karte; Wolken sind als Satellitenebene zuschaltbar. Speichere Orte und Regionen für die Ortsprognose, lass dir per Push einen Regenhinweis senden und behalte den Regen mit Widgets und der Apple Watch (Radarkarte als Vorschau) im Blick. Datenquelle ist der Deutsche Wetterdienst.`
 
 **Nicht geprüft:** Upload der Creative-Assets/des Videos in Connect, Preview-Tool, Safe Area gegen Apple-Vorlage, Review-Annahme; ob Creative-Assets in Connect für diese App schon sichtbar sind (iOS-27-Mindestversion, Build-Zuordnung unklar); Videoqualität auf dem Gerät; Mockup ist nicht Apples Darstellung. Hinweis: PNG/MP4 (zus. ca. 60 MB) nicht committen ohne Entscheidung.
+
+## Umbenennung ShowerNow -> Showers (4.11.2026)
+
+Prüfung aller Dateien per Vision-Texterkennung (Skript nur lokal) und Sichtprüfung; Neuaufnahme mit Build 17 (Debug, Simulator, gleiche Abläufe wie unten, Orte Hannover/Hamburg/München, 9:41). Der alte Name stand in der Quellenzeile der Karte ("Showers-Cache" statt "ShowerNow-Cache"), im iPad-Titel und im Watch-Titel sowie in allen Creatives.
+
+| Datei(en) | Alter Name sichtbar | Maßnahme |
+|---|---|---|
+| iphone/1206x2622 und 1320x2868: `de` und `de-kopfzeile` 01-regenradar, 03-wolken, 04-regenradar-dunkel | ja (Quellenzeile) | neu |
+| iphone/1206x2622 und 1320x2868: 02-orte, 05-orte-dunkel, 07-ortsprognose (nur 1320) | nein | unverändert |
+| ipad/2064x2752 `de` und `de-kopfzeile` 01 bis 04 | ja (Titelleiste, Quellenzeile) | neu (Orte nur Titelleiste) |
+| watch/422x514/de/01-ortsliste | ja (Titel) | neu |
+| watch/422x514/de/02-ortsprognose | nein | unverändert |
+| creative/header-21x9, suche-3x2, universal-16x9, preview/mockup-suche-und-header | ja ("ShowerNow") | neu (`tools/creative.swift`, `tools/mockup.swift`, Icon `design/Icon/current/previews/current-default.png`) |
+| preview/showers-app-preview-de-886x1920.mp4, poster-frame-5s.png | ja (Quellenzeile) | neu (13,57 s, 886x1920, H.264 High, 30 fps, 10 MB; Zeitleiste 08:40 bis 14:05 am 2.11.; Aufnahme per `simctl io recordVideo`, ffmpeg: Ausschnitt 4x verlangsamt, 1 s/1,5 s Standbild vorn/hinten) |
+
+Regen: Am 3.11.2026 abends lag in Deutschland laut `latest.json` kein Regen vor (nur Einzelpixel); Radarmotive zeigen weiter den Archivregen vom 2.11. (Zeitleiste "Mo. 2. Nov."; Banner "Vorerst kein messbarer Regen" passt nicht zum Bild). Alle neuen Dateien RGB ohne Alphakanal, Maße mit `sips` geprüft. Hinweis Reproduktion: Das Derived-Data-Verzeichnis des UI-Test-Bundles darf kein altes `Weather.app` enthalten (der Test installierte sonst Build 15); frisch anlegen oder vorher löschen.
 
 ## Motive (alle Deutsch, Orte Hannover/Hamburg/München, Standort nie verwendet)
 
