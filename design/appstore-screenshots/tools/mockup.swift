@@ -19,7 +19,7 @@ func button(_ x: CGFloat, _ y: CGFloat) {
     let r = CGRect(x: x, y: y, width: 190, height: 80); ctx.setFillColor(NSColor(white: 0.9, alpha: 1).cgColor)
     ctx.addPath(CGPath(roundedRect: r, cornerWidth: 40, cornerHeight: 40, transform: nil)); ctx.fillPath(); txt("Laden", x + 52, y + 22, 38, .bold, NSColor.systemBlue) }
 func appRow(_ x: CGFloat, _ y: CGFloat, _ sub: String) {
-    clipRound(CGRect(x: x, y: y, width: 150, height: 150), 34) { ctx.draw(icon, in: CGRect(x: x, y: y, width: 150, height: 150)) }
+    ctx.draw(icon, in: CGRect(x: x, y: y, width: 150, height: 150))  // Icon hat eigene Rundung (Alpha)
     txt("Showers", x + 180, y + 80, 48, .semibold); txt(sub, x + 180, y + 28, 36, .regular, .gray); button(x + 720, y + 35) }
 // Links: Suchergebnis (Karte 3:2)
 txt("Suchergebnis (Tab Suche)", 100, 1400, 40, .bold, .darkGray)

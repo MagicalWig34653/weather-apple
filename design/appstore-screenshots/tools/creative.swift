@@ -21,7 +21,13 @@ let top = NSColor(srgbRed: 0.20, green: 0.45, blue: 0.80, alpha: 1), bot = NSCol
 ctx.drawLinearGradient(CGGradient(colorsSpace: cs, colors: [top.cgColor, bot.cgColor] as CFArray, locations: [0, 1])!, start: CGPoint(x: 0, y: h), end: CGPoint(x: 0, y: 0), options: [])
 let zoneW = min(w, h * 1.5), x0 = (w - zoneW) / 2   // mittige 3:2-Zone
 
-func rounded(_ img: CGImage, rect: CGRect, radius: CGFloat, shadow: Bool) {
+// masked: Bild hat schon eigene Rundung (ictool-Icon mit Alpha): nur mit Schatten zeichnen, kein Schwarz-Unterbau, kein Clip.
+func rounded(_ img: CGImage, rect: CGRect, radius: CGFloat, shadow: Bool, masked: Bool = false) {
+    if masked {
+        ctx.saveGState()
+        if shadow { ctx.setShadow(offset: CGSize(width: 0, height: -h * 0.012), blur: h * 0.04, color: NSColor(white: 0, alpha: 0.35).cgColor) }
+        ctx.draw(img, in: rect); ctx.restoreGState(); return
+    }
     ctx.saveGState()
     if shadow { ctx.setShadow(offset: CGSize(width: 0, height: -h * 0.012), blur: h * 0.04, color: NSColor(white: 0, alpha: 0.35).cgColor) }
     ctx.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
@@ -40,7 +46,7 @@ rounded(shot1, rect: CGRect(x: frontX, y: -h * 0.05, width: pw, height: ph), rad
 
 // Icon + Text links in der Zone
 let ic = h * 0.20, tx = x0 + zoneW * 0.06
-rounded(icon, rect: CGRect(x: tx, y: h * 0.62, width: ic, height: ic), radius: ic * 0.2237, shadow: true)
+rounded(icon, rect: CGRect(x: tx, y: h * 0.62, width: ic, height: ic), radius: ic * 0.2237, shadow: true, masked: true)
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
 func text(_ s: String, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat, y: CGFloat) {

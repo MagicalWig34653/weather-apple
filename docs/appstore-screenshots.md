@@ -84,7 +84,7 @@ Prüfung aller Dateien per Vision-Texterkennung (Skript nur lokal) und Sichtprü
 | ipad/2064x2752 `de` und `de-kopfzeile` 01 bis 04 | ja (Titelleiste, Quellenzeile) | neu (Orte nur Titelleiste) |
 | watch/422x514/de/01-ortsliste | ja (Titel) | neu |
 | watch/422x514/de/02-ortsprognose | nein | unverändert |
-| creative/header-21x9, suche-3x2, universal-16x9, preview/mockup-suche-und-header | ja ("ShowerNow") | neu (`tools/creative.swift`, `tools/mockup.swift`, Icon `design/Icon/current/previews/current-default.png`) |
+| creative/header-21x9, suche-3x2, universal-16x9, preview/mockup-suche-und-header | ja ("ShowerNow") | neu (`tools/creative.swift`, `tools/mockup.swift`, Icon `tools/assets/AppIcon-1024.png`) |
 | preview/showers-app-preview-de-886x1920.mp4, poster-frame-5s.png | ja (Quellenzeile) | neu (13,57 s, 886x1920, H.264 High, 30 fps, 10 MB; Zeitleiste 08:40 bis 14:05 am 2.11.; Aufnahme per `simctl io recordVideo`, ffmpeg: Ausschnitt 4x verlangsamt, 1 s/1,5 s Standbild vorn/hinten) |
 
 Regen: Am 3.11.2026 abends lag in Deutschland laut `latest.json` kein Regen vor (nur Einzelpixel); Radarmotive zeigen weiter den Archivregen vom 2.11. (Zeitleiste "Mo. 2. Nov."; Banner "Vorerst kein messbarer Regen" passt nicht zum Bild). Alle neuen Dateien RGB ohne Alphakanal, Maße mit `sips` geprüft. Hinweis Reproduktion: Das Derived-Data-Verzeichnis des UI-Test-Bundles darf kein altes `Weather.app` enthalten (der Test installierte sonst Build 15); frisch anlegen oder vorher löschen.
@@ -150,3 +150,18 @@ Der Zeitregler-Wert `SHOT_POS` ist abhängig vom Zeitpunkt (Anteil an der 48-h-S
 - Mac: keine (siehe oben). Englisch: keine. Widgets, Komplikationen, Live Activity: keine.
 - Regen aktuell statt Archiv; Sonne/Blitze/Luftdruck tagsüber/bei Gewitter.
 - Duo gesondert (anderer Auftrag). Geräterahmen nicht erstellt.
+
+## Icon-Aktualisierung (4.11.2026)
+
+Anlass: Die Store-Creatives zeigten noch das alte Icon (Build-15-Karte). Standard-Icon der App ist seit Build 16 d2 (`Weather/Resources/Icon/AppIcon.icon`).
+
+| Datei | Icon sichtbar | Maßnahme |
+|---|---|---|
+| creative/header-21x9 (3840x1646), suche-3x2 (3000x2000), universal-16x9 (5244x2950) | ja | neu mit neuem Icon (RGB, ohne Alpha, `sips` geprüft) |
+| preview/mockup-suche-und-header (2400x1500) | ja (zweimal) | neu |
+| iphone/*, ipad/*, watch/* Screenshots (de, de-kopfzeile) | nein (Karte, Orte-Sheet, Wolken; Info-Sheet nicht abgebildet) | unverändert |
+| preview/poster-frame-5s.png, App-Vorschau-Video (Kartenansicht) | nein (Poster per Sichtprüfung; Video zeigt nur Kartenansicht laut Ablauf, Stichproben nicht erneut gesehen) | unverändert, keine Neuaufnahme nötig |
+
+Icon-Quelle: `tools/assets/AppIcon-1024.png` (ictool, Rendition Default, 1024 px, mit Alpha-Rundung; Befehl: `ictool Weather/Resources/Icon/AppIcon.icon --export-image --output-file ... --platform iOS --rendition Default --width 1024 --height 1024 --scale 1`). `creative.swift`/`mockup.swift` zeichnen das Icon jetzt ohne eigenen Rundungs-Clip und ohne schwarzen Unterbau (sonst dunkler Rand). Eingaben der Creatives: `iphone/1320x2868/de/01-regenradar.png` und `02-orte.png`.
+
+Store-Icon der App-Seite in Connect (1024): kommt aus dem hochgeladenen Build, nicht aus Dateien hier. Build 16 und 17 enthalten laut `testflight-upload.md` `AppIcon.icon` (d2, Build 16: "Icon d2"; `Assets.car` in App und Watch-App vorhanden). Nicht einzeln geprüft: ob das Icon im Connect-Build 17 tatsächlich d2 darstellt (Anzeige erst nach Verarbeitung sichtbar). Der Nutzer muss in Connect die drei neuen Creatives (Header, Suche, universal) hochladen bzw. ersetzen; Screenshots und Video bleiben.
