@@ -50,7 +50,7 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["App-Symbol"].waitForExistence(timeout: 5))
 
         let ids = ["Standard", "Karte", "Eigenentwurf", "V2A", "V2B", "V2C", "V3A", "V3B", "V3C", "V3D",
-                   "V4A", "V4B", "V4C", "V4D", "V5A", "V5B", "V5C"]
+                   "V4A", "V4B", "V4BEigen", "V4BS90", "V4BS90V", "V4C", "V4D", "V5A", "V5B", "V5C"]
         var missing = Set(ids)
         for _ in 0..<8 {
             for id in missing where app.buttons["icon-option-\(id)"].exists { missing.remove(id) }
@@ -96,12 +96,12 @@ final class WeatherSmokeTests: XCTestCase {
             expectation(for: selected, evaluatedWith: option)
             waitForExpectations(timeout: 10)
         }
-        choose("V4D")
+        choose("V4BS90V")
         add(XCTAttachment(screenshot: app.screenshot()))
         XCUIDevice.shared.press(.home)
         sleep(5)
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "Homescreen mit V4D"; shot.lifetime = .keepAlways; add(shot)
+        shot.name = "Homescreen mit V4BS90V"; shot.lifetime = .keepAlways; add(shot)
         app.activate()
         choose("Standard")
         XCUIDevice.shared.press(.home)

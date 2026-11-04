@@ -34,6 +34,7 @@
 		337A7E456E875FF4B50400A4 /* WatchWidgetPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E7BD6E7A6DC9EB1DDAE5AF /* WatchWidgetPreviews.swift */; };
 		35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF405ABCD119D3DE565984B0 /* RadarHistory.swift */; };
 		39DF18911C9C0DC0A3A55E29 /* P3-Handoff.md in Resources */ = {isa = PBXBuildFile; fileRef = 2A6F107BC509B5051E519DE0 /* P3-Handoff.md */; };
+		3A53F2FA79F211148ED73314 /* AltV4BS90.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8136F6B613CB9F5F406C8C7C /* AltV4BS90.icon */; };
 		3A80B1B83AEEFBB1B36A9C20 /* DWDRadarTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D4066D41334EABC25975BF /* DWDRadarTimeline.swift */; };
 		3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */; };
 		3DB5966ABDA4A5C7CD5B742E /* AltV5C.icon in Resources */ = {isa = PBXBuildFile; fileRef = 27A03C766FB3C6A12952E0C6 /* AltV5C.icon */; };
@@ -80,6 +81,7 @@
 		7578FEB967E4B7B232F297A6 /* SharedDWDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F27F89DDD1461C52CB7D8C3 /* SharedDWDTests.swift */; };
 		75F86DD8CB1AB95D7751A5AC /* WidgetLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B6E663017086F3F8D03A3FD /* WidgetLogicTests.swift */; };
 		78ECA247313E3ACD50D76D05 /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDC42A828AFBCEB6EB42CC2 /* DWDClient.swift */; };
+		7935E93E0CEA5BE81094B58C /* AltV4BS90V.icon in Resources */ = {isa = PBXBuildFile; fileRef = 491917199B4D21D6751D3CD2 /* AltV4BS90V.icon */; };
 		79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F074EE7537C4C452040B4523 /* RadarBackendTests.swift */; };
 		7B6FFF4A2D6F2BAECEC86A2A /* RainForecast.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCD9A21B7DD6AEEE51E88C86 /* RainForecast.swift */; };
 		7CB693EC39316EBD1CAC49A7 /* PushActivityWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D16DB25BD2EF2D3A4B69719 /* PushActivityWire.swift */; };
@@ -141,6 +143,7 @@
 		BBCAFC6177CAE2EE714406F2 /* InformationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEB273A74F0043348EF420D /* InformationSheet.swift */; };
 		BC4C017346B5247AA16AAD26 /* RainBarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BBD9CDA345943E9413FDE5 /* RainBarChart.swift */; };
 		BCC1CB280DFD659ECB0A9847 /* PlaceEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 726B436C0E12726B60981BCB /* PlaceEntity.swift */; };
+		BD9648B98BCE7E854E84ED21 /* AltV4BEigen.icon in Resources */ = {isa = PBXBuildFile; fileRef = D72B8C09AA50B352DE39DD46 /* AltV4BEigen.icon */; };
 		BEC91A3193752F6636BD2F69 /* SavedPlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C611C7CE40C6A89732B8A51 /* SavedPlace.swift */; };
 		C0D79166178CA85414354095 /* PlaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD5AC31890B48D87B88F8FE /* PlaceStore.swift */; };
 		C47A6FE5458CA968A49A5BF7 /* RadarLegendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */; };
@@ -309,6 +312,7 @@
 		42B3B7DEDEFDD9949F13AF97 /* DWDResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDResponse.swift; sourceTree = "<group>"; };
 		45DCBDF1C32C793FA149ED73 /* WatchRadarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarStore.swift; sourceTree = "<group>"; };
 		4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineScrubTests.swift; sourceTree = "<group>"; };
+		491917199B4D21D6751D3CD2 /* AltV4BS90V.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV4BS90V.icon; sourceTree = "<group>"; };
 		4B03C5634FC89FDA4A25F788 /* DWDRetryPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRetryPolicy.swift; sourceTree = "<group>"; };
 		4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegendTests.swift; sourceTree = "<group>"; };
 		4DF1306BB0561CD554A38607 /* WidgetForecastLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetForecastLoader.swift; sourceTree = "<group>"; };
@@ -335,6 +339,7 @@
 		79DFE6519E7626357F7FD9A8 /* AltV3A.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV3A.icon; sourceTree = "<group>"; };
 		7B8614BFD65078993309017D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		80E4EE8588C4D543DA31A674 /* WidgetPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPresentation.swift; sourceTree = "<group>"; };
+		8136F6B613CB9F5F406C8C7C /* AltV4BS90.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV4BS90.icon; sourceTree = "<group>"; };
 		8174F0961CBA8C530C9B30C0 /* PushGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGrid.swift; sourceTree = "<group>"; };
 		81D4066D41334EABC25975BF /* DWDRadarTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRadarTimeline.swift; sourceTree = "<group>"; };
 		84D2F386CAC544C31193F313 /* AltV2C.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV2C.icon; sourceTree = "<group>"; };
@@ -385,6 +390,7 @@
 		D23D019DAF3A60C801626605 /* AltV3C.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV3C.icon; sourceTree = "<group>"; };
 		D5E506014F74FCB1F262D83D /* DWDRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRequest.swift; sourceTree = "<group>"; };
 		D69FEFEF54F01AFA6C901B70 /* RadarLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLayer.swift; sourceTree = "<group>"; };
+		D72B8C09AA50B352DE39DD46 /* AltV4BEigen.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV4BEigen.icon; sourceTree = "<group>"; };
 		DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistoryTests.swift; sourceTree = "<group>"; };
 		DACEF8B00DA4F17068FC52A7 /* AltEigenentwurf.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltEigenentwurf.icon; sourceTree = "<group>"; };
 		DBAF7543BD193D4143040591 /* WeatherWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherWidgetsBundle.swift; sourceTree = "<group>"; };
@@ -586,6 +592,9 @@
 				BF4A96F29E42D66D57CA91CD /* AltV3D.icon */,
 				B13C4CACEC08B5EBA1247D32 /* AltV4A.icon */,
 				38C0A073F7AA119B95651D70 /* AltV4B.icon */,
+				D72B8C09AA50B352DE39DD46 /* AltV4BEigen.icon */,
+				8136F6B613CB9F5F406C8C7C /* AltV4BS90.icon */,
+				491917199B4D21D6751D3CD2 /* AltV4BS90V.icon */,
 				C7C793D583E3F0728C8590FD /* AltV4C.icon */,
 				77FF252BEA71E8285F1E7386 /* AltV4D.icon */,
 				A4EC2E779E7E0400EA34DC3C /* AltV5A.icon */,
@@ -990,6 +999,9 @@
 				EE6AF59225B04A82A5CD22A5 /* AltV3D.icon in Resources */,
 				F72DCB9C17078EE40AFFB0E2 /* AltV4A.icon in Resources */,
 				B5C59ED6FD3A56FC2219B8D4 /* AltV4B.icon in Resources */,
+				BD9648B98BCE7E854E84ED21 /* AltV4BEigen.icon in Resources */,
+				3A53F2FA79F211148ED73314 /* AltV4BS90.icon in Resources */,
+				7935E93E0CEA5BE81094B58C /* AltV4BS90V.icon in Resources */,
 				68E1AF0CC9D59E699D1C0A90 /* AltV4C.icon in Resources */,
 				6B71EB61A1C95EA0456F6C84 /* AltV4D.icon in Resources */,
 				3E855ACFAF9B37131652AD0B /* AltV5A.icon in Resources */,
@@ -1427,7 +1439,7 @@
 		58D74D5FF78E369C42427231 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4C AltV4D AltV5A AltV5B AltV5C";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4BEigen AltV4BS90 AltV4BS90V AltV4C AltV4D AltV5A AltV5B AltV5C";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/Weather.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -1480,7 +1492,7 @@
 		925A875C50817E7E5ED70467 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4C AltV4D AltV5A AltV5B AltV5C";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4BEigen AltV4BS90 AltV4BS90V AltV4C AltV4D AltV5A AltV5B AltV5C";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/Weather.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";

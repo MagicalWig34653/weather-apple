@@ -1,4 +1,4 @@
-# App-Symbol-Auswahl (Build 18)
+# App-Symbol-Auswahl (Build 18, erweitert in Build 19)
 
 Stand: 4. November 2026. Auftrag des Nutzers: Das App-Symbol soll in der App frei zwischen allen bisherigen Vorschlägen einschließlich des alten gewählt werden können. d1, d3 und d4 (`eigenentwurf-dark`) sind bewusst nicht enthalten.
 
@@ -14,10 +14,10 @@ Nicht aus einer abgerufenen Primärseite belegt (Allgemeinwissen, im Simulator z
 
 ## Umsetzung
 
-- 16 Alternativen als `.icon`-Pakete in `Weather/Resources/Icon/Alternates/` (Namen `Alt<ID>`: `AltKarte` = Build-15-Icon, `AltEigenentwurf` = `eigenentwurf-final`, `AltV2A`..`AltV5C`). Kopien der Entwurfspakete ohne Motiv- oder Formatänderung; v2/v3 enthalten teils Basis-`fill` neben Specializations, ihre Dark-Darstellung ist daher nur eingeschränkt (Leitfaden Abschnitt 8). Standard bleibt `AppIcon` (d2, Nachtradar).
-- `project.yml`: Pakete als Ressourcen im Target `Weather`, `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` mit allen 16 Namen. Widgets, Watch-App und Watch-Widgets unverändert.
+- 19 Alternativen (Build 18: 16, Build 19: V4B ersetzt, drei V4B-Varianten neu; siehe Abschnitt "V4B-Varianten") als `.icon`-Pakete in `Weather/Resources/Icon/Alternates/` (Namen `Alt<ID>`: `AltKarte` = Build-15-Icon, `AltEigenentwurf` = `eigenentwurf-final`, `AltV2A`..`AltV5C`). Kopien der Entwurfspakete ohne Motiv- oder Formatänderung; v2/v3 enthalten teils Basis-`fill` neben Specializations, ihre Dark-Darstellung ist daher nur eingeschränkt (Leitfaden Abschnitt 8). Standard bleibt `AppIcon` (d2, Nachtradar).
+- `project.yml`: Pakete als Ressourcen im Target `Weather`, `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` mit allen 19 Namen. Widgets, Watch-App und Watch-Widgets unverändert.
 - `Weather/Icons/AppIconOption.swift` (Liste mit ID, deutschem/englischem Namen, Kurzbeschreibung, `alternateIconName`), `Weather/Icons/IconPickerView.swift` (Raster, Auswahlmarkierung, `supportsAlternateIcons`, Fehleranzeige), Einstieg über Abschnitt "App-Symbol" in `InformationSheet`. Die App-Oberfläche ist deutsch; englische Namen sind hinterlegt und werden bei englischer Systemsprache verwendet.
-- Vorschauen: `Weather/Resources/IconPreviews.xcassets` (17 PNG, 160 px, mit `ictool` Default-Darstellung aus den Paketen gerendert, zusammen etwa 1 MB).
+- Vorschauen: `Weather/Resources/IconPreviews.xcassets` (20 PNG, 160 px, mit `ictool` Default-Darstellung aus den Paketen gerendert, zusammen etwa 1 MB).
 - Konsistenzprüfung: `tools/check-icon-options.sh` (Optionsliste, `project.yml`, Paketordner, Vorschaukatalog).
 - Hinweis in der Oberfläche: Systemhinweis bei jedem Wechsel; Apple Watch behält das Standard-Symbol; Widgets nicht betroffen.
 
@@ -34,3 +34,30 @@ Die Prüfergebnisse stehen am Ende dieser Datei (Abschnitt "Prüfungen").
 ## Paketgröße und Upload (Build 18)
 
 IPA-Größe lokal exportiert: Build 17 8.409.378 Byte, Build 18 87.749.697 Byte (+79,3 MB), da `Assets.car` alle Renditionen der 16 Alternativen enthält (je etwa 4,5 bis 6,8 MB). Build 18 ist hochgeladen (siehe [testflight-upload.md](testflight-upload.md)). Mögliche spätere Verkleinerung: weniger Alternativen, Pakete mit weniger Ebenen/Darstellungen. Nicht gemessen: Downloadgröße nach App Thinning.
+
+## V4B-Varianten (Build 19, 4.11.2026)
+
+Befund: Die im Repo eingecheckte `design/Icon/v4/v4b.icon` (und damit `AltV4B` in Build 18) war die vom Nutzer geänderte Fassung (Hintergrund `extended-gray:0.25`, große gelbe Wolke oben rechts, grüner Sektor). Das Original (leuchtend blauer Verlauf, weißer Punkt, drei Ringe, halbtransparenter weißer Sektor mit drei Segmenten, kleine gelbe Wolke) wurde mit `design/Icon/v4/generate_v4.py b` neu erzeugt und per `ictool` gegen `design/Icon/v4/previews/v4b-default.png`/`v4b-dark.png` geprüft: mittlere Abweichung etwa 0,2 von 255 je Kanal, nur 0,1 % der Pixel (Kantenglättung) über 2/255, Sichtvergleich identisch.
+
+| Paket (design/Icon/v4) | App-Eintrag (`Alt...`) | Anzeigename | Inhalt |
+|---|---|---|---|
+| `v4b-original.icon` | `AltV4B` | Radar und Wolke | Original, unverändert |
+| `v4b-eigen.icon` | `AltV4BEigen` | Radar und Wolke (eigene Fassung) | Nutzerfassung, byteidentisch gesichert |
+| `v4b-sektor90.icon` | `AltV4BS90` | Radar und Wolke, Sektor 90° | Original, Sektor 0° bis 90° |
+| `v4b-sektor90-uebergang.icon` | `AltV4BS90V` | Radar und Wolke, Sektor 90° mit Verlauf | wie Sektor 90°, Sektorfüllung mit Verlauf der Nutzerfassung |
+
+Erzeugt mit `design/Icon/v4/make_sektor90.py`; Vorschauen (Default/Dark/Tinted 1024, 60 px) und Tafel `vergleich.png` in `design/Icon/v4/previews-v4b/` (`render.sh`).
+
+**Verlauf der Nutzerfassung** (`v4b-eigen.icon/icon.json`, Ebene `Sweep 1`, `sw1.svg`, Blend `normal`, Ebenen-Deckkraft 1): Default-Fill `linear-gradient` von `display-p3:0.44053,0.82207,0.44527` mit Alpha 0,30 nach `extended-srgb:0.204,0.780,0.349` mit Alpha 1,0 (beides Grün), `orientation` start (0,0) nach stop (1, 0,814), also schräg von oben links nach unten rechts (etwa 39° unter der Waagerechten, y nach unten, Einheitsquadrat). Der Blau-Grün-Übergang entsteht, weil das halbtransparente Grün über dem blauen Hintergrund liegt: zur Mitte hin (transparent) scheint das Blau durch, nach außen wird es deckend grün. Dark: keine Verlaufsfüllung, `solid srgb:0.749,0.816,1.0` (Hellblau); Tinted: `extended-gray:0.65`. Die Nutzerfassung hat nur einen Sektor (kein Dreisegment).
+
+**Sektor 0° bis 90°:** Winkelkonvention der SVGs (`pt()` in `generate_v4.py`): Kompasswinkel, 0° = oben (12 Uhr), im Uhrzeigersinn, Mittelpunkt (512, 512) = weißer Punkt, Radius 372. Original: `sw1` -8° bis 80°, `sw2` 30° bis 80°, `sw3` 60° bis 80°. Neu: `sw1` 0° bis 90°, `sw2` 40° bis 90°, `sw3` 70° bis 90° (Segmentgrenzen proportional, Viertelkreis von 12 bis 3 Uhr). Wolke, Ringe, Punkt und Farben bleiben wie im Original; die Wolke (Zentrum 648/352) deckt etwa die Mitte des Viertelkreises teilweise ab, der Keil bleibt an Bogen, Kanten und unten sichtbar, daher nicht versetzt. `v4b-sektor90`: Segmentdeckkraft wie im Original (0,18/0,30/0,50).
+
+**Sektor 90° mit Verlauf:** Fill aller drei Sektor-Ebenen = Verlauf der Nutzerfassung (Default: Grün, Alpha 0,30 nach 1,0; Dark: Hellblau `0.749,0.816,1.0` Alpha 0,30 nach 1,0, nur über `fill-specializations`; Tinted unverändert grau). Verlaufsrichtung wie in der Nutzerfassung (etwa 39°), aber auf die Bounding-Box des Viertelkreises skaliert (start/stop im Einheitsquadrat, siehe Skript), damit der Verlauf im kleinen Sektor sichtbar bleibt; Ebenen-Deckkraft 0,75/0,45/0,45 (Original 0,18/0,30/0,50), sonst wäre das Grün zu blass.
+
+### Prüfungen Build 19 (4.11.2026, Xcode 27.1, iPhone-18-Pro-Simulator, Kopie unter /private/tmp, ohne Signing)
+
+- `xcodegen generate`, `tools/check-icon-options.sh`: "OK: 19 Alternativen konsistent".
+- Tests: 416 Unit, 0 Fehler. UI im Volllauf: 9 Tests, 1 Fehler in `testSwitchingAppIconAndBack` (Testfehler beim Wechsel auf V4D, dessen Zeile durch die neuen Optionen weiter unten liegt; Koordinaten-Rückfall für den Systemhinweis). Test auf die neue Option `V4BS90V` umgestellt und einzeln wiederholt: grün; `testIconPickerListsAllOptions` (jetzt 20 Optionen) im Volllauf grün; das flaky `testTimelineAtMaximumDynamicTypeKeepsControlsSeparate` trat nicht auf. Ein erneuter Volllauf nach der Testanpassung wurde nicht ausgeführt.
+- Wechsel im Simulator: Auswahl "Radar und Wolke, Sektor 90° mit Verlauf" bestätigt den Systemhinweis; Home-Screen-Screenshot zeigt das Radar mit Viertelkreis-Sektor und Grün-Verlauf; Rückwechsel auf Standard ausgeführt.
+- Gebautes `Weather.app`: je 19 `CFBundleAlternateIcons` in `CFBundleIcons` und `CFBundleIcons~ipad` (enthält `AltV4B`, `AltV4BEigen`, `AltV4BS90`, `AltV4BS90V`), `CFBundleVersion` 19.
+- Nicht geprüft: Gerät, Dark/Tinted der neuen Alternativen auf dem Home-Screen (nur per `ictool` gerendert, siehe `vergleich.png`).

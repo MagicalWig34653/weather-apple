@@ -305,3 +305,8 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `08e48d1509d70a57f4372a9
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
 | Gerät, Alert-Verhalten auf Hardware, Dark/Tinted der Alternativen | Nicht geprüft |
+
+
+## Showers Build 19: V4B-Varianten in der App-Symbol-Auswahl
+
+Siehe [icon-auswahl.md](icon-auswahl.md) (Abschnitt V4B-Varianten). Archiv-/Upload-Ergebnis wird nach dem Lauf ergänzt.

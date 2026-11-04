@@ -5,7 +5,7 @@ final class AppIconOptionTests: XCTestCase {
     func testIdsAreUniqueAndOptionCountIsSeventeen() {
         let ids = AppIconOption.all.map(\.id)
         XCTAssertEqual(Set(ids).count, ids.count)
-        XCTAssertEqual(ids.count, 17)
+        XCTAssertEqual(ids.count, 20)
     }
 
     func testStandardIsFirstAndOnlyOptionWithoutAlternateName() {

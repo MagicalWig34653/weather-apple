@@ -1,0 +1,412 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "srgb:0.22745,0.41961,1.00000,1.00000",
+          "srgb:0.05882,0.12157,0.52549,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "srgb:0.09412,0.13725,0.36863,1.00000",
+          "srgb:0.03529,0.05882,0.20000,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "cell.svg",
+          "name": "Zelle",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,0.76078,0.10196,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.90980,0.66275,0.10196,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.92000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 1.0
+            }
+          ]
+        },
+        {
+          "image-name": "dot.svg",
+          "name": "Ort",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.91765,0.94118,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:1.00000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 1.0
+            }
+          ]
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.3
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "sw3.svg",
+          "name": "Sweep 3",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "linear-gradient": [
+                  "display-p3:0.44053,0.82207,0.44527,0.30000",
+                  "extended-srgb:0.20392,0.78039,0.34902,1.00000"
+                ],
+                "orientation": {
+                  "start": {
+                    "x": 0.4835,
+                    "y": 0.1573
+                  },
+                  "stop": {
+                    "x": 0.8795,
+                    "y": 0.4797
+                  }
+                }
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "linear-gradient": [
+                  "srgb:0.74902,0.81569,1.00000,0.30000",
+                  "srgb:0.74902,0.81569,1.00000,1.00000"
+                ],
+                "orientation": {
+                  "start": {
+                    "x": 0.4835,
+                    "y": 0.1573
+                  },
+                  "stop": {
+                    "x": 0.8795,
+                    "y": 0.4797
+                  }
+                }
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.85000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 0.45
+            }
+          ]
+        },
+        {
+          "image-name": "sw2.svg",
+          "name": "Sweep 2",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "linear-gradient": [
+                  "display-p3:0.44053,0.82207,0.44527,0.30000",
+                  "extended-srgb:0.20392,0.78039,0.34902,1.00000"
+                ],
+                "orientation": {
+                  "start": {
+                    "x": 0.4835,
+                    "y": 0.1573
+                  },
+                  "stop": {
+                    "x": 0.8795,
+                    "y": 0.4797
+                  }
+                }
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "linear-gradient": [
+                  "srgb:0.74902,0.81569,1.00000,0.30000",
+                  "srgb:0.74902,0.81569,1.00000,1.00000"
+                ],
+                "orientation": {
+                  "start": {
+                    "x": 0.4835,
+                    "y": 0.1573
+                  },
+                  "stop": {
+                    "x": 0.8795,
+                    "y": 0.4797
+                  }
+                }
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.75000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 0.45
+            }
+          ]
+        },
+        {
+          "image-name": "sw1.svg",
+          "name": "Sweep 1",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "linear-gradient": [
+                  "display-p3:0.44053,0.82207,0.44527,0.30000",
+                  "extended-srgb:0.20392,0.78039,0.34902,1.00000"
+                ],
+                "orientation": {
+                  "start": {
+                    "x": 0.4835,
+                    "y": 0.1573
+                  },
+                  "stop": {
+                    "x": 0.8795,
+                    "y": 0.4797
+                  }
+                }
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "linear-gradient": [
+                  "srgb:0.74902,0.81569,1.00000,0.30000",
+                  "srgb:0.74902,0.81569,1.00000,1.00000"
+                ],
+                "orientation": {
+                  "start": {
+                    "x": 0.4835,
+                    "y": 0.1573
+                  },
+                  "stop": {
+                    "x": 0.8795,
+                    "y": 0.4797
+                  }
+                }
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.65000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 0.75
+            }
+          ]
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.15
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "r3.svg",
+          "name": "Ring innen",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.61569,0.70588,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.90000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 0.18
+            }
+          ]
+        },
+        {
+          "image-name": "r2.svg",
+          "name": "Ring mitte",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.61569,0.70588,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.90000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 0.14
+            }
+          ]
+        },
+        {
+          "image-name": "r1.svg",
+          "name": "Ring aussen",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.61569,0.70588,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:0.90000,1.00000"
+              }
+            }
+          ],
+          "opacity-specializations": [
+            {
+              "value": 0.12
+            }
+          ]
+        }
+      ],
+      "hidden": false,
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.15
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}
