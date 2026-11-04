@@ -61,3 +61,5 @@ Erzeugt mit `design/Icon/v4/make_sektor90.py`; Vorschauen (Default/Dark/Tinted 1
 - Wechsel im Simulator: Auswahl "Radar und Wolke, Sektor 90° mit Verlauf" bestätigt den Systemhinweis; Home-Screen-Screenshot zeigt das Radar mit Viertelkreis-Sektor und Grün-Verlauf; Rückwechsel auf Standard ausgeführt.
 - Gebautes `Weather.app`: je 19 `CFBundleAlternateIcons` in `CFBundleIcons` und `CFBundleIcons~ipad` (enthält `AltV4B`, `AltV4BEigen`, `AltV4BS90`, `AltV4BS90V`), `CFBundleVersion` 19.
 - Nicht geprüft: Gerät, Dark/Tinted der neuen Alternativen auf dem Home-Screen (nur per `ictool` gerendert, siehe `vergleich.png`).
+
+Build 19 hochgeladen (siehe [testflight-upload.md](testflight-upload.md)); IPA 107.082.362 Byte (Build 18: 87.749.697).

@@ -307,6 +307,19 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `08e48d1509d70a57f4372a9
 | Gerät, Alert-Verhalten auf Hardware, Dark/Tinted der Alternativen | Nicht geprüft |
 
 
-## Showers Build 19: V4B-Varianten in der App-Symbol-Auswahl
+## Showers Build 19: Upload angenommen (Xcode 27.1), V4B-Varianten in der App-Symbol-Auswahl
 
-Siehe [icon-auswahl.md](icon-auswahl.md) (Abschnitt V4B-Varianten). Archiv-/Upload-Ergebnis wird nach dem Lauf ergänzt.
+Quellencheckpoint `236c4f8` (`CURRENT_PROJECT_VERSION = 19`), Archiv/Export aus `git archive`-Kopie mit Xcode 27.1 per `DEVELOPER_DIR`, Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher: 416 Unit-Tests, 0 Fehler; UI-Tests siehe [icon-auswahl.md](icon-auswahl.md). Optionen wie Build 18.
+
+**Genau ein Upload, 4. November 2026 von 14:36:31 bis 14:39:00 Uhr** (nach lokalem Export zur Paketprüfung): Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokale IPA, SHA-256 `f1e10e40ac034fee67777e7a69cf14bc56081cc1903931183aa8a61f5511009b`): vier Bundles, `CFBundleDisplayName` überall `Showers`, `CFBundleVersion` überall 19, `codesign --verify --deep --strict` je Bundle ok; `aps-environment=production`, `time-sensitive`, `get-task-allow=false`, App Group in der App; keine `.md` im Paket. App-`Info.plist`: je 19 `CFBundleAlternateIcons` in `CFBundleIcons` und `CFBundleIcons~ipad`, primär `AppIcon`; `Assets.car` enthält `AltV4B`, `AltV4BEigen`, `AltV4BS90`, `AltV4BS90V`. Watch-App: nur `CFBundleIconName=AppIcon`, keine `Alt`-Renditionen.
+
+**Paketgröße:** IPA Build 19 107.082.362 Byte (Build 18: 87.749.697; +19,3 MB für drei zusätzliche Alternativen, je etwa 6,4 MB). App-Store-Downloadgröße (App Thinning) nicht gemessen.
+
+| Zustand Build 19 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
+| Gerät, Dark/Tinted der Alternativen auf Hardware | Nicht geprüft |
