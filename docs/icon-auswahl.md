@@ -1,3 +1,7 @@
+# App-Symbol-Auswahl (entfernt am 6.11.2026)
+
+**Entfernt (6.11.2026, Nutzerentscheidung):** Das neue Icon (`AppIcon.icon`, V4B Sektor 90° mit Verlauf) gilt endgültig überall. Alle Alternativ-Icons (`Weather/Resources/Icon/Alternates/`), `IconPreviews.xcassets`, `AppIconOption`, `IconPickerView`, der Abschnitt "App-Symbol" im Info-Sheet, `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES`, `tools/check-icon-options.sh`, `AppIconOptionTests` und die UI-Tests `testIconPickerListsAllOptions`/`testSwitchingAppIconAndBack` sind gelöscht. Design-Quellen unter `design/Icon` bleiben. Wiederherstellung per Git: Stand vor dem Entfernungs-Commit (Build 20, Commit `9ca5176`), z. B. `git checkout 9ca5176 -- Weather/Icons Weather/Resources/Icon/Alternates`. Der Rest dieser Datei ist historisch.
+
 # App-Symbol-Auswahl (Build 18, erweitert in Build 19)
 
 Stand: 4. November 2026. Auftrag des Nutzers: Das App-Symbol soll in der App frei zwischen allen bisherigen Vorschlägen einschließlich des alten gewählt werden können. d1, d3 und d4 (`eigenentwurf-dark`) sind bewusst nicht enthalten.
