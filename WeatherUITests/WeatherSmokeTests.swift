@@ -189,6 +189,80 @@ final class WeatherSmokeTests: XCTestCase {
         print("TIMELINE_AXMAX play=\(play.frame) slider=\(slider.frame) now=\(now.frame) labelExists=\(label.exists)")
     }
 
+    func testScrubBubbleSitsAboveSliderWithinScreenAtNormalAndMaximumTextSize() throws {
+        for large in [false, true] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestShowScrubBubble"]
+                + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+            app.launch()
+            let slider = app.sliders["Radarzeitpunkt"]
+            guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
+            // The enclosing timeline container overrides the identifier, so the bubble is found by its time-only label.
+            let bubble = app.otherElements.matching(NSPredicate(format: "label MATCHES %@", "(.*, )?\\d{1,2}:\\d{2}( [AP]M)?")).firstMatch
+            XCTAssertTrue(bubble.waitForExistence(timeout: 5), "Die Zeit-Bubble fehlt (large=\(large)).")
+            XCTAssertLessThanOrEqual(bubble.frame.maxY, slider.frame.minY - 10, "Die Bubble liegt über dem Regler, nicht darauf (large=\(large)).")
+            XCTAssertGreaterThanOrEqual(bubble.frame.minX, 0)
+            XCTAssertLessThanOrEqual(bubble.frame.maxX, app.frame.maxX)
+            if large {
+                let frameLabel = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Messung")).firstMatch
+                XCTAssertLessThanOrEqual(bubble.frame.maxY, frameLabel.frame.minY, "Die Bubble verdeckt die Zeitanzeige nicht.")
+            }
+            for control in [app.buttons["Radaranimation starten"], app.buttons["Jetzt"]] {
+                XCTAssertFalse(bubble.frame.intersects(control.frame), "Die Bubble überlappt \(control.label) (large=\(large)).")
+            }
+            let shot = XCTAttachment(screenshot: app.screenshot())
+            shot.name = large ? "scrub-bubble-maximum-type" : "scrub-bubble-normal"
+            shot.lifetime = .keepAlways
+            add(shot)
+            app.terminate()
+        }
+    }
+
+    func testGlowPlaysWhenEnteringForecastAndDoesNotBlockInput() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestExposeGlow"]
+        app.launch()
+        let details = app.buttons["forecast-details"]
+        XCTAssertTrue(details.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.descendants(matching: .any)["forecast-glow"].exists, "Kein Glow vor dem Betreten.")
+        details.tap()
+        let glow = app.descendants(matching: .any)["forecast-glow"]
+        XCTAssertTrue(glow.waitForExistence(timeout: 3), "Der Glow erscheint beim Betreten der Prognose.")
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "forecast-glow"
+        shot.lifetime = .keepAlways
+        add(shot)
+        // Input still works while the glow runs.
+        let done = app.buttons["Fertig"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        XCTAssertTrue(done.isHittable)
+        done.tap()
+        XCTAssertTrue(app.sliders["Radarzeitpunkt"].waitForExistence(timeout: 10) || app.buttons["forecast-details"].waitForExistence(timeout: 10))
+        XCTAssertTrue(glow.waitForNonExistence(timeout: 5), "Der Glow endet von selbst.")
+    }
+
+    func testTappingPlaceMarkerJumpsToThePlace() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestSeedPlaces"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Ort auswählen: Teststadt Berlin"].waitForExistence(timeout: 15))
+        let marker = app.descendants(matching: .any)["place-marker-Teststadt Süd"]
+        XCTAssertTrue(marker.waitForExistence(timeout: 10), "Der Name des zweiten Ortes ist als Marker sichtbar.")
+        XCTAssertGreaterThanOrEqual(marker.frame.height, 44)
+        XCTAssertEqual(marker.label, "Zum Ort Teststadt Süd springen")
+        // Tapping empty map changes nothing.
+        app.otherElements["radar-map"].coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.45)).tap()
+        XCTAssertTrue(app.buttons["Ort auswählen: Teststadt Berlin"].exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "place-markers"
+        shot.lifetime = .keepAlways
+        add(shot)
+        marker.tap()
+        XCTAssertTrue(app.buttons["Ort auswählen: Teststadt Süd"].waitForExistence(timeout: 10), "Das Tippen wählt und zentriert den Ort.")
+        XCTAssertTrue(app.descendants(matching: .any)["place-marker-Teststadt Berlin"].waitForExistence(timeout: 10),
+                      "Der vorher gewählte Ort wird nun als Marker angeboten.")
+    }
+
     func testNewMapPlaceCanBeSavedRenamedPersistedAndDeleted() throws {
         let app = launchApp()
         let suffix = UUID().uuidString.prefix(8)

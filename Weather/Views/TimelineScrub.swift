@@ -133,6 +133,72 @@ enum TimelineAccessibility {
     }
 }
 
+/// Where the time bubble sits while dragging: above the touch point (the finger never covers it) and
+/// clamped sideways so it stays inside the allowed range. Pure, so it is unit-testable.
+enum ScrubBubblePlacement {
+    /// Distance between the touch centre and the bubble's bottom edge (points).
+    static let clearance: CGFloat = 34
+
+    /// `thumbX` and `bounds` share one coordinate space (slider-local). `offsetY` is the bubble centre
+    /// relative to the slider's vertical centre (negative = up). `lift` raises it further (e.g. above other labels).
+    static func place(thumbX: CGFloat, bubbleSize: CGSize, bounds: ClosedRange<CGFloat>,
+                      lift: CGFloat = 0) -> (centerX: CGFloat, offsetY: CGFloat) {
+        let half = bubbleSize.width / 2
+        let low = bounds.lowerBound + half
+        let high = bounds.upperBound - half
+        let center: CGFloat
+        if high < low || !thumbX.isFinite {
+            center = (bounds.lowerBound + bounds.upperBound) / 2
+        } else {
+            center = min(max(thumbX, low), high)
+        }
+        return (center, -(clearance + max(0, lift) + bubbleSize.height / 2))
+    }
+}
+
+/// Time bubble above the finger while dragging (overlay of the slider; sits outside the slider's accessibility representation).
+struct ScrubBubble: View {
+    let count: Int
+    let index: Int
+    let text: String
+    var tint: Color = .cyan
+    var lift: CGFloat = 0
+    /// Width of the screen area the bubble may use, measured from the screen's left edge.
+    var viewportWidth: CGFloat?
+    /// UI tests: expose the bubble to accessibility (it is hidden from VoiceOver otherwise).
+    var exposed = false
+    @State private var size = CGSize(width: 96, height: 34)
+
+    private let thumb: CGFloat = 28
+    private let height: CGFloat = 44
+
+    var body: some View {
+        GeometryReader { geometry in
+            let trackWidth = max(geometry.size.width - thumb, 1)
+            let fraction = count > 1 ? CGFloat(min(max(index, 0), count - 1)) / CGFloat(count - 1) : 0
+            let global = geometry.frame(in: .global)
+            let bounds: ClosedRange<CGFloat> = viewportWidth.map { (8 - global.minX)...max(8 - global.minX, $0 - 8 - global.minX) }
+                ?? 0...geometry.size.width
+            let spot = ScrubBubblePlacement.place(thumbX: thumb / 2 + trackWidth * fraction, bubbleSize: size,
+                                                  bounds: bounds, lift: lift)
+            Text(text)
+                .font(.headline.monospacedDigit())
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .glassEffect(.regular.tint(tint.opacity(0.35)), in: Capsule())
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+                .position(x: spot.centerX, y: geometry.size.height / 2 + spot.offsetY)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text)
+                .accessibilityIdentifier("timeline-scrub-bubble")
+                .accessibilityHidden(!exposed)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 /// Drag-gesture slider in the look of the system slider (capsule track, glass thumb) with fine scrubbing.
 struct TimelineScrubSlider: View {
     let count: Int

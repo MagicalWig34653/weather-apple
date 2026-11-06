@@ -20,6 +20,7 @@ struct RadarScreen: View {
     /// Fine-scrubbing stage while the finger is down (`nil` when not dragging).
     @State private var scrubStage: ScrubStage?
     @State private var mapBottomInset: CGFloat = 70
+    @State private var screenWidth: CGFloat?
 
     private enum Sheet: String, Identifiable {
         case places, details, information
@@ -35,6 +36,7 @@ struct RadarScreen: View {
                      bottomInset: mapBottomInset, layer: store.activeLayer,
                      visibleManifest: store.activeLayer == .cloudmask ? store.layers.sunVisibleManifest?.backend : nil,
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
+                     places: store.places, onJumpToPlace: { store.select($0) },
                      onBackendFailure: { loaded in
                          // Optional layers have no fallback: a failed layer image never switches the radar source.
                          if loaded == 0, store.activeLayer == .radar { store.backendImagesUnavailable() }
@@ -120,6 +122,15 @@ struct RadarScreen: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
+        #if DEBUG
+        .task {
+            // Manual check only: `-UITestPlayGlowOnLaunch` plays the glow once without opening the forecast.
+            guard CommandLine.arguments.contains("-UITestPlayGlowOnLaunch") else { return }
+            try? await Task.sleep(for: .seconds(4))
+            ScreenGlowPresenter.play(reduceMotion: reduceMotion)
+        }
+        #endif
         .safeAreaInset(edge: .bottom, spacing: 0) {
             timeline
                 .padding(.horizontal, 12)
@@ -201,8 +212,12 @@ struct RadarScreen: View {
             radarLoadState = nil
             scrubIndex = nil
         }
-        .onChange(of: sheet) { _, value in
+        .onChange(of: sheet) { old, value in
             if value != nil { store.isPlaying = false }
+            // Glow only when the forecast area is entered, not on redraws or other sheets.
+            if ScreenGlow.shouldPlay(entered: value == .details, wasShown: old == .details) {
+                ScreenGlowPresenter.play(reduceMotion: reduceMotion)
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { store.isPlaying = false }
@@ -395,6 +410,21 @@ struct RadarScreen: View {
         return date > timeline.referenceTime
     }
 
+    /// Time (and day, when not the reference day) for the bubble above the finger.
+    private var bubbleText: String? {
+        guard let date = displayedDate else { return nil }
+        let time = date.formatted(date: .omitted, time: .shortened)
+        return otherDayLabel(for: date).map { "\($0), \(time)" } ?? time
+    }
+
+    private static var alwaysShowBubble: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-UITestShowScrubBubble")
+        #else
+        false
+        #endif
+    }
+
     private var frameLabel: some View {
         VStack(spacing: 0) {
             if let date = displayedDate {
@@ -476,6 +506,14 @@ struct RadarScreen: View {
                 .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime,
                                                                 caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast)))
                 .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened)). Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.")
+            }
+            .overlay {
+                if let text = bubbleText, scrubIndex != nil || Self.alwaysShowBubble {
+                    ScrubBubble(count: timeline.dates.count, index: displayedIndex, text: text,
+                                tint: displayedIsForecast ? .orange : .cyan,
+                                lift: dynamicTypeSize.isAccessibilitySize ? 112 : 0,
+                                viewportWidth: screenWidth, exposed: Self.alwaysShowBubble)
+                }
             }
         } else {
             Text(store.activeLayer != .radar ? (store.layers.isLoading ? "\(store.activeLayer.title) lädt …" : "Keine Zeiten für \(store.activeLayer.title)")

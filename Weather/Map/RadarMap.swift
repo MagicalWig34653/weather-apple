@@ -16,6 +16,10 @@ struct RadarMap: UIViewRepresentable {
     /// Sun layer only: manifest of the visible-channel helper layer (`nil` = backend does not offer it, mask only).
     var visibleManifest: RadarManifest?
     let onSelect: (CLLocationCoordinate2D) -> Void
+    /// Saved places shown as tappable name markers (the selected place has the main pin).
+    var places: [SavedPlace] = []
+    /// Tap on a place marker: jump to that place.
+    var onJumpToPlace: (SavedPlace) -> Void = { _ in }
     /// Called when a backend image failed; the argument is the number of images loaded so far.
     var onBackendFailure: @MainActor (Int) -> Void = { _ in }
     let onLoadState: @MainActor @Sendable (RadarLoadState) -> Void
@@ -50,14 +54,17 @@ struct RadarMap: UIViewRepresentable {
             center(map)
             coordinator.lastCenterRevision = centerRevision
         }
-        if coordinator.placeID != place.id {
-            map.removeAnnotations(map.annotations)
+        if coordinator.placeID != place.id || coordinator.pinName != place.name {
+            if let old = coordinator.pin { map.removeAnnotation(old) }
             let pin = MKPointAnnotation()
             pin.coordinate = CLLocationCoordinate2D(latitude: place.coordinate.latitude, longitude: place.coordinate.longitude)
             pin.title = place.name
             map.addAnnotation(pin)
+            coordinator.pin = pin
+            coordinator.pinName = place.name
             coordinator.placeID = place.id
         }
+        coordinator.syncPlaceMarkers(map: map, markers: PlaceFocus.markers(places: places, selectedID: place.id))
         if layer != .radar {
             if let manifest = timeline?.backend {
                 coordinator.updateBackend(map: map, manifest: manifest)
@@ -118,9 +125,8 @@ struct RadarMap: UIViewRepresentable {
     }
 
     private func center(_ map: MKMapView, animated: Bool = true) {
-        map.setRegion(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: place.coordinate.latitude,
-                                                                       longitude: place.coordinate.longitude),
-                                        latitudinalMeters: 180_000, longitudinalMeters: 180_000), animated: animated)
+        map.setRegion(PlaceFocus.region(latitude: place.coordinate.latitude, longitude: place.coordinate.longitude,
+                                        currentSpanMeters: nil), animated: animated)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
@@ -131,6 +137,9 @@ struct RadarMap: UIViewRepresentable {
         var reloadRevision = -1
         var lastCenterRevision = -1
         var placeID: UUID?
+        var pin: MKPointAnnotation?
+        var pinName: String?
+        private var markerAnnotations: [UUID: PlaceAnnotation] = [:]
         var overlay: RadarTileOverlay?
         var activeContextID: UUID?
         var backendOverlay: RadarImageOverlay?
@@ -144,6 +153,39 @@ struct RadarMap: UIViewRepresentable {
         let prefetcher = RadarPrefetcher()
         private var currentState: RadarLoadState?
         private var prefetchBytes: Int64 = 0
+
+        /// Adds, updates and removes name markers; unchanged markers stay untouched (no flicker, no redraw per frame).
+        func syncPlaceMarkers(map: MKMapView, markers: [SavedPlace]) {
+            let wanted = Dictionary(uniqueKeysWithValues: markers.map { ($0.id, $0) })
+            for (id, annotation) in markerAnnotations where wanted[id] != annotation.place {
+                map.removeAnnotation(annotation)
+                markerAnnotations[id] = nil
+            }
+            for marker in markers where markerAnnotations[marker.id] == nil {
+                let annotation = PlaceAnnotation(place: marker)
+                markerAnnotations[marker.id] = annotation
+                map.addAnnotation(annotation)
+            }
+        }
+
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard annotation is PlaceAnnotation else { return nil }
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: PlaceMarkerView.reuseID) as? PlaceMarkerView
+                ?? PlaceMarkerView(annotation: annotation, reuseIdentifier: PlaceMarkerView.reuseID)
+            view.annotation = annotation
+            view.onActivate = { [weak self, weak mapView] in
+                guard let self, let place = (annotation as? PlaceAnnotation)?.place else { return }
+                mapView?.deselectAnnotation(annotation, animated: false)
+                self.parent.onJumpToPlace(place)
+            }
+            return view
+        }
+
+        func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
+            guard let place = (annotation as? PlaceAnnotation)?.place else { return }
+            mapView.deselectAnnotation(annotation, animated: false)
+            parent.onJumpToPlace(place)
+        }
 
         func tearDownBackend(map: MKMapView) {
             backendOverlay?.loader.cancelPrefetch()
