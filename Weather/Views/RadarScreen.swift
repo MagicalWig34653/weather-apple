@@ -421,6 +421,9 @@ struct RadarScreen: View {
                     }
                     .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.7)
                     .multilineTextAlignment(.center)
+                    // While dragging the bubble shows the time; the row keeps its space, so nothing jumps or doubles.
+                    .opacity(scrubIndex != nil || Self.alwaysShowBubble ? 0 : 1)
+                    .animation(.easeOut(duration: 0.15), value: scrubIndex != nil)
                 }
             }
             .padding(.top, 6)

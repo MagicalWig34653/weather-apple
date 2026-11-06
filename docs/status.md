@@ -251,3 +251,8 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 
 - Zwei gegenläufig rotierende Farbringe je Zone (Vergangenheit: Blau/Cyan/Indigo/Violett, Zukunft: Orange/Amber/Rot/Rosa), Intensität 0,55 bis 1 aus drei Sinuswellen, Breite 0,8 bis 1,2; Überblenden an "jetzt", Timeline nur während der Geste, Reduced Motion statisch.
 - Geprüft: Schema `Weather` auf B15 iPhone 18 Pro, ohne Signing: Volllauf grün (Unit inkl. neuem Paletten-/Modulationstest, 13 UI). Kein visueller Simulator-Screenshot des Glows erstellt (Drag per Skript nicht möglich). Nicht hochgeladen.
+
+## Zeit nicht mehr doppelt beim Ziehen (7.11.2026)
+
+- Ursache: beim Scrubben war die Uhrzeit in der festen Zeile und in der Bubble sichtbar. Jetzt blendet die Zeile ihren Text während der Geste aus (Platz bleibt reserviert, Regler springt nicht); die Bubble zeigt die Zeit. Ohne Geste unverändert.
+- Geprüft: Volllauf `Weather` (B15 iPhone 18 Pro, ohne Signing) 451 Unit + 13 UI grün; Simulator-Screenshots mit `-UITestShowScrubBubble` normal und XXXL: Zeit einmal, keine Überlappung. Keine neuen Tests.
