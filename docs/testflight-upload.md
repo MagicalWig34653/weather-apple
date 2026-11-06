@@ -343,3 +343,19 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `37af226cb38819c1df9859c
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
 | Gerät, Darstellung des neuen Standard-Symbols auf Hardware (Default/Dark/Tinted) | Nicht geprüft |
+
+
+## Showers Build 21: Upload angenommen (Xcode 27.1), neues Symbol einziges Symbol
+
+Quellencheckpoint `db12a49` (`CURRENT_PROJECT_VERSION = 21`, Inhalt = `5a5fc06` ohne Alternativ-Icons), Archiv/Export aus `git archive`-Kopie (unter `/private/tmp`) mit Xcode 27.1 per `DEVELOPER_DIR`, `PATH=/usr/bin:/bin:/usr/sbin:/sbin` (rsync-Workaround), Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher 6.11.2026 (iPhone-18-Pro-Simulator, Xcode 27.2): `WeatherTests` 410 Tests, `WeatherUITests` 7 Tests, 0 Fehler (kein flaky Fehlschlag). Optionen wie Build 20.
+
+**Genau ein Upload, 6. November 2026 von 09:37:31 bis 09:39:57 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `747a3d084e09003589fac13ddd08a4ccba0377caa4c43ec6a4e7ec1165c297cf`, 9.717.002 Byte; Build 20: 114.203.666): vier Bundles mit `CFBundleVersion` 21, `codesign --verify --deep --strict` je Bundle ok; keine `CFBundleAlternateIcons`, kein `AltNachtradar` in `Assets.car`; `aps-environment=production`, `time-sensitive=true`, `get-task-allow=false`, App Group `group.de.linolaske.showernow`; keine `.md` im Paket.
+
+| Zustand Build 21 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
+| Gerät, Darstellung des Symbols auf Hardware (Default/Dark/Tinted) | Nicht geprüft |
