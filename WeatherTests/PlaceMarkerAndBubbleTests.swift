@@ -38,13 +38,37 @@ final class ScreenGlowTests: XCTestCase {
     func testScrubGlowBreathStaysWithinRangeAndOrbitIsStaticForReducedMotion() {
         for step in 0..<100 {
             let value = ScreenGlow.breath(at: Double(step) * 0.37)
-            XCTAssertGreaterThanOrEqual(value, 0.82 - 0.0001)
+            XCTAssertGreaterThanOrEqual(value, 0.55 - 0.0001)
             XCTAssertLessThanOrEqual(value, 1.0001)
         }
         XCTAssertEqual(ScreenGlow.orbitAngle(at: 5, reduceMotion: true), 0)
         XCTAssertNotEqual(ScreenGlow.orbitAngle(at: 3, reduceMotion: false), ScreenGlow.orbitAngle(at: 6, reduceMotion: false))
         XCTAssertEqual(ScreenGlow.orbitAngle(at: ScreenGlow.orbitPeriod, reduceMotion: false), 0, accuracy: 0.001)
         XCTAssertEqual(ScreenGlow.stops(for: .orange).count, 5)
+    }
+
+    func testScrubGlowPaletteAndModulation() {
+        for future in [false, true] {
+            let palette = ScreenGlow.palette(future: future)
+            XCTAssertEqual(palette.count, 4)
+            XCTAssertEqual(palette[0], future ? ScreenGlow.futureColor : ScreenGlow.pastColor)
+            for shift in 0..<4 {
+                let ring = ScreenGlow.ringStops(future: future, shift: shift)
+                XCTAssertEqual(ring.count, 5)
+                XCTAssertEqual(ring.first, ring.last)
+            }
+            XCTAssertNotEqual(ScreenGlow.ringStops(future: future, shift: 0), ScreenGlow.ringStops(future: future, shift: 2))
+        }
+        XCTAssertNotEqual(ScreenGlow.palette(future: false), ScreenGlow.palette(future: true))
+        var values = Set<Int>()
+        for step in 0..<200 {
+            let t = Double(step) * 0.21
+            let width = ScreenGlow.widthScale(at: t)
+            XCTAssertGreaterThanOrEqual(width, 0.8 - 0.0001)
+            XCTAssertLessThanOrEqual(width, 1.2 + 0.0001)
+            values.insert(Int(ScreenGlow.breath(at: t) * 100))
+        }
+        XCTAssertGreaterThan(values.count, 15, "Intensität soll deutlich variieren.")
     }
 
     func testScrubGlowToneFollowsPastOrFutureWithNowCountingAsPast() {

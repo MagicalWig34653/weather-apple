@@ -240,3 +240,8 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 - Inhalt: Zeit-Bubble beim Slider, Glow-Rahmen im Prognosebereich, antippbare Ortsmarker auf der Karte (`56f3ca7`), Test-Flaky-Fix `0c0bb17` im WeatherStore.
 - Geprüft: Tests auf `56f3ca7` grün (453 Unit, 13 UI); Release-Archiv Build 25 (`bd3199f`+Buildnummer, `git archive`-Kopie `/private/tmp/showers-b25`) erfolgreich.
 - Upload: genau einer, 6.11.2026 20:46 bis 20:49 Uhr, Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`; keine Delivery-UUID in der Ausgabe. Verarbeitung in App Store Connect nicht abgewartet. Kein Retry.
+
+## Scrub-Glow Siri-artig (7.11.2026, nach Build 27)
+
+- Zwei gegenläufig rotierende Farbringe je Zone (Vergangenheit: Blau/Cyan/Indigo/Violett, Zukunft: Orange/Amber/Rot/Rosa), Intensität 0,55 bis 1 aus drei Sinuswellen, Breite 0,8 bis 1,2; Überblenden an "jetzt", Timeline nur während der Geste, Reduced Motion statisch.
+- Geprüft: Schema `Weather` auf B15 iPhone 18 Pro, ohne Signing: Volllauf grün (Unit inkl. neuem Paletten-/Modulationstest, 13 UI). Kein visueller Simulator-Screenshot des Glows erstellt (Drag per Skript nicht möglich). Nicht hochgeladen.

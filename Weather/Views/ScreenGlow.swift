@@ -15,9 +15,31 @@ enum ScreenGlow {
     static let breathPeriod: TimeInterval = 3.6
     static let orbitPeriod: TimeInterval = 14
 
-    /// Slow breathing of the glow strength, between 0.82 and 1.
+    /// Siri-like intensity modulation: three incommensurable sines, between 0.55 and 1 (1 when static).
     static func breath(at time: TimeInterval) -> Double {
-        0.91 + 0.09 * sin(time / breathPeriod * 2 * .pi)
+        let wave = 0.5 * sin(time / breathPeriod * 2 * .pi)
+            + 0.3 * sin(time / 2.3 * 2 * .pi + 1.1)
+            + 0.2 * sin(time / 5.9 * 2 * .pi + 2.4)
+        return 0.775 + 0.225 * wave
+    }
+
+    /// Slightly varying frame width factor, between 0.8 and 1.2.
+    static func widthScale(at time: TimeInterval) -> Double {
+        1 + 0.2 * sin(time / 4.7 * 2 * .pi + 0.6)
+    }
+
+    /// Subtle colour variance around the base tone (past: blue/cyan/indigo/violet, future: orange/amber/red/pink).
+    static func palette(future: Bool) -> [Color] {
+        future
+            ? [futureColor, Color(red: 1.0, green: 0.72, blue: 0.18), Color(red: 1.0, green: 0.36, blue: 0.22), Color(red: 1.0, green: 0.42, blue: 0.62)]
+            : [pastColor, Color(red: 0.12, green: 0.78, blue: 1.0), Color(red: 0.33, green: 0.30, blue: 0.95), Color(red: 0.60, green: 0.38, blue: 0.95)]
+    }
+
+    /// Closed gradient ring of the palette, shifted by `shift` colours so two layers differ.
+    static func ringStops(future: Bool, shift: Int) -> [Color] {
+        let colors = palette(future: future)
+        let ring = (0..<colors.count).map { colors[($0 + shift) % colors.count] }
+        return ring + [ring[0]]
     }
 
     /// Rotation of the gradient in degrees; 0 for Reduced Motion.
@@ -51,9 +73,10 @@ struct ScrubGlowView: View {
             let t = context.date.timeIntervalSince(start)
             let angle = Angle.degrees(ScreenGlow.orbitAngle(at: t, reduceMotion: reduceMotion))
             let breath = reduceMotion ? 1 : ScreenGlow.breath(at: t)
+            let width = reduceMotion ? 1 : ScreenGlow.widthScale(at: t)
             ZStack {
-                frame(ScreenGlow.pastColor, radius: radius, angle: angle).opacity(model.future ? 0 : 1)
-                frame(ScreenGlow.futureColor, radius: radius, angle: angle).opacity(model.future ? 1 : 0)
+                frame(future: false, radius: radius, angle: angle, width: width).opacity(model.future ? 0 : 1)
+                frame(future: true, radius: radius, angle: angle, width: width).opacity(model.future ? 1 : 0)
             }
             .drawingGroup()
             .opacity(breath)
@@ -68,12 +91,17 @@ struct ScrubGlowView: View {
         .accessibilityValue(model.future ? "forecast" : "measurement")
     }
 
-    private func frame(_ color: Color, radius: CGFloat, angle: Angle) -> some View {
-        let gradient = AngularGradient(colors: ScreenGlow.stops(for: color), center: .center, angle: angle)
+    /// Two counter-rotating colour rings with different speeds blend into each other along the edge.
+    private func frame(future: Bool, radius: CGFloat, angle: Angle, width: Double) -> some View {
+        let a = AngularGradient(colors: ScreenGlow.ringStops(future: future, shift: 0), center: .center, angle: angle)
+        let b = AngularGradient(colors: ScreenGlow.ringStops(future: future, shift: 2), center: .center, angle: .degrees(120) - angle * 1.6)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         return ZStack {
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(gradient, lineWidth: 16).blur(radius: 14).opacity(0.7)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(gradient, lineWidth: 6).blur(radius: 4)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(gradient, lineWidth: 2)
+            shape.strokeBorder(a, lineWidth: 18 * width).blur(radius: 15).opacity(0.55)
+            shape.strokeBorder(b, lineWidth: 14 * width).blur(radius: 11).opacity(0.5)
+            shape.strokeBorder(a, lineWidth: 6 * width).blur(radius: 4).opacity(0.85)
+            shape.strokeBorder(b, lineWidth: 3 * width).blur(radius: 1.5).opacity(0.6)
+            shape.strokeBorder(a, lineWidth: 1.5)
         }
     }
 }
