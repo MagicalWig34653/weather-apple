@@ -359,3 +359,19 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `747a3d084e09003589fac13
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
 | Gerät, Darstellung des Symbols auf Hardware (Default/Dark/Tinted) | Nicht geprüft |
+
+
+## Showers Build 22: Upload angenommen (Xcode 27.1), WP14 Geräte-Opt-in
+
+Quellencheckpoint `a749644` (`CURRENT_PROJECT_VERSION = 22`, enthält WP14 `feef966`), Archiv/Export aus `git archive`-Kopie (`/private/tmp/showers-b22`) mit Xcode 27.1 per `DEVELOPER_DIR`, `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher 6.11.2026 (iPhone-18-Pro-Simulator, Xcode 27.2, `CODE_SIGNING_ALLOWED=NO`): `WeatherTests` 445 Tests, `WeatherUITests` 8 Tests, 0 Fehler (kein flaky Fehlschlag). Optionen wie Build 21.
+
+**Genau ein Upload, 6. November 2026 von 15:53:43 bis 15:56:11 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `41bd0dd07c5aef514288421beb82bed53b4647bd692890c54e762c6ad9143c42`, 9.808.659 Byte): vier Bundles mit `CFBundleVersion` 22, `codesign --verify --deep --strict` je Bundle ok; keine `CFBundleAlternateIcons`; `aps-environment=production`, `time-sensitive=true`, `get-task-allow=false`, App Group `group.de.linolaske.showernow`; `DEVICE_LINK_*` in `de.lproj` und `en.lproj` enthalten; `-UITestBuildChannel` nicht im Release-Binary (strings/grep: 0 Treffer); keine `.md` im Paket.
+
+| Zustand Build 22 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
+| Gerät: Positivfall der Kopplung (Code anzeigen, im Dashboard einlösen), TestFlight meldet `Sandbox` (Spike V1) | Nicht geprüft, nur am TestFlight-Gerät möglich |
