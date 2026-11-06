@@ -36,7 +36,6 @@ struct RadarScreen: View {
                      bottomInset: mapBottomInset, layer: store.activeLayer,
                      visibleManifest: store.activeLayer == .cloudmask ? store.layers.sunVisibleManifest?.backend : nil,
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
-                     places: store.places, onJumpToPlace: { store.select($0) },
                      onBackendFailure: { loaded in
                          // Optional layers have no fallback: a failed layer image never switches the radar source.
                          if loaded == 0, store.activeLayer == .radar { store.backendImagesUnavailable() }
@@ -407,8 +406,11 @@ struct RadarScreen: View {
 
     private var displayedIsForecast: Bool {
         guard let date = displayedDate, let timeline = store.displayTimeline else { return false }
-        return date > timeline.referenceTime
+        return ScreenGlow.isForecast(date: date, reference: timeline.referenceTime)
     }
+
+    /// `nil` while not dragging; otherwise whether the dragged time is in the future (drives the scrub glow).
+    private var scrubGlowState: Bool? { scrubIndex == nil ? nil : displayedIsForecast }
 
     /// Time (and day, when not the reference day) for the bubble above the finger.
     private var bubbleText: String? {
@@ -425,19 +427,25 @@ struct RadarScreen: View {
         #endif
     }
 
+    /// Time (and day) display with a fixed size: a hidden template reserves the widest content and both lines,
+    /// so measurement/forecast or another day never changes the layout (the slider must not move).
     private var frameLabel: some View {
         VStack(spacing: 0) {
-            if let date = displayedDate {
-                Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit()
-                if let day = otherDayLabel(for: date) {
-                    Text(day).font(.caption2).foregroundStyle(.secondary)
+            Text("88:88 AM").font(.subheadline.weight(.semibold)).monospacedDigit()
+            Text("Mo., 88. Okt.").font(.caption2)
+        }
+        .lineLimit(1)
+        .hidden()
+        .fixedSize(horizontal: true, vertical: true)
+        .overlay {
+            VStack(spacing: 0) {
+                if let date = displayedDate {
+                    Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit().lineLimit(1)
+                    Text(otherDayLabel(for: date) ?? " ").font(.caption2).foregroundStyle(.secondary)
+                        .lineLimit(1).minimumScaleFactor(0.6)
                 }
             }
-            Text(store.activeLayer.frameCaption(isForecast: displayedIsForecast))
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(displayedIsForecast ? .orange : .cyan)
         }
-        .fixedSize(horizontal: true, vertical: true)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("radar-frame-label")
     }
@@ -471,14 +479,18 @@ struct RadarScreen: View {
                 if scrubIndex != index { scrubIndex = index }
                 if store.displayFrameIndex != index { store.displayFrameIndex = index }
             }, onEnd: { scrubIndex = nil }, stage: $scrubStage)
+            .onChange(of: scrubGlowState) { _, state in
+                if let state { ScreenGlowPresenter.updateScrub(isForecast: state, reduceMotion: reduceMotion) }
+                else { ScreenGlowPresenter.endScrub() }
+            }
             .sensoryFeedback(.selection, trigger: scrubIndex) { _, new in new != nil }
             .sensoryFeedback(.impact(weight: .light), trigger: scrubStage) { old, new in old != nil && new != nil }
             .overlay(alignment: .bottom) {
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
-                        Color.cyan.frame(width: geometry.size.width * boundary)
-                        Color.orange
+                        ScreenGlow.pastColor.frame(width: geometry.size.width * boundary)
+                        ScreenGlow.futureColor
                     }
                     .clipShape(Capsule())
                     Rectangle().fill(.primary).frame(width: 2, height: 5)
@@ -510,7 +522,7 @@ struct RadarScreen: View {
             .overlay {
                 if let text = bubbleText, scrubIndex != nil || Self.alwaysShowBubble {
                     ScrubBubble(count: timeline.dates.count, index: displayedIndex, text: text,
-                                tint: displayedIsForecast ? .orange : .cyan,
+                                tint: displayedIsForecast ? ScreenGlow.futureColor : ScreenGlow.pastColor,
                                 lift: dynamicTypeSize.isAccessibilitySize ? 112 : 0,
                                 viewportWidth: screenWidth, exposed: Self.alwaysShowBubble)
                 }

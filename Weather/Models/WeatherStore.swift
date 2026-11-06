@@ -94,16 +94,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         do {
-            #if DEBUG
-            let seeded = Self.seededUITestStores()
-            let store = try placeStore ?? seeded?.places ?? PlaceStore()
-            self.placeStore = store
-            self.forecastCache = try forecastCache ?? seeded?.cache ?? ForecastCache()
-            #else
             let store = try placeStore ?? PlaceStore()
             self.placeStore = store
             self.forecastCache = try forecastCache ?? ForecastCache()
-            #endif
             let snapshot = try store.load()
             places = snapshot.places
             if let selected = places.first(where: { $0.id == snapshot.selectedPlaceID }) ?? places.first {
@@ -113,21 +106,6 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             try self.forecastCache?.retain(placeIDs: Set(places.map(\.id)))
         } catch { storageMessage = "Gespeicherte Orte oder Prognosen konnten nicht geladen werden." }
     }
-
-    #if DEBUG
-    /// UI tests only (Debug builds): `-UITestSeedPlaces` uses a throw-away store with two places
-    /// (Berlin, south of it) in the temporary directory; the real places are never touched.
-    private static func seededUITestStores() -> (places: PlaceStore, cache: ForecastCache)? {
-        guard CommandLine.arguments.contains("-UITestSeedPlaces") else { return nil }
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("UITestPlaces-\(UUID().uuidString)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let store = PlaceStore(directory: directory)
-        let berlin = SavedPlace(name: "Teststadt Berlin", coordinate: WeatherCoordinate(latitude: 52.52, longitude: 13.405))
-        let south = SavedPlace(name: "Teststadt Süd", coordinate: WeatherCoordinate(latitude: 51.90, longitude: 12.78))
-        try? store.save(PlaceStore.Snapshot(places: [berlin, south], selectedPlaceID: berlin.id))
-        return (store, ForecastCache(directory: directory.appendingPathComponent("ForecastCache", isDirectory: true), placeStore: store))
-    }
-    #endif
 
     var needsRefresh: Bool {
         !isLoading && (lastRefresh.map { Date().timeIntervalSince($0) >= 300 } ?? true)

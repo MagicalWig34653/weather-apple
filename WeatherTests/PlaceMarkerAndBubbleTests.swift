@@ -1,5 +1,6 @@
 import CoreGraphics
 import CoreLocation
+import SwiftUI
 import XCTest
 @testable import Weather
 
@@ -33,34 +34,6 @@ final class ScrubBubblePlacementTests: XCTestCase {
     }
 }
 
-final class PlaceFocusTests: XCTestCase {
-    func testRegionCentersOnPlaceWithDefaultSpan() {
-        let region = PlaceFocus.region(latitude: 48.1, longitude: 11.5, currentSpanMeters: nil)
-        XCTAssertEqual(region.center.latitude, 48.1, accuracy: 1e-9)
-        XCTAssertEqual(region.center.longitude, 11.5, accuracy: 1e-9)
-        XCTAssertEqual(PlaceFocus.spanMeters(current: nil), PlaceFocus.defaultSpanMeters)
-    }
-
-    func testZoomedInViewKeepsItsZoomButWideViewZoomsIn() {
-        XCTAssertEqual(PlaceFocus.spanMeters(current: 60_000), 60_000)
-        XCTAssertEqual(PlaceFocus.spanMeters(current: 2_000_000), PlaceFocus.defaultSpanMeters)
-        XCTAssertEqual(PlaceFocus.spanMeters(current: 1_000), PlaceFocus.minimumSpanMeters)
-        XCTAssertEqual(PlaceFocus.spanMeters(current: .nan), PlaceFocus.defaultSpanMeters)
-    }
-
-    func testMarkersExcludeSelectedPlaceAndAreOrderedByName() {
-        let a = SavedPlace(name: "Zürich", coordinate: WeatherCoordinate(latitude: 47, longitude: 8))
-        let b = SavedPlace(name: "Aachen", coordinate: WeatherCoordinate(latitude: 50, longitude: 6))
-        let c = SavedPlace(name: "Köln", coordinate: WeatherCoordinate(latitude: 51, longitude: 7))
-        let markers = PlaceFocus.markers(places: [a, b, c], selectedID: c.id)
-        XCTAssertEqual(markers.map(\.name), ["Aachen", "Zürich"])
-    }
-
-    func testAccessibilityLabelNamesThePlace() {
-        XCTAssertEqual(PlaceFocus.accessibilityLabel(for: "Köln"), "Zum Ort Köln springen")
-    }
-}
-
 final class ScreenGlowTests: XCTestCase {
     func testGlowTriggersOnlyWhenEnteringForecast() {
         XCTAssertTrue(ScreenGlow.shouldPlay(entered: true, wasShown: false))
@@ -74,5 +47,17 @@ final class ScreenGlowTests: XCTestCase {
         XCTAssertLessThanOrEqual(ScreenGlow.totalDuration(reduceMotion: false), 2.5)
         XCTAssertGreaterThanOrEqual(ScreenGlow.totalDuration(reduceMotion: false), 1.5)
         XCTAssertLessThan(ScreenGlow.totalDuration(reduceMotion: true), ScreenGlow.totalDuration(reduceMotion: false))
+    }
+
+    func testScrubGlowToneFollowsPastOrFutureWithNowCountingAsPast() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        XCTAssertFalse(ScreenGlow.isForecast(date: now.addingTimeInterval(-300), reference: now))
+        XCTAssertFalse(ScreenGlow.isForecast(date: now, reference: now))
+        XCTAssertTrue(ScreenGlow.isForecast(date: now.addingTimeInterval(300), reference: now))
+    }
+
+    func testScrubGlowUsesBlueForPastAndOrangeForFuture() {
+        XCTAssertNotEqual(ScreenGlow.pastColor, ScreenGlow.futureColor)
+        XCTAssertEqual(ScreenGlow.futureColor, Color.orange)
     }
 }

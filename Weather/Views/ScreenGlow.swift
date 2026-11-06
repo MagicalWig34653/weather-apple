@@ -22,6 +22,13 @@ enum ScreenGlow {
         return 1
     }
 
+    /// Scrub glow: blue for a time in the past (measurement), orange for the future (forecast).
+    /// "Now" itself still counts as past; the same rule as the forecast marker of the slider.
+    static func isForecast(date: Date, reference: Date) -> Bool { date > reference }
+
+    static let pastColor = Color(red: 0.10, green: 0.45, blue: 1.00)
+    static let futureColor = Color.orange
+
     /// Palette of the app icon: blue, cyan and green-teal.
     static let colors: [Color] = [
         Color(red: 0.10, green: 0.45, blue: 1.00), .cyan, Color(red: 0.15, green: 0.85, blue: 0.65),
@@ -53,6 +60,45 @@ struct ScreenGlowView: View {
         .allowsHitTesting(false)
         .accessibilityHidden(!ScreenGlowPresenter.exposesForTests)
         .accessibilityIdentifier("forecast-glow")
+    }
+}
+
+/// Observable state of the scrub glow; only the two values below, the view animates between them.
+@MainActor @Observable
+final class ScrubGlowModel {
+    var visible = false
+    var future = false
+}
+
+/// Static frame (no timeline, no rotation): both tones are stacked and cross-fade by opacity, so passing "now"
+/// blends softly and nothing keeps running while the glow rests.
+struct ScrubGlowView: View {
+    let model: ScrubGlowModel
+    let reduceMotion: Bool
+
+    var body: some View {
+        let radius = ScreenGlowPresenter.cornerRadius
+        ZStack {
+            frame(ScreenGlow.pastColor, radius: radius).opacity(model.future ? 0 : 1)
+            frame(ScreenGlow.futureColor, radius: radius).opacity(model.future ? 1 : 0)
+        }
+        .drawingGroup()
+        .opacity(model.visible ? 1 : 0)
+        .animation(reduceMotion ? .linear(duration: 0.2) : .easeInOut(duration: 0.35), value: model.future)
+        .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.4), value: model.visible)
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(!ScreenGlowPresenter.exposesForTests)
+        .accessibilityIdentifier("scrub-glow")
+        .accessibilityValue(model.future ? "forecast" : "measurement")
+    }
+
+    private func frame(_ color: Color, radius: CGFloat) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(color, lineWidth: 16).blur(radius: 14).opacity(0.7)
+            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(color, lineWidth: 6).blur(radius: 4)
+            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(color, lineWidth: 2)
+        }
     }
 }
 
@@ -108,6 +154,57 @@ enum ScreenGlowPresenter {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(total + 0.1))
             if generation == mine { hide() }
+        }
+    }
+
+    // MARK: Scrub glow
+
+    private static var scrubWindow: UIWindow?
+    private static var scrubModel: ScrubGlowModel?
+    private static var scrubGeneration = 0
+
+    /// Shows or updates the scrub glow while the slider is dragged; call `endScrub` on release.
+    static func updateScrub(isForecast: Bool, reduceMotion: Bool) {
+        scrubGeneration += 1
+        if let model = scrubModel, scrubWindow != nil {
+            model.visible = true
+            model.future = isForecast
+            return
+        }
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }) else { return }
+        let model = ScrubGlowModel()
+        model.future = isForecast
+        let host = UIHostingController(rootView: ScrubGlowView(model: model, reduceMotion: reduceMotion))
+        host.view.backgroundColor = .clear
+        host.view.isUserInteractionEnabled = false
+        let glow = PassthroughWindow(windowScene: scene)
+        glow.frame = scene.coordinateSpace.bounds
+        glow.rootViewController = host
+        host.view.frame = glow.bounds
+        glow.backgroundColor = .clear
+        glow.isUserInteractionEnabled = false
+        glow.windowLevel = .alert + 1
+        glow.isHidden = false
+        scrubWindow = glow
+        scrubModel = model
+        // Fade in on the next turn so the first frame starts transparent.
+        Task { @MainActor in model.visible = true }
+    }
+
+    /// Fades the scrub glow out and removes its window afterwards (nothing stays alive).
+    static func endScrub() {
+        guard let model = scrubModel else { return }
+        scrubGeneration += 1
+        let mine = scrubGeneration
+        model.visible = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.6))
+            guard scrubGeneration == mine else { return }
+            scrubWindow?.isHidden = true
+            scrubWindow?.rootViewController = nil
+            scrubWindow = nil
+            scrubModel = nil
         }
     }
 
