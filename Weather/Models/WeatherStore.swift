@@ -60,6 +60,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
+    /// Refresh started by the last `select`; tests await it to order requests deterministically.
+    @ObservationIgnored private(set) var selectionRefresh: Task<Void, Never>?
     @ObservationIgnored private var waitingForLocation = false
     /// Flüchtige Auswahlen bleiben nur im RAM; gespeicherte Orte nutzen zusätzlich den App-Group-Cache.
     @ObservationIgnored private var lastValidForecasts: [(placeID: UUID, forecast: RainForecast)] = []
@@ -143,7 +145,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         isPlaying = false
         centerRevision += 1
         reloadWidgets()
-        Task { await refresh() }
+        selectionRefresh = Task { await refresh() }
     }
 
     func selectMapPoint(latitude: Double, longitude: Double) {

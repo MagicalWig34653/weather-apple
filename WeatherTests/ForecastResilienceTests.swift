@@ -156,13 +156,16 @@ final class ForecastResilienceTests: XCTestCase {
         store.selectedPlace = b
         store.select(b)
         XCTAssertNil(store.forecast, "B has no forecast of its own; A's must not be shown")
+        await store.selectionRefresh?.value // select(b) starts its own refresh; let it finish first
+        XCTAssertNil(store.forecast)
+        XCTAssertNotNil(store.forecastError)
         await store.refresh()
         XCTAssertNil(store.forecast)
         XCTAssertNotNil(store.forecastError)
         store.select(a)
         XCTAssertNotNil(store.forecast, "switching back shows A's last valid forecast")
         XCTAssertNil(store.forecastError)
-        await store.refresh()
+        await store.selectionRefresh?.value
     }
 
     func testMemoryKeepsOnlyTheLastTenPlaces() {
