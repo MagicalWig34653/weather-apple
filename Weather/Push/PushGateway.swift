@@ -125,6 +125,12 @@ enum PushBackendConfig {
     }
 }
 
+struct PushServerStatus: Equatable, Sendable {
+    let capabilities: Set<String>
+    /// End of the operator's pairing window; `nil` = no window (or unparsable).
+    let deviceLinkWindowEndsAt: Date?
+}
+
 /// URLSession implementation. No cookies, no cache, no credentials store; only the installation secret header.
 /// Retry like `RadarRetryPolicy`: at most 3 attempts for 502/503/504, transient `URLError`s and 429
 /// (`Retry-After` up to 5 s is honored); never for other 4xx, offline or cancellation.
@@ -213,7 +219,10 @@ struct HTTPPushGateway: PushGateway {
                            body: nil, success: [204])
     }
 
-    func capabilities() async throws -> Set<String> {
+    func capabilities() async throws -> Set<String> { try await serverStatus().capabilities }
+
+    /// `GET /v1/status`: capabilities and the operator pairing window (`device_link_window`, absent or null = no window).
+    func serverStatus() async throws -> PushServerStatus {
         guard let url = URL(string: "../status", relativeTo: baseURL)?.absoluteURL else { throw PushGatewayError.invalidResponse }
         var request = URLRequest(url: url)
         request.httpShouldHandleCookies = false
@@ -222,9 +231,11 @@ struct HTTPPushGateway: PushGateway {
             do {
                 let (data, response) = try await transport(request)
                 if response.statusCode == 200 {
-                    struct Status: Decodable { let capabilities: [String]? }
+                    struct Window: Decodable { let ends_at: String? }
+                    struct Status: Decodable { let capabilities: [String]?; let device_link_window: Window? }
                     guard let status = try? JSONDecoder().decode(Status.self, from: data) else { throw PushGatewayError.invalidResponse }
-                    return Set(status.capabilities ?? [])
+                    return PushServerStatus(capabilities: Set(status.capabilities ?? []),
+                                            deviceLinkWindowEndsAt: DeviceLinkWire.date(status.device_link_window?.ends_at))
                 }
                 if RadarRetryPolicy.isTransient(statusCode: response.statusCode), attempt < RadarRetryPolicy.maxAttempts {
                     try await sleep(RadarRetryPolicy.delay(afterAttempt: attempt)); attempt += 1; continue

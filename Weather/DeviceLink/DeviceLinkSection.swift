@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// "Betreiber-Diagnose" section of the info sheet. The caller inserts it only when `DeviceLinkManager.isAvailable`;
-/// there is no hidden or disabled variant (the section must not exist at all in App Store installs).
+/// "Betreiber-Diagnose" section of the info sheet. The caller inserts it only when `DeviceLinkManager.isAvailable`
+/// (operator window open or device linked); there is no hidden or disabled variant.
 struct DeviceLinkSection: View {
     var manager: DeviceLinkManager
 
@@ -26,7 +26,9 @@ struct DeviceLinkSection: View {
                 codeView(code, expiresAt)
             case .linked(_, let expiresAt):
                 linkedView(expiresAt)
-            case .hidden, .off:
+            case .off:
+                windowView
+            case .hidden:
                 EmptyView()
             }
             if let notice = manager.notice {
@@ -35,12 +37,24 @@ struct DeviceLinkSection: View {
                     .accessibilityIdentifier("device-link-notice")
             }
         } header: {
-            Text("DEVICE_LINK_HEADER")
+            // The identifier sits on the header: on the Section it would override those of all children.
+            Text("DEVICE_LINK_HEADER").accessibilityIdentifier("device-link-section")
         } footer: {
             Text("DEVICE_LINK_FOOTER")
         }
-        .accessibilityIdentifier("device-link-section")
         .task(id: manager.phase) { await manager.runPolling() }
+    }
+
+    @ViewBuilder private var windowView: some View {
+        if let end = manager.windowEndsAt, end > Date.now {
+            HStack(spacing: 4) {
+                Text("DEVICE_LINK_WINDOW_REMAINING")
+                Text(timerInterval: Date.now...end, countsDown: true).monospacedDigit()
+            }
+            .font(.footnote).foregroundStyle(.secondary)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("device-link-window")
+        }
     }
 
     private func codeView(_ code: String, _ expiresAt: Date) -> some View {
@@ -81,6 +95,7 @@ struct DeviceLinkSection: View {
         case .offline: "DEVICE_LINK_NOTICE_OFFLINE"
         case .failed: "DEVICE_LINK_NOTICE_FAILED"
         case .codeExpired: "DEVICE_LINK_NOTICE_EXPIRED"
+        case .pairingClosed: "DEVICE_LINK_NOTICE_CLOSED"
         }
     }
 }

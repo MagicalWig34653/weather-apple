@@ -38,24 +38,39 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(information.waitForExistence(timeout: 5))
     }
 
-    /// Simulated App Store install: the operator diagnostics section must not exist in the view hierarchy at all.
-    func testOperatorDiagnosticsSectionIsAbsentOutsideTestFlight() throws {
+    private func openInformation(window: String) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestBuildChannel", "production"]
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestDeviceLinkWindow", window]
         app.launch()
         let information = app.buttons["Datenquellen und Datenschutz"]
         XCTAssertTrue(information.waitForExistence(timeout: 15))
         information.tap()
         XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 5))
+        return app
+    }
+
+    /// No operator window: the section must not exist in the view hierarchy at all.
+    func testOperatorDiagnosticsSectionIsAbsentWithoutWindow() throws {
+        let app = openInformation(window: "closed")
         let privacy = app.staticTexts["Datenschutz"]
         for _ in 0..<10 where !privacy.isHittable { app.swipeUp() }
         XCTAssertTrue(privacy.isHittable)
-        // Give the asynchronous channel check time to (wrongly) insert the section.
+        // Give the asynchronous status check time to (wrongly) insert the section.
         Thread.sleep(forTimeInterval: 2)
         XCTAssertFalse(app.descendants(matching: .any)["device-link-section"].exists)
         XCTAssertFalse(app.switches["device-link-toggle"].exists)
         XCTAssertFalse(app.staticTexts["Betreiber-Diagnose"].exists)
-        XCTAssertFalse(app.staticTexts["Dieses Gerät für die Diagnose bereitstellen"].exists)
+    }
+
+    /// Simulated open operator window: section with switch and remaining time at the very bottom.
+    func testOperatorDiagnosticsSectionAppearsWithOpenWindow() throws {
+        let app = openInformation(window: "open")
+        let toggle = app.descendants(matching: .any)["device-link-toggle"]
+        for _ in 0..<15 where !toggle.exists { app.swipeUp(); Thread.sleep(forTimeInterval: 0.5) }
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["device-link-window"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["device-link-section"].exists)
+        XCTAssertTrue(app.staticTexts["Betreiber-Diagnose"].exists)
     }
 
     func testRadarControlsOpenDetailsAndReturnToCurrentFrame() throws {

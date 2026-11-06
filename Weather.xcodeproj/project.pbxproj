@@ -16,7 +16,6 @@
 		0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166813EB890F40B10B45EC0F /* RadarBackend.swift */; };
 		11B67348774B16EBFA6B32BF /* SharedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F8BED59EB9C59CD149AB3B /* SharedConfig.swift */; };
 		1971EF68FE4A4792B48C2424 /* DWDRadarTimeline+App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7222CFC5F24B75CDE31B8C /* DWDRadarTimeline+App.swift */; };
-		1B4449B814E3A3710037A540 /* BuildChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC99DAB0134FDE31C3E64786 /* BuildChannel.swift */; };
 		1B63D9CA7B7560ADFE9D6E48 /* WeatherWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B3D2E0385A5A090F3D28B7 /* WeatherWidgetProvider.swift */; };
 		1D63BAFCEEFA94BB57BBE9EA /* SharedOutlookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11188E89FC9B3090178637B0 /* SharedOutlookTests.swift */; };
 		1D698B1EBFC849BF610479CC /* PlaceEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 726B436C0E12726B60981BCB /* PlaceEntity.swift */; };
@@ -139,7 +138,6 @@
 		C91DE7525CE8DA49DA94820C /* RainActivityContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C6E818DA20B198D44B2860 /* RainActivityContractTests.swift */; };
 		C9896A47945B7AC8A45E3061 /* WidgetTimelineBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F57EC5F818EF91ED7A88D /* WidgetTimelineBuilder.swift */; };
 		C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */; };
-		CABA016F5E8C9CE7D4086A2F /* BuildChannelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 669929DE1204FEABBE4A8B14 /* BuildChannelTests.swift */; };
 		CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */; };
 		CE600B6E262288FE7C5EE6E9 /* RadarLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2783C476525B964D6423D7 /* RadarLayerTests.swift */; };
 		CFF6185C499996B91BB926F6 /* SharedStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE612EC61757EC43E7C452B /* SharedStorageTests.swift */; };
@@ -302,7 +300,6 @@
 		5D6401AEA8F3959BA644C27A /* WatchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchStore.swift; sourceTree = "<group>"; };
 		608664D4BBDD910098C41B9B /* WatchRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarView.swift; sourceTree = "<group>"; };
 		62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarMap.swift; sourceTree = "<group>"; };
-		669929DE1204FEABBE4A8B14 /* BuildChannelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildChannelTests.swift; sourceTree = "<group>"; };
 		68BBD9CDA345943E9413FDE5 /* RainBarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainBarChart.swift; sourceTree = "<group>"; };
 		6BE612EC61757EC43E7C452B /* SharedStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStorageTests.swift; sourceTree = "<group>"; };
 		6C16D04B5FE323C2D2B475C0 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -359,7 +356,6 @@
 		D69FEFEF54F01AFA6C901B70 /* RadarLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLayer.swift; sourceTree = "<group>"; };
 		DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistoryTests.swift; sourceTree = "<group>"; };
 		DBAF7543BD193D4143040591 /* WeatherWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherWidgetsBundle.swift; sourceTree = "<group>"; };
-		DC99DAB0134FDE31C3E64786 /* BuildChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildChannel.swift; sourceTree = "<group>"; };
 		DCD9A21B7DD6AEEE51E88C86 /* RainForecast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainForecast.swift; sourceTree = "<group>"; };
 		E6018099B64B163F2C896E19 /* SunMaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunMaskTests.swift; sourceTree = "<group>"; };
 		EBC9EBD9EB7EC18BA4EE6C0D /* RadarPollScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPollScheduleTests.swift; sourceTree = "<group>"; };
@@ -426,7 +422,6 @@
 			isa = PBXGroup;
 			children = (
 				CB3689859954B0D5427E9040 /* AppWidgetIntegrationTests.swift */,
-				669929DE1204FEABBE4A8B14 /* BuildChannelTests.swift */,
 				40D5E94DAF4534E86C23D4AE /* DeviceLinkTests.swift */,
 				B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */,
 				AA76D542667074A3AA33EFA0 /* Fixtures */,
@@ -621,7 +616,6 @@
 		BE3DCA22D1872A234FE62411 /* DeviceLink */ = {
 			isa = PBXGroup;
 			children = (
-				DC99DAB0134FDE31C3E64786 /* BuildChannel.swift */,
 				D11D9F0A800F934A07684586 /* DeviceLinkGateway.swift */,
 				85E3C22E141BE54476ABDBB6 /* DeviceLinkManager.swift */,
 				49D980972A92ED4901F80E28 /* DeviceLinkSection.swift */,
@@ -941,7 +935,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1B4449B814E3A3710037A540 /* BuildChannel.swift in Sources */,
 				A53B8DCC4AEE2DFA3E640074 /* DWDClient.swift in Sources */,
 				1971EF68FE4A4792B48C2424 /* DWDRadarTimeline+App.swift in Sources */,
 				B23E2F609BF9B755B70305AE /* DWDRadarTimeline.swift in Sources */,
@@ -1028,7 +1021,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D3780BCBAD82DB83E7CEE7FC /* AppWidgetIntegrationTests.swift in Sources */,
-				CABA016F5E8C9CE7D4086A2F /* BuildChannelTests.swift in Sources */,
 				3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */,
 				79B6BCDA394FBBA1FA4C6752 /* DeviceLinkTests.swift in Sources */,
 				D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */,

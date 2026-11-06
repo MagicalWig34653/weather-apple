@@ -6,7 +6,8 @@ enum DeviceLinkError: Error, Equatable, Sendable {
     case unauthorized
     /// 404: `DEVICE_LINK_ENABLED=false` or push off.
     case disabled
-    case notTestFlight
+    /// 403 `pairing_closed`: the operator has no open pairing window.
+    case pairingClosed
     case alreadyLinked
     case linkFull
     case tooLarge
@@ -31,7 +32,7 @@ struct DeviceLinkStatus: Equatable, Sendable {
 }
 
 protocol DeviceLinkGateway: Sendable {
-    func requestCode(_ identity: PushIdentity, appTransaction: String) async throws -> DeviceLinkCode
+    func requestCode(_ identity: PushIdentity) async throws -> DeviceLinkCode
     func status(_ identity: PushIdentity) async throws -> DeviceLinkStatus
     func unlink(_ identity: PushIdentity) async throws
 }
@@ -56,7 +57,7 @@ enum DeviceLinkWire {
         switch (statusCode, code) {
         case (401, _): return .unauthorized
         case (404, _): return .disabled
-        case (403, "not_testflight"): return .notTestFlight
+        case (403, "pairing_closed"): return .pairingClosed
         case (409, "already_linked"): return .alreadyLinked
         case (409, "link_full"): return .linkFull
         case (413, _): return .tooLarge
@@ -90,8 +91,8 @@ extension HTTPPushGateway: DeviceLinkGateway {
 
     private static func wrap(_ error: DeviceLinkError) -> PushGatewayError { .link(error) }
 
-    func requestCode(_ identity: PushIdentity, appTransaction: String) async throws -> DeviceLinkCode {
-        let data = try await linkSend("POST", "link-code", identity, body: ["app_transaction": appTransaction], success: [201])
+    func requestCode(_ identity: PushIdentity) async throws -> DeviceLinkCode {
+        let data = try await linkSend("POST", "link-code", identity, body: [:], success: [201])
         struct Created: Decodable { let code: String; let expires_at: String }
         guard let created = try? JSONDecoder().decode(Created.self, from: data),
               let expires = DeviceLinkWire.date(created.expires_at) else { throw DeviceLinkError.invalidResponse }

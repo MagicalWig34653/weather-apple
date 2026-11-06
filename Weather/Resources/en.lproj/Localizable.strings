@@ -11,11 +11,13 @@
 "DEVICE_LINK_REQUESTING" = "Requesting code …";
 "DEVICE_LINK_LINKED" = "Linked. The operator can inspect this device in the dashboard. The link lasts until you revoke it; switching off deletes it on the server.";
 "DEVICE_LINK_LINKED_UNTIL" = "Linked until %@. Switching off deletes the link on the server.";
-"DEVICE_LINK_FOOTER" = "Voluntary, test versions only and off by default. When you switch it on, the app shows a code that the operator redeems in the dashboard, giving the device a label of their own. For this, the app sends a one-time proof signed by Apple that it comes from a test version; it is not stored. What is stored: the assignment, the label, timestamps and a history of technical delivery results from the last 48 hours, no location data. The link lasts until revoked and can be revoked at any time by switching it off.";
+"DEVICE_LINK_FOOTER" = "Voluntary and off by default. Only while the operator has released pairing (a short time window) can you switch it on: the app then shows a code that the operator redeems in the dashboard, giving the device a label of their own. What is stored: the assignment, the label, timestamps and a history of technical delivery results from the last 48 hours, no location data. The link lasts until revoked and can be revoked at any time by switching it off.";
 "DEVICE_LINK_NOTICE_FULL" = "All slots for linked devices are already in use.";
 "DEVICE_LINK_NOTICE_RATE" = "Too many requests. Please try again later.";
 "DEVICE_LINK_NOTICE_PUSH" = "First switch on rain alerts for a place; only then is this device known to the server.";
 "DEVICE_LINK_NOTICE_OFFLINE" = "No connection. Please try again later.";
 "DEVICE_LINK_NOTICE_FAILED" = "That did not work. Please try again later.";
 "DEVICE_LINK_NOTICE_EXPIRED" = "The code has expired. Switch on again to get a new code.";
-"INSTALL_SOURCE_PRIVACY" = "At launch the app asks Apple's StoreKit for the record of its own installation (for example, whether it is a test version). This happens between your device and Apple; the Showers server is not involved.";
+"DEVICE_LINK_PRIVACY" = "Only when the operator has explicitly released pairing can you voluntarily link this device for diagnostics (section “Operator diagnostics”, off by default). What is then stored: the assignment, a label chosen by the operator, timestamps and a history of technical delivery results from the last 48 hours, permanently until you revoke it; no location data. Switching it off deletes the link on the server. To find out whether a release is running, the app asks the Showers server for its status (no location, no identifier).";
+"DEVICE_LINK_WINDOW_REMAINING" = "The operator has released pairing, remaining";
+"DEVICE_LINK_NOTICE_CLOSED" = "The operator's release has ended. Pairing is only possible during the release.";
