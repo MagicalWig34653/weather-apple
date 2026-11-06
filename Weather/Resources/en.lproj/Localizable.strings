@@ -1,3 +1,21 @@
 /* Push texts: the backend sends only loc-key and loc-args (minutes); no finished text in the payload. */
 "RAIN_STARTS_IN" = "Rain starts in %@ min";
 "RAIN_REGION_STARTS_IN" = "Rain reaches your area in %@ min";
+
+/* Operator diagnostics (TestFlight only, device opt-in) */
+"DEVICE_LINK_HEADER" = "Operator diagnostics";
+"DEVICE_LINK_TOGGLE" = "Provide this device for diagnostics";
+"DEVICE_LINK_CODE_HINT" = "Enter this code in the operator dashboard.";
+"DEVICE_LINK_CODE_LABEL" = "Pairing code %@";
+"DEVICE_LINK_CODE_REMAINING" = "Valid for another";
+"DEVICE_LINK_REQUESTING" = "Requesting code …";
+"DEVICE_LINK_LINKED" = "Linked. The operator can inspect this device in the dashboard. The link lasts until you revoke it; switching off deletes it on the server.";
+"DEVICE_LINK_LINKED_UNTIL" = "Linked until %@. Switching off deletes the link on the server.";
+"DEVICE_LINK_FOOTER" = "Voluntary, test versions only and off by default. When you switch it on, the app shows a code that the operator redeems in the dashboard, giving the device a label of their own. For this, the app sends a one-time proof signed by Apple that it comes from a test version; it is not stored. What is stored: the assignment, the label, timestamps and a history of technical delivery results from the last 48 hours, no location data. The link lasts until revoked and can be revoked at any time by switching it off.";
+"DEVICE_LINK_NOTICE_FULL" = "All slots for linked devices are already in use.";
+"DEVICE_LINK_NOTICE_RATE" = "Too many requests. Please try again later.";
+"DEVICE_LINK_NOTICE_PUSH" = "First switch on rain alerts for a place; only then is this device known to the server.";
+"DEVICE_LINK_NOTICE_OFFLINE" = "No connection. Please try again later.";
+"DEVICE_LINK_NOTICE_FAILED" = "That did not work. Please try again later.";
+"DEVICE_LINK_NOTICE_EXPIRED" = "The code has expired. Switch on again to get a new code.";
+"INSTALL_SOURCE_PRIVACY" = "At launch the app asks Apple's StoreKit for the record of its own installation (for example, whether it is a test version). This happens between your device and Apple; the Showers server is not involved.";

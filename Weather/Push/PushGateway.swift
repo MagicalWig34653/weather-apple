@@ -91,6 +91,8 @@ enum PushGatewayError: Error, Equatable, Sendable {
     case server(Int)
     case invalidResponse
     case test(PushTestFailure)
+    /// Carrier for the device link routes (see `DeviceLinkGateway`).
+    case link(DeviceLinkError)
 }
 
 protocol PushGateway: Sendable {
@@ -282,7 +284,7 @@ struct HTTPPushGateway: PushGateway {
         return body
     }
 
-    private func send(_ method: String, _ path: String, _ identity: PushIdentity, body: [String: Any]?,
+    func send(_ method: String, _ path: String, _ identity: PushIdentity, body: [String: Any]?,
                       success: Set<Int>, retry: Bool = true,
                       mapError: (@Sendable (Int, Data, Int?) -> PushGatewayError)? = nil) async throws -> Data {
         guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else { throw PushGatewayError.invalidResponse }

@@ -6,6 +6,7 @@ struct WeatherApp: App {
     @State private var store = WeatherStore()
     @State private var phoneSession = PhoneSession.live()
     @State private var push: PushManager
+    @State private var deviceLink = DeviceLinkManager.live()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -19,6 +20,7 @@ struct WeatherApp: App {
             RadarScreen(store: store)
                 .tint(.cyan)
                 .environment(push)
+                .environment(deviceLink)
                 .onOpenURL { store.openWidgetURL($0) }
                 .onChange(of: store.places, initial: true) { _, places in
                     phoneSession.update(places: places)
@@ -28,6 +30,7 @@ struct WeatherApp: App {
                     guard scenePhase == .active else { return }
                     phoneSession.start()
                     await push.start()
+                    await deviceLink.refresh()
                 }
                 .task { await store.refresh() }
                 .task(id: scenePhase) {

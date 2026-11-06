@@ -11,10 +11,12 @@
 		03D9F1B3EA6B1FD0D9E5F790 /* RadarBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166813EB890F40B10B45EC0F /* RadarBackend.swift */; };
 		05A009E487A20EEEEBAA1026 /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDC42A828AFBCEB6EB42CC2 /* DWDClient.swift */; };
 		0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */; };
+		07C19AE3EB4AF4BC0C3820A3 /* DeviceLinkGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11D9F0A800F934A07684586 /* DeviceLinkGateway.swift */; };
 		07EF6128696C66AF0B411B75 /* RainActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3180B1F8866A75C2A59FE446 /* RainActivityAttributes.swift */; };
 		0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166813EB890F40B10B45EC0F /* RadarBackend.swift */; };
 		11B67348774B16EBFA6B32BF /* SharedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F8BED59EB9C59CD149AB3B /* SharedConfig.swift */; };
 		1971EF68FE4A4792B48C2424 /* DWDRadarTimeline+App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7222CFC5F24B75CDE31B8C /* DWDRadarTimeline+App.swift */; };
+		1B4449B814E3A3710037A540 /* BuildChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC99DAB0134FDE31C3E64786 /* BuildChannel.swift */; };
 		1B63D9CA7B7560ADFE9D6E48 /* WeatherWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B3D2E0385A5A090F3D28B7 /* WeatherWidgetProvider.swift */; };
 		1D63BAFCEEFA94BB57BBE9EA /* SharedOutlookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11188E89FC9B3090178637B0 /* SharedOutlookTests.swift */; };
 		1D698B1EBFC849BF610479CC /* PlaceEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 726B436C0E12726B60981BCB /* PlaceEntity.swift */; };
@@ -68,10 +70,12 @@
 		68BF3BEF1750853BC8D5E062 /* PhoneSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB99AABCDFCF1959BFA442D8 /* PhoneSession.swift */; };
 		6ADCE61E1640C3DC08452989 /* WatchWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 349D3E0839045A1FA2A0D1E0 /* WatchWidgetProvider.swift */; };
 		6D4B38245BA46B01F3D06FAE /* RainActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3180B1F8866A75C2A59FE446 /* RainActivityAttributes.swift */; };
+		72DB4FE289DFBF7352180B91 /* DeviceLinkSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D980972A92ED4901F80E28 /* DeviceLinkSection.swift */; };
 		72DC79D98FF96A96720A359D /* RadarHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF405ABCD119D3DE565984B0 /* RadarHistory.swift */; };
 		7578FEB967E4B7B232F297A6 /* SharedDWDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F27F89DDD1461C52CB7D8C3 /* SharedDWDTests.swift */; };
 		75F86DD8CB1AB95D7751A5AC /* WidgetLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B6E663017086F3F8D03A3FD /* WidgetLogicTests.swift */; };
 		78ECA247313E3ACD50D76D05 /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDC42A828AFBCEB6EB42CC2 /* DWDClient.swift */; };
+		79B6BCDA394FBBA1FA4C6752 /* DeviceLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D5E94DAF4534E86C23D4AE /* DeviceLinkTests.swift */; };
 		79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F074EE7537C4C452040B4523 /* RadarBackendTests.swift */; };
 		7B6FFF4A2D6F2BAECEC86A2A /* RainForecast.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCD9A21B7DD6AEEE51E88C86 /* RainForecast.swift */; };
 		7CB693EC39316EBD1CAC49A7 /* PushActivityWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D16DB25BD2EF2D3A4B69719 /* PushActivityWire.swift */; };
@@ -95,6 +99,7 @@
 		90FAC3EC054A2F0EE95D5FE8 /* ForecastInterpretationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41AD6A302CA6A069044C960 /* ForecastInterpretationSection.swift */; };
 		92DBFD39F53B8F95C31B6757 /* PlaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD5AC31890B48D87B88F8FE /* PlaceStore.swift */; };
 		9656EEBD185755C683019D2D /* WeatherWidgetPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B334D4CAB185CB1A790DCEC /* WeatherWidgetPreviews.swift */; };
+		9683F418F2BC62E0B1837B38 /* DeviceLinkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E3C22E141BE54476ABDBB6 /* DeviceLinkManager.swift */; };
 		9AD5C1CFAD907D910E5E2485 /* DWDRadarTimeline+App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7222CFC5F24B75CDE31B8C /* DWDRadarTimeline+App.swift */; };
 		9C6486E379CED3B3F1C0C685 /* RadarLayerLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EFBC30D1D558ABDB1F74AC /* RadarLayerLegend.swift */; };
 		9C92C64FE793BE4A3FC196C9 /* RainActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBE95B24FD0B56AB87DFAA99 /* RainActivityManager.swift */; };
@@ -134,6 +139,7 @@
 		C91DE7525CE8DA49DA94820C /* RainActivityContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C6E818DA20B198D44B2860 /* RainActivityContractTests.swift */; };
 		C9896A47945B7AC8A45E3061 /* WidgetTimelineBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F57EC5F818EF91ED7A88D /* WidgetTimelineBuilder.swift */; };
 		C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */; };
+		CABA016F5E8C9CE7D4086A2F /* BuildChannelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 669929DE1204FEABBE4A8B14 /* BuildChannelTests.swift */; };
 		CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */; };
 		CE600B6E262288FE7C5EE6E9 /* RadarLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2783C476525B964D6423D7 /* RadarLayerTests.swift */; };
 		CFF6185C499996B91BB926F6 /* SharedStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE612EC61757EC43E7C452B /* SharedStorageTests.swift */; };
@@ -280,9 +286,11 @@
 		3893D0782052979F4991487D /* WatchRadarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarTests.swift; sourceTree = "<group>"; };
 		3B01B3F12274A8B6A7652EA2 /* WeatherUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WeatherUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		408AB90A46B56EE3B628B952 /* ForecastInterpretation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastInterpretation.swift; sourceTree = "<group>"; };
+		40D5E94DAF4534E86C23D4AE /* DeviceLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkTests.swift; sourceTree = "<group>"; };
 		42B3B7DEDEFDD9949F13AF97 /* DWDResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDResponse.swift; sourceTree = "<group>"; };
 		45DCBDF1C32C793FA149ED73 /* WatchRadarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarStore.swift; sourceTree = "<group>"; };
 		4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineScrubTests.swift; sourceTree = "<group>"; };
+		49D980972A92ED4901F80E28 /* DeviceLinkSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkSection.swift; sourceTree = "<group>"; };
 		4B03C5634FC89FDA4A25F788 /* DWDRetryPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRetryPolicy.swift; sourceTree = "<group>"; };
 		4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegendTests.swift; sourceTree = "<group>"; };
 		4DF1306BB0561CD554A38607 /* WidgetForecastLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetForecastLoader.swift; sourceTree = "<group>"; };
@@ -294,6 +302,7 @@
 		5D6401AEA8F3959BA644C27A /* WatchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchStore.swift; sourceTree = "<group>"; };
 		608664D4BBDD910098C41B9B /* WatchRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarView.swift; sourceTree = "<group>"; };
 		62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarMap.swift; sourceTree = "<group>"; };
+		669929DE1204FEABBE4A8B14 /* BuildChannelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildChannelTests.swift; sourceTree = "<group>"; };
 		68BBD9CDA345943E9413FDE5 /* RainBarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainBarChart.swift; sourceTree = "<group>"; };
 		6BE612EC61757EC43E7C452B /* SharedStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStorageTests.swift; sourceTree = "<group>"; };
 		6C16D04B5FE323C2D2B475C0 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -308,6 +317,7 @@
 		80E4EE8588C4D543DA31A674 /* WidgetPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPresentation.swift; sourceTree = "<group>"; };
 		8174F0961CBA8C530C9B30C0 /* PushGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGrid.swift; sourceTree = "<group>"; };
 		81D4066D41334EABC25975BF /* DWDRadarTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRadarTimeline.swift; sourceTree = "<group>"; };
+		85E3C22E141BE54476ABDBB6 /* DeviceLinkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkManager.swift; sourceTree = "<group>"; };
 		87EC17EFCD57368D616645F0 /* WatchRainWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRainWidgetView.swift; sourceTree = "<group>"; };
 		89A927AD9D5E06A1D7852CE8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		89C6E818DA20B198D44B2860 /* RainActivityContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainActivityContractTests.swift; sourceTree = "<group>"; };
@@ -344,10 +354,12 @@
 		CD166EB5A565C647DE18DAFF /* RadarPollSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPollSchedule.swift; sourceTree = "<group>"; };
 		CD4DA5579F371ACDCFC86F08 /* WatchWidgetPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWidgetPresentation.swift; sourceTree = "<group>"; };
 		D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSmokeTests.swift; sourceTree = "<group>"; };
+		D11D9F0A800F934A07684586 /* DeviceLinkGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkGateway.swift; sourceTree = "<group>"; };
 		D5E506014F74FCB1F262D83D /* DWDRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRequest.swift; sourceTree = "<group>"; };
 		D69FEFEF54F01AFA6C901B70 /* RadarLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLayer.swift; sourceTree = "<group>"; };
 		DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistoryTests.swift; sourceTree = "<group>"; };
 		DBAF7543BD193D4143040591 /* WeatherWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherWidgetsBundle.swift; sourceTree = "<group>"; };
+		DC99DAB0134FDE31C3E64786 /* BuildChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildChannel.swift; sourceTree = "<group>"; };
 		DCD9A21B7DD6AEEE51E88C86 /* RainForecast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainForecast.swift; sourceTree = "<group>"; };
 		E6018099B64B163F2C896E19 /* SunMaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunMaskTests.swift; sourceTree = "<group>"; };
 		EBC9EBD9EB7EC18BA4EE6C0D /* RadarPollScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarPollScheduleTests.swift; sourceTree = "<group>"; };
@@ -414,6 +426,8 @@
 			isa = PBXGroup;
 			children = (
 				CB3689859954B0D5427E9040 /* AppWidgetIntegrationTests.swift */,
+				669929DE1204FEABBE4A8B14 /* BuildChannelTests.swift */,
+				40D5E94DAF4534E86C23D4AE /* DeviceLinkTests.swift */,
 				B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */,
 				AA76D542667074A3AA33EFA0 /* Fixtures */,
 				A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */,
@@ -542,6 +556,7 @@
 			children = (
 				31C772715964CE88B1FF55C6 /* App */,
 				E3DB3311C1865F179DCA6175 /* Data */,
+				BE3DCA22D1872A234FE62411 /* DeviceLink */,
 				56498D04FE568997FD075C8E /* Intelligence */,
 				6D74AB06AA4AFA7E4EB5980F /* Map */,
 				FD0C0E1BC0970EED5C111B49 /* Models */,
@@ -601,6 +616,17 @@
 				80E4EE8588C4D543DA31A674 /* WidgetPresentation.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		BE3DCA22D1872A234FE62411 /* DeviceLink */ = {
+			isa = PBXGroup;
+			children = (
+				DC99DAB0134FDE31C3E64786 /* BuildChannel.swift */,
+				D11D9F0A800F934A07684586 /* DeviceLinkGateway.swift */,
+				85E3C22E141BE54476ABDBB6 /* DeviceLinkManager.swift */,
+				49D980972A92ED4901F80E28 /* DeviceLinkSection.swift */,
+			);
+			path = DeviceLink;
 			sourceTree = "<group>";
 		};
 		C3C8C1939DC6E698AE2C4709 /* Logic */ = {
@@ -915,12 +941,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1B4449B814E3A3710037A540 /* BuildChannel.swift in Sources */,
 				A53B8DCC4AEE2DFA3E640074 /* DWDClient.swift in Sources */,
 				1971EF68FE4A4792B48C2424 /* DWDRadarTimeline+App.swift in Sources */,
 				B23E2F609BF9B755B70305AE /* DWDRadarTimeline.swift in Sources */,
 				F6B3A8578FC7CF2F81F7624E /* DWDRequest.swift in Sources */,
 				3EB71E4DE13EF9054BD00258 /* DWDResponse.swift in Sources */,
 				B6EC1F64AB7B102415B6091E /* DWDRetryPolicy.swift in Sources */,
+				07C19AE3EB4AF4BC0C3820A3 /* DeviceLinkGateway.swift in Sources */,
+				9683F418F2BC62E0B1837B38 /* DeviceLinkManager.swift in Sources */,
+				72DB4FE289DFBF7352180B91 /* DeviceLinkSection.swift in Sources */,
 				3EB1DBF16AB2B5169D800E70 /* ForecastCache.swift in Sources */,
 				64E13A277E0DCDBA13FDE619 /* ForecastInterpretation.swift in Sources */,
 				90FAC3EC054A2F0EE95D5FE8 /* ForecastInterpretationSection.swift in Sources */,
@@ -998,7 +1028,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				D3780BCBAD82DB83E7CEE7FC /* AppWidgetIntegrationTests.swift in Sources */,
+				CABA016F5E8C9CE7D4086A2F /* BuildChannelTests.swift in Sources */,
 				3CB382FE7AF3F439CDE32B99 /* DWDDataTests.swift in Sources */,
+				79B6BCDA394FBBA1FA4C6752 /* DeviceLinkTests.swift in Sources */,
 				D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */,
 				439BD00528C4DD7AB2610BB2 /* ForecastResilienceTests.swift in Sources */,
 				AFA692FB19064E6690FF67EA /* PhoneSessionTests.swift in Sources */,

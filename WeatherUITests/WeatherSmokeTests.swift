@@ -38,6 +38,26 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(information.waitForExistence(timeout: 5))
     }
 
+    /// Simulated App Store install: the operator diagnostics section must not exist in the view hierarchy at all.
+    func testOperatorDiagnosticsSectionIsAbsentOutsideTestFlight() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestBuildChannel", "production"]
+        app.launch()
+        let information = app.buttons["Datenquellen und Datenschutz"]
+        XCTAssertTrue(information.waitForExistence(timeout: 15))
+        information.tap()
+        XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 5))
+        let privacy = app.staticTexts["Datenschutz"]
+        for _ in 0..<10 where !privacy.isHittable { app.swipeUp() }
+        XCTAssertTrue(privacy.isHittable)
+        // Give the asynchronous channel check time to (wrongly) insert the section.
+        Thread.sleep(forTimeInterval: 2)
+        XCTAssertFalse(app.descendants(matching: .any)["device-link-section"].exists)
+        XCTAssertFalse(app.switches["device-link-toggle"].exists)
+        XCTAssertFalse(app.staticTexts["Betreiber-Diagnose"].exists)
+        XCTAssertFalse(app.staticTexts["Dieses Gerät für die Diagnose bereitstellen"].exists)
+    }
+
     func testRadarControlsOpenDetailsAndReturnToCurrentFrame() throws {
         let app = launchApp()
         let slider = app.sliders["Radarzeitpunkt"]
