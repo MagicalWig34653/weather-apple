@@ -429,3 +429,15 @@ Quellencheckpoint: Commit „chore: Buildnummer 27“ (`2ec8239`, `CURRENT_PROJE
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+
+## Showers Build 28 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 28“ (`4902dbd`, Basis `9dc940a`). Verfahren wie Build 27 (`git archive`-Kopie `/private/tmp/showers-b28`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`). Tests (451 Unit, 13 UI) zuvor auf `9dc940a` grün.
+
+**Genau ein Upload, 7. November 2026 von 00:10:22 bis 00:12:21 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry. Lokale IPA-Paketprüfung nicht ausgeführt.
+
+| Zustand Build 28 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
