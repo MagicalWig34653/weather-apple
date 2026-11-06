@@ -28,14 +28,42 @@ final class WeatherSmokeTests: XCTestCase {
         information.tap()
 
         XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 5))
-        let privacy = app.staticTexts["Datenschutz"]
-        for _ in 0..<10 where !privacy.isHittable { app.swipeUp() }
+        let privacy = app.buttons["info-row-privacy"]
         XCTAssertTrue(privacy.isHittable)
+        privacy.tap()
         let explanation = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Kein Konto und keine")).firstMatch
-        XCTAssertTrue(explanation.exists)
+        XCTAssertTrue(explanation.waitForExistence(timeout: 5))
 
+        app.navigationBars.buttons.firstMatch.tap()
         app.buttons["Fertig"].tap()
         XCTAssertTrue(information.waitForExistence(timeout: 5))
+    }
+
+    /// Every row of the info sheet opens its own page with its text.
+    func testInformationSubpagesAreReachable() throws {
+        let app = launchApp()
+        let information = app.buttons["Datenquellen und Datenschutz"]
+        XCTAssertTrue(information.waitForExistence(timeout: 15))
+        information.tap()
+        XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 5))
+        let pages: [(row: String, page: String, text: String)] = [
+            ("sources", "info-page-sources", "Karte und Ortssuche: Apple MapKit"),
+            ("privacy", "info-page-privacy", "Kein Konto und keine"),
+            ("widgets", "info-page-widgets", "Widgets verwenden deine gespeicherten Orte"),
+            ("alerts", "info-page-alerts", "Einstellen kannst du Regenhinweise"),
+            ("past", "info-page-past", "Wie weit die Zeitleiste"),
+            ("support", "info-page-support", "Datenschutzerklärung"),
+        ]
+        for entry in pages {
+            let row = app.buttons["info-row-\(entry.row)"]
+            XCTAssertTrue(row.waitForExistence(timeout: 5), entry.row)
+            row.tap()
+            XCTAssertTrue(app.descendants(matching: .any)[entry.page].waitForExistence(timeout: 5), entry.page)
+            let text = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", entry.text)).firstMatch
+            for _ in 0..<6 where !text.exists { app.swipeUp() }
+            XCTAssertTrue(text.exists, entry.text)
+            app.navigationBars.buttons.firstMatch.tap()
+        }
     }
 
     private func openInformation(window: String) -> XCUIApplication {
@@ -52,9 +80,7 @@ final class WeatherSmokeTests: XCTestCase {
     /// No operator window: the section must not exist in the view hierarchy at all.
     func testOperatorDiagnosticsSectionIsAbsentWithoutWindow() throws {
         let app = openInformation(window: "closed")
-        let privacy = app.staticTexts["Datenschutz"]
-        for _ in 0..<10 where !privacy.isHittable { app.swipeUp() }
-        XCTAssertTrue(privacy.isHittable)
+        XCTAssertTrue(app.buttons["info-row-privacy"].isHittable)
         // Give the asynchronous status check time to (wrongly) insert the section.
         Thread.sleep(forTimeInterval: 2)
         XCTAssertFalse(app.descendants(matching: .any)["device-link-section"].exists)

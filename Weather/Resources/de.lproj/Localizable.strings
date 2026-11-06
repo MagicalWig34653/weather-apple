@@ -21,3 +21,14 @@
 "DEVICE_LINK_PRIVACY" = "Nur wenn der Betreiber die Kopplung ausdrücklich freigegeben hat, kannst du dieses Gerät freiwillig für die Diagnose koppeln (Abschnitt „Betreiber-Diagnose“, standardmäßig aus). Gespeichert werden dann die Zuordnung, eine Bezeichnung des Betreibers, Zeitpunkte und ein Verlauf technischer Zustellergebnisse der letzten 48 Stunden, dauerhaft bis zum Widerruf; keine Standortdaten. Ausschalten löscht die Kopplung auf dem Server. Um zu erfahren, ob eine Freigabe läuft, fragt die App den Showers-Server nach seinem Status (ohne Ort, ohne Kennung).";
 "DEVICE_LINK_WINDOW_REMAINING" = "Der Betreiber hat die Kopplung freigegeben, noch";
 "DEVICE_LINK_NOTICE_CLOSED" = "Die Freigabe des Betreibers ist beendet. Eine Kopplung ist nur während der Freigabe möglich.";
+
+
+/* Info sheet structure */
+"INFO_INTRO_1" = "Regenradar und kurzfristige Ortsprognose für Deutschland, Regenhinweise optional.";
+"INFO_INTRO_2" = "Frühe Testversion: Prognosen können abweichen, bitte das Datenalter beachten.";
+"INFO_ROW_SOURCES" = "Datenquellen";
+"INFO_ROW_PRIVACY" = "Datenschutz";
+"INFO_ROW_WIDGETS" = "Widgets und Apple Watch";
+"INFO_ROW_ALERTS" = "Mitteilungen";
+"INFO_ROW_PAST" = "Maximale Vergangenheit";
+"INFO_ROW_SUPPORT" = "Support und Über Showers";

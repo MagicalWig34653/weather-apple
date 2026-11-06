@@ -21,3 +21,14 @@
 "DEVICE_LINK_PRIVACY" = "Only when the operator has explicitly released pairing can you voluntarily link this device for diagnostics (section “Operator diagnostics”, off by default). What is then stored: the assignment, a label chosen by the operator, timestamps and a history of technical delivery results from the last 48 hours, permanently until you revoke it; no location data. Switching it off deletes the link on the server. To find out whether a release is running, the app asks the Showers server for its status (no location, no identifier).";
 "DEVICE_LINK_WINDOW_REMAINING" = "The operator has released pairing, remaining";
 "DEVICE_LINK_NOTICE_CLOSED" = "The operator's release has ended. Pairing is only possible during the release.";
+
+
+/* Info sheet structure */
+"INFO_INTRO_1" = "Rain radar and short-term place forecast for Germany, rain alerts optional.";
+"INFO_INTRO_2" = "Early test version: forecasts may deviate, please mind the data age.";
+"INFO_ROW_SOURCES" = "Data sources";
+"INFO_ROW_PRIVACY" = "Privacy";
+"INFO_ROW_WIDGETS" = "Widgets and Apple Watch";
+"INFO_ROW_ALERTS" = "Notifications";
+"INFO_ROW_PAST" = "Maximum history";
+"INFO_ROW_SUPPORT" = "Support and about Showers";

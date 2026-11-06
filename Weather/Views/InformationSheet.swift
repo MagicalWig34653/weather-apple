@@ -30,18 +30,64 @@ struct InformationSheet: View {
         }
     }
 
+    private func page<Content: View>(_ title: LocalizedStringKey, id: String, @ViewBuilder _ content: () -> Content) -> some View {
+        List { content() }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier(id)
+    }
+
+    private func row(_ title: LocalizedStringKey, id: String, symbol: String) -> some View {
+        NavigationLink(value: id) { Label(title, systemImage: symbol) }
+            .accessibilityIdentifier("info-row-\(id)")
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                Section("Showers · frühe Testversion") {
-                    Text("Regenradar und kurzfristige Ortsprognose für Deutschland. Regenhinweise als Mitteilung sind optional je gespeichertem Ort oder für einen Umkreis (Region).")
-                    Text("Die Karte zeigt Messbilder und Radarvorhersagen getrennt. Die Punktprognose basiert auf Fünf-Minuten-Intervallen; minutengenaue Zusagen sind daraus nicht ableitbar.")
+                Section {
+                    Text("INFO_INTRO_1")
+                    Text("INFO_INTRO_2")
                 }
+                Section {
+                    row("INFO_ROW_SOURCES", id: "sources", symbol: "map")
+                    row("INFO_ROW_PRIVACY", id: "privacy", symbol: "hand.raised")
+                    row("INFO_ROW_WIDGETS", id: "widgets", symbol: "applewatch")
+                    row("INFO_ROW_ALERTS", id: "alerts", symbol: "bell")
+                    row("INFO_ROW_PAST", id: "past", symbol: "clock.arrow.circlepath")
+                    row("INFO_ROW_SUPPORT", id: "support", symbol: "questionmark.circle")
+                }
+                if deviceLink.isAvailable { DeviceLinkSection(manager: deviceLink) }
+            }
+            .navigationTitle("Über Showers")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: String.self) { id in
+                switch id {
+                case "sources": page("INFO_ROW_SOURCES", id: "info-page-sources") { sourcesContent }
+                case "privacy": page("INFO_ROW_PRIVACY", id: "info-page-privacy") { privacyContent }
+                case "widgets": page("INFO_ROW_WIDGETS", id: "info-page-widgets") { widgetsContent }
+                case "alerts": page("INFO_ROW_ALERTS", id: "info-page-alerts") { alertsContent }
+                case "past": page("INFO_ROW_PAST", id: "info-page-past") { pastSection }
+                default: page("INFO_ROW_SUPPORT", id: "info-page-support") { supportContent }
+                }
+            }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
+            .sitePageSheet($sitePage)
+            .task {
+                await deviceLink.refresh()
+                await deviceLink.runWindowPolling()
+            }
+        }
+    }
+
+    @ViewBuilder private var widgetsContent: some View {
                 Section("Widgets und Apple Watch") {
                     Text("Widgets verwenden deine gespeicherten Orte. Den Ort wählst du beim Bearbeiten des Widgets; Antippen öffnet ihn in der App. Die Aktualisierung im Hintergrund bestimmt das System. Achte auf das angezeigte Datenalter.")
                     Text("Deine gespeicherten Orte werden mit Name, Koordinate und Kennung an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist. Die Übertragung kann verzögert erfolgen. Ein aktueller, nicht gespeicherter Standort wird nicht übertragen.")
                 }
-                pastSection
+    }
+
+    @ViewBuilder private var alertsContent: some View {
                 Section {
                     Text(push.summary).accessibilityIdentifier("push-status")
                     if push.isAnyEnabled {
@@ -56,6 +102,9 @@ struct InformationSheet: View {
                 } footer: {
                     Text("Einstellen kannst du Regenhinweise je Ort (Glockensymbol) oder für Regionen unter „Deine Orte“. Ausschalten löscht die Registrierung auf dem Server.")
                 }
+    }
+
+    @ViewBuilder private var sourcesContent: some View {
                 Section("Datenquellen") {
                     Text("\(store.radarAttribution.attribution). \(store.radarAttribution.modificationNotice). Niederschlagswerte für die Ortsprognose umgerechnet und aufbereitet.")
                     Text("Radarbilder aktuell: \(store.radarSource.label). Normalerweise liefert der Showers-Radar-Server die Bilder; bei Fehlern oder veralteten Daten lädt die App sie selbstständig direkt vom DWD-Kartendienst.")
@@ -64,6 +113,9 @@ struct InformationSheet: View {
                     Link("DWD · Nutzungsbedingungen", destination: URL(string: "https://www.dwd.de/DE/service/copyright/copyright_node.html")!)
                     Text("Karte und Ortssuche: Apple MapKit. Quellenhinweise der Karte bleiben eingeblendet.")
                 }
+    }
+
+    @ViewBuilder private var privacyContent: some View {
                 Section("Datenschutz") {
                     Text("Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben auf deinem iPhone und deiner gekoppelten Apple Watch; sie werden nicht an den Showers-Server übertragen.")
                     Text("Widgets und Apple Watch verwenden ausschließlich gespeicherte Orte und rufen deren Prognosen direkt beim DWD ab. Die Kopplung überträgt nur die aktuelle Ortsliste, keinen Standortverlauf. Die zuletzt gültige Prognose je Ort wird lokal für Widgets gespeichert.")
@@ -78,17 +130,15 @@ struct InformationSheet: View {
                     SitePageButton(page: .about, selection: $sitePage)
                     Text("Die App ist eine frühe Testversion. Prognosen können abweichen; bei fehlenden oder veralteten Daten wird keine aktuelle Aussage zugesichert.")
                 }
-                if deviceLink.isAvailable { DeviceLinkSection(manager: deviceLink) }
-            }
-            .navigationTitle("Über Showers")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
-            .sitePageSheet($sitePage)
-            .task {
-                await deviceLink.refresh()
-                await deviceLink.runWindowPolling()
-            }
+    }
+
+    @ViewBuilder private var supportContent: some View {
+        Section {
+            SitePageButton(page: .privacy, selection: $sitePage)
+            SitePageButton(page: .support, selection: $sitePage)
+            SitePageButton(page: .about, selection: $sitePage)
         }
+        Section { Text("Showers · frühe Testversion").font(.footnote).foregroundStyle(.secondary) }
     }
 
     // MARK: Layer sources
