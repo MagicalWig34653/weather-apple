@@ -406,3 +406,14 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `feea0742334ad294c437661
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
 | Gerät: Kopplungsfenster-Verhalten auf TestFlight-Gerät | Nicht geprüft |
+
+## Showers Build 26 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 26“ (`CURRENT_PROJECT_VERSION = 26`, Basis `5ef03f3`). Verfahren wie Build 25 (`git archive`-Kopie `/private/tmp/showers-b26`, Xcode 27.1 per `DEVELOPER_DIR`, `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, Automatic Signing, Team `J2DU2P47XW`). Vorher 6.11.2026 (iPhone-18-Pro-Simulator, `CODE_SIGNING_ALLOWED=NO`): `WeatherTests` grün.
+
+**Genau ein Upload, 6. November 2026 von 21:10:10 bis 21:12:29 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry. Lokale IPA-Paketprüfung nicht ausgeführt.
+
+| Zustand Build 26 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |

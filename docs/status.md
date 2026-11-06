@@ -221,6 +221,12 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 - Upload: Quellencheckpoint `84d40c2` (git-archive-Kopie), genau ein Upload, Exit 0, `Upload succeeded`, `Uploaded package is processing`. Paketprüfung siehe [testflight-upload.md](testflight-upload.md). NICHT geprüft: Apple-Verarbeitung, Installierbarkeit, Gerät/Watch-Hardware, Widget-/Watch-Anzeige auf Hardware.
 - **Nutzerschritte in App Store Connect:** Namen "Showers" auf Verfügbarkeit prüfen/ändern (Ausweichname z. B. "Showers – Regenradar"); Untertitel, Beschreibung, Keywords, Screenshots anpassen (Store-Screenshots und App-Vorschau-Video zeigen teils noch den alten Namen, nicht neu erzeugt; Video lokal in `showers-app-preview-de-886x1920.mp4` umbenannt); Datenschutz-/Support-/Marketing-URL unverändert lassen; Tester über die Umbenennung informieren. Backend-Seiten und Push-Titel zeigen noch "ShowerNow" (Backend-Repo, eigener Auftrag).
 
+## Build 26 (0.1.1) hochgeladen (6.11.2026)
+
+- Inhalt (gegenüber Build 25, `5ef03f3`): Ortsmarker wieder entfernt; Scrub-Glow (blau Vergangenheit, orange Zukunft) beim Ziehen der Zeitleiste; Zeitleiste ohne Messung/Vorhersage-Wort mit stabilem Layout; Zeit-Bubble.
+- Geprüft: `WeatherTests` (iPhone-18-Pro-Simulator, ohne Signing) grün; Release-Archiv Build 26 (`git archive`-Kopie `/private/tmp/showers-b26`) erfolgreich. UI-Tests und IPA-Paketprüfung nicht ausgeführt.
+- Upload: genau einer, 6.11.2026 21:10 bis 21:12 Uhr, Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Verarbeitung in App Store Connect nicht abgewartet. Kein Retry. Details: [testflight-upload.md](testflight-upload.md).
+
 ## Build 25 (0.1.1) hochgeladen (6.11.2026)
 
 - Inhalt: Zeit-Bubble beim Slider, Glow-Rahmen im Prognosebereich, antippbare Ortsmarker auf der Karte (`56f3ca7`), Test-Flaky-Fix `0c0bb17` im WeatherStore.
