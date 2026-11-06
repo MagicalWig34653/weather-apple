@@ -391,3 +391,18 @@ Hinweis: Die neue Version 0.1.1 beginnt einen neuen Versions-Zug in TestFlight; 
 | Archiv und lokale IPA | Erfolgreich, geprüft |
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 24 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint `bd3199f` (`CURRENT_PROJECT_VERSION = 24`, Basis `df408dd`: Kopplungsfenster-Modell `de96f8f`, Info-Sheet mit Unterseiten). Verfahren wie Build 23 (`git archive`-Kopie `/private/tmp/showers-b24`, Xcode 27.1 per `DEVELOPER_DIR`, `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, Automatic Signing, Team `J2DU2P47XW`). Vorher 6.11.2026 (iPhone-18-Pro-Simulator, `CODE_SIGNING_ALLOWED=NO`): Volllauf 442 Unit + 10 UI-Tests, dabei 1 Fehlschlag in `ForecastResilienceTests.testPlaceSwitchShowsMatchingEntryAndNeverForeignForecast` (Test und `Shared` seit Build 23 unverändert, vermutlich zeitabhängig flaky, Ursache nicht untersucht); danach 3x einzeln und 2x `WeatherTests` komplett (442) grün, UI-Tests im Volllauf 10 grün.
+
+**Genau ein Upload, 6. November 2026 von 18:28:26 bis 18:30:33 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `feea0742334ad294c437661e5d49de3ac952d17da64c3a214848113ddbdfcb1f`, 9.837.065 Byte): vier Bundles mit `CFBundleShortVersionString` 0.1.1 und `CFBundleVersion` 24; `codesign --verify --deep --strict` je Bundle ok; `aps-environment=production`, `time-sensitive=true`, `get-task-allow=false`, App Group `group.de.linolaske.showernow`; keine `.md`, keine `CFBundleAlternateIcons`; `-UITestBuildChannel`, `-UITestDeviceLinkWindow` und `AppTransaction` im Paket je 0 Treffer; `INFO_*` (8 Schlüssel) und `DEVICE_LINK_*` (18) in `de.lproj` und `en.lproj` enthalten.
+
+| Zustand Build 24 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+| Gerät: Kopplungsfenster-Verhalten auf TestFlight-Gerät | Nicht geprüft |
