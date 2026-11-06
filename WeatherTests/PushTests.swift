@@ -500,8 +500,22 @@ final class PushGridTests: XCTestCase {
         XCTAssertEqual(PushGrid.cell(latitude: ne.0, longitude: ne.1), PushGrid.Cell(x: 1023, y: 0))
     }
 
+    func testSensitivityCodableKeepsRawValues() throws {
+        for (raw, value) in [("light", PushSensitivity.light), ("moderate", .moderate), ("heavy", .heavy), ("veryLight", .veryLight)] {
+            let decoded = try JSONDecoder().decode(PushSensitivity.self, from: Data("\"\(raw)\"".utf8))
+            XCTAssertEqual(decoded, value)
+            XCTAssertEqual(value.rawValue, raw)
+        }
+    }
+
     func testSensitivityThresholdsMatchLegendLowerBounds() {
         let entries = MapLegend.precipitationRadar.entries   // entry 0 = "no data", entry n = class n
+        XCTAssertEqual(entries[PushSensitivity.veryLight.threshold].id, "0.1")
+        XCTAssertEqual(PushSensitivity.veryLight.threshold, 1)
+        XCTAssertEqual(PushSensitivity.allCases, [.veryLight, .light, .moderate, .heavy])
+        XCTAssertEqual(PushSensitivity.allCases.map(\.threshold), [1, 3, 5, 8])
+        XCTAssertEqual(PushSensitivity.veryLight.title, "Sehr leicht")
+        XCTAssertEqual(PushSensitivity.veryLight.detail, "ab ca. 0,1 mm/h, löst auch bei Nieselregen aus")
         XCTAssertEqual(entries[PushSensitivity.light.threshold].id, "0.4")
         XCTAssertEqual(entries[PushSensitivity.moderate.threshold].id, "2")
         XCTAssertEqual(entries[PushSensitivity.heavy.threshold].id, "7.5")

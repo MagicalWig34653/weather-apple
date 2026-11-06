@@ -66,12 +66,14 @@ extension PushGrid {
 
 /// Rain intensity thresholds as classes 1...15 of the DWD legend (`MapLegend.precipitationRadar`).
 enum PushSensitivity: String, Codable, CaseIterable, Identifiable, Sendable {
-    case light, moderate, heavy
+    /// Declaration order is the picker order; raw values of existing cases must never change.
+    case veryLight, light, moderate, heavy
     var id: String { rawValue }
 
     /// Legend class sent as `threshold`.
     var threshold: Int {
         switch self {
+        case .veryLight: 1  // from about 0.1 mm/h (drizzle)
         case .light: 3      // from 0.4 mm/h
         case .moderate: 5   // from 2 mm/h
         case .heavy: 8      // from 7.5 mm/h
@@ -79,6 +81,7 @@ enum PushSensitivity: String, Codable, CaseIterable, Identifiable, Sendable {
     }
     var title: String {
         switch self {
+        case .veryLight: "Sehr leicht"
         case .light: "Leicht"
         case .moderate: "Mäßig"
         case .heavy: "Stark"
@@ -86,6 +89,7 @@ enum PushSensitivity: String, Codable, CaseIterable, Identifiable, Sendable {
     }
     var detail: String {
         switch self {
+        case .veryLight: "ab ca. 0,1 mm/h, löst auch bei Nieselregen aus"
         case .light: "ab 0,4 mm/h"
         case .moderate: "ab 2 mm/h"
         case .heavy: "ab 7,5 mm/h"
