@@ -63,3 +63,9 @@ Erzeugt mit `design/Icon/v4/make_sektor90.py`; Vorschauen (Default/Dark/Tinted 1
 - Nicht geprüft: Gerät, Dark/Tinted der neuen Alternativen auf dem Home-Screen (nur per `ictool` gerendert, siehe `vergleich.png`).
 
 Build 19 hochgeladen (siehe [testflight-upload.md](testflight-upload.md)); IPA 107.082.362 Byte (Build 18: 87.749.697).
+
+## Neues Standard-Symbol (6.11.2026)
+
+- Standard (`AppIcon`) ist jetzt die Nutzerfassung `design/Icon/v4/v4b-sektor90-uebergang Kopie.icon` (V4B Sektor 90° mit Verlauf, überarbeitet; 6 Assets). Das bisherige Standard-Symbol (d2, "Nachtradar") bleibt als Alternative `AltNachtradar`; alle übrigen Alternativen unverändert (jetzt 20).
+- Die Watch-App nutzt weiter `AppIcon.icon` und zeigt damit ebenfalls das neue Symbol.
+- Geprüft: `xcodegen generate`, `tools/check-icon-options.sh` (20 konsistent), `AppIconOptionTests` (6, 0 Fehler). Nicht geprüft: Volllauf, UI-Tests, Archiv/Upload (kein Build 20).

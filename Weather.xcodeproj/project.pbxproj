@@ -15,6 +15,7 @@
 		07EF6128696C66AF0B411B75 /* RainActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3180B1F8866A75C2A59FE446 /* RainActivityAttributes.swift */; };
 		0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166813EB890F40B10B45EC0F /* RadarBackend.swift */; };
 		11B67348774B16EBFA6B32BF /* SharedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F8BED59EB9C59CD149AB3B /* SharedConfig.swift */; };
+		15B03605676FDA3EB0B9AF3E /* AltNachtradar.icon in Resources */ = {isa = PBXBuildFile; fileRef = C29288DBB089BE9282ACAAF3 /* AltNachtradar.icon */; };
 		1971EF68FE4A4792B48C2424 /* DWDRadarTimeline+App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7222CFC5F24B75CDE31B8C /* DWDRadarTimeline+App.swift */; };
 		1B63D9CA7B7560ADFE9D6E48 /* WeatherWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B3D2E0385A5A090F3D28B7 /* WeatherWidgetProvider.swift */; };
 		1D63BAFCEEFA94BB57BBE9EA /* SharedOutlookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11188E89FC9B3090178637B0 /* SharedOutlookTests.swift */; };
@@ -378,6 +379,7 @@
 		BF405ABCD119D3DE565984B0 /* RadarHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistory.swift; sourceTree = "<group>"; };
 		BF4A96F29E42D66D57CA91CD /* AltV3D.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV3D.icon; sourceTree = "<group>"; };
 		C05E42607D07EFF4916F6D7D /* PushTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushTests.swift; sourceTree = "<group>"; };
+		C29288DBB089BE9282ACAAF3 /* AltNachtradar.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltNachtradar.icon; sourceTree = "<group>"; };
 		C3F8BED59EB9C59CD149AB3B /* SharedConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConfig.swift; sourceTree = "<group>"; };
 		C7C793D583E3F0728C8590FD /* AltV4C.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AltV4C.icon; sourceTree = "<group>"; };
 		C9F3EDD496FC77265F0FDADD /* WidgetDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDeepLink.swift; sourceTree = "<group>"; };
@@ -583,6 +585,7 @@
 			children = (
 				DACEF8B00DA4F17068FC52A7 /* AltEigenentwurf.icon */,
 				29FD8ECADF10426C4CF8C8C3 /* AltKarte.icon */,
+				C29288DBB089BE9282ACAAF3 /* AltNachtradar.icon */,
 				AED1ED1B1DC2AF1ADB921E0E /* AltV2A.icon */,
 				54F2202CC0AC9F80179DE2B2 /* AltV2B.icon */,
 				84D2F386CAC544C31193F313 /* AltV2C.icon */,
@@ -990,6 +993,7 @@
 			files = (
 				9DBEB413B39DD8A54BCD44C2 /* AltEigenentwurf.icon in Resources */,
 				816FA6BE46BB13F3857AB87E /* AltKarte.icon in Resources */,
+				15B03605676FDA3EB0B9AF3E /* AltNachtradar.icon in Resources */,
 				013C3769243A8DB44A5207FF /* AltV2A.icon in Resources */,
 				2AAA1FB0A77305F2C4878C35 /* AltV2B.icon in Resources */,
 				958277BC7567C16221F6C55D /* AltV2C.icon in Resources */,
@@ -1439,7 +1443,7 @@
 		58D74D5FF78E369C42427231 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4BEigen AltV4BS90 AltV4BS90V AltV4C AltV4D AltV5A AltV5B AltV5C";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltNachtradar AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4BEigen AltV4BS90 AltV4BS90V AltV4C AltV4D AltV5A AltV5B AltV5C";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/Weather.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -1492,7 +1496,7 @@
 		925A875C50817E7E5ED70467 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4BEigen AltV4BS90 AltV4BS90V AltV4C AltV4D AltV5A AltV5B AltV5C";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AltEigenentwurf AltKarte AltNachtradar AltV2A AltV2B AltV2C AltV3A AltV3B AltV3C AltV3D AltV4A AltV4B AltV4BEigen AltV4BS90 AltV4BS90V AltV4C AltV4D AltV5A AltV5B AltV5C";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/Weather.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";

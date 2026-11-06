@@ -49,7 +49,7 @@ final class WeatherSmokeTests: XCTestCase {
         link.tap()
         XCTAssertTrue(app.navigationBars["App-Symbol"].waitForExistence(timeout: 5))
 
-        let ids = ["Standard", "Karte", "Eigenentwurf", "V2A", "V2B", "V2C", "V3A", "V3B", "V3C", "V3D",
+        let ids = ["Standard", "Nachtradar", "Karte", "Eigenentwurf", "V2A", "V2B", "V2C", "V3A", "V3B", "V3C", "V3D",
                    "V4A", "V4B", "V4BEigen", "V4BS90", "V4BS90V", "V4C", "V4D", "V5A", "V5B", "V5C"]
         var missing = Set(ids)
         for _ in 0..<8 {

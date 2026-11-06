@@ -24,11 +24,12 @@ struct AppIconOption: Identifiable, Hashable, Sendable {
 
     static let standard = AppIconOption(
         id: "Standard", alternateIconName: nil,
-        nameDE: "Nachtradar", nameEN: "Night radar",
-        detailDE: "Standard · Eigenentwurf mit Dark-Variante", detailEN: "Default · own design with dark variant")
+        nameDE: "Radar und Wolke, Sektor 90° (Standard)", nameEN: "Radar and cloud, 90° sector (default)",
+        detailDE: "Standard · Viertelkreis mit Blau-Grün-Übergang", detailEN: "Default · quarter circle with blue-green transition")
 
     static let all: [AppIconOption] = [
         standard,
+        .alt("Nachtradar", "Nachtradar", "Night radar", "Früheres Standard-Symbol (Build 19)", "Earlier default icon (build 19)"),
         .alt("Karte", "Karte", "Map", "Früheres Symbol (Build 15)", "Earlier icon (build 15)"),
         .alt("Eigenentwurf", "Eigenentwurf", "Own design", "Mit hellem Dark-Modus", "With light dark mode"),
         .alt("V2A", "Scheiben", "Discs", "Konzentrische Kreise", "Concentric circles"),
