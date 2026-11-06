@@ -68,4 +68,4 @@ Build 19 hochgeladen (siehe [testflight-upload.md](testflight-upload.md)); IPA 1
 
 - Standard (`AppIcon`) ist jetzt die Nutzerfassung `design/Icon/v4/v4b-sektor90-uebergang Kopie.icon` (V4B Sektor 90° mit Verlauf, überarbeitet; 6 Assets). Das bisherige Standard-Symbol (d2, "Nachtradar") bleibt als Alternative `AltNachtradar`; alle übrigen Alternativen unverändert (jetzt 20).
 - Die Watch-App nutzt weiter `AppIcon.icon` und zeigt damit ebenfalls das neue Symbol.
-- Geprüft: `xcodegen generate`, `tools/check-icon-options.sh` (20 konsistent), `AppIconOptionTests` (6, 0 Fehler). Nicht geprüft: Volllauf, UI-Tests, Archiv/Upload (kein Build 20).
+- Geprüft: `xcodegen generate`, `tools/check-icon-options.sh` (20 konsistent), `AppIconOptionTests` (6, 0 Fehler). Build 20 (`3cf089f`): Volllauf 416 Unit und 9 UI-Tests, 0 Fehler; archiviert und hochgeladen 6.11.2026 (IPA 114.203.666 Byte, 20 Alternativen im Paket, siehe [testflight-upload.md](testflight-upload.md)). Nicht geprüft: Gerät, Dark/Tinted des neuen Standards auf Hardware.

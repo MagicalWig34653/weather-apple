@@ -323,3 +323,23 @@ Paketprüfung (lokale IPA, SHA-256 `f1e10e40ac034fee67777e7a69cf14bc56081cc19039
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
 | Gerät, Dark/Tinted der Alternativen auf Hardware | Nicht geprüft |
+
+
+## Showers Build 20: Upload angenommen (Xcode 27.1), neues Standard-Symbol
+
+Quellencheckpoint `3cf089f` (`CURRENT_PROJECT_VERSION = 20`), Archiv/Export aus `git archive`-Kopie (unter `/private/tmp`) mit Xcode 27.1 per `DEVELOPER_DIR`, Automatic Signing mit `-allowProvisioningUpdates`, Team `J2DU2P47XW`. Vorher 6.11.2026 (iPhone-18-Pro-Simulator, Xcode 27.2): `WeatherTests` 416 Tests, `WeatherUITests` 9 Tests, 0 Fehler; `testTimelineAtMaximumDynamicTypeKeepsControlsSeparate` einzeln wiederholt: grün. Optionen wie Build 19.
+
+Hinweis: Der erste lokale Export scheiterte mit `Copy failed` (Exit 70), weil `xcodebuild` das Homebrew-`rsync` (`/opt/homebrew/bin`) statt `/usr/bin/rsync` fand (`--extended-attributes: unknown option`). Abhilfe: `PATH=/usr/bin:/bin:/usr/sbin:/sbin` setzen; danach Export erfolgreich.
+
+**Genau ein Upload, 6. November 2026 von 08:57:36 bis 09:00:49 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry.
+
+Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `37af226cb38819c1df9859c92823aba3eb4a87f2278d4e37d1001e69493f2539`): vier Bundles, `CFBundleDisplayName` überall `Showers`, `CFBundleVersion` überall 20, `codesign --verify --deep --strict` je Bundle ok; `aps-environment=production`, `time-sensitive=true`, `get-task-allow=false`, App Group `group.de.linolaske.showernow`; keine `.md` im Paket. App-`Info.plist`: je 20 `CFBundleAlternateIcons` in `CFBundleIcons` und `CFBundleIcons~ipad`, primär `AppIcon`; `Assets.car` enthält `AltNachtradar`.
+
+**Paketgröße:** IPA Build 20 114.203.666 Byte (Build 19: 107.082.362). App-Store-Downloadgröße nicht gemessen.
+
+| Zustand Build 20 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
+| Gerät, Darstellung des neuen Standard-Symbols auf Hardware (Default/Dark/Tinted) | Nicht geprüft |
