@@ -1,27 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// Short glow that runs once around the display edge when the forecast area is entered.
-/// Rules (pure, unit-testable): it plays only on entering, rotates once, ends by itself, and with
-/// Reduced Motion it only fades in and out without rotation.
+/// Scrub glow tones and motion rules (pure, unit-testable).
+/// While the slider is dragged the glow breathes slowly and a lighter highlight wanders around the frame;
+/// with Reduced Motion it stays static.
 enum ScreenGlow {
-    static func shouldPlay(entered: Bool, wasShown: Bool) -> Bool { entered && !wasShown }
-
-    static func rotationDuration(reduceMotion: Bool) -> TimeInterval { reduceMotion ? 0 : 2.0 }
-
-    static func totalDuration(reduceMotion: Bool) -> TimeInterval { reduceMotion ? 1.2 : 2.2 }
-
-    static let fadeIn: TimeInterval = 0.3
-    static let fadeOut: TimeInterval = 0.7
-
-    /// Opacity envelope at `elapsed` seconds: quick fade in, hold, softer fade out.
-    static func opacity(at elapsed: TimeInterval, total: TimeInterval) -> Double {
-        guard elapsed >= 0, elapsed <= total else { return 0 }
-        if elapsed < fadeIn { return elapsed / fadeIn }
-        if elapsed > total - fadeOut { return max(0, (total - elapsed) / fadeOut) }
-        return 1
-    }
-
     /// Scrub glow: blue for a time in the past (measurement), orange for the future (forecast).
     /// "Now" itself still counts as past; the same rule as the forecast marker of the slider.
     static func isForecast(date: Date, reference: Date) -> Bool { date > reference }
@@ -29,37 +12,22 @@ enum ScreenGlow {
     static let pastColor = Color(red: 0.10, green: 0.45, blue: 1.00)
     static let futureColor = Color.orange
 
-    /// Palette of the app icon: blue, cyan and green-teal.
-    static let colors: [Color] = [
-        Color(red: 0.10, green: 0.45, blue: 1.00), .cyan, Color(red: 0.15, green: 0.85, blue: 0.65),
-        Color(red: 0.20, green: 0.60, blue: 1.00), Color(red: 0.10, green: 0.45, blue: 1.00)
-    ]
-}
+    static let breathPeriod: TimeInterval = 3.6
+    static let orbitPeriod: TimeInterval = 14
 
-/// The glow frame itself: soft wide halo plus a thin bright line, rotating gradient, display-corner shaped.
-struct ScreenGlowView: View {
-    let reduceMotion: Bool
-    @State private var start = Date()
+    /// Slow breathing of the glow strength, between 0.82 and 1.
+    static func breath(at time: TimeInterval) -> Double {
+        0.91 + 0.09 * sin(time / breathPeriod * 2 * .pi)
+    }
 
-    var body: some View {
-        let total = ScreenGlow.totalDuration(reduceMotion: reduceMotion)
-        let rotation = ScreenGlow.rotationDuration(reduceMotion: reduceMotion)
-        TimelineView(.animation(paused: false)) { context in
-            let elapsed = context.date.timeIntervalSince(start)
-            let angle = rotation > 0 ? elapsed / rotation * 360 : 0
-            let gradient = AngularGradient(colors: ScreenGlow.colors, center: .center, angle: .degrees(angle))
-            ZStack {
-                RoundedRectangle(cornerRadius: ScreenGlowPresenter.cornerRadius, style: .continuous).strokeBorder(gradient, lineWidth: 16).blur(radius: 14).opacity(0.7)
-                RoundedRectangle(cornerRadius: ScreenGlowPresenter.cornerRadius, style: .continuous).strokeBorder(gradient, lineWidth: 6).blur(radius: 4)
-                RoundedRectangle(cornerRadius: ScreenGlowPresenter.cornerRadius, style: .continuous).strokeBorder(gradient, lineWidth: 2)
-            }
-            .drawingGroup()
-            .opacity(ScreenGlow.opacity(at: elapsed, total: total))
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(!ScreenGlowPresenter.exposesForTests)
-        .accessibilityIdentifier("forecast-glow")
+    /// Rotation of the gradient in degrees; 0 for Reduced Motion.
+    static func orbitAngle(at time: TimeInterval, reduceMotion: Bool) -> Double {
+        reduceMotion ? 0 : (time / orbitPeriod * 360).truncatingRemainder(dividingBy: 360)
+    }
+
+    /// Gradient stops of one tone: the base colour with a lighter highlight that wanders with the rotation.
+    static func stops(for color: Color) -> [Color] {
+        [color, color.mix(with: .white, by: 0.45), color, color.mix(with: .black, by: 0.12), color]
     }
 }
 
@@ -70,22 +38,29 @@ final class ScrubGlowModel {
     var future = false
 }
 
-/// Static frame (no timeline, no rotation): both tones are stacked and cross-fade by opacity, so passing "now"
-/// blends softly and nothing keeps running while the glow rests.
+/// Scrub frame: both tones are stacked and cross-fade by opacity, so passing "now" blends softly.
+/// The timeline only ticks while the glow is visible (active gesture); after the fade-out nothing runs.
 struct ScrubGlowView: View {
     let model: ScrubGlowModel
     let reduceMotion: Bool
+    @State private var start = Date()
 
     var body: some View {
         let radius = ScreenGlowPresenter.cornerRadius
-        ZStack {
-            frame(ScreenGlow.pastColor, radius: radius).opacity(model.future ? 0 : 1)
-            frame(ScreenGlow.futureColor, radius: radius).opacity(model.future ? 1 : 0)
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || !model.visible)) { context in
+            let t = context.date.timeIntervalSince(start)
+            let angle = Angle.degrees(ScreenGlow.orbitAngle(at: t, reduceMotion: reduceMotion))
+            let breath = reduceMotion ? 1 : ScreenGlow.breath(at: t)
+            ZStack {
+                frame(ScreenGlow.pastColor, radius: radius, angle: angle).opacity(model.future ? 0 : 1)
+                frame(ScreenGlow.futureColor, radius: radius, angle: angle).opacity(model.future ? 1 : 0)
+            }
+            .drawingGroup()
+            .opacity(breath)
         }
-        .drawingGroup()
         .opacity(model.visible ? 1 : 0)
         .animation(reduceMotion ? .linear(duration: 0.2) : .easeInOut(duration: 0.35), value: model.future)
-        .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.4), value: model.visible)
+        .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.5), value: model.visible)
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(!ScreenGlowPresenter.exposesForTests)
@@ -93,11 +68,12 @@ struct ScrubGlowView: View {
         .accessibilityValue(model.future ? "forecast" : "measurement")
     }
 
-    private func frame(_ color: Color, radius: CGFloat) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(color, lineWidth: 16).blur(radius: 14).opacity(0.7)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(color, lineWidth: 6).blur(radius: 4)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(color, lineWidth: 2)
+    private func frame(_ color: Color, radius: CGFloat, angle: Angle) -> some View {
+        let gradient = AngularGradient(colors: ScreenGlow.stops(for: color), center: .center, angle: angle)
+        return ZStack {
+            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(gradient, lineWidth: 16).blur(radius: 14).opacity(0.7)
+            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(gradient, lineWidth: 6).blur(radius: 4)
+            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(gradient, lineWidth: 2)
         }
     }
 }
@@ -107,13 +83,10 @@ private final class PassthroughWindow: UIWindow {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? { nil }
 }
 
-/// Shows the glow in its own click-through window above everything (including sheets) and removes it afterwards.
+/// Shows the scrub glow in its own click-through window above everything (including sheets) and removes it after release.
 /// Only public API; nothing keeps running once the effect ended.
 @MainActor
 enum ScreenGlowPresenter {
-    private static var window: UIWindow?
-    private static var generation = 0
-
     /// Display corner radius without private API: devices with a Dynamic Island / notch have about 47 to 62 pt
     /// (safe-area top >= 50), home-button iPhones and iPads are square or nearly so. Only used for the glow shape.
     static var cornerRadius: CGFloat {
@@ -129,32 +102,6 @@ enum ScreenGlowPresenter {
         #else
         false
         #endif
-    }
-
-    static func play(reduceMotion: Bool) {
-        guard UIDevice.current.userInterfaceIdiom == .phone || UIDevice.current.userInterfaceIdiom == .pad,
-              let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene })
-                  .first(where: { $0.activationState == .foregroundActive }) else { return }
-        generation += 1
-        let mine = generation
-        hide()
-        let host = UIHostingController(rootView: ScreenGlowView(reduceMotion: reduceMotion))
-        host.view.backgroundColor = .clear
-        host.view.isUserInteractionEnabled = false
-        let glow = PassthroughWindow(windowScene: scene)
-        glow.frame = scene.coordinateSpace.bounds
-        glow.rootViewController = host
-        host.view.frame = glow.bounds
-        glow.backgroundColor = .clear
-        glow.isUserInteractionEnabled = false
-        glow.windowLevel = .alert + 1
-        glow.isHidden = false
-        window = glow
-        let total = ScreenGlow.totalDuration(reduceMotion: reduceMotion)
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(total + 0.1))
-            if generation == mine { hide() }
-        }
     }
 
     // MARK: Scrub glow
@@ -206,11 +153,5 @@ enum ScreenGlowPresenter {
             scrubWindow = nil
             scrubModel = nil
         }
-    }
-
-    private static func hide() {
-        window?.isHidden = true
-        window?.rootViewController = nil
-        window = nil
     }
 }

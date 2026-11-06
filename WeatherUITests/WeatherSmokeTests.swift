@@ -241,27 +241,18 @@ final class WeatherSmokeTests: XCTestCase {
         }
     }
 
-    func testGlowPlaysWhenEnteringForecastAndDoesNotBlockInput() throws {
+    func testNoGlowWhenOpeningForecastDetails() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestExposeGlow"]
         app.launch()
         let details = app.buttons["forecast-details"]
         XCTAssertTrue(details.waitForExistence(timeout: 15))
-        XCTAssertFalse(app.descendants(matching: .any)["forecast-glow"].exists, "Kein Glow vor dem Betreten.")
         details.tap()
-        let glow = app.descendants(matching: .any)["forecast-glow"]
-        XCTAssertTrue(glow.waitForExistence(timeout: 3), "Der Glow erscheint beim Betreten der Prognose.")
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "forecast-glow"
-        shot.lifetime = .keepAlways
-        add(shot)
-        // Input still works while the glow runs.
         let done = app.buttons["Fertig"]
         XCTAssertTrue(done.waitForExistence(timeout: 5))
-        XCTAssertTrue(done.isHittable)
+        XCTAssertFalse(app.descendants(matching: .any)["forecast-glow"].exists, "Kein Glow beim Betreten der Prognose.")
+        XCTAssertFalse(app.descendants(matching: .any)["scrub-glow"].exists)
         done.tap()
-        XCTAssertTrue(app.sliders["Radarzeitpunkt"].waitForExistence(timeout: 10) || app.buttons["forecast-details"].waitForExistence(timeout: 10))
-        XCTAssertTrue(glow.waitForNonExistence(timeout: 5), "Der Glow endet von selbst.")
     }
 
     func testNewMapPlaceCanBeSavedRenamedPersistedAndDeleted() throws {

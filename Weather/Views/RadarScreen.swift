@@ -122,14 +122,6 @@ struct RadarScreen: View {
             .padding(.top, 8)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
-        #if DEBUG
-        .task {
-            // Manual check only: `-UITestPlayGlowOnLaunch` plays the glow once without opening the forecast.
-            guard CommandLine.arguments.contains("-UITestPlayGlowOnLaunch") else { return }
-            try? await Task.sleep(for: .seconds(4))
-            ScreenGlowPresenter.play(reduceMotion: reduceMotion)
-        }
-        #endif
         .safeAreaInset(edge: .bottom, spacing: 0) {
             timeline
                 .padding(.horizontal, 12)
@@ -211,12 +203,8 @@ struct RadarScreen: View {
             radarLoadState = nil
             scrubIndex = nil
         }
-        .onChange(of: sheet) { old, value in
+        .onChange(of: sheet) { _, value in
             if value != nil { store.isPlaying = false }
-            // Glow only when the forecast area is entered, not on redraws or other sheets.
-            if ScreenGlow.shouldPlay(entered: value == .details, wasShown: old == .details) {
-                ScreenGlowPresenter.play(reduceMotion: reduceMotion)
-            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { store.isPlaying = false }
@@ -367,23 +355,12 @@ struct RadarScreen: View {
     }
 
     private var timeline: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(spacing: 4) {
-                    frameLabel
-                    HStack(spacing: 12) {
-                        playButton
-                        timeSlider
-                        nowButton
-                    }
-                }
-            } else {
-                HStack(spacing: 8) {
-                    playButton
-                    timeSlider
-                    frameLabel
-                    nowButton
-                }
+        VStack(spacing: 0) {
+            frameLabel
+            HStack(spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 8) {
+                playButton
+                timeSlider
+                nowButton
             }
         }
         .padding(.horizontal, 10)
@@ -430,24 +407,25 @@ struct RadarScreen: View {
     /// Time (and day) display with a fixed size: a hidden template reserves the widest content and both lines,
     /// so measurement/forecast or another day never changes the layout (the slider must not move).
     private var frameLabel: some View {
-        VStack(spacing: 0) {
-            Text("88:88 AM").font(.subheadline.weight(.semibold)).monospacedDigit()
-            Text("Mo., 88. Okt.").font(.caption2)
-        }
-        .lineLimit(1)
-        .hidden()
-        .fixedSize(horizontal: true, vertical: true)
-        .overlay {
-            VStack(spacing: 0) {
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        return Text("Mo., 88. Okt. 88:88 AM").font(.subheadline.weight(.semibold)).monospacedDigit()
+            .lineLimit(1)
+            .hidden()
+            .frame(maxWidth: .infinity)
+            .overlay {
                 if let date = displayedDate {
-                    Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit().lineLimit(1)
-                    Text(otherDayLabel(for: date) ?? " ").font(.caption2).foregroundStyle(.secondary)
-                        .lineLimit(1).minimumScaleFactor(0.6)
+                    let time = Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit()
+                    let day = otherDayLabel(for: date).map { Text($0).font(.subheadline).foregroundStyle(.secondary) }
+                    Group {
+                        if let day { Text("\(day) · \(time)") } else { time }
+                    }
+                    .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.center)
                 }
             }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("radar-frame-label")
+            .padding(.top, 6)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("radar-frame-label")
     }
 
     /// With up to 48 hours of past the time alone is ambiguous: name the day when it is not the reference day.

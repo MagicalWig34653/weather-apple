@@ -35,18 +35,16 @@ final class ScrubBubblePlacementTests: XCTestCase {
 }
 
 final class ScreenGlowTests: XCTestCase {
-    func testGlowTriggersOnlyWhenEnteringForecast() {
-        XCTAssertTrue(ScreenGlow.shouldPlay(entered: true, wasShown: false))
-        XCTAssertFalse(ScreenGlow.shouldPlay(entered: true, wasShown: true))
-        XCTAssertFalse(ScreenGlow.shouldPlay(entered: false, wasShown: false))
-    }
-
-    func testReducedMotionStopsRotationAndShortensEffect() {
-        XCTAssertGreaterThan(ScreenGlow.rotationDuration(reduceMotion: false), 0)
-        XCTAssertEqual(ScreenGlow.rotationDuration(reduceMotion: true), 0)
-        XCTAssertLessThanOrEqual(ScreenGlow.totalDuration(reduceMotion: false), 2.5)
-        XCTAssertGreaterThanOrEqual(ScreenGlow.totalDuration(reduceMotion: false), 1.5)
-        XCTAssertLessThan(ScreenGlow.totalDuration(reduceMotion: true), ScreenGlow.totalDuration(reduceMotion: false))
+    func testScrubGlowBreathStaysWithinRangeAndOrbitIsStaticForReducedMotion() {
+        for step in 0..<100 {
+            let value = ScreenGlow.breath(at: Double(step) * 0.37)
+            XCTAssertGreaterThanOrEqual(value, 0.82 - 0.0001)
+            XCTAssertLessThanOrEqual(value, 1.0001)
+        }
+        XCTAssertEqual(ScreenGlow.orbitAngle(at: 5, reduceMotion: true), 0)
+        XCTAssertNotEqual(ScreenGlow.orbitAngle(at: 3, reduceMotion: false), ScreenGlow.orbitAngle(at: 6, reduceMotion: false))
+        XCTAssertEqual(ScreenGlow.orbitAngle(at: ScreenGlow.orbitPeriod, reduceMotion: false), 0, accuracy: 0.001)
+        XCTAssertEqual(ScreenGlow.stops(for: .orange).count, 5)
     }
 
     func testScrubGlowToneFollowsPastOrFutureWithNowCountingAsPast() {
