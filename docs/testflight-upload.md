@@ -375,3 +375,19 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `41bd0dd07c5aef514288421
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft; keiner Gruppe zugeordnet, nicht eingereicht |
 | Gerät: Positivfall der Kopplung (Code anzeigen, im Dashboard einlösen), TestFlight meldet `Sandbox` (Spike V1) | Nicht geprüft, nur am TestFlight-Gerät möglich |
+
+## Showers Build 23 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint `CHECKPOINT` (`MARKETING_VERSION = 0.1.1`, `CURRENT_PROJECT_VERSION = 23` in `Configuration/Base.xcconfig`, gilt für alle vier Targets; keine hartkodierten Versionstexte gefunden). Verfahren wie Build 22 (`git archive`-Kopie `/private/tmp/showers-b23`, Xcode 27.1 per `DEVELOPER_DIR`, `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, Automatic Signing, Team `J2DU2P47XW`). Vorher 6.11.2026 (iPhone-18-Pro-Simulator, `CODE_SIGNING_ALLOWED=NO`): `WeatherTests` 445, `WeatherUITests` 8 Tests, 0 Fehler (kein flaky Fehlschlag).
+
+**Genau ein Upload, 6. November 2026 von 16:09:23 bis 16:13:16 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry; keine Validierungsfehler durch die Versionsänderung.
+
+Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `d8095794bd1a3045aea9b7f54d4c3f28f2e23f51a3d7ddf87c7532e86f2ffe40`, 9.808.669 Byte): vier Bundles mit `CFBundleShortVersionString` 0.1.1 und `CFBundleVersion` 23; `codesign --verify --deep --strict` je Bundle ok; keine `CFBundleAlternateIcons`; `aps-environment=production`, `time-sensitive`, `get-task-allow=false`, App Group `group.de.linolaske.showernow`; `-UITestBuildChannel` im Paket 0 Treffer; keine `.md`.
+
+Hinweis: Die neue Version 0.1.1 beginnt einen neuen Versions-Zug in TestFlight; die App-Store-Version muss in App Store Connect separat angelegt werden.
+
+| Zustand Build 23 | Beleg |
+|---|---|
+| Archiv und lokale IPA | Erfolgreich, geprüft |
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
