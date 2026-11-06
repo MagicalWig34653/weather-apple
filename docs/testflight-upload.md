@@ -378,7 +378,7 @@ Paketprüfung (lokale IPA aus demselben Archiv, SHA-256 `41bd0dd07c5aef514288421
 
 ## Showers Build 23 (0.1.1): Upload angenommen (Xcode 27.1)
 
-Quellencheckpoint `CHECKPOINT` (`MARKETING_VERSION = 0.1.1`, `CURRENT_PROJECT_VERSION = 23` in `Configuration/Base.xcconfig`, gilt für alle vier Targets; keine hartkodierten Versionstexte gefunden). Verfahren wie Build 22 (`git archive`-Kopie `/private/tmp/showers-b23`, Xcode 27.1 per `DEVELOPER_DIR`, `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, Automatic Signing, Team `J2DU2P47XW`). Vorher 6.11.2026 (iPhone-18-Pro-Simulator, `CODE_SIGNING_ALLOWED=NO`): `WeatherTests` 445, `WeatherUITests` 8 Tests, 0 Fehler (kein flaky Fehlschlag).
+Quellencheckpoint `898fc88` (`MARKETING_VERSION = 0.1.1`, `CURRENT_PROJECT_VERSION = 23` in `Configuration/Base.xcconfig`, gilt für alle vier Targets; keine hartkodierten Versionstexte gefunden). Verfahren wie Build 22 (`git archive`-Kopie `/private/tmp/showers-b23`, Xcode 27.1 per `DEVELOPER_DIR`, `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, Automatic Signing, Team `J2DU2P47XW`). Vorher 6.11.2026 (iPhone-18-Pro-Simulator, `CODE_SIGNING_ALLOWED=NO`): `WeatherTests` 445, `WeatherUITests` 8 Tests, 0 Fehler (kein flaky Fehlschlag).
 
 **Genau ein Upload, 6. November 2026 von 16:09:23 bis 16:13:16 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry; keine Validierungsfehler durch die Versionsänderung.
 
