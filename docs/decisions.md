@@ -295,3 +295,7 @@ Nutzerwunsch: "Regen beginnt in 3 Minuten · Holzschlag". Befund: Text entsteht 
 - Variante A (empfohlen, keine Datenschutzänderung): Notification Service Extension (`mutable-content: 1` im Payload, Server-Änderung minimal). Die Extension liest `thread-id` -> Name aus einer App-Group-Tabelle (`group.de.linolaske.showernow`, schreibt die App beim Anlegen/Umbenennen) und hängt " · Name" an. Ohne Eintrag bleibt der Text unverändert. Name verlässt das Gerät nie. Erfordert neues Target, eigene App-ID und Provisioning-Profil (Signing-Ressource, braucht ausdrücklichen Auftrag) und Budget von 30 s/24 MB der Extension.
 - Variante B (Datenschutzänderung, nicht live ohne Nutzerentscheidung): optionales Label im Abo auf dem Server speichern und als zusätzliches `loc-arg` senden. Betrifft Migration, API-Vertrag, Datenschutztexte und App Privacy (Ortsname plus Abo-ID erhöht Identifizierbarkeit).
 - Offen: Nutzerentscheidung A oder B; Deploy erst nach Umsetzung. Todolino-Aufgabe `BCC685B3-32EE-4D29-A3BA-081E15ADE982`.
+
+## 7.11.2026: Ort im Regen-Push per Notification Service Extension (Variante A, umgesetzt)
+
+Nutzerentscheidung "A, Signing freigegeben". Target `WeatherNotificationService` (Build 32); Name wird lokal im App-Group-Speicher pro Abo-ID gehalten und als " · Name" an den Push-Text gehängt. Server kennt den Namen nie; Backend setzt nur `mutable-content: 1` für Orts- und Gebiets-Alerts. Keine Datenschutzänderung.

@@ -469,3 +469,14 @@ Quellencheckpoint: Commit „chore: Buildnummer 31“ (`6552d1a`, Basis `9f0e1e1
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 32 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 32“ (`323f35d`, Basis `9fb9fcd`). Verfahren wie Build 31 (`git archive`-Kopie `/private/tmp/showers-b32`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`, `-allowProvisioningUpdates` legte das Profil der neuen Extension `de.linolaske.showernow.notificationservice` an). Archiv `CFBundleVersion` 32 in allen fünf Bundles; Extension eingebettet, Signatur ok. Inhalt: Notification Service Extension (Ort im Regen-Push).
+
+**Genau ein Upload, 7. November 2026 von 10:32 bis 10:34 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry. Lokale IPA-Paketprüfung nicht ausgeführt.
+
+| Zustand Build 32 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
