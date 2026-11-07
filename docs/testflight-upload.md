@@ -458,3 +458,14 @@ Quellencheckpoint: Commit „chore: Buildnummer 30“ (`1252e34`, Basis `0557ede
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 31 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 31“ (`6552d1a`, Basis `9f0e1e1`). Verfahren wie Build 30 (`git archive`-Kopie `/private/tmp/showers-b31`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`). Archiv `CFBundleVersion` 31 in allen vier Bundles (App, Watch, Widget, Watch-Widget) vor Upload geprüft. Inhalt: Live Activity für Gebiets-Abos (Schalter erscheint nur, wenn der Server `live_activity_regions` meldet, also erst nach Backend-Deploy sha-9f47e32); Punkt vor Gebiet; Widget mit „x % der Fläche nass“ + Stärkste Stufe. Tests (478 Unit, 13 UI) zuvor auf `ff2b714` grün.
+
+**Genau ein Upload, 7. November 2026 von 01:46:06 bis 01:48:14 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry. Lokale IPA-Paketprüfung nicht ausgeführt.
+
+| Zustand Build 31 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |

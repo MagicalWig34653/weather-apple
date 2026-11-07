@@ -227,6 +227,12 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 - Upload: Quellencheckpoint `84d40c2` (git-archive-Kopie), genau ein Upload, Exit 0, `Upload succeeded`, `Uploaded package is processing`. Paketprüfung siehe [testflight-upload.md](testflight-upload.md). NICHT geprüft: Apple-Verarbeitung, Installierbarkeit, Gerät/Watch-Hardware, Widget-/Watch-Anzeige auf Hardware.
 - **Nutzerschritte in App Store Connect:** Namen "Showers" auf Verfügbarkeit prüfen/ändern (Ausweichname z. B. "Showers – Regenradar"); Untertitel, Beschreibung, Keywords, Screenshots anpassen (Store-Screenshots und App-Vorschau-Video zeigen teils noch den alten Namen, nicht neu erzeugt; Video lokal in `showers-app-preview-de-886x1920.mp4` umbenannt); Datenschutz-/Support-/Marketing-URL unverändert lassen; Tester über die Umbenennung informieren. Backend-Seiten und Push-Titel zeigen noch "ShowerNow" (Backend-Repo, eigener Auftrag).
 
+## Build 31 (0.1.1) hochgeladen (7.11.2026)
+
+- Inhalt (gegenüber Build 30): Live Activity für Gebiets-Abos (Schalter erscheint nur, wenn der Server `live_activity_regions` meldet, also erst nach Backend-Deploy sha-9f47e32); Punkt vor Gebiet; Widget mit "x % der Fläche nass" + Stärkste Stufe.
+- Geprüft: 478 Unit- und 13 UI-Tests auf `ff2b714` grün; Release-Archiv Build 31 (`/private/tmp/showers-b31`, Commit `6552d1a`, CFBundleVersion 31 in allen vier Bundles vor Upload geprüft) erfolgreich. IPA-Paketprüfung nicht ausgeführt.
+- Upload: genau einer, 7.11.2026 01:46 bis 01:48 Uhr, Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Verarbeitung nicht abgewartet. Kein Retry.
+
 ## Build 30 (0.1.1) hochgeladen (7.11.2026)
 
 - Inhalt (gegenüber Build 29): Stufe "Sehr leicht" (Klasse 1); "Jetzt"-Button und Scrub-Bubble entfernt, Zeit dauerhaft als tippbare Zeile über dem Regler; Glow Vergangenheit sehr dezent, Zukunft dynamischer mit mehr Farbtönen.
