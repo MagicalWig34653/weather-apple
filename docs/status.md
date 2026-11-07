@@ -264,3 +264,9 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 
 - Ursache: beim Scrubben war die Uhrzeit in der festen Zeile und in der Bubble sichtbar. Jetzt blendet die Zeile ihren Text während der Geste aus (Platz bleibt reserviert, Regler springt nicht); die Bubble zeigt die Zeit. Ohne Geste unverändert.
 - Geprüft: Volllauf `Weather` (B15 iPhone 18 Pro, ohne Signing) 451 Unit + 13 UI grün; Simulator-Screenshots mit `-UITestShowScrubBubble` normal und XXXL: Zeit einmal, keine Überlappung. Keine neuen Tests.
+
+## Zeitleiste ohne Jetzt-Button, Glow differenziert (7.11.2026)
+
+- Jetzt-Button und Scrub-Bubble entfernt; die feste Zeit-Zeile (`.title3`) bleibt immer sichtbar und ist zugleich Button "Zur aktuellen Zeit springen" (Tippen springt auf Jetzt, VoiceOver-Hint). Zeit erscheint pro Zustand genau einmal; Layout stabil. `ScrubBubble`-Code samt Platzierungstests bleibt ungenutzt im Repo.
+- Glow: Vergangenheit sehr dezent (Intensität 0,22 bis 0,34, Breite ca. 0,5, langsam); Zukunft unverändert stark, 6 Töne inkl. Gold, schnellere gegenläufige Ringe, Intensität 0,45 bis 1, Breite 0,8 bis 1,3. Winkel ohne 360-Sprung.
+- Geprüft: Volllauf `Weather` (B15 iPhone 18 Pro, ohne Signing) 452 Unit + 13 UI grün; Screenshots normal und XXXL der Ruhe-Ansicht (Zeit prominent, keine Überlappung). Glow-Optik während der Geste nicht gesehen. Nicht hochgeladen.

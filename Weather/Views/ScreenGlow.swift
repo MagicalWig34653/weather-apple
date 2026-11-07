@@ -15,23 +15,33 @@ enum ScreenGlow {
     static let breathPeriod: TimeInterval = 3.6
     static let orbitPeriod: TimeInterval = 14
 
-    /// Siri-like intensity modulation: three incommensurable sines, between 0.55 and 1 (1 when static).
-    static func breath(at time: TimeInterval) -> Double {
-        let wave = 0.5 * sin(time / breathPeriod * 2 * .pi)
-            + 0.3 * sin(time / 2.3 * 2 * .pi + 1.1)
-            + 0.2 * sin(time / 5.9 * 2 * .pi + 2.4)
-        return 0.775 + 0.225 * wave
+    /// Intensity modulation: the past is calm and faint (0.22 to 0.34), the future lively (0.45 to 1).
+    static func intensity(at time: TimeInterval, future: Bool) -> Double {
+        if future {
+            let wave = 0.4 * sin(time / 2.1 * 2 * .pi)
+                + 0.3 * sin(time / 3.3 * 2 * .pi + 1.1)
+                + 0.3 * sin(time / 5.3 * 2 * .pi + 2.4)
+            return 0.725 + 0.275 * wave
+        }
+        return 0.28 + 0.06 * sin(time / 5.0 * 2 * .pi)
     }
 
-    /// Slightly varying frame width factor, between 0.8 and 1.2.
-    static func widthScale(at time: TimeInterval) -> Double {
-        1 + 0.2 * sin(time / 4.7 * 2 * .pi + 0.6)
+    /// Breathing of the whole frame (kept for the combined view; uses the lively curve).
+    static func breath(at time: TimeInterval) -> Double { intensity(at: time, future: true) }
+
+    /// Frame width factor: past narrow and steady, future wider and varying (0.8 to 1.3).
+    static func widthScale(at time: TimeInterval, future: Bool = true) -> Double {
+        future ? 1.05 + 0.25 * sin(time / 3.9 * 2 * .pi + 0.6) : 0.5 + 0.05 * sin(time / 6.0 * 2 * .pi)
     }
 
-    /// Subtle colour variance around the base tone (past: blue/cyan/indigo/violet, future: orange/amber/red/pink).
+    /// Rotation speed factor of the colour rings (future wanders faster).
+    static func spin(future: Bool) -> Double { future ? 1.8 : 0.6 }
+
+    /// Subtle colour variance around the base tone (past: blue/cyan/indigo/violet, future: orange/amber/gold/red/pink).
     static func palette(future: Bool) -> [Color] {
         future
-            ? [futureColor, Color(red: 1.0, green: 0.72, blue: 0.18), Color(red: 1.0, green: 0.36, blue: 0.22), Color(red: 1.0, green: 0.42, blue: 0.62)]
+            ? [futureColor, Color(red: 1.0, green: 0.72, blue: 0.18), Color(red: 1.0, green: 0.84, blue: 0.30), Color(red: 1.0, green: 0.36, blue: 0.22),
+               Color(red: 1.0, green: 0.42, blue: 0.62), Color(red: 1.0, green: 0.55, blue: 0.10)]
             : [pastColor, Color(red: 0.12, green: 0.78, blue: 1.0), Color(red: 0.33, green: 0.30, blue: 0.95), Color(red: 0.60, green: 0.38, blue: 0.95)]
     }
 
@@ -71,15 +81,15 @@ struct ScrubGlowView: View {
         let radius = ScreenGlowPresenter.cornerRadius
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || !model.visible)) { context in
             let t = context.date.timeIntervalSince(start)
-            let angle = Angle.degrees(ScreenGlow.orbitAngle(at: t, reduceMotion: reduceMotion))
-            let breath = reduceMotion ? 1 : ScreenGlow.breath(at: t)
-            let width = reduceMotion ? 1 : ScreenGlow.widthScale(at: t)
+            // Unwrapped angle: the ring speed factors are not integers, so wrapping at 360 would jump.
+            let angle = Angle.degrees(reduceMotion ? 0 : t / ScreenGlow.orbitPeriod * 360)
             ZStack {
-                frame(future: false, radius: radius, angle: angle, width: width).opacity(model.future ? 0 : 1)
-                frame(future: true, radius: radius, angle: angle, width: width).opacity(model.future ? 1 : 0)
+                frame(future: false, radius: radius, angle: angle, time: t)
+                    .opacity(model.future ? 0 : (reduceMotion ? 0.3 : ScreenGlow.intensity(at: t, future: false)))
+                frame(future: true, radius: radius, angle: angle, time: t)
+                    .opacity(model.future ? (reduceMotion ? 0.8 : ScreenGlow.intensity(at: t, future: true)) : 0)
             }
             .drawingGroup()
-            .opacity(breath)
         }
         .opacity(model.visible ? 1 : 0)
         .animation(reduceMotion ? .linear(duration: 0.2) : .easeInOut(duration: 0.35), value: model.future)
@@ -92,9 +102,11 @@ struct ScrubGlowView: View {
     }
 
     /// Two counter-rotating colour rings with different speeds blend into each other along the edge.
-    private func frame(future: Bool, radius: CGFloat, angle: Angle, width: Double) -> some View {
-        let a = AngularGradient(colors: ScreenGlow.ringStops(future: future, shift: 0), center: .center, angle: angle)
-        let b = AngularGradient(colors: ScreenGlow.ringStops(future: future, shift: 2), center: .center, angle: .degrees(120) - angle * 1.6)
+    private func frame(future: Bool, radius: CGFloat, angle: Angle, time: TimeInterval) -> some View {
+        let width = reduceMotion ? 1 : ScreenGlow.widthScale(at: time, future: future)
+        let spin = ScreenGlow.spin(future: future)
+        let a = AngularGradient(colors: ScreenGlow.ringStops(future: future, shift: 0), center: .center, angle: angle * spin)
+        let b = AngularGradient(colors: ScreenGlow.ringStops(future: future, shift: future ? 3 : 2), center: .center, angle: .degrees(120) - angle * spin * 1.6)
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         return ZStack {
             shape.strokeBorder(a, lineWidth: 18 * width).blur(radius: 15).opacity(0.55)

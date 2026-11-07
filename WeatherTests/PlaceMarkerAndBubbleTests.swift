@@ -38,7 +38,7 @@ final class ScreenGlowTests: XCTestCase {
     func testScrubGlowBreathStaysWithinRangeAndOrbitIsStaticForReducedMotion() {
         for step in 0..<100 {
             let value = ScreenGlow.breath(at: Double(step) * 0.37)
-            XCTAssertGreaterThanOrEqual(value, 0.55 - 0.0001)
+            XCTAssertGreaterThanOrEqual(value, 0.45 - 0.0001)
             XCTAssertLessThanOrEqual(value, 1.0001)
         }
         XCTAssertEqual(ScreenGlow.orbitAngle(at: 5, reduceMotion: true), 0)
@@ -50,23 +50,27 @@ final class ScreenGlowTests: XCTestCase {
     func testScrubGlowPaletteAndModulation() {
         for future in [false, true] {
             let palette = ScreenGlow.palette(future: future)
-            XCTAssertEqual(palette.count, 4)
+            XCTAssertEqual(palette.count, future ? 6 : 4)
             XCTAssertEqual(palette[0], future ? ScreenGlow.futureColor : ScreenGlow.pastColor)
             for shift in 0..<4 {
                 let ring = ScreenGlow.ringStops(future: future, shift: shift)
-                XCTAssertEqual(ring.count, 5)
+                XCTAssertEqual(ring.count, palette.count + 1)
                 XCTAssertEqual(ring.first, ring.last)
             }
             XCTAssertNotEqual(ScreenGlow.ringStops(future: future, shift: 0), ScreenGlow.ringStops(future: future, shift: 2))
         }
         XCTAssertNotEqual(ScreenGlow.palette(future: false), ScreenGlow.palette(future: true))
+        XCTAssertGreaterThan(ScreenGlow.spin(future: true), ScreenGlow.spin(future: false))
         var values = Set<Int>()
         for step in 0..<200 {
             let t = Double(step) * 0.21
             let width = ScreenGlow.widthScale(at: t)
             XCTAssertGreaterThanOrEqual(width, 0.8 - 0.0001)
-            XCTAssertLessThanOrEqual(width, 1.2 + 0.0001)
-            values.insert(Int(ScreenGlow.breath(at: t) * 100))
+            XCTAssertLessThanOrEqual(width, 1.3 + 0.0001)
+            XCTAssertLessThanOrEqual(ScreenGlow.widthScale(at: t, future: false), 0.56)
+            XCTAssertLessThanOrEqual(ScreenGlow.intensity(at: t, future: false), 0.34 + 0.0001)
+            XCTAssertGreaterThanOrEqual(ScreenGlow.intensity(at: t, future: false), 0.22 - 0.0001)
+            values.insert(Int(ScreenGlow.intensity(at: t, future: true) * 100))
         }
         XCTAssertGreaterThan(values.count, 15, "Intensität soll deutlich variieren.")
     }

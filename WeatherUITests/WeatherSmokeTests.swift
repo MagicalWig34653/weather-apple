@@ -107,7 +107,7 @@ final class WeatherSmokeTests: XCTestCase {
         }
         dragSlider(slider, to: 1)
         XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
-        app.buttons["Jetzt"].tap()
+        timeButton(app).tap()
         XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
         app.buttons["Radaranimation starten"].tap()
         XCTAssertTrue(app.buttons["Animation pausieren"].waitForExistence(timeout: 2))
@@ -147,13 +147,13 @@ final class WeatherSmokeTests: XCTestCase {
         let slider = app.sliders["Radarzeitpunkt"]
         guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
         let play = app.buttons["Radaranimation starten"]
-        let now = app.buttons["Jetzt"]
+        let now = timeButton(app)
         XCTAssertGreaterThanOrEqual(play.frame.height, 44)
         XCTAssertGreaterThanOrEqual(play.frame.width, 44)
         XCTAssertGreaterThanOrEqual(now.frame.height, 44)
         XCTAssertLessThan(app.frame.maxY - play.frame.minY, 110, "Die gesamte untere Bedienung soll im unteren 110-Punkt-Bereich liegen.")
         XCTAssertLessThanOrEqual(play.frame.maxX, slider.frame.minX)
-        XCTAssertLessThanOrEqual(slider.frame.maxX, now.frame.minX)
+        XCTAssertLessThanOrEqual(now.frame.maxY, slider.frame.minY + 1, "Die Zeitanzeige liegt über dem Regler.")
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "timeline-normal"
         screenshot.lifetime = .keepAlways
@@ -168,12 +168,12 @@ final class WeatherSmokeTests: XCTestCase {
         let slider = app.sliders["Radarzeitpunkt"]
         guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
         let play = app.buttons["Radaranimation starten"]
-        let now = app.buttons["Jetzt"]
+        let now = timeButton(app)
         XCTAssertTrue(play.isHittable)
         XCTAssertTrue(now.isHittable)
         XCTAssertGreaterThanOrEqual(now.frame.height, 44)
         XCTAssertLessThanOrEqual(play.frame.maxX, slider.frame.minX)
-        XCTAssertLessThanOrEqual(slider.frame.maxX, now.frame.minX)
+        XCTAssertLessThanOrEqual(now.frame.maxY, slider.frame.minY + 1, "Die Zeitanzeige liegt über dem Regler.")
         XCTAssertTrue(app.buttons["forecast-details"].isHittable)
         dragSlider(slider, to: 1)
         XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
@@ -186,29 +186,32 @@ final class WeatherSmokeTests: XCTestCase {
         print("TIMELINE_AXMAX play=\(play.frame) slider=\(slider.frame) now=\(now.frame)")
     }
 
-    func testScrubBubbleSitsAboveSliderWithinScreenAtNormalAndMaximumTextSize() throws {
+    func testTimeShownOnceAndNoBubbleOrNowButton() throws {
         for large in [false, true] {
             let app = XCUIApplication()
-            app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestShowScrubBubble"]
+            app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
                 + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
             app.launch()
             let slider = app.sliders["Radarzeitpunkt"]
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
-            // The enclosing timeline container overrides the identifier, so the bubble is found by its time-only label.
-            let bubble = app.otherElements.matching(NSPredicate(format: "label MATCHES %@", "(.*, )?\\d{1,2}:\\d{2}( [AP]M)?")).firstMatch
-            XCTAssertTrue(bubble.waitForExistence(timeout: 5), "Die Zeit-Bubble fehlt (large=\(large)).")
-            XCTAssertLessThanOrEqual(bubble.frame.maxY, slider.frame.minY - 10, "Die Bubble liegt über dem Regler, nicht darauf (large=\(large)).")
-            XCTAssertGreaterThanOrEqual(bubble.frame.minX, 0)
-            XCTAssertLessThanOrEqual(bubble.frame.maxX, app.frame.maxX)
-            for control in [app.buttons["Radaranimation starten"], app.buttons["Jetzt"]] {
-                XCTAssertFalse(bubble.frame.intersects(control.frame), "Die Bubble überlappt \(control.label) (large=\(large)).")
-            }
+            XCTAssertFalse(app.buttons["Jetzt"].exists, "Der Jetzt-Button ist entfallen (large=\(large)).")
+            dragSlider(slider, to: 0.8)
+            let times = app.descendants(matching: .any).matching(NSPredicate(format: "label MATCHES %@", "(.*[,·] )?\\d{1,2}:\\d{2}( [AP]M)?"))
+            XCTAssertEqual(times.count, 1, "Die Zeit erscheint genau einmal (large=\(large)).")
+            let time = timeButton(app)
+            XCTAssertTrue(time.isHittable)
+            XCTAssertFalse(time.frame.intersects(slider.frame), "Zeitanzeige und Regler überlappen nicht (large=\(large)).")
             let shot = XCTAttachment(screenshot: app.screenshot())
-            shot.name = large ? "scrub-bubble-maximum-type" : "scrub-bubble-normal"
+            shot.name = large ? "timeline-time-maximum-type" : "timeline-time-normal"
             shot.lifetime = .keepAlways
             add(shot)
             app.terminate()
         }
+    }
+
+    /// The always-visible time row; tapping it jumps back to "now". Found by its time-only label.
+    private func timeButton(_ app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label MATCHES %@", "(.*[,·] )?\\d{1,2}:\\d{2}( [AP]M)?")).firstMatch
     }
 
     func testTimelineLayoutStaysStableBetweenMeasurementAndForecast() throws {
@@ -220,7 +223,7 @@ final class WeatherSmokeTests: XCTestCase {
             let slider = app.sliders["Radarzeitpunkt"]
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
             let play = app.buttons["Radaranimation starten"]
-            let now = app.buttons["Jetzt"]
+            let now = timeButton(app)
             func frames() -> [CGRect] { [slider.frame, play.frame, now.frame] }
             now.tap()
             let reference = frames()

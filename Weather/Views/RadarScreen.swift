@@ -360,7 +360,6 @@ struct RadarScreen: View {
             HStack(spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 8) {
                 playButton
                 timeSlider
-                nowButton
             }
         }
         .padding(.horizontal, 10)
@@ -389,46 +388,36 @@ struct RadarScreen: View {
     /// `nil` while not dragging; otherwise whether the dragged time is in the future (drives the scrub glow).
     private var scrubGlowState: Bool? { scrubIndex == nil ? nil : displayedIsForecast }
 
-    /// Time (and day, when not the reference day) for the bubble above the finger.
-    private var bubbleText: String? {
-        guard let date = displayedDate else { return nil }
-        let time = date.formatted(date: .omitted, time: .shortened)
-        return otherDayLabel(for: date).map { "\($0), \(time)" } ?? time
-    }
-
-    private static var alwaysShowBubble: Bool {
-        #if DEBUG
-        CommandLine.arguments.contains("-UITestShowScrubBubble")
-        #else
-        false
-        #endif
-    }
-
     /// Time (and day) display with a fixed size: a hidden template reserves the widest content and both lines,
     /// so measurement/forecast or another day never changes the layout (the slider must not move).
     private var frameLabel: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
-        return Text("Mo., 88. Okt. 88:88 AM").font(.subheadline.weight(.semibold)).monospacedDigit()
-            .lineLimit(1)
-            .hidden()
-            .frame(maxWidth: .infinity)
-            .overlay {
-                if let date = displayedDate {
-                    let time = Text(date, style: .time).font(.subheadline.weight(.semibold)).monospacedDigit()
-                    let day = otherDayLabel(for: date).map { Text($0).font(.subheadline).foregroundStyle(.secondary) }
-                    Group {
-                        if let day { Text("\(day) · \(time)") } else { time }
+        return Button {
+            guard let timeline = store.displayTimeline else { return }
+            store.isPlaying = false
+            store.displayFrameIndex = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
+        } label: {
+            Text("Mo., 88. Okt. 88:88 AM").font(.title3.weight(.semibold)).monospacedDigit()
+                .lineLimit(1)
+                .hidden()
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .overlay {
+                    if let date = displayedDate {
+                        let time = Text(date, style: .time).font(.title3.weight(.semibold)).monospacedDigit()
+                        let day = otherDayLabel(for: date).map { Text($0).font(.subheadline).foregroundStyle(.secondary) }
+                        Group {
+                            if let day { Text("\(day) · \(time)") } else { time }
+                        }
+                        .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.6)
+                        .multilineTextAlignment(.center)
                     }
-                    .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-                    // While dragging the bubble shows the time; the row keeps its space, so nothing jumps or doubles.
-                    .opacity(scrubIndex != nil || Self.alwaysShowBubble ? 0 : 1)
-                    .animation(.easeOut(duration: 0.15), value: scrubIndex != nil)
                 }
-            }
-            .padding(.top, 6)
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("radar-frame-label")
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(store.displayTimeline == nil)
+        .accessibilityHint("Zur aktuellen Zeit springen")
+        .accessibilityIdentifier("radar-frame-label")
     }
 
     /// With up to 48 hours of past the time alone is ambiguous: name the day when it is not the reference day.
@@ -436,21 +425,6 @@ struct RadarScreen: View {
         guard let reference = store.displayTimeline?.referenceTime,
               !Calendar.current.isDate(date, inSameDayAs: reference) else { return nil }
         return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
-    }
-
-    @ViewBuilder private var nowButton: some View {
-        if let timeline = store.displayTimeline {
-            Button {
-                store.isPlaying = false
-                store.displayFrameIndex = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
-            } label: {
-                Text("Jetzt").font(.subheadline.weight(.semibold))
-                    .fixedSize(horizontal: true, vertical: true)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
     }
 
     @ViewBuilder private var timeSlider: some View {
@@ -499,14 +473,6 @@ struct RadarScreen: View {
                 .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime,
                                                                 caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast)))
                 .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened)). Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.")
-            }
-            .overlay {
-                if let text = bubbleText, scrubIndex != nil || Self.alwaysShowBubble {
-                    ScrubBubble(count: timeline.dates.count, index: displayedIndex, text: text,
-                                tint: displayedIsForecast ? ScreenGlow.futureColor : ScreenGlow.pastColor,
-                                lift: dynamicTypeSize.isAccessibilitySize ? 112 : 0,
-                                viewportWidth: screenWidth, exposed: Self.alwaysShowBubble)
-                }
             }
         } else {
             Text(store.activeLayer != .radar ? (store.layers.isLoading ? "\(store.activeLayer.title) lädt …" : "Keine Zeiten für \(store.activeLayer.title)")
