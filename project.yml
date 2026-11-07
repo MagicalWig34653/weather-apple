@@ -41,6 +41,8 @@ targets:
         embed: true
       - target: WeatherWatch
         embed: true
+      - target: WeatherNotificationService
+        embed: true
     entitlements:
       path: Configuration/Weather.entitlements
       properties:
@@ -68,6 +70,24 @@ targets:
         SKIP_INSTALL: YES
     entitlements:
       path: Configuration/WeatherWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.de.linolaske.showernow]
+  WeatherNotificationService:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: WeatherNotificationService
+      - Shared/NotificationNameStore.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).notificationservice
+        PRODUCT_NAME: WeatherNotificationService
+        TARGETED_DEVICE_FAMILY: '1,2'
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Configuration/WeatherNotificationService-Info.plist
+        SKIP_INSTALL: YES
+    entitlements:
+      path: Configuration/WeatherNotificationService.entitlements
       properties:
         com.apple.security.application-groups: [group.de.linolaske.showernow]
   WeatherWatch:

@@ -171,6 +171,7 @@ final class PushManager {
     @ObservationIgnored private var pendingReservationDeletes: Set<String> = []
     @ObservationIgnored private var pendingActivityDeletes: [String: Set<String>] = [:]
     @ObservationIgnored private var deviceToken: String?
+    @ObservationIgnored private var placeNames: [UUID: String] = [:]
     @ObservationIgnored private var syncAgain = false
     @ObservationIgnored private let gateway: PushGateway
     @ObservationIgnored private let secrets: PushSecretStore
@@ -985,6 +986,24 @@ final class PushManager {
             map[sub] = info
         }
         activityDefaults?.set(regionMapping, forKey: RainActivityAttributes.regionMappingDefaultsKey)
+        writeNotificationNames()
+    }
+
+    /// Place names for the Notification Service Extension (App Group, device only). Call whenever the place list changes.
+    func updatePlaceNames(_ places: [SavedPlace]) {
+        placeNames = Dictionary(places.map { ($0.id, $0.name) }, uniquingKeysWith: { _, last in last })
+        writeNotificationNames()
+    }
+
+    private func writeNotificationNames() {
+        let placeSubs = state.places.reduce(into: [UUID: String]()) { map, entry in
+            if let sub = entry.value.subscriptionID { map[entry.key] = sub }
+        }
+        let regionSubs = state.regions.reduce(into: [String: String?]()) { map, entry in
+            if let sub = entry.value.subscriptionID { map[sub] = entry.value.name }
+        }
+        NotificationNameStore.write(NotificationNameStore.mapping(placeSubscriptions: placeSubs, placeNames: placeNames,
+                                                                  regionSubscriptions: regionSubs), to: activityDefaults)
     }
 }
 

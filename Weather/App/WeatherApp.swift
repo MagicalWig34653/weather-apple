@@ -24,6 +24,7 @@ struct WeatherApp: App {
                 .onOpenURL { store.openWidgetURL($0) }
                 .onChange(of: store.places, initial: true) { _, places in
                     phoneSession.update(places: places)
+                    push.updatePlaceNames(places)
                 }
                 .task { store.onPlacesRemoved = { ids in Task { await push.placesRemoved(ids) } } }
                 .task(id: scenePhase) {
