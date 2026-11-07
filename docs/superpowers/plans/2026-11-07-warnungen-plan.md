@@ -558,6 +558,8 @@ struct WarnCellMatcher: Sendable {
 
 **Stand W3 (7.11.2026, App-Repo, nicht deployt):** Umgesetzt auf Kreisebene statt Gemeinde (Nutzerentscheidung Lizenz; W3.1 Gate fuer `dwd:Warngebiete_Kreise` entschieden). Abweichungen: Quelle GeoJSON statt Shapefile, kein Douglas-Peucker (337 KB), Skript `tools/warn_geometry.py --geojson`, Datei hat 402 statt >11 000 Zellen, Kreis-Schnitt exakt (Mittelpunkt in Zelle oder Randabstand <= Radius statt 16 Randpunkte), `nearestCell(maxDistanceKm:)` und `allCells(containing:)` zusaetzlich, `boundingBoxCandidateCount` statt `testStats`. W4/W5 nutzen `WarnCellMatcher` und IDs `1`+AGS5+`000`/Praefix 9 (DISTRICT-Feed).
 
+**Stand W4 (7.11.2026, App-Repo, nicht deployt):** Umgesetzt (Details `docs/status.md`). Abweichungen: Gateway-Methoden bekommen `PushIdentity` mit (`HTTPWarnGateway` nutzt `HTTPPushGateway.send`, kein eigener `URLSession`-Typ); `WarnManager` ist `@Observable` (wie `PushManager`) statt `ObservableObject`; `WarnUserSettings` hat Wrapper-Methoden statt `@Published var`; Orte und Gebiete mit identischer Zellmenge teilen ein Abo; `WarnSettingsPresentation.rows` statt `sections`; Schalter heisst "Zeitkritisch" (Server: Stufe 4 immer, an = alle Stufen); Abo-Zuordnung in `UserDefaults.standard` (`warn.state.v1`), Namen unter eigenem App-Group-Schluessel; Gebiete stammen aus dem Regen-Push-Zustand (`PushManager.regionsSorted`, grober Mittelpunkt), nicht aus einem eigenen Gebietsspeicher. Fuer W6: Namen via `NotificationNameStore.name(for: thread-id/subID, in:)` (liest jetzt beide Schluessel). Fuer W5: `WarnManager.capabilityWarnings`, `WarnKind` (in `WarnModels.swift`), `WarnTarget`-Liste (`WarnManager.targets(places:push:)`) fuer "Meine Orte".
+
 ---
 
 ## W4: App Gateway, Abo-Verwaltung, Einstellungen (APP)

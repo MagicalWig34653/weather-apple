@@ -82,6 +82,10 @@ enum PushGatewayError: Error, Equatable, Sendable {
     /// 409 `region_limit`: more than 3 regions or more than 8000 cells (sum of the circle areas) for this installation.
     case regionLimit
     case invalidActivityToken
+    /// Warning subscriptions: 409 `warn_limit`, 409 `warncell_unknown`, 400 `invalid_warn_subscription`.
+    case warnLimit
+    case warnCellUnknown
+    case invalidWarnSubscription
     case activityNotEligible
     case activityLimit
     case startTokenRequired
@@ -357,6 +361,8 @@ struct HTTPPushGateway: PushGateway {
             case "subscription_limit": return .subscriptionLimit
             case "region_capacity": return .regionCapacity
             case "region_limit": return .regionLimit
+            case "warn_limit": return .warnLimit
+            case "warncell_unknown": return .warnCellUnknown
             case "activity_not_eligible": return .activityNotEligible
             case "activity_limit": return .activityLimit
             case "start_token_required": return .startTokenRequired
@@ -364,8 +370,11 @@ struct HTTPPushGateway: PushGateway {
             }
         case 400:
             struct Payload: Decodable { let error: String? }
-            return (try? JSONDecoder().decode(Payload.self, from: data))?.error == "invalid_activity_token"
-                ? .invalidActivityToken : .rejected(400)
+            switch (try? JSONDecoder().decode(Payload.self, from: data))?.error {
+            case "invalid_activity_token": return .invalidActivityToken
+            case "invalid_warn_subscription": return .invalidWarnSubscription
+            default: return .rejected(400)
+            }
         case 401..<500: return .rejected(statusCode)
         case 503:
             struct Payload: Decodable { let error: String? }

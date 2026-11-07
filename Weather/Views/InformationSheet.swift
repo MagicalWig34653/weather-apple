@@ -5,6 +5,7 @@ struct InformationSheet: View {
     var store: WeatherStore
     @Environment(PushManager.self) private var push
     @Environment(DeviceLinkManager.self) private var deviceLink
+    @Environment(WarnManager.self) private var warn
     @Environment(\.dismiss) private var dismiss
     @State private var sitePage: SitePage?
 
@@ -74,6 +75,7 @@ struct InformationSheet: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
             .sitePageSheet($sitePage)
             .task {
+                await warn.refreshCapabilities()
                 await deviceLink.refresh()
                 await deviceLink.runWindowPolling()
             }
@@ -88,6 +90,7 @@ struct InformationSheet: View {
     }
 
     @ViewBuilder private var alertsContent: some View {
+                WarnSettingsView(manager: warn)
                 Section {
                     Text(push.summary).accessibilityIdentifier("push-status")
                     if push.isAnyEnabled {

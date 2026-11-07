@@ -11,9 +11,18 @@ enum NotificationNameStore {
         defaults?.set(names, forKey: defaultsKey)
     }
 
+    /// Names of warning subscriptions live under their own key so that rain-hint and warning writers never overwrite each other.
+    static let warnDefaultsKey = "notification.warnnames.v1"
+
+    static func writeWarn(_ names: [String: String], to defaults: UserDefaults?) {
+        defaults?.set(names, forKey: warnDefaultsKey)
+    }
+
     static func name(for subscriptionID: String, in defaults: UserDefaults?) -> String? {
-        guard let value = defaults?.dictionary(forKey: defaultsKey)?[subscriptionID] as? String else { return nil }
-        return clean(value)
+        for key in [defaultsKey, warnDefaultsKey] {
+            if let value = defaults?.dictionary(forKey: key)?[subscriptionID] as? String { return clean(value) }
+        }
+        return nil
     }
 
     /// Trimmed, single-line, shortened name; nil if empty.

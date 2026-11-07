@@ -373,3 +373,42 @@ final class WeatherSmokeTests: XCTestCase {
         }
     }
 }
+
+final class WarnSettingsUITests: XCTestCase {
+    override func setUpWithError() throws { continueAfterFailure = false }
+
+    private func openAlerts(capabilities: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestWarnCapabilities", capabilities]
+        app.launch()
+        let information = app.buttons["Datenquellen und Datenschutz"]
+        XCTAssertTrue(information.waitForExistence(timeout: 15))
+        information.tap()
+        let row = app.buttons["info-row-alerts"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        XCTAssertTrue(app.otherElements["info-page-alerts"].waitForExistence(timeout: 5)
+                      || app.collectionViews["info-page-alerts"].waitForExistence(timeout: 5))
+        return app
+    }
+
+    func testNoWarningsSectionWithoutCapability() throws {
+        let app = openAlerts(capabilities: "none")
+        XCTAssertTrue(app.staticTexts["push-status"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.switches["warn-toggle"].exists)
+        XCTAssertFalse(app.staticTexts["warn-disclaimer"].exists)
+    }
+
+    func testWarningsSectionWithCapabilityShowsDisclaimerAndConfirmation() throws {
+        let app = openAlerts(capabilities: "push")
+        let toggle = app.switches["warn-toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Kein Ersatz für amtliche Warnkanäle (WarnWetter-App, NINA)."].exists)
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        // The explanation (with the disclaimer) comes before the system permission prompt; cancel keeps the switch off.
+        XCTAssertTrue(app.buttons["Einschalten"].waitForExistence(timeout: 5))
+        app.buttons["Abbrechen"].tap()
+        XCTAssertEqual(app.switches["warn-toggle"].value as? String, "0")
+        XCTAssertFalse(app.switches["warn-time-sensitive"].exists)
+    }
+}

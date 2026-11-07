@@ -173,6 +173,13 @@ final class PushManager {
     @ObservationIgnored private var deviceToken: String?
     @ObservationIgnored private var placeNames: [UUID: String] = [:]
     @ObservationIgnored private var syncAgain = false
+    /// Warning subscriptions (WarnManager) also need the installation: it must not be deleted as an orphan while they are on.
+    @ObservationIgnored var externalSubscriptionsActive: @MainActor () -> Bool = { false }
+    /// Called after the installation was acknowledged by the server (so warning subscriptions can be reconciled).
+    @ObservationIgnored var onInstallationReady: (@MainActor () async -> Void)?
+    /// Called by `resetAll` (the installation delete removes all server subscriptions, including warning ones).
+    @ObservationIgnored var onResetAll: (@MainActor () -> Void)?
+    private(set) var isInstallationReady = false
     @ObservationIgnored private let gateway: PushGateway
     @ObservationIgnored private let secrets: PushSecretStore
     @ObservationIgnored private let authorizer: PushAuthorizing
@@ -221,7 +228,7 @@ final class PushManager {
         guard let settings = state.regions[id] else { return .off }
         return settings.subscriptionID != nil && !settings.needsUpload ? .active : .pending
     }
-    var isAnyEnabled: Bool { enabledCount > 0 }
+    var isAnyEnabled: Bool { enabledCount > 0 || externalSubscriptionsActive() }
 
     /// Installation ID (UUID only, never the secret) for data-subject access requests; nil unless push is registered.
     var installationID: String? {
@@ -480,6 +487,8 @@ final class PushManager {
 
     /// App reset / "alle Mitteilungen aus": DELETE of the whole installation (server removes subscriptions and outbox).
     func resetAll() async {
+        isInstallationReady = false
+        onResetAll?()
         state.places = [:]
         state.regions = [:]
         state.pendingSubscriptionDeletes = []
@@ -723,12 +732,14 @@ final class PushManager {
     }
 
     private func runSync() async {
-        let orphan = state.places.isEmpty && state.regions.isEmpty && secrets.load() != nil
+        let external = externalSubscriptionsActive()
+        let orphan = state.places.isEmpty && state.regions.isEmpty && !external && secrets.load() != nil
         if state.pendingInstallationDelete || orphan {
+            isInstallationReady = false
             await deleteInstallation()
             return
         }
-        guard !(state.places.isEmpty && state.regions.isEmpty), let token = deviceToken, authorization != .denied else { return }
+        guard !(state.places.isEmpty && state.regions.isEmpty && !external), let token = deviceToken, authorization != .denied else { return }
         guard var identity = secrets.load() ?? createIdentity() else { return fail("Die Kennung konnte nicht sicher gespeichert werden.") }
 
         do { try await gateway.putInstallation(identity, token: token, environment: environment, locale: locale) }
@@ -742,6 +753,7 @@ final class PushManager {
             do { try await gateway.putInstallation(identity, token: token, environment: environment, locale: locale) }
             catch { return fail(Self.message(for: error)) }
         } catch { return fail(Self.message(for: error)) }
+        isInstallationReady = true
 
         var remaining: [String] = []
         for sub in state.pendingSubscriptionDeletes {
@@ -812,7 +824,22 @@ final class PushManager {
 
         await uploadRegions(identity, deviceToken: token, reportedStartToken: reportedStartToken)
         await syncActivities(identity, deviceToken: token)
+        await onInstallationReady?()
     }
+
+    /// Warnings opt-in: system permission (the caller has shown the explanation), token registration and installation.
+    /// Returns whether notifications are allowed; the installation follows asynchronously via the token callback.
+    func prepareInstallationForWarnings() async -> Bool {
+        guard await ensureAuthorized() else { return false }
+        state.pendingInstallationDelete = false
+        persist()
+        registrar.register()
+        await sync()
+        return true
+    }
+
+    /// Identity of the acknowledged installation (nil before the first successful upload).
+    func warningIdentity() -> PushIdentity? { isInstallationReady ? secrets.load() : nil }
 
     /// Upload; a `start_token_required` for a live opt-in gets exactly one recovery attempt (report the token again, upload again).
     private func uploadRecovering(_ identity: PushIdentity, deviceToken: String, existing: String?,
