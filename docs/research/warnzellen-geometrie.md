@@ -41,3 +41,43 @@ Rohdaten: 179 467 Punkte, 11 519 Ringe. Geplantes Binärformat `WGEO1` (Int32 la
 2. **Quelle:** WFS-Export (aktueller als das ZIP), Aufbereitung mit `tools/warn_geometry.py` aus GeoJSON statt Shapefile (Stdlib `json`); dann entfällt der Shapefile-Parser. Plan W3.2 entsprechend anpassen.
 3. **Vor Bündelung klären:** Lizenztext DWD (Nutzungsbedingungen), Umgang mit den 235 Typ-7-Zellen (Option A: nur die 10 NC-SA-Zellen auslassen und Nürnberg auf Stadt-/Kreisebene `DISTRICT` ersetzen; Option B: DWD um Klarstellung bitten). Impressum/Info-Sheet mit Quellenvermerken.
 4. **Aufwand:** W3.2 klein (S), bei Option A zusätzlich Sonderfall Nürnberg. **Risiken:** Lizenzmischung, Gebietsreformen (Server antwortet `409 warncell_unknown`, Geometrie nur mit App-Update), Großstädte nur über Typ-7-Zellen (Feed liefert sie laut Stichprobe so, nicht vollständig belegt), Update-Rhythmus unbekannt.
+
+## Alternative ohne Lizenzrisiko
+
+Stand 07.11.2026, eigene Abrufe am selben Tag. Rohdateien nur im Scratchpad, nicht im Repo.
+
+### (1) BKG VG250 / VG250-EW (Gemeinde-/Kreisgrenzen, selbst gebaut)
+
+- Quelle: `https://gdz.bkg.bund.de/index.php/default/verwaltungsgebiete-1-250-000-stand-31-12-vg250-31-12.html` (und `...-mit-einwohnerzahlen-...vg250-ew-31-12.html`). Seitentext: "Datenlizenz Deutschland Namensnennung 2.0" (dl-de/by-2-0), kostenfrei, Nutzer "Jedermann", Stand 31.12.2025, Fortführung jährlich.
+- Quellenvermerk laut Seite: "© BKG (Jahr des letzten Datenbezugs) dl-de/by-2-0, Datenquellen: [Link]", plus Veränderungshinweis (die Geometrie würde vereinfacht). Ob die Einbindung in ein App-Bundle ausdrücklich erlaubt ist, steht nicht auf der Seite; dl-de/by-2-0 erlaubt allgemein Vervielfältigung, Veränderung und Weitergabe mit Namensnennung (Lizenztext selbst in diesem Lauf nicht gelesen).
+- Format/Größe (HEAD-Abruf, nicht heruntergeladen): GeoPackage UTM32s ZIP 70,6 MB, Shape GK3 ZIP 64,9 MB; Quelle `https://daten.gdz.bkg.bund.de/produkte/vg/vg250_ebenen_1231/aktuell/`. Maßstab 1:250 000 (DLM250-ausgerichtet). Attributnamen (AGS etc.) nicht geprüft. Zum App-Bundle wäre Vereinfachung nötig (nicht gebaut, Größe unbekannt).
+- Mapping Gemeinde: DWD-ID Typ 8 = `8` + AGS (am WFS belegt, siehe oben), also AGS direkt nutzbar. **Lücken (geprüft am WFS):** 245 Typ-7-Zellen (29 Stadt-Präfixe, z. B. Berlin 71, München 25) haben in VG250 keine Gemeinde-Entsprechung; die Großstadt-Gemeinde-IDs (28 ohne Geometrie) ebenso. Für diese Städte bliebe nur die Kreisebene (die Stadt ist selbst Kreis). Stadtbezirks-Genauigkeit entfällt ohne OSM/Stadt-Daten.
+- Zusätzlich: Kreis-Zellen der Küste/Inseln (Typ 10, "Binnenland"/"Küste") und 87 Gemeinde-AGS5 ohne Typ-1-Kreiszelle (Küstenkreise, z. B. 01051 Dithmarschen, 03352, 03452) lassen sich nicht rein aus VG250 ableiten. Insgesamt: eigene Pipeline, mittlerer Aufwand (M), Sonderfälle manuell.
+
+### (2) Kreisebene
+
+- WFS-Layer `dwd:Warngebiete_Kreise` (Capabilities geprüft): 402 Features, GeoJSON 0,9 MB, 78 812 Punkte (Binärformat deutlich unter 1 MB). **Alle 402** tragen `COPYRIGHT` "© GeoBasis-DE / BKG 2021 (Daten modifiziert)"; keine OSM-/CC-NC-SA-/Stadtquellen (Gemeindelayer: 235 abweichende Vermerke nur bei Typ 7).
+- IDs: 310 Zellen Typ 1 (ID = `1` + 5-stellige Kreis-AGS + `000`, z. B. `103157000` Kreis Peine, `105315000` Köln, `109564000` Nürnberg, `111000000` Berlin, `102000000` Hamburg), 92 Zellen Typ 10 mit Präfix 9 (Küsten-/Inselkreise geteilt "Binnenland"/"Küste", z. B. `903352001`/`903352002` Cuxhaven; `909184999` Kreis und Stadt München).
+- Feed: `https://opendata.dwd.de/weather/alerts/cap/DISTRICT_DWD_STAT/` existiert (Verzeichnis geprüft, wie `COMMUNEUNION_DWD_STAT/`, Dateien gleichen Namensschemas `..._DISTRICT_DE.zip`). Ob alle 402 Zell-IDs dort vorkommen und die Warninhalte zu COMMUNEUNION konsistent sind, **nicht geprüft**.
+- Genauigkeitsfolge: Warnung gilt für den ganzen Kreis; Gemeindeebene (11 214 Zellen) entfällt. Bei kleinräumigen Gewittern/Starkregen häufiger Fehlalarm für Orte am anderen Kreisende, bei Küste/Inseln mit geteilten Zellen besser. Produktentscheidung nötig, ob akzeptabel.
+
+### (3) Lizenz des DWD
+
+- `https://www.dwd.de/DE/leistungen/opendata/hilfe.html`: nennt keine GeoNutzV; verweist nur auf "Open Data Nutzungsbedingungen" (Rechtliche Hinweise, Stand 07.2017). COUNTY/COMMUNEUNION-Begriffe stehen dort nicht.
+- `https://www.dwd.de/DE/service/rechtliche_hinweise/rechtliche_hinweise_node.html` (Auszug): frei zugängliche Geodaten und Geodatendienste dürfen "unter CC BY 4.0 weiterverwendet werden, wenn ein Quellenvermerk beigefügt wird"; Geodaten seien "alle bereitgestellten meteorologischen Wetter- und Klimainformationen mit Ortsbezug". Fremddaten: "Geobasisdaten stammen von den Vermessungsverwaltungen der Länder und dem Bundesamt für Kartographie und Geodäsie (BKG)"; Inhalte Dritter bedürfen "gegebenenfalls der vorherigen Zustimmung der jeweiligen Rechteinhaber". GeoNutzV wird nicht erwähnt.
+- Bewertung: Die Warngebiete sind DWD-Geodatendienst mit CC BY 4.0-Aussage, aber die zugrunde liegenden Flächen sind BKG-Fremddaten mit dem Vermerk "© GeoBasis-DE / BKG"; ein eigener Metadatensatz mit Nutzungsbedingungen zum Layer wurde nicht gefunden/gelesen. Für die Kreis-Zellen ist die Kette DWD (CC BY 4.0) plus BKG (dl-de/by-2-0, beide Namensnennung, ohne NC/SA) konsistent; juristisch nicht abschließend geprüft.
+
+### (4) Reverse-Geocode (CLGeocoder)
+
+Nicht abgerufen oder getestet (Plattformverhalten nicht an Primärquelle geprüft). Einschätzung (Hypothese): liefert Ortsnamen (`locality`, `subAdministrativeArea`), keine AGS; Zuordnung nur über Namen gegen `cap_warncellids_csv.csv` (Namensdubletten, Schreibweisen "Stadt X"/"Kreis X", Gemeindeverbände). Fehleranfällig und überträgt Koordinaten an Apple, widerspricht dem Gedanken "Ort nur auf dem Gerät". Nicht empfohlen.
+
+### (5) Bewertung und Empfehlung
+
+| Variante | Lizenz | Genauigkeit | Aufwand | Ohne Mail |
+|---|---|---|---|---|
+| A: DWD-Layer `Warngebiete_Kreise` ins Bundle (<1 MB) | nur BKG-Vermerk, einheitlich, plus DWD CC BY 4.0 | Kreis | S | ja (empfohlen als Start) |
+| B: Gemeindelayer ohne die 235 Typ-7-Zellen | gemischt nur bei Typ 7, Rest BKG; Lizenz-Gesamtaussage DWD offen | Gemeinde, Großstädte auf Kreis zu ersetzen | M | mit Restrisiko, Klärung empfohlen |
+| C: VG250 selbst bauen | dl-de/by-2-0 eindeutig | Gemeinde, Großstädte/Küste Sonderfälle | M bis L | ja, aber mehr Arbeit, Lücken s. o. |
+| D: CLGeocoder | Apple-Bedingungen | Namensmatching unsicher | S | Datenschutzproblem |
+
+Empfehlung: Sofort A (Kreis-Warnzelle, Quellenvermerk "© GeoBasis-DE / BKG 2021 (Daten modifiziert), DWD, CC BY 4.0" im Info-Sheet; Server/Feed auf `DISTRICT_*` ausrichten, `warncell` dann Kreis-ID). Mail an `opendata@dwd.de` parallel für Gemeindegenauigkeit (B) bzw. C als lizenzklarer Ausbau. Offen: DISTRICT-Feed-Vollständigkeit, Produktfreigabe der gröberen Genauigkeit, VG250 nicht heruntergeladen, Lizenztexte selbst nicht gelesen.
