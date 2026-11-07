@@ -100,3 +100,9 @@
 "WARN_MAP_LABEL" = "Map of the warning areas. The list contains the same warnings as text.";
 "WARN_MAP_LEGEND" = "Each area shows its highest level. Level 1 dotted, 2 dashed, 3 long dashes, 4 solid and thick.";
 "WARN_DETAIL_TITLE" = "Warning";
+
+/* Warning push (W6, notification service extension, own short notice) */
+"WARN_PUSH_TITLE_SEVERE" = "Severe weather notice, level %d";
+"WARN_PUSH_TITLE_FROST" = "Frost notice, level %d";
+"WARN_PUSH_TITLE_ICE" = "Ice and slippery roads notice, level %d";
+"WARN_PUSH_BODY" = "Tap for details.";

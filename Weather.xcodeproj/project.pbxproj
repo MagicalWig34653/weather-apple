@@ -31,13 +31,16 @@
 		21CC8AB097B09F01B0F39EDF /* SitePageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEBA2774C202317C41D89E31 /* SitePageSheet.swift */; };
 		21E21D23D96E36FA2016AA55 /* DWDResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B3B7DEDEFDD9949F13AF97 /* DWDResponse.swift */; };
 		2224D7EE1E5532F4C3F6A84E /* RainActivityRegionPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B910467976CAE0D81F42B3 /* RainActivityRegionPresentation.swift */; };
+		24B0702FEEE640FC588B9136 /* WarningNotificationText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */; };
 		24C67759083FFDA9A930F36E /* WidgetForecastLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF1306BB0561CD554A38607 /* WidgetForecastLoader.swift */; };
 		258C682A281EFA441823B81E /* SavedPlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C611C7CE40C6A89732B8A51 /* SavedPlace.swift */; };
+		268909E9FE84F93DE4B518CF /* WarningNotificationText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */; };
 		26DE550D1A6C2ACA82323168 /* WarnGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D89434827833E369CA0C1D0 /* WarnGeometry.swift */; };
 		2821266F9567A1F1BC12E85D /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 15CAF1B3A806ED32DE6753B7 /* Localizable.strings */; };
 		2C1B9B24C34E78D4E2248796 /* SunMaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6018099B64B163F2C896E19 /* SunMaskTests.swift */; };
 		2CD5AE787F1A1C3084FFA463 /* PushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05E42607D07EFF4916F6D7D /* PushTests.swift */; };
 		2DD5FF78C21C8E03F62B8073 /* WeatherStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */; };
+		3235BAD98627B4A1A41E6299 /* WarningNotificationText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */; };
 		32E5BC5AD66C41818D563927 /* ForecastCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45AC674C1BC6565A9747880 /* ForecastCache.swift */; };
 		337A7E456E875FF4B50400A4 /* WatchWidgetPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E7BD6E7A6DC9EB1DDAE5AF /* WatchWidgetPreviews.swift */; };
 		35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF405ABCD119D3DE565984B0 /* RadarHistory.swift */; };
@@ -87,12 +90,15 @@
 		6ADCE61E1640C3DC08452989 /* WatchWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 349D3E0839045A1FA2A0D1E0 /* WatchWidgetProvider.swift */; };
 		6D4B38245BA46B01F3D06FAE /* RainActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3180B1F8866A75C2A59FE446 /* RainActivityAttributes.swift */; };
 		6EA442467DE1A94E3F1C9ECF /* NotificationNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D31EB25381A1A27284964CE /* NotificationNameTests.swift */; };
+		6F388385AF5E580BA25062E1 /* WarningNotificationTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 387DC205590611D60B236F76 /* WarningNotificationTextTests.swift */; };
 		705EBDC51F6D063062856A57 /* WarnModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000FBD7F3B7A7D19D766319E /* WarnModels.swift */; };
 		70FF79B2CB31B33CF6409053 /* WarnSettingsPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124CCDCE0B21615F50207858 /* WarnSettingsPresentationTests.swift */; };
 		72DB4FE289DFBF7352180B91 /* DeviceLinkSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D980972A92ED4901F80E28 /* DeviceLinkSection.swift */; };
 		72DC79D98FF96A96720A359D /* RadarHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF405ABCD119D3DE565984B0 /* RadarHistory.swift */; };
 		7578FEB967E4B7B232F297A6 /* SharedDWDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F27F89DDD1461C52CB7D8C3 /* SharedDWDTests.swift */; };
 		75F86DD8CB1AB95D7751A5AC /* WidgetLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B6E663017086F3F8D03A3FD /* WidgetLogicTests.swift */; };
+		76150D6967E98739B2968352 /* WarningNotificationText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */; };
+		77819715A677991A5EEC788B /* WarningNotificationText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */; };
 		78ECA247313E3ACD50D76D05 /* DWDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDC42A828AFBCEB6EB42CC2 /* DWDClient.swift */; };
 		79B6BCDA394FBBA1FA4C6752 /* DeviceLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D5E94DAF4534E86C23D4AE /* DeviceLinkTests.swift */; };
 		79FD92B2D879179F7C5CB89F /* RadarBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F074EE7537C4C452040B4523 /* RadarBackendTests.swift */; };
@@ -342,6 +348,7 @@
 		349D3E0839045A1FA2A0D1E0 /* WatchWidgetProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWidgetProvider.swift; sourceTree = "<group>"; };
 		36810EBB689143D24E645BAD /* PlacesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacesSheet.swift; sourceTree = "<group>"; };
 		36E603EDEC8C918E3A13E9BE /* WatchText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchText.swift; sourceTree = "<group>"; };
+		387DC205590611D60B236F76 /* WarningNotificationTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningNotificationTextTests.swift; sourceTree = "<group>"; };
 		3893D0782052979F4991487D /* WatchRadarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarTests.swift; sourceTree = "<group>"; };
 		3B01B3F12274A8B6A7652EA2 /* WeatherUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WeatherUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C09774B45584DA22F1B0323 /* WarnFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnFeed.swift; sourceTree = "<group>"; };
@@ -382,6 +389,7 @@
 		76FAB4D672CFD205D534ED2D /* WarningDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningDetailView.swift; sourceTree = "<group>"; };
 		776DD45D1FCBA5A492CCDFE0 /* WeatherWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = WeatherWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		79D9621EDC8DF18025B8A7C8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningNotificationText.swift; sourceTree = "<group>"; };
 		7B8614BFD65078993309017D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		80E4EE8588C4D543DA31A674 /* WidgetPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPresentation.swift; sourceTree = "<group>"; };
 		8174F0961CBA8C530C9B30C0 /* PushGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGrid.swift; sourceTree = "<group>"; };
@@ -555,6 +563,7 @@
 				675CCA6FAED802E013E30A91 /* WarnFeedTests.swift */,
 				64BC2AA69647D32EB7906CA6 /* WarnGatewayTests.swift */,
 				B1F768BD1A31672946CEB2E0 /* WarnGeometryTests.swift */,
+				387DC205590611D60B236F76 /* WarningNotificationTextTests.swift */,
 				6422AD7A28B3F83EBA931E76 /* WarningPresentationTests.swift */,
 				C737158FA928F11B3B7ED32B /* WarnManagerTests.swift */,
 				873A780A50546A006B5A3A7A /* WarnMatcherTests.swift */,
@@ -751,6 +760,7 @@
 				96C6686DCED4967C0E75DA64 /* RainOutlook.swift */,
 				0C611C7CE40C6A89732B8A51 /* SavedPlace.swift */,
 				C3F8BED59EB9C59CD149AB3B /* SharedConfig.swift */,
+				7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */,
 				C9F3EDD496FC77265F0FDADD /* WidgetDeepLink.swift */,
 				757A8B0C7B820FAE01C419E0 /* Data */,
 			);
@@ -1198,6 +1208,7 @@
 				41171C2C9B50F92E35343672 /* WarnSettingsPresentation.swift in Sources */,
 				6474ED60A8E419313BD23037 /* WarnSettingsView.swift in Sources */,
 				07E79DEFEFAD44A920567510 /* WarningDetailView.swift in Sources */,
+				268909E9FE84F93DE4B518CF /* WarningNotificationText.swift in Sources */,
 				FE1634B5E48A983D75962FB4 /* WarningPresentation.swift in Sources */,
 				04AF1DEFFCD4F5E8D7F7F42F /* WarningsListView.swift in Sources */,
 				D38FAC7702DE3A5C0B2EB57E /* WeatherApp.swift in Sources */,
@@ -1228,6 +1239,7 @@
 				894B3404C6A0E393A100DADC /* RainOutlook.swift in Sources */,
 				258C682A281EFA441823B81E /* SavedPlace.swift in Sources */,
 				11B67348774B16EBFA6B32BF /* SharedConfig.swift in Sources */,
+				3235BAD98627B4A1A41E6299 /* WarningNotificationText.swift in Sources */,
 				9656EEBD185755C683019D2D /* WeatherWidgetPreviews.swift in Sources */,
 				1B63D9CA7B7560ADFE9D6E48 /* WeatherWidgetProvider.swift in Sources */,
 				8EBC20C2295012EC612AC604 /* WeatherWidgetViews.swift in Sources */,
@@ -1279,6 +1291,7 @@
 				95BB0D086F44B65DB0D59CD6 /* WarnManagerTests.swift in Sources */,
 				2100862AEF3148BE10E666A3 /* WarnMatcherTests.swift in Sources */,
 				70FF79B2CB31B33CF6409053 /* WarnSettingsPresentationTests.swift in Sources */,
+				6F388385AF5E580BA25062E1 /* WarningNotificationTextTests.swift in Sources */,
 				00F7288D09F459E4A4493F96 /* WarningPresentationTests.swift in Sources */,
 				EA431E93C65AE967B61BF2BF /* WatchLogicTests.swift in Sources */,
 				F073740B8FBEB8E95AD5ECA3 /* WatchRadarTests.swift in Sources */,
@@ -1310,6 +1323,7 @@
 				4EC2FC975AC8B192F44A5ADB /* RainOutlook.swift in Sources */,
 				8BD2D565C99AF9A2752D6AF7 /* SavedPlace.swift in Sources */,
 				59D5D1CA1E40CAB28F43404C /* SharedConfig.swift in Sources */,
+				76150D6967E98739B2968352 /* WarningNotificationText.swift in Sources */,
 				43F0273CFE23A7501F9A976C /* WatchRainWidgetView.swift in Sources */,
 				E058F91E5B482512A65A7616 /* WatchWidgetPresentation.swift in Sources */,
 				337A7E456E875FF4B50400A4 /* WatchWidgetPreviews.swift in Sources */,
@@ -1327,6 +1341,7 @@
 			files = (
 				3763DE785382488FF1E27FEC /* NotificationNameStore.swift in Sources */,
 				AFA4CACB7D9E2E3FA9AAE8DA /* NotificationService.swift in Sources */,
+				24B0702FEEE640FC588B9136 /* WarningNotificationText.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1352,6 +1367,7 @@
 				EFC88E8B2CA673C8774FD2F5 /* RainOutlook.swift in Sources */,
 				FED91F7178B06B120AA5E586 /* SavedPlace.swift in Sources */,
 				AAE819F0249EE2B5A38C7057 /* SharedConfig.swift in Sources */,
+				77819715A677991A5EEC788B /* WarningNotificationText.swift in Sources */,
 				8AAD8EFF393F135E484147A1 /* WatchMapBackdrop.swift in Sources */,
 				B71B826494B7796CC48702ED /* WatchPlacesView.swift in Sources */,
 				89FA0CA9E2B2B52E2709BE69 /* WatchRadarStore.swift in Sources */,

@@ -78,6 +78,7 @@ targets:
     sources:
       - path: WeatherNotificationService
       - Shared/NotificationNameStore.swift
+      - Shared/WarningNotificationText.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(WEATHER_BUNDLE_ID).notificationservice

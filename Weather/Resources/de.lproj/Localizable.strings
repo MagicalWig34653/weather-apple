@@ -100,3 +100,9 @@
 "WARN_MAP_LABEL" = "Karte der Warngebiete. Die Liste enthält dieselben Warnungen als Text.";
 "WARN_MAP_LEGEND" = "Je Gebiet gilt die höchste Stufe. Stufe 1 gepunktet, 2 gestrichelt, 3 lang gestrichelt, 4 durchgezogen und dick.";
 "WARN_DETAIL_TITLE" = "Warnung";
+
+/* Warn-Push (W6, Notification Service Extension, eigene Kurzmeldung) */
+"WARN_PUSH_TITLE_SEVERE" = "Unwetterhinweis, Stufe %d";
+"WARN_PUSH_TITLE_FROST" = "Frosthinweis, Stufe %d";
+"WARN_PUSH_TITLE_ICE" = "Glättehinweis, Stufe %d";
+"WARN_PUSH_BODY" = "Tippen für Details.";
