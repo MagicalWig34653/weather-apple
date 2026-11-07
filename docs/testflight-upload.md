@@ -447,3 +447,14 @@ Quellencheckpoint: Commit „chore: Buildnummer 28“ (`4902dbd`, Basis `9dc940a
 Quellencheckpoint: Commit „chore: Buildnummer 29“ (`d0cf060`, Basis `70dc2bd`). Verfahren wie Build 28 (`git archive`-Kopie `/private/tmp/showers-b29`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`, Optionen wie Build 28). Inhalt: Uhrzeit beim Scrubben nur noch einmal sichtbar (Bubble), feste Zeile ausgeblendet mit reserviertem Platz. Tests (451 Unit, 13 UI) zuvor auf `70dc2bd` grün.
 
 **Genau ein Upload, 7. November 2026 von 00:27:33 bis 00:30:06 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry. Verarbeitung / Installierbarkeit / Zuordnung und lokale IPA-Paketprüfung nicht geprüft.
+
+## Showers Build 30 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 30“ (`1252e34`, Basis `0557ede`). Verfahren wie Build 29 (`git archive`-Kopie `/private/tmp/showers-b30`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`). Archiv `CFBundleVersion` 30 vor Upload geprüft. Inhalt: Stufe „Sehr leicht“ (Klasse 1); „Jetzt“-Button und Scrub-Bubble entfernt, Zeit dauerhaft als tippbare Zeile über dem Regler; Glow Vergangenheit sehr dezent, Zukunft dynamischer mit mehr Farbtönen. Tests (452 Unit, 13 UI) zuvor auf `0557ede` grün.
+
+**Genau ein Upload, 7. November 2026 von 01:03:20 bis 01:05:04 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Kein Retry. Lokale IPA-Paketprüfung nicht ausgeführt.
+
+| Zustand Build 30 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |

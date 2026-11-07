@@ -225,6 +225,12 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 - Upload: Quellencheckpoint `84d40c2` (git-archive-Kopie), genau ein Upload, Exit 0, `Upload succeeded`, `Uploaded package is processing`. Paketprüfung siehe [testflight-upload.md](testflight-upload.md). NICHT geprüft: Apple-Verarbeitung, Installierbarkeit, Gerät/Watch-Hardware, Widget-/Watch-Anzeige auf Hardware.
 - **Nutzerschritte in App Store Connect:** Namen "Showers" auf Verfügbarkeit prüfen/ändern (Ausweichname z. B. "Showers – Regenradar"); Untertitel, Beschreibung, Keywords, Screenshots anpassen (Store-Screenshots und App-Vorschau-Video zeigen teils noch den alten Namen, nicht neu erzeugt; Video lokal in `showers-app-preview-de-886x1920.mp4` umbenannt); Datenschutz-/Support-/Marketing-URL unverändert lassen; Tester über die Umbenennung informieren. Backend-Seiten und Push-Titel zeigen noch "ShowerNow" (Backend-Repo, eigener Auftrag).
 
+## Build 30 (0.1.1) hochgeladen (7.11.2026)
+
+- Inhalt (gegenüber Build 29): Stufe "Sehr leicht" (Klasse 1); "Jetzt"-Button und Scrub-Bubble entfernt, Zeit dauerhaft als tippbare Zeile über dem Regler; Glow Vergangenheit sehr dezent, Zukunft dynamischer mit mehr Farbtönen.
+- Geprüft: 452 Unit- und 13 UI-Tests auf `0557ede` grün; Release-Archiv Build 30 (`/private/tmp/showers-b30`, Commit `1252e34`, CFBundleVersion 30 vor Upload geprüft) erfolgreich. IPA-Paketprüfung nicht ausgeführt.
+- Upload: genau einer, 7.11.2026 01:03 bis 01:05 Uhr, Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Serverzustand `Uploaded package is processing`. Verarbeitung nicht abgewartet. Kein Retry.
+
 ## Build 29 (0.1.1) hochgeladen (7.11.2026)
 
 - Inhalt (gegenüber Build 28, `70dc2bd`): Uhrzeit beim Scrubben nur noch einmal sichtbar (Bubble); die feste Zeile bleibt ausgeblendet, ihr Platz bleibt reserviert.
