@@ -502,3 +502,14 @@ Quellencheckpoint: Commit „chore: Buildnummer 35“ (`f34b36b`, `CURRENT_PROJE
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 36 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 36“ (`c6f2ba8`, `CURRENT_PROJECT_VERSION = 36`; Inhalt gegenüber Build 35: Warnungen W3 bis W6, Installationskennung; Warn-Push bleibt serverseitig aus). Verfahren wie Build 35 (`git archive`-Kopie `/private/tmp/showers-b36`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`). Vorab: `Weather`-Schema 569 Unit- und 22 UI-Tests, 0 Fehler; lokaler Export (`destination=export`) und IPA-Prüfung: CFBundleVersion 36 und `PrivacyInfo.xcprivacy` in allen fünf Bundles, `aps-environment=production` in der App, `codesign --verify --deep --strict` je Bundle ok, `WarnGeometry.bin` im App-Bundle, `WARN_PUSH_*` in de/en.
+
+**Genau ein Upload, 7. November 2026 von 16:43 bis 16:46 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`. Kein Retry.
+
+| Zustand Build 36 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
