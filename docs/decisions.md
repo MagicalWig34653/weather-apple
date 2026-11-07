@@ -299,3 +299,14 @@ Nutzerwunsch: "Regen beginnt in 3 Minuten · Holzschlag". Befund: Text entsteht 
 ## 7.11.2026: Ort im Regen-Push per Notification Service Extension (Variante A, umgesetzt)
 
 Nutzerentscheidung "A, Signing freigegeben". Target `WeatherNotificationService` (Build 32); Name wird lokal im App-Group-Speicher pro Abo-ID gehalten und als " · Name" an den Push-Text gehängt. Server kennt den Namen nie; Backend setzt nur `mutable-content: 1` für Orts- und Gebiets-Alerts. Keine Datenschutzänderung.
+
+## 7.11.2026: Warnungen (Unwetter, Frost, Glatteis), Entscheidungen
+
+Nutzer hat die Spezifikation `docs/superpowers/specs/2026-11-07-warnungen-design.md` freigegeben und alle Empfehlungen aus §9 bestätigt:
+- Unwetter allgemein = Gewitter, Sturm, Stark-/Dauerregen, Schnee, Tauwetter. Hitze, UV, Nebel nicht in v1.
+- Standardstufen Push: Unwetter ab 3, Frost ab 1, Glätte ab 2 (je Typ einstellbar).
+- Entwarnung nie als Push, nur in der App.
+- Update-Pushes nur bei Verschärfung (höhere Stufe, anderer Typ) oder deutlich früherem Beginn (> 1 h).
+- Zeitkritisch nur bei Stufe 4 plus Nutzerschalter.
+- Rückfrage an `CAP@dwd.de` (Weitergabe als Push mit Quellenangabe) ist eine **Nutzeraufgabe**. Push (`warnings_push`, `WARN_PUSH_ENABLED`) bleibt aus, bis der DWD geantwortet hat **und** der Datenschutztext freigegeben ist. Anzeige in der App (`warnings`) hängt davon nicht ab.
+- Vertrag (W0) liegt im Backend: `docs-site/content/api.md` "Amtliche Warnungen" mit Fixtures `docs/fixtures/warnings/`. Warn-Abos verwenden die Pfade `/v1/push/installations/<uuid>/warn-subscriptions` (Spec 3.5 angepasst). Plan: `docs/superpowers/plans/2026-11-07-warnungen-plan.md`.
