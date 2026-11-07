@@ -556,6 +556,10 @@ struct WarnCellMatcher: Sendable {
 
 ---
 
+**Stand W3 (7.11.2026, App-Repo, nicht deployt):** Umgesetzt auf Kreisebene statt Gemeinde (Nutzerentscheidung Lizenz; W3.1 Gate fuer `dwd:Warngebiete_Kreise` entschieden). Abweichungen: Quelle GeoJSON statt Shapefile, kein Douglas-Peucker (337 KB), Skript `tools/warn_geometry.py --geojson`, Datei hat 402 statt >11 000 Zellen, Kreis-Schnitt exakt (Mittelpunkt in Zelle oder Randabstand <= Radius statt 16 Randpunkte), `nearestCell(maxDistanceKm:)` und `allCells(containing:)` zusaetzlich, `boundingBoxCandidateCount` statt `testStats`. W4/W5 nutzen `WarnCellMatcher` und IDs `1`+AGS5+`000`/Praefix 9 (DISTRICT-Feed).
+
+---
+
 ## W4: App Gateway, Abo-Verwaltung, Einstellungen (APP)
 
 **Aufwand:** M. **Nach:** W0 (Vertrag), W3 (`WarnCellMatcher`, `WarnCellID`). **Nicht vor W2 testbar gegen echtes Backend**, aber gegen Fixtures vollständig testbar.

@@ -310,3 +310,7 @@ Nutzer hat die Spezifikation `docs/superpowers/specs/2026-11-07-warnungen-design
 - Zeitkritisch nur bei Stufe 4 plus Nutzerschalter.
 - Rückfrage an `CAP@dwd.de` (Weitergabe als Push mit Quellenangabe) ist eine **Nutzeraufgabe**. Push (`warnings_push`, `WARN_PUSH_ENABLED`) bleibt aus, bis der DWD geantwortet hat **und** der Datenschutztext freigegeben ist. Anzeige in der App (`warnings`) hängt davon nicht ab.
 - Vertrag (W0) liegt im Backend: `docs-site/content/api.md` "Amtliche Warnungen" mit Fixtures `docs/fixtures/warnings/`. Warn-Abos verwenden die Pfade `/v1/push/installations/<uuid>/warn-subscriptions` (Spec 3.5 angepasst). Plan: `docs/superpowers/plans/2026-11-07-warnungen-plan.md`.
+
+## 7.11.2026: Warngebiete auf Kreisebene (Lizenz)
+
+Nutzerentscheidung: Warnzellen-Geometrie und Zuordnung auf Kreisebene (DWD-Layer `Warngebiete_Kreise`, einheitlich © GeoBasis-DE / BKG) statt Gemeinde, um die gemischten Rechte der Typ-7-Zellen zu vermeiden. Server/Feed: `DISTRICT_*`. Quellenvermerk im Info-Sheet. Genauigkeit gröber (ganzer Kreis); Gemeindeebene nur nach DWD-Klärung oder eigenem Aufbau aus VG250. Details `research/warnzellen-geometrie.md`.

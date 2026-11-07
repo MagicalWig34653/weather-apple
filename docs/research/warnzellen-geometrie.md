@@ -81,3 +81,12 @@ Nicht abgerufen oder getestet (Plattformverhalten nicht an Primärquelle geprüf
 | D: CLGeocoder | Apple-Bedingungen | Namensmatching unsicher | S | Datenschutzproblem |
 
 Empfehlung: Sofort A (Kreis-Warnzelle, Quellenvermerk "© GeoBasis-DE / BKG 2021 (Daten modifiziert), DWD, CC BY 4.0" im Info-Sheet; Server/Feed auf `DISTRICT_*` ausrichten, `warncell` dann Kreis-ID). Mail an `opendata@dwd.de` parallel für Gemeindegenauigkeit (B) bzw. C als lizenzklarer Ausbau. Offen: DISTRICT-Feed-Vollständigkeit, Produktfreigabe der gröberen Genauigkeit, VG250 nicht heruntergeladen, Lizenztexte selbst nicht gelesen.
+
+
+## Umsetzung W3 (7.11.2026, Kreisebene)
+
+- Quelle: `https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=dwd:Warngebiete_Kreise&outputFormat=application/json`, abgerufen 07.11.2026, 903 893 Bytes, EPSG:4326 in Reihenfolge lon, lat, 402 Features (Polygon/MultiPolygon), `COPYRIGHT` einheitlich "© GeoBasis-DE / BKG 2021 (Daten modifiziert)". Rohdatei nicht im Repo; Aufbereitung: `python3 -I tools/warn_geometry.py --geojson <raw.json> --out Weather/Resources/WarnGeometry.bin`.
+- Ergebnis: 402 Zellen, 463 Ringe, 41 301 Punkte (frueher genannte 78 812 Punkte stimmen nicht), 337 409 Bytes (WGEO1, Int32 E5, Aufloesung ca. 1 m; Quelle hat 4 Nachkommastellen). Keine Vereinfachung.
+- DISTRICT-Feed `https://opendata.dwd.de/weather/alerts/cap/DISTRICT_DWD_STAT/..._DISTRICT_DE.zip` (7.11.2026 15:52): 111 verschiedene `WARNCELLID` (Wert `<value>` mit 9 Ziffern), alle im Layer. Server und App verwenden dieselbe 9-stellige ID.
+- Attribution in der App: "Quelle: Deutscher Wetterdienst, © GeoBasis-DE / BKG 2021 (Daten modifiziert)" (Info-Sheet > Datenquellen).
+- Matching: Kreise ueberlappen an den Landmarken nicht (je genau ein Treffer); Kuestenpunkte auf See liegen ausserhalb aller Polygone und werden nur ueber `nearestCell` zugeordnet.
