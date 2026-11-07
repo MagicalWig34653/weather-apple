@@ -491,3 +491,14 @@ Quellencheckpoint: `b29be64` (Privacy Manifests in allen fünf Targets, `CURRENT
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 35 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 35“ (`f34b36b`, `CURRENT_PROJECT_VERSION = 35`; Inhalt gegenüber Build 34: Anzeige der Installationskennung im Info-Sheet unter Mitteilungen, `f45cfe8`/`c0be7e4`). Verfahren wie Build 33/34 (`git archive`-Kopie `/private/tmp/showers-b35`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`). Vorab lokaler Export (`destination=export`) und IPA-Prüfung: CFBundleVersion 35 und `PrivacyInfo.xcprivacy` in allen fünf Bundles, `aps-environment=production` in der App, `codesign --verify --deep --strict` ok.
+
+**Genau ein Upload, 7. November 2026 von 15:49 bis 15:51 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`. Kein Retry.
+
+| Zustand Build 35 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |

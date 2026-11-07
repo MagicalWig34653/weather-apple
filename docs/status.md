@@ -235,6 +235,13 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 - Upload: Quellencheckpoint `84d40c2` (git-archive-Kopie), genau ein Upload, Exit 0, `Upload succeeded`, `Uploaded package is processing`. Paketprüfung siehe [testflight-upload.md](testflight-upload.md). NICHT geprüft: Apple-Verarbeitung, Installierbarkeit, Gerät/Watch-Hardware, Widget-/Watch-Anzeige auf Hardware.
 - **Nutzerschritte in App Store Connect:** Namen "Showers" auf Verfügbarkeit prüfen/ändern (Ausweichname z. B. "Showers – Regenradar"); Untertitel, Beschreibung, Keywords, Screenshots anpassen (Store-Screenshots und App-Vorschau-Video zeigen teils noch den alten Namen, nicht neu erzeugt; Video lokal in `showers-app-preview-de-886x1920.mp4` umbenannt); Datenschutz-/Support-/Marketing-URL unverändert lassen; Tester über die Umbenennung informieren. Backend-Seiten und Push-Titel zeigen noch "ShowerNow" (Backend-Repo, eigener Auftrag).
 
+## Build 35 (0.1.1) hochgeladen: Installationskennung sichtbar (7.11.2026)
+
+- Inhalt: Build 34 plus Anzeige der Installationskennung in Info-Sheet, Mitteilungen (kopierbar, für Auskunft; `f45cfe8`, `c0be7e4`). Buildnummer 35 (`f34b36b`).
+- Geprüft (iPhone-18-Pro-Simulator, `CODE_SIGNING_ALLOWED=NO`): 486 Unit-Tests grün; UI 13 Tests, 1 Fehlschlag im Volllauf (`testInformationExplainsPrivacyWithoutLocationPermission`), einzeln wiederholt grün (vermutlich flaky, Ursache nicht untersucht). Archiv aus `git archive`-Kopie; CFBundleVersion 35 und `PrivacyInfo.xcprivacy` in allen fünf Bundles im lokalen IPA-Export; `aps-environment=production`; `codesign --verify --deep --strict` ok.
+- Upload: genau einer, 7.11.2026 15:49 bis 15:51 Uhr, Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`.
+- Nicht geprüft: Apple-Verarbeitung, Installierbarkeit, Anzeige auf dem Gerät.
+
 ## Build 34 (0.1.1): Domain showers.linolaske.de, PreciseLocation (7.11.2026)
 
 - Inhalt: Standard-Backend und Datenschutz-/Support-/Über-URLs in `RadarBackendConfig` auf `https://showers.linolaske.de` (zeigt auf dieselbe Instanz; `showernow.linolaske.de` läuft parallel weiter, keine Weiterleitung; ältere Builds bleiben unverändert funktionsfähig; Slot-Pfade im Manifest sind relativ, Host-Prüfung bleibt gültig). Privacy Manifest der App: zusätzlich `PreciseLocation` (Orts-Zelle ~0,7 km = Precise, Gebiete = Coarse), App Functionality, kein Tracking; gemäß `datenschutz-entwurf-release.md` Teil B jetzt **verknüpft (Linked=true)** für Device ID, Coarse und Precise (Build 33 hatte nicht verknüpft). Betreiberanleitung (`apple-externe-tests.md`, docs-site) auf Showers/showers.linolaske.de, historische Abrufprotokolle unverändert.
