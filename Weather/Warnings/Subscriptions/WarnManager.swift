@@ -142,17 +142,25 @@ final class WarnManager {
         return cachedMatcher
     }
 
+    private func cells(for target: WarnTarget, matcher: WarnCellMatcher) -> [WarnCellID] {
+        if let radius = target.radiusKm {
+            return matcher.cells(intersectingCircleLat: target.latitude, lon: target.longitude, radiusKm: radius, limit: 64)
+        }
+        return matcher.nearestCell(lat: target.latitude, lon: target.longitude, maxDistanceKm: Self.placeMaxDistanceKm).map { [$0] } ?? []
+    }
+
+    /// Display only (warnings view, independent of the push switch): warning cells per saved place and region.
+    func placeCells() -> [WarnPlaceCells] {
+        guard let matcher = matcher() else { return [] }
+        return targets().map { WarnPlaceCells(name: $0.name, cells: Set(cells(for: $0, matcher: matcher))) }
+    }
+
     /// Targets with identical cells share one subscription (no duplicate pushes for two places in one district).
     private func desired() -> [String: Wanted] {
         guard settings.enabled, !settings.types.isEmpty, let matcher = matcher() else { return [:] }
         var result: [String: Wanted] = [:]
         for target in targets() {
-            let cells: [WarnCellID]
-            if let radius = target.radiusKm {
-                cells = matcher.cells(intersectingCircleLat: target.latitude, lon: target.longitude, radiusKm: radius, limit: 64)
-            } else {
-                cells = matcher.nearestCell(lat: target.latitude, lon: target.longitude, maxDistanceKm: Self.placeMaxDistanceKm).map { [$0] } ?? []
-            }
+            let cells = cells(for: target, matcher: matcher)
             guard !cells.isEmpty else { continue }
             let key = cells.joined(separator: ",")
             var entry = result[key] ?? Wanted(cells: cells, names: [])
@@ -256,7 +264,9 @@ final class WarnManager {
         if let index = CommandLine.arguments.firstIndex(of: "-UITestWarnCapabilities"),
            CommandLine.arguments.indices.contains(index + 1) {
             let value = CommandLine.arguments[index + 1]
-            capabilities = { value == "push" ? [Self.capability, Self.pushCapability] : [] }
+            capabilities = { value == "push" ? [Self.capability, Self.pushCapability] : value == "display" ? [Self.capability] : [] }
+        } else if CommandLine.arguments.contains("-UITestWarnings") {
+            capabilities = { [Self.capability] }
         }
         #endif
         let manager = WarnManager(

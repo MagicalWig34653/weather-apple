@@ -562,6 +562,8 @@ struct WarnCellMatcher: Sendable {
 
 ---
 
+**Stand W5 (7.11.2026, App-Repo, nicht deployt):** Umgesetzt (Details `docs/status.md`). Abweichungen: `WarnFeedStore` ist `@Observable` statt `ObservableObject`; `WarnFilter.active` zusaetzlich; Karte in `Map/WarnOverlay.swift` (Strichmuster je Stufe, kein Antippen); Einstieg als Warnsymbol (mit Zaehler/Farbe bei Treffer) in der rechten Glaskapsel von `RadarScreen`; `WarnManager.placeCells()` neu; `kindTitle`/Stufentexte aus `WarnSettingsPresentation` wiederverwendet (Typ Glaette: "Glaette und Glatteis"); UI-Test-Stub `-UITestWarnings fixture|empty|stale|offline`, UI-Tests in `WarningsUITests` (in `WeatherSmokeTests.swift`) statt eigener Datei. Fuer W6: Quellzeile wie in der Ansicht.
+
 ## W4: App Gateway, Abo-Verwaltung, Einstellungen (APP)
 
 **Aufwand:** M. **Nach:** W0 (Vertrag), W3 (`WarnCellMatcher`, `WarnCellID`). **Nicht vor W2 testbar gegen echtes Backend**, aber gegen Fixtures vollständig testbar.

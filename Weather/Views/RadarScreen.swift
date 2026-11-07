@@ -6,6 +6,8 @@ struct RadarScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(WarnManager.self) private var warn
+    @Environment(WarnFeedStore.self) private var warnFeed
     @State private var sheet: Sheet?
     @State private var showSave = false
     @State private var showLegend = false
@@ -23,7 +25,7 @@ struct RadarScreen: View {
     @State private var screenWidth: CGFloat?
 
     private enum Sheet: String, Identifiable {
-        case places, details, information
+        case places, details, information, warnings
         var id: String { rawValue }
     }
 
@@ -109,6 +111,7 @@ struct RadarScreen: View {
                         .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
                         .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
                         .accessibilityIdentifier("radar-legend-toggle")
+                        if warn.capabilityWarnings { warningsButton }
                         Button { sheet = .information } label: {
                             Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
                         }.accessibilityLabel("Datenquellen und Datenschutz")
@@ -135,6 +138,7 @@ struct RadarScreen: View {
             case .places: PlacesSheet(store: store)
             case .details: ForecastDetails(store: store)
             case .information: InformationSheet(store: store)
+            case .warnings: WarningsListView(feed: warnFeed)
             }
         }
         .alert("Ort speichern", isPresented: $showSave) {
@@ -270,6 +274,30 @@ struct RadarScreen: View {
         .accessibilityValue(store.activeLayer.spokenName)
         .accessibilityHint("Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken oder Sonne. Enthält auch Daten neu laden.")
         .accessibilityIdentifier("radar-layer-menu")
+    }
+
+    /// Entry to the official warnings; only with the server capability `warnings`. Quiet: a symbol, colored and counted
+    /// only while a warning applies to a saved place.
+    private var warningsButton: some View {
+        let relevant = warnFeed.relevantWarnings(now: displayNow)
+        let summary = WarningPresentation.summary(of: relevant)
+        let stale = warnFeed.staleness(now: displayNow) == .stale
+        return Button { sheet = .warnings } label: {
+            Image(systemName: summary.count > 0 ? WarningPresentation.levelSymbol(summary.maxLevel) : "exclamationmark.triangle")
+                .font(.system(size: 20)).frame(width: 46, height: 46)
+                .foregroundStyle(summary.count > 0 ? WarnStyle.color(summary.maxLevel) : Color.primary)
+                .overlay(alignment: .topTrailing) {
+                    if summary.count > 0 {
+                        Text("\(summary.count)").font(.system(size: 11, weight: .bold)).foregroundStyle(summary.maxLevel <= 2 ? Color.black : Color.white)
+                            .padding(.horizontal, 5).frame(minWidth: 16, minHeight: 16)
+                            .background(WarnStyle.color(summary.maxLevel), in: Capsule())
+                            .offset(x: -2, y: 4)
+                    }
+                }
+        }
+        .accessibilityLabel(WarningPresentation.buttonLabel())
+        .accessibilityValue(WarningPresentation.buttonValue(summary, stale: stale))
+        .accessibilityIdentifier("radar-warnings-button")
     }
 
     private var header: some View {

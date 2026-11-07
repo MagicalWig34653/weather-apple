@@ -412,3 +412,106 @@ final class WarnSettingsUITests: XCTestCase {
         XCTAssertFalse(app.switches["warn-time-sensitive"].exists)
     }
 }
+
+final class WarningsUITests: XCTestCase {
+    override func setUpWithError() throws { continueAfterFailure = false }
+
+    private func launch(mode: String?, xxxl: Bool = false) -> XCUIApplication {
+        let app = XCUIApplication()
+        var args = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
+        if let mode { args += ["-UITestWarnings", mode] }
+        if xxxl { args += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+        app.launchArguments = args
+        app.launch()
+        return app
+    }
+
+    private func openSheet(_ app: XCUIApplication) {
+        let button = app.buttons["radar-warnings-button"]
+        XCTAssertTrue(button.waitForExistence(timeout: 15))
+        sleep(1)
+        app.screenshot().writeForW5("radar")
+        button.tap()
+        XCTAssertTrue(app.navigationBars["Amtliche Warnungen"].waitForExistence(timeout: 5))
+    }
+
+    func testNoEntryWithoutCapability() throws {
+        let app = launch(mode: nil)
+        app.launchArguments += []
+        XCTAssertTrue(app.buttons["Datenquellen und Datenschutz"].waitForExistence(timeout: 15))
+        sleep(2)
+        XCTAssertFalse(app.buttons["radar-warnings-button"].exists)
+    }
+
+    func testListShowsWarningWithSourceAndDetailKeepsDWDText() throws {
+        let app = launch(mode: "fixture")
+        openSheet(app)
+        // "Meine Orte" is the standard (stubbed place Berlin): only the thunderstorm and frost warning apply.
+        let row = app.descendants(matching: .any).matching(identifier: "warning-row").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("Stufe 3"))
+        XCTAssertTrue(row.label.contains("Quelle: Deutscher Wetterdienst"))
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "warning-row").count, 2)
+        XCTAssertTrue(app.staticTexts["Kein Ersatz für amtliche Warnkanäle (WarnWetter-App, NINA)."].exists)
+        app.screenshot().writeForW5("liste")
+        // Scope "Alle" adds the level 4 warning of another district.
+        app.buttons["Alle"].tap()
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "warning-row").count, 3)
+        app.descendants(matching: .any).matching(identifier: "warning-row").containing(NSPredicate(format: "label CONTAINS 'GEWITTER'")).firstMatch.tap()
+        XCTAssertEqual(app.staticTexts["warning-headline"].label, "Amtliche UNWETTERWARNUNG vor GEWITTER")
+        XCTAssertEqual(app.staticTexts["warning-text"].label,
+                       "Es treten Gewitter auf. Dabei gibt es Windböen bis 70 km/h (Bft 8) sowie Starkregen um 25 l/qm in einer Stunde.")
+        XCTAssertTrue(app.staticTexts["warning-instruction"].label.hasPrefix("ACHTUNG! Hinweis auf mögliche Gefahren"))
+        XCTAssertTrue(app.staticTexts["warning-source"].label.hasPrefix("Quelle: Deutscher Wetterdienst, ausgegeben"))
+        app.screenshot().writeForW5("detail")
+    }
+
+    func testOfflineWithoutCacheIsHonest() throws {
+        let app = launch(mode: "offline")
+        openSheet(app)
+        let text = app.staticTexts["warn-empty"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5))
+        XCTAssertTrue(text.label.contains("nicht abrufbar"))
+        XCTAssertFalse(text.label.hasPrefix("Keine aktiven"))
+        XCTAssertTrue(app.buttons["Erneut versuchen"].exists)
+    }
+
+    func testStaleDataShowsNotice() throws {
+        let app = launch(mode: "stale")
+        openSheet(app)
+        XCTAssertTrue(app.staticTexts["warn-stale"].waitForExistence(timeout: 5))
+    }
+
+    func testEmptyState() throws {
+        let app = launch(mode: "empty")
+        openSheet(app)
+        XCTAssertTrue(app.staticTexts["warn-empty"].waitForExistence(timeout: 5))
+    }
+
+    func testMapModeShowsMap() throws {
+        let app = launch(mode: "fixture")
+        openSheet(app)
+        app.buttons["Karte"].tap()
+        XCTAssertTrue(app.maps["warn-map"].waitForExistence(timeout: 5) || app.otherElements["warn-map"].waitForExistence(timeout: 5))
+        sleep(2)
+        app.screenshot().writeForW5("karte")
+    }
+
+    func testAccessibilityXXXL() throws {
+        let app = launch(mode: "fixture", xxxl: true)
+        openSheet(app)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "warning-row").firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Fertig"].isHittable)
+        app.screenshot().writeForW5("liste-xxxl")
+    }
+}
+
+private extension XCUIScreenshot {
+    /// Screenshots for the manual check (directory from `W5_SHOTS`, otherwise skipped).
+    func writeForW5(_ name: String) {
+        guard let dir = ProcessInfo.processInfo.environment["W5_SHOTS"] ?? (try? String(contentsOfFile: "/tmp/w5-shots-dir"))?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !dir.isEmpty else { return }
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try? pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("w5-\(name).png"))
+    }
+}
