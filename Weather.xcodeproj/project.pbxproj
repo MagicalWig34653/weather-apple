@@ -22,11 +22,13 @@
 		1D698B1EBFC849BF610479CC /* PlaceEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 726B436C0E12726B60981BCB /* PlaceEntity.swift */; };
 		1D82B1427AF8810120D00079 /* WidgetDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F3EDD496FC77265F0FDADD /* WidgetDeepLink.swift */; };
 		2035FB8D947A282EEFBAF43E /* WidgetForecastLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF1306BB0561CD554A38607 /* WidgetForecastLoader.swift */; };
+		2100862AEF3148BE10E666A3 /* WarnMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 873A780A50546A006B5A3A7A /* WarnMatcherTests.swift */; };
 		21CC8AB097B09F01B0F39EDF /* SitePageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEBA2774C202317C41D89E31 /* SitePageSheet.swift */; };
 		21E21D23D96E36FA2016AA55 /* DWDResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B3B7DEDEFDD9949F13AF97 /* DWDResponse.swift */; };
 		2224D7EE1E5532F4C3F6A84E /* RainActivityRegionPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B910467976CAE0D81F42B3 /* RainActivityRegionPresentation.swift */; };
 		24C67759083FFDA9A930F36E /* WidgetForecastLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF1306BB0561CD554A38607 /* WidgetForecastLoader.swift */; };
 		258C682A281EFA441823B81E /* SavedPlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C611C7CE40C6A89732B8A51 /* SavedPlace.swift */; };
+		26DE550D1A6C2ACA82323168 /* WarnGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D89434827833E369CA0C1D0 /* WarnGeometry.swift */; };
 		2821266F9567A1F1BC12E85D /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 15CAF1B3A806ED32DE6753B7 /* Localizable.strings */; };
 		2C1B9B24C34E78D4E2248796 /* SunMaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6018099B64B163F2C896E19 /* SunMaskTests.swift */; };
 		2CD5AE787F1A1C3084FFA463 /* PushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05E42607D07EFF4916F6D7D /* PushTests.swift */; };
@@ -34,6 +36,7 @@
 		32E5BC5AD66C41818D563927 /* ForecastCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45AC674C1BC6565A9747880 /* ForecastCache.swift */; };
 		337A7E456E875FF4B50400A4 /* WatchWidgetPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E7BD6E7A6DC9EB1DDAE5AF /* WatchWidgetPreviews.swift */; };
 		35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF405ABCD119D3DE565984B0 /* RadarHistory.swift */; };
+		370ED067F1ED8DC455474353 /* WarnCellMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD25F97DD9C3DA5FF879401 /* WarnCellMatcher.swift */; };
 		3763DE785382488FF1E27FEC /* NotificationNameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E008BB26D171BB1F9F2FC8 /* NotificationNameStore.swift */; };
 		39DF18911C9C0DC0A3A55E29 /* P3-Handoff.md in Resources */ = {isa = PBXBuildFile; fileRef = 2A6F107BC509B5051E519DE0 /* P3-Handoff.md */; };
 		3A80B1B83AEEFBB1B36A9C20 /* DWDRadarTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D4066D41334EABC25975BF /* DWDRadarTimeline.swift */; };
@@ -90,6 +93,7 @@
 		833B08E15FD8FA6A2A9DF0F8 /* RadarImageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5864651A53DB9067C466A451 /* RadarImageOverlay.swift */; };
 		843E2FACDC371E24B6F4DBC0 /* SharedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F8BED59EB9C59CD149AB3B /* SharedConfig.swift */; };
 		845937E398253D207942E0DB /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F58F400011A498A20F125A50 /* Localizable.strings */; };
+		84B46FC5B5119EE85E5AD83C /* WarnGeometry.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4E2CDED7DF3A39B976E63DC2 /* WarnGeometry.bin */; };
 		8663B5B3EC80E65F0F6997F1 /* ScreenGlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4BD7E6D885E92F089D224A /* ScreenGlow.swift */; };
 		86A228037B40029D4429D333 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = FB0B59D778801F65B8630D2F /* AppIcon.icon */; };
 		86B36E4BDF49626AAF532EB6 /* WeatherSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */; };
@@ -166,6 +170,7 @@
 		D796AB46FE8AEC07189CE063 /* DWDRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E506014F74FCB1F262D83D /* DWDRequest.swift */; };
 		D96D87F150B51A0FD853996B /* TimelineSlotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */; };
 		D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */; };
+		DFD6E2BDFF74ECDF3C580E47 /* WarnGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F768BD1A31672946CEB2E0 /* WarnGeometryTests.swift */; };
 		E058F91E5B482512A65A7616 /* WatchWidgetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4DA5579F371ACDCFC86F08 /* WatchWidgetPresentation.swift */; };
 		E08333E7E8F375FE86667FD3 /* WatchWidgetLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225B8B8A0A3CA0869C5D08D /* WatchWidgetLogicTests.swift */; };
 		E1F7F6059A197EBB4D5B8495 /* RainOutlook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C6686DCED4967C0E75DA64 /* RainOutlook.swift */; };
@@ -295,6 +300,7 @@
 		1B2783C476525B964D6423D7 /* RadarLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLayerTests.swift; sourceTree = "<group>"; };
 		1B6E663017086F3F8D03A3FD /* WidgetLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetLogicTests.swift; sourceTree = "<group>"; };
 		1C2F29E88F8B83E418F3C275 /* WatchLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLogicTests.swift; sourceTree = "<group>"; };
+		1D89434827833E369CA0C1D0 /* WarnGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnGeometry.swift; sourceTree = "<group>"; };
 		1D8C7A91E68D4D7D9EB20A5E /* PushRegionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegionTests.swift; sourceTree = "<group>"; };
 		1E54D989DC06566FEA2F37A7 /* WeatherWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WeatherWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		20E008BB26D171BB1F9F2FC8 /* NotificationNameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationNameStore.swift; sourceTree = "<group>"; };
@@ -328,6 +334,7 @@
 		4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegendTests.swift; sourceTree = "<group>"; };
 		4DF1306BB0561CD554A38607 /* WidgetForecastLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetForecastLoader.swift; sourceTree = "<group>"; };
 		4DF5D92016C4C178C2F6FCFC /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		4E2CDED7DF3A39B976E63DC2 /* WarnGeometry.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = WarnGeometry.bin; sourceTree = "<group>"; };
 		5225B8B8A0A3CA0869C5D08D /* WatchWidgetLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWidgetLogicTests.swift; sourceTree = "<group>"; };
 		54D80E75AA77501D9E502B45 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5864651A53DB9067C466A451 /* RadarImageOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarImageOverlay.swift; sourceTree = "<group>"; };
@@ -351,6 +358,7 @@
 		8174F0961CBA8C530C9B30C0 /* PushGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGrid.swift; sourceTree = "<group>"; };
 		81D4066D41334EABC25975BF /* DWDRadarTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRadarTimeline.swift; sourceTree = "<group>"; };
 		85E3C22E141BE54476ABDBB6 /* DeviceLinkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkManager.swift; sourceTree = "<group>"; };
+		873A780A50546A006B5A3A7A /* WarnMatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnMatcherTests.swift; sourceTree = "<group>"; };
 		87EC17EFCD57368D616645F0 /* WatchRainWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRainWidgetView.swift; sourceTree = "<group>"; };
 		89A927AD9D5E06A1D7852CE8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		89C6E818DA20B198D44B2860 /* RainActivityContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainActivityContractTests.swift; sourceTree = "<group>"; };
@@ -372,12 +380,14 @@
 		AA5BFBBDA00968BDEFB8E985 /* WebPLosslessDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPLosslessDecoder.swift; sourceTree = "<group>"; };
 		AA76D542667074A3AA33EFA0 /* Fixtures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fixtures; path = WeatherTests/Fixtures; sourceTree = SOURCE_ROOT; };
 		B1EBF9EAB9B1727636D28C4D /* RadarCrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarCrop.swift; sourceTree = "<group>"; };
+		B1F768BD1A31672946CEB2E0 /* WarnGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnGeometryTests.swift; sourceTree = "<group>"; };
 		B339BE23F03B8AC4859F87DE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B41AD6A302CA6A069044C960 /* ForecastInterpretationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastInterpretationSection.swift; sourceTree = "<group>"; };
 		B53259ACA4C083F670A6CC83 /* DWDDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDDataTests.swift; sourceTree = "<group>"; };
 		B920639E02C1140F70C713AE /* PushGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGateway.swift; sourceTree = "<group>"; };
 		B9952910B477FF2C7B3DFAA1 /* PlacePushSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacePushSettingsView.swift; sourceTree = "<group>"; };
 		BB99AABCDFCF1959BFA442D8 /* PhoneSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSession.swift; sourceTree = "<group>"; };
+		BBD25F97DD9C3DA5FF879401 /* WarnCellMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnCellMatcher.swift; sourceTree = "<group>"; };
 		BC719A482AF0E1B8A2B1423A /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		BCB2C1112479F903D8978745 /* PushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushManager.swift; sourceTree = "<group>"; };
 		BF405ABCD119D3DE565984B0 /* RadarHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistory.swift; sourceTree = "<group>"; };
@@ -497,6 +507,8 @@
 				E6018099B64B163F2C896E19 /* SunMaskTests.swift */,
 				4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */,
 				953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */,
+				B1F768BD1A31672946CEB2E0 /* WarnGeometryTests.swift */,
+				873A780A50546A006B5A3A7A /* WarnMatcherTests.swift */,
 				1C2F29E88F8B83E418F3C275 /* WatchLogicTests.swift */,
 				3893D0782052979F4991487D /* WatchRadarTests.swift */,
 				5225B8B8A0A3CA0869C5D08D /* WatchWidgetLogicTests.swift */,
@@ -612,6 +624,7 @@
 				61F7329D77EB762FD23F21C0 /* Push */,
 				932CC6413882D948A00BAE9D /* Resources */,
 				51A3C79697AE9BE8FF7E3A68 /* Views */,
+				A4D161D2F99BB3E7ED23E16F /* Warnings */,
 				16D57126B7F18FF57BF8BA6D /* Watch */,
 			);
 			path = Weather;
@@ -620,6 +633,7 @@
 		932CC6413882D948A00BAE9D /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				4E2CDED7DF3A39B976E63DC2 /* WarnGeometry.bin */,
 				3A15995D1DE20A517ED8506A /* Icon */,
 				F58F400011A498A20F125A50 /* Localizable.strings */,
 			);
@@ -651,6 +665,14 @@
 			);
 			sourceTree = "<group>";
 		};
+		A4D161D2F99BB3E7ED23E16F /* Warnings */ = {
+			isa = PBXGroup;
+			children = (
+				B3321B014E676B7BCC33F8F2 /* Matching */,
+			);
+			path = Warnings;
+			sourceTree = "<group>";
+		};
 		A5D8528CA142FD0AD2A64972 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
@@ -666,6 +688,15 @@
 				757A8B0C7B820FAE01C419E0 /* Data */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		B3321B014E676B7BCC33F8F2 /* Matching */ = {
+			isa = PBXGroup;
+			children = (
+				BBD25F97DD9C3DA5FF879401 /* WarnCellMatcher.swift */,
+				1D89434827833E369CA0C1D0 /* WarnGeometry.swift */,
+			);
+			path = Matching;
 			sourceTree = "<group>";
 		};
 		BDDC7611BB34B08578125E75 /* Views */ = {
@@ -1029,6 +1060,7 @@
 				B030A0A201C54569AC941360 /* AppIcon.icon in Resources */,
 				845937E398253D207942E0DB /* Localizable.strings in Resources */,
 				C459309B8119710EB9087F5C /* PrivacyInfo.xcprivacy in Resources */,
+				84B46FC5B5119EE85E5AD83C /* WarnGeometry.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1087,6 +1119,8 @@
 				415AED64B3975EB34CAAE185 /* SolarPosition.swift in Sources */,
 				A42BCE0EE2A3168BF93401E9 /* SunMask.swift in Sources */,
 				EC19D2C4FFE3A6BAC77E14AC /* TimelineScrub.swift in Sources */,
+				370ED067F1ED8DC455474353 /* WarnCellMatcher.swift in Sources */,
+				26DE550D1A6C2ACA82323168 /* WarnGeometry.swift in Sources */,
 				D38FAC7702DE3A5C0B2EB57E /* WeatherApp.swift in Sources */,
 				2DD5FF78C21C8E03F62B8073 /* WeatherStore.swift in Sources */,
 				B12DBE82AB499A0486AAAC10 /* WidgetDeepLink.swift in Sources */,
@@ -1160,6 +1194,8 @@
 				2C1B9B24C34E78D4E2248796 /* SunMaskTests.swift in Sources */,
 				8C841CAE839A94657CA0DF81 /* TimelineScrubTests.swift in Sources */,
 				D96D87F150B51A0FD853996B /* TimelineSlotTests.swift in Sources */,
+				DFD6E2BDFF74ECDF3C580E47 /* WarnGeometryTests.swift in Sources */,
+				2100862AEF3148BE10E666A3 /* WarnMatcherTests.swift in Sources */,
 				EA431E93C65AE967B61BF2BF /* WatchLogicTests.swift in Sources */,
 				F073740B8FBEB8E95AD5ECA3 /* WatchRadarTests.swift in Sources */,
 				E08333E7E8F375FE86667FD3 /* WatchWidgetLogicTests.swift in Sources */,
