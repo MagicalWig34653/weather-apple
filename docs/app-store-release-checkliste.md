@@ -10,7 +10,7 @@ Status: erledigt / offen / unklar. Wer: Agent oder Nutzer.
 |---|---|---|---|
 | Datenschutzseite deckt Push nicht ab | offen | Live `/datenschutz` (Stand 6.11.) nennt kein Regenhinweis-/Gebiets-/Live-Activity-Abo (Push-Token, Installationskennung, Zelle/Umkreis), nur Betriebsstatistik und Diagnose-Kopplung; "iPhone, iPad" ohne Watch; Reverse-Proxy-Logging "noch nicht angegeben". Entwurf liegt vor, nicht freigegeben | Nutzer (Freigabe), Agent (Text) |
 | App-Privacy-Angaben (Variante B) | offen | Push speichert Geraetetoken + grobe Zelle/Umkreis serverseitig, Variante A "Data Not Collected" entfaellt (`research/push-benachrichtigungen.md` 5, `push-regionen.md`); in Connect nicht gesehen. Fuer Device ID, Coarse Location, Zweck App Functionality; Tracking nein | Nutzer |
-| `PrivacyInfo.xcprivacy` fehlt in allen 5 Targets | offen | `find` ohne Treffer; kein Eintrag in `project.yml`. App/Extensions nutzen `UserDefaults` (App, App-Group in Widget, Live Activity, Notification Extension): Kategorie UserDefaults, Gruende CA92.1 (eigene) und 1C8F.1 (App Group). Ohne Deklaration droht ITMS-91053-Warnung bzw. Ablehnung | Agent |
+| `PrivacyInfo.xcprivacy` in allen 5 Targets | erledigt (7.11.2026, Build 33, `b29be64`) | `find` ohne Treffer; kein Eintrag in `project.yml`. App/Extensions nutzen `UserDefaults` (App, App-Group in Widget, Live Activity, Notification Extension): Kategorie UserDefaults, Gruende CA92.1 (eigene) und 1C8F.1 (App Group). Ohne Deklaration droht ITMS-91053-Warnung bzw. Ablehnung | Agent |
 | Proxy-Protokollierung / E7 Rechtsgrundlage | offen | `status.md` Nutzeraufgaben; Seite sagt "noch nicht angegeben" | Nutzer |
 | Impressum | unklar | `/impressum` HTTP 404; Anschrift steht nur im Datenschutz (Abschn. 1), Support-Seite nur E-Mail. Pflicht je nach Einordnung (DDG, Anbieterkennzeichnung), Rechtspruefung offen | Nutzer |
 | Build fuer Einreichung gewaehlt/verarbeitet | unklar | Builds 31/32 hochgeladen (`Upload succeeded`), Verarbeitung/Installierbarkeit nirgends geprueft (`testflight-upload.md`: "Nicht geprueft"); Zuordnung zu Gruppe/Version nie bestaetigt | Nutzer |
@@ -78,7 +78,7 @@ Status: erledigt / offen / unklar. Wer: Agent oder Nutzer.
 
 ## Reihenfolge
 
-1. Agent: `PrivacyInfo.xcprivacy` (App, Widget, Watch, Watch-Widget, Notification Extension) und neuer Build mit Paket-/Entitlement-Pruefung.
+1. ~~Agent: `PrivacyInfo.xcprivacy` (5 Targets) und neuer Build mit Paket-/Entitlement-Pruefung~~ erledigt mit Build 33.
 2. Nutzer: Datenschutztext freigeben, Proxy-Logging und Impressum klaeren; Seite live schalten; danach App Privacy (Variante B) in Connect.
 3. Nutzer: Name, Kategorie, Altersfreigabe, Copyright, Preis, Review-Kontakt; Agent liefert finale Texte (de/en) und Neu-Screenshots.
 4. Nutzer: Geraetetest (iPhone, Watch, echte Regenmeldung, Live Activity), Build waehlen, einreichen.
