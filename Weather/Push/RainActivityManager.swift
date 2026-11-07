@@ -1,10 +1,14 @@
 @preconcurrency import ActivityKit
 import Foundation
 
+/// What a subscription is: a place or a region. At most one activity runs at a time; a place wins over a region.
+enum RainActivityKind: Equatable, Sendable { case point, region }
+
 @MainActor
 protocol RainActivityManaging: AnyObject {
     var activitiesEnabled: Bool { get }
-    func start(eligible: @escaping @MainActor (String) -> Bool,
+    /// `eligible` returns the kind of an opted-in subscription, nil for unknown or opted-out ones.
+    func start(eligible: @escaping @MainActor (String) -> RainActivityKind?,
                startToken: @escaping @MainActor (Data) async -> Void,
                activityToken: @escaping @MainActor (String, Data) async -> Void,
                ended: @escaping @MainActor (String, Data?) async -> Void)
@@ -21,7 +25,8 @@ final class SystemRainActivityManager: RainActivityManaging {
     private var latestTokens: [String: Data] = [:]
     private var stateTasks: [String: Task<Void, Never>] = [:]
     private var expiryTasks: [String: Task<Void, Never>] = [:]
-    private var eligible: (@MainActor (String) -> Bool)?
+    private var kinds: [String: RainActivityKind] = [:]
+    private var eligible: (@MainActor (String) -> RainActivityKind?)?
     private var onToken: (@MainActor (String, Data) async -> Void)?
     private var onEnd: (@MainActor (String, Data?) async -> Void)?
 
@@ -34,7 +39,7 @@ final class SystemRainActivityManager: RainActivityManaging {
         expiryTasks.values.forEach { $0.cancel() }
     }
 
-    func start(eligible: @escaping @MainActor (String) -> Bool,
+    func start(eligible: @escaping @MainActor (String) -> RainActivityKind?,
                startToken: @escaping @MainActor (Data) async -> Void,
                activityToken: @escaping @MainActor (String, Data) async -> Void,
                ended: @escaping @MainActor (String, Data?) async -> Void) {
@@ -58,13 +63,26 @@ final class SystemRainActivityManager: RainActivityManaging {
 
     private func observe(_ activity: Activity<RainActivityAttributes>) async {
         guard tokenTasks[activity.id] == nil else { return }
-        guard eligible?(activity.attributes.subscriptionID) == true,
-              tokenTasks.isEmpty, activity.activityState != .ended, activity.activityState != .dismissed else {
+        let sub = activity.attributes.subscriptionID
+        guard let kind = eligible?(sub), activity.activityState != .ended, activity.activityState != .dismissed else {
             await activity.end(nil, dismissalPolicy: .immediate)
-            await onEnd?(activity.attributes.subscriptionID, activity.pushToken)
+            await onEnd?(sub, activity.pushToken)
             return
         }
-        let sub = activity.attributes.subscriptionID
+        // One activity at a time. A place wins over a running region: end the region locally (its token is
+        // unregistered via `onEnd` before this place token is reported), then continue with the place.
+        if !tokenTasks.isEmpty, kind == .point, tokenTasks.keys.allSatisfy({ kinds[$0] == .region }) {
+            for running in Activity<RainActivityAttributes>.activities where tokenTasks[running.id] != nil {
+                await running.end(nil, dismissalPolicy: .immediate)
+                await finished(running)
+            }
+        }
+        guard tokenTasks.isEmpty else {
+            await activity.end(nil, dismissalPolicy: .immediate)
+            await onEnd?(sub, activity.pushToken)
+            return
+        }
+        kinds[activity.id] = kind
         tokenTasks[activity.id] = Task { [weak self] in
             if let token = activity.pushToken {
                 self?.latestTokens[activity.id] = token
@@ -97,6 +115,7 @@ final class SystemRainActivityManager: RainActivityManaging {
 
     private func finished(_ activity: Activity<RainActivityAttributes>) async {
         guard let tokenTask = tokenTasks.removeValue(forKey: activity.id) else { return }
+        kinds[activity.id] = nil
         tokenTask.cancel()
         // Remove/cancel observers before awaiting the callback (which may trigger another sync).
         stateTasks.removeValue(forKey: activity.id)?.cancel()

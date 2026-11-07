@@ -80,15 +80,23 @@ final class PushActivityGatewayTests: XCTestCase {
         XCTAssertEqual(requests.count, 1)
     }
 
-    func testOnlyPointSubscriptionsCanSendOptInAndOldRequestsOmitField() {
+    func testLiveActivityFieldIsSentForPlacesAndRegionsOnlyWhenSet() {
         var request = PushSubscriptionRequest(cell: .init(x: 1, y: 1), threshold: 2, leadMinutes: 10, enabled: true)
         XCTAssertNil(HTTPPushGateway.body(request)["live_activity"])
         request.liveActivity = true
         XCTAssertEqual(HTTPPushGateway.body(request)["live_activity"] as? Bool, true)
         request.liveActivity = false
         XCTAssertEqual(HTTPPushGateway.body(request)["live_activity"] as? Bool, false)
+        // Regions: the field is set by the app only with capability `live_activity_regions`; nil keeps the old wire format.
         request.region = .init(radiusCells: 7, minSharePercent: 10)
+        request.liveActivity = nil
         XCTAssertNil(HTTPPushGateway.body(request)["live_activity"])
+        request.liveActivity = true
+        let body = HTTPPushGateway.body(request)
+        XCTAssertEqual(body["live_activity"] as? Bool, true)
+        XCTAssertEqual(body["kind"] as? String, "circle")
+        XCTAssertEqual(body["radius_cells"] as? Int, 7)
+        XCTAssertEqual(body["min_share_percent"] as? Int, 10)
     }
 
     func testKnownActivityErrorsAreMapped() {

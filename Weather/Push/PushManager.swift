@@ -85,13 +85,36 @@ struct RegionPushSettings: Codable, Equatable, Sendable {
     var timeSensitive = false
     var subscriptionID: String?
     var needsUpload = true
+    /// Live Activity for this region (same trigger share as the alert, no own value). Default off.
+    var liveActivity = false
+    var liveActivityDirty = false
 
-    /// Cell latitude is only needed to convert km into grid cells.
+    /// Cell latitude is only needed to convert km into grid cells. `live_activity` is sent only as `true` (the server
+    /// treats a missing field as false), so requests of regions without Live Activity are unchanged.
     var request: PushSubscriptionRequest {
         let latitude = PushGrid.coordinate(of: center).latitude
         return PushSubscriptionRequest(
             cell: center, threshold: sensitivity.threshold, leadMinutes: leadMinutes, enabled: true, timeSensitive: timeSensitive,
-            region: PushRegionSpec(radiusCells: PushGrid.radiusCells(km: radiusKm, latitude: latitude), minSharePercent: sharePercent))
+            region: PushRegionSpec(radiusCells: PushGrid.radiusCells(km: radiusKm, latitude: latitude), minSharePercent: sharePercent),
+            liveActivity: liveActivity ? true : nil)
+    }
+}
+
+extension RegionPushSettings {
+    /// State stored by earlier builds has no Live Activity keys (default off).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        center = try c.decode(PushGrid.Cell.self, forKey: .center)
+        radiusKm = try c.decodeIfPresent(Int.self, forKey: .radiusKm) ?? 10
+        sharePercent = try c.decodeIfPresent(Int.self, forKey: .sharePercent) ?? PushGrid.defaultRegionSharePercent
+        leadMinutes = try c.decodeIfPresent(Int.self, forKey: .leadMinutes) ?? PushLead.defaultMinutes
+        sensitivity = try c.decodeIfPresent(PushSensitivity.self, forKey: .sensitivity) ?? .moderate
+        timeSensitive = try c.decodeIfPresent(Bool.self, forKey: .timeSensitive) ?? false
+        subscriptionID = try c.decodeIfPresent(String.self, forKey: .subscriptionID)
+        needsUpload = try c.decodeIfPresent(Bool.self, forKey: .needsUpload) ?? true
+        liveActivity = try c.decodeIfPresent(Bool.self, forKey: .liveActivity) ?? false
+        liveActivityDirty = try c.decodeIfPresent(Bool.self, forKey: .liveActivityDirty) ?? false
     }
 }
 
@@ -138,6 +161,9 @@ final class PushManager {
     private(set) var regionNotice: String?
     private(set) var liveActivityMessages: [UUID: String] = [:]
     private(set) var liveActivitySupport: PushRegionSupport = .unknown
+    /// Capability `live_activity_regions`: without it a region never gets `live_activity` (old servers would answer 400).
+    private(set) var liveActivityRegionSupport: PushRegionSupport = .unknown
+    @ObservationIgnored private var displacementTried: Set<String> = []
     @ObservationIgnored private let activityManager: RainActivityManaging?
     @ObservationIgnored private let activityDefaults: UserDefaults?
     @ObservationIgnored private var liveActivityStartToken: String?
@@ -216,7 +242,8 @@ final class PushManager {
     func start() async {
         await refreshAuthorization()
         if !state.regions.isEmpty { await refreshRegionSupport() }
-        if state.places.values.contains(where: { $0.liveActivity || $0.liveActivityDirty }) { await refreshLiveActivitySupport() }
+        if state.places.values.contains(where: { $0.liveActivity || $0.liveActivityDirty })
+            || state.regions.values.contains(where: { $0.liveActivity || $0.liveActivityDirty }) { await refreshLiveActivitySupport() }
         observeActivities()
         if !liveActivitiesEnabled { await activityManager?.end(subscriptionID: nil) }
         if isAnyEnabled, authorization == .authorized { registrar.register() }
@@ -229,9 +256,10 @@ final class PushManager {
             let capabilities = try await gateway.capabilities()
             regionSupport = capabilities.contains(PushRegionWire.capability) ? .supported : .unsupported
             liveActivitySupport = capabilities.contains(PushActivityWire.capability) ? .supported : .unsupported
+            liveActivityRegionSupport = capabilities.contains(PushActivityWire.regionCapability) ? .supported : .unsupported
         }
         catch is CancellationError {}
-        catch { regionSupport = .unknown; liveActivitySupport = .unknown }
+        catch { regionSupport = .unknown; liveActivitySupport = .unknown; liveActivityRegionSupport = .unknown }
     }
 
     func refreshAuthorization() async { authorization = await authorizer.status() }
@@ -342,9 +370,14 @@ final class PushManager {
     /// Opt-out / delete: removes the server subscription (and the installation with the last one).
     func removeRegion(id: UUID) async {
         guard let settings = state.regions.removeValue(forKey: id) else { return }
-        if let sub = settings.subscriptionID { state.pendingSubscriptionDeletes.append(sub) }
+        if let sub = settings.subscriptionID {
+            state.pendingSubscriptionDeletes.append(sub)
+            if settings.liveActivity { queueActivityDelete(subscriptionID: sub) }
+        }
         messages[id] = nil
+        liveActivityMessages[id] = nil
         persist()
+        if settings.liveActivity { await endUnsubscribedActivities() }
         await sync()
     }
 
@@ -463,12 +496,19 @@ final class PushManager {
         await refreshRegionSupport() // One status response provides both capabilities.
     }
 
-    private func activityEligible(_ subscriptionID: String) -> Bool {
-        state.places.values.contains { $0.subscriptionID == subscriptionID && $0.liveActivity }
+    /// Whether a region may offer the Live Activity switch (both capabilities announced).
+    var regionLiveActivityAvailable: Bool { liveActivitySupport == .supported && liveActivityRegionSupport == .supported }
+
+    private func activityKind(_ subscriptionID: String) -> RainActivityKind? {
+        if state.places.values.contains(where: { $0.subscriptionID == subscriptionID && $0.liveActivity }) { return .point }
+        if state.regions.values.contains(where: { $0.subscriptionID == subscriptionID && $0.liveActivity }) { return .region }
+        return nil
     }
 
+    private func activityEligible(_ subscriptionID: String) -> Bool { activityKind(subscriptionID) != nil }
+
     private func observeActivities() {
-        activityManager?.start(eligible: { [weak self] sub in self?.activityEligible(sub) == true },
+        activityManager?.start(eligible: { [weak self] sub in self?.activityKind(sub) },
                                startToken: { [weak self] data in await self?.receivedStartToken(data) },
                                activityToken: { [weak self] sub, data in await self?.receivedActivityToken(subscriptionID: sub, data: data) },
                                ended: { [weak self] sub, data in await self?.activityEnded(subscriptionID: sub, data: data) })
@@ -491,6 +531,30 @@ final class PushManager {
         persist()
         observeActivities()
         if !enabled, let sub = state.places[placeID]?.subscriptionID {
+            queueActivityDelete(subscriptionID: sub)
+            await activityManager?.end(subscriptionID: sub)
+        }
+        await sync()
+    }
+
+    /// Live Activity switch of a region. Only with both capabilities; the start token is awaited like for places.
+    func setRegionLiveActivity(regionID: UUID, enabled: Bool) async {
+        guard state.regions[regionID] != nil else { return }
+        if enabled {
+            await refreshLiveActivitySupport()
+            guard regionLiveActivityAvailable, liveActivitiesEnabled else {
+                liveActivityMessages[regionID] = RainActivityText.unavailable.text(locale: locale)
+                return
+            }
+        }
+        guard state.regions[regionID] != nil else { return }
+        liveActivityMessages[regionID] = nil
+        state.regions[regionID]?.liveActivity = enabled
+        state.regions[regionID]?.liveActivityDirty = true
+        state.regions[regionID]?.needsUpload = true
+        persist()
+        observeActivities()
+        if !enabled, let sub = state.regions[regionID]?.subscriptionID {
             queueActivityDelete(subscriptionID: sub)
             await activityManager?.end(subscriptionID: sub)
         }
@@ -572,7 +636,11 @@ final class PushManager {
             }
         }
         for (sub, token) in activityTokens where activityEligible(sub) && liveActivitiesEnabled {
-            do { try await gateway.putActivityToken(identity, subscriptionID: sub, token: token) }
+            guard activityTokens[sub] == token else { continue } // dropped meanwhile (e.g. a displaced region)
+            do {
+                try await gateway.putActivityToken(identity, subscriptionID: sub, token: token)
+                displacementTried.remove(sub)
+            }
             catch PushGatewayError.activityNotEligible {
                 activityMessage(PushGatewayError.activityNotEligible)
                 queueActivityDelete(subscriptionID: sub)
@@ -586,12 +654,21 @@ final class PushManager {
                     state.places[id]?.needsUpload = true
                     liveActivityMessages[id] = RainActivityText.full.text(locale: locale)
                 }
+                for (id, settings) in state.regions where settings.subscriptionID == sub && settings.liveActivity {
+                    state.regions[id]?.liveActivity = false
+                    state.regions[id]?.liveActivityDirty = true
+                    state.regions[id]?.needsUpload = true
+                    liveActivityMessages[id] = RainActivityText.full.text(locale: locale)
+                }
                 persist()
                 queueActivityDelete(subscriptionID: sub)
                 syncAgain = true
                 await activityManager?.end(subscriptionID: sub)
             }
             catch PushGatewayError.activityLimit {
+                // Place before region: the server does not displace on `PUT .../activity`, so the app ends a running
+                // region activity itself, unregisters its token and then registers the place (once per place).
+                if activityKind(sub) == .point, await displaceRegionActivities(for: sub) { continue }
                 activityMessage(PushGatewayError.activityLimit)
                 queueActivityDelete(subscriptionID: sub)
                 syncAgain = true
@@ -599,6 +676,20 @@ final class PushManager {
             }
             catch { activityMessage(error) } // Retry current token on the next sync/foreground.
         }
+    }
+
+    /// Ends all region activities (local end, token unregistered by the next delete pass) so a place can take the one slot.
+    /// Returns false when there is nothing to displace or this place already tried, so a 409 cannot loop.
+    private func displaceRegionActivities(for pointSub: String) async -> Bool {
+        let regionSubs = state.regions.values.compactMap { $0.liveActivity ? $0.subscriptionID : nil }
+        guard !regionSubs.isEmpty, !displacementTried.contains(pointSub) else { return false }
+        displacementTried.insert(pointSub)
+        for sub in regionSubs {
+            queueActivityDelete(subscriptionID: sub)
+            await activityManager?.end(subscriptionID: sub)
+        }
+        syncAgain = true
+        return true
     }
 
     private func activityMessage(_ error: Error) {
@@ -609,6 +700,7 @@ final class PushManager {
         default: text = RainActivityText.retry.text(locale: locale)
         }
         for (id, settings) in state.places where settings.liveActivity { messages[id] = text }
+        for (id, settings) in state.regions where settings.liveActivity { liveActivityMessages[id] = text }
     }
 
     // MARK: Sync
@@ -656,7 +748,8 @@ final class PushManager {
         // A live opt-in is sent only after this installation's current start token is acknowledged.
         var reportedStartToken: String?
         if liveActivitySupport == .supported {
-            let wantsActivities = liveActivitiesEnabled && state.places.values.contains { $0.liveActivity }
+            let wantsActivities = liveActivitiesEnabled
+                && (state.places.values.contains { $0.liveActivity } || state.regions.values.contains { $0.liveActivity })
             if !wantsActivities || liveActivityStartToken != nil {
                 do {
                     try await reportStartToken(identity, deviceToken: token, enabled: wantsActivities)
@@ -675,17 +768,7 @@ final class PushManager {
                 continue
             }
             do {
-                let id: String
-                do { id = try await upload(identity, existing: settings.subscriptionID, request) }
-                catch PushGatewayError.startTokenRequired where request.liveActivity == true {
-                    // Exactly one recovery attempt in this sync, including the installation PUT.
-                    do { try await reportStartToken(identity, deviceToken: token, enabled: true) }
-                    catch { throw PushGatewayError.startTokenRequired }
-                    do { id = try await upload(identity, existing: settings.subscriptionID, request) }
-                    catch PushGatewayError.activityFull { throw PushGatewayError.activityFull }
-                    catch PushGatewayError.subscriptionLimit { throw PushGatewayError.subscriptionLimit }
-                    catch { throw PushGatewayError.startTokenRequired }
-                }
+                let id = try await uploadRecovering(identity, deviceToken: token, existing: settings.subscriptionID, request)
                 if state.places[placeID] == nil { discardLate(subscription: id) }
                 else {
                     state.places[placeID]?.subscriptionID = id
@@ -720,8 +803,22 @@ final class PushManager {
             persist()
         }
 
-        await uploadRegions(identity)
+        await uploadRegions(identity, deviceToken: token, reportedStartToken: reportedStartToken)
         await syncActivities(identity, deviceToken: token)
+    }
+
+    /// Upload; a `start_token_required` for a live opt-in gets exactly one recovery attempt (report the token again, upload again).
+    private func uploadRecovering(_ identity: PushIdentity, deviceToken: String, existing: String?,
+                                  _ request: PushSubscriptionRequest) async throws -> String {
+        do { return try await upload(identity, existing: existing, request) }
+        catch PushGatewayError.startTokenRequired where request.liveActivity == true {
+            do { try await reportStartToken(identity, deviceToken: deviceToken, enabled: true) }
+            catch { throw PushGatewayError.startTokenRequired }
+            do { return try await upload(identity, existing: existing, request) }
+            catch PushGatewayError.activityFull { throw PushGatewayError.activityFull }
+            catch PushGatewayError.subscriptionLimit { throw PushGatewayError.subscriptionLimit }
+            catch { throw PushGatewayError.startTokenRequired }
+        }
     }
 
     private func reportStartToken(_ identity: PushIdentity, deviceToken: String, enabled: Bool) async throws {
@@ -750,7 +847,7 @@ final class PushManager {
         return id ?? ""
     }
 
-    private func uploadRegions(_ identity: PushIdentity) async {
+    private func uploadRegions(_ identity: PushIdentity, deviceToken: String, reportedStartToken: String?) async {
         let open = state.regions.sorted(by: { $0.key.uuidString < $1.key.uuidString }).filter { $0.value.needsUpload }
         guard !open.isEmpty else { return }
         if regionSupport != .supported { await refreshRegionSupport() }
@@ -761,13 +858,39 @@ final class PushManager {
             return
         }
         for (regionID, settings) in open {
+            // Never send `live_activity` without both capabilities; a pending opt-in/out stays open until they are known.
+            if (settings.liveActivity || settings.liveActivityDirty), !regionLiveActivityAvailable { continue }
+            var request = settings.request
+            if !regionLiveActivityAvailable { request.liveActivity = nil }
+            if request.liveActivity == true, reportedStartToken == nil || reportedStartToken != liveActivityStartToken {
+                liveActivityMessages[regionID] = RainActivityText.waitingForToken.text(locale: locale)
+                continue
+            }
             do {
-                let id = try await upload(identity, existing: settings.subscriptionID, settings.request)
+                let id = try await uploadRecovering(identity, deviceToken: deviceToken, existing: settings.subscriptionID, request)
                 if state.regions[regionID] == nil { discardLate(subscription: id) }
                 else {
                     state.regions[regionID]?.subscriptionID = id
-                    if state.regions[regionID]?.request == settings.request { state.regions[regionID]?.needsUpload = false }
+                    if state.regions[regionID]?.request == settings.request {
+                        state.regions[regionID]?.needsUpload = false
+                        state.regions[regionID]?.liveActivityDirty = false
+                    }
                     messages[regionID] = nil
+                    if request.liveActivity == true { liveActivityMessages[regionID] = nil }
+                }
+            } catch PushGatewayError.startTokenRequired {
+                liveActivityMessages[regionID] = RainActivityText.waitingForToken.text(locale: locale)
+            } catch PushGatewayError.activityFull {
+                if state.regions[regionID]?.request == settings.request {
+                    state.regions[regionID]?.liveActivity = false
+                    state.regions[regionID]?.liveActivityDirty = true
+                    state.regions[regionID]?.needsUpload = true
+                    liveActivityMessages[regionID] = RainActivityText.full.text(locale: locale)
+                    if let sub = settings.subscriptionID {
+                        queueActivityDelete(subscriptionID: sub)
+                        await activityManager?.end(subscriptionID: sub)
+                    }
+                    syncAgain = true // Reconcile ordinary region alerts with live_activity omitted.
                 }
             } catch PushGatewayError.regionCapacity {
                 if settings.subscriptionID == nil {
@@ -854,6 +977,14 @@ final class PushManager {
             if entry.value.liveActivity, let sub = entry.value.subscriptionID { map[sub] = entry.key.uuidString }
         }
         activityDefaults?.set(mapping, forKey: RainActivityAttributes.placeMappingDefaultsKey)
+        // Region name and radius for the widget; they stay in the App Group on this device and are never sent.
+        let regionMapping = state.regions.reduce(into: [String: [String: Any]]()) { map, entry in
+            guard entry.value.liveActivity, let sub = entry.value.subscriptionID else { return }
+            var info: [String: Any] = ["radiusKm": entry.value.radiusKm]
+            if let name = entry.value.name, !name.isEmpty { info["name"] = name }
+            map[sub] = info
+        }
+        activityDefaults?.set(regionMapping, forKey: RainActivityAttributes.regionMappingDefaultsKey)
     }
 }
 

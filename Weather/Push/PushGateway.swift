@@ -54,7 +54,7 @@ struct PushSubscriptionRequest: Equatable, Sendable {
     var timeSensitive = false
     /// `nil` = single place (unchanged wire format).
     var region: PushRegionSpec?
-    /// nil omits the additive field on servers without the capability. Never sent for regions.
+    /// nil omits the additive field on servers without the capability (`live_activity`; for regions `live_activity_regions`).
     var liveActivity: Bool?
 }
 
@@ -291,7 +291,8 @@ struct HTTPPushGateway: PushGateway {
             body[PushRegionWire.radiusKey] = region.radiusCells
             body[PushRegionWire.shareKey] = region.minSharePercent
         }
-        if request.region == nil, let liveActivity = request.liveActivity { body["live_activity"] = liveActivity }
+        // Regions only carry the field when the server announced `live_activity_regions` (the request is then non-nil).
+        if let liveActivity = request.liveActivity { body["live_activity"] = liveActivity }
         return body
     }
 

@@ -75,4 +75,59 @@ final class RainActivityContractTests: XCTestCase {
         XCTAssertFalse(PushActivityWire.isValidToken(String(repeating: "A", count: 32)))
         XCTAssertFalse(PushActivityWire.isValidToken(String(repeating: "g", count: 32)))
     }
+
+    // MARK: Region payloads (Live Activity for areas)
+
+    func testBackendRegionStartPayloadDecodesWithNewOptionalFields() throws {
+        let payload = Data(#"{"aps":{"event":"start","attributes-type":"RainActivityAttributes","attributes":{"displayName":"","subscriptionID":"sub-1"},"content-state":{"eventDate":815142900.0,"intensityClass":4,"peakSharePercent":34,"phase":"startsIn","referenceTime":815142300.0,"regionRadiusKm":10,"staleDate":815143500.0,"wetSharePercent":0}}}"#.utf8)
+        struct Envelope: Decodable {
+            let aps: APS
+            struct APS: Decodable {
+                let attributes: RainActivityAttributes
+                let content: RainActivityAttributes.ContentState
+                enum CodingKeys: String, CodingKey { case attributes; case content = "content-state" }
+            }
+        }
+        let decoded = try JSONDecoder().decode(Envelope.self, from: payload).aps
+        XCTAssertEqual(decoded.attributes.subscriptionID, "sub-1")
+        XCTAssertEqual(decoded.content.phase, .startsIn)
+        XCTAssertEqual(decoded.content.intensityClass, 4)
+        XCTAssertEqual(decoded.content.wetSharePercent, 0)
+        XCTAssertEqual(decoded.content.peakSharePercent, 34)
+        XCTAssertEqual(decoded.content.regionRadiusKm, 10)
+        XCTAssertTrue(decoded.content.isRegion)
+        XCTAssertEqual(decoded.content.eventDate?.timeIntervalSinceReferenceDate, 815142900)
+        XCTAssertEqual(decoded.content.effectiveStaleDate.timeIntervalSinceReferenceDate, 815143500)
+    }
+
+    func testPointPayloadsWithoutRegionFieldsStillDecodeAndEncodeUnchanged() throws {
+        let json = #"{"phase":"raining","eventDate":null,"intensityClass":2,"referenceTime":0,"staleDate":1200}"#
+        let state = try JSONDecoder().decode(RainActivityAttributes.ContentState.self, from: Data(json.utf8))
+        XCTAssertNil(state.wetSharePercent); XCTAssertNil(state.peakSharePercent); XCTAssertNil(state.regionRadiusKm)
+        XCTAssertFalse(state.isRegion)
+        let encoded = try JSONSerialization.jsonObject(with: JSONEncoder().encode(state)) as! [String: Any]
+        XCTAssertEqual(Set(encoded.keys), ["phase", "intensityClass", "referenceTime", "staleDate"],
+                       "point states do not gain keys (eventDate nil is omitted as before)")
+        // Optional fields can be missing one by one (radius may be absent) and null is tolerated.
+        for extra in [#","peakSharePercent":12"#, #","wetSharePercent":5,"regionRadiusKm":null"#] {
+            let s = try JSONDecoder().decode(RainActivityAttributes.ContentState.self,
+                from: Data((String(json.dropLast()) + extra + "}").utf8))
+            XCTAssertTrue(s.isRegion || extra.contains("null"))
+        }
+    }
+
+    func testRegionStateRoundTripsAndStaysUnderPayloadLimit() throws {
+        let state = RainActivityAttributes.ContentState(phase: .endsIn, eventDate: Date(), intensityClass: 8, referenceTime: Date(),
+                                                         staleDate: Date(), wetSharePercent: 100, peakSharePercent: 100, regionRadiusKm: 25)
+        let data = try JSONEncoder().encode(state)
+        XCTAssertEqual(try JSONDecoder().decode(RainActivityAttributes.ContentState.self, from: data), state)
+        XCTAssertLessThan(data.count, 400)
+    }
+
+    func testRegionCapabilityNameAndStalenessOfRegionStates() {
+        XCTAssertEqual(PushActivityWire.regionCapability, "live_activity_regions")
+        let state = RainActivityAttributes.ContentState(phase: .raining, intensityClass: 3, referenceTime: Date(timeIntervalSinceReferenceDate: 0),
+                                                         wetSharePercent: 40)
+        XCTAssertTrue(state.isStale(at: Date(timeIntervalSinceReferenceDate: 1200)), "the 20 minute bound applies to regions too")
+    }
 }

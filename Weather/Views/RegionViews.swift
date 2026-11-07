@@ -218,6 +218,27 @@ struct RegionSettingsView: View {
                     Text("Meldung, sobald der gewählte Anteil der Fläche innerhalb der Vorlaufzeit mindestens so stark Regen bekommt. Danach höchstens eine Meldung pro Stunde und Region. Zeitkritisch durchbricht Fokus und Mitteilungszusammenfassung, nicht den Stummschalter.")
                 }
 
+                // Only offered when the server announces `live_activity_regions`; an already enabled one stays switchable.
+                if push.regionLiveActivityAvailable || region.liveActivity {
+                    Section {
+                        Toggle(RainActivityText.title.text(), isOn: Binding(
+                            get: { region.liveActivity },
+                            set: { enabled in Task { await push.setRegionLiveActivity(regionID: regionID, enabled: enabled) } }))
+                        .disabled(!region.liveActivity && (!push.liveActivitiesEnabled || !push.regionLiveActivityAvailable))
+                        .accessibilityIdentifier("region-live-activity")
+                        if let message = push.liveActivityMessages[regionID] {
+                            Text(message).font(.footnote).foregroundStyle(.secondary)
+                                .accessibilityIdentifier("region-live-activity-status")
+                        }
+                        Text(RainActivityText.regionExplanation.text()).font(.footnote).foregroundStyle(.secondary)
+                        if !push.liveActivitiesEnabled || !push.regionLiveActivityAvailable {
+                            Text(RainActivityText.unavailable.text()).font(.footnote).foregroundStyle(.secondary)
+                        }
+                    } footer: {
+                        Text(RainActivityText.regionPrivacy.text())
+                    }
+                }
+
                 if push.authorization == .denied {
                     Section {
                         Button("Systemeinstellungen öffnen") {
@@ -240,6 +261,7 @@ struct RegionSettingsView: View {
         }
         .navigationTitle("Region")
         .navigationBarTitleDisplayMode(.inline)
+        .task { await push.refreshRegionSupport() }
         .onAppear { name = push.region(for: regionID)?.name ?? "" }
         .onDisappear { Task { await push.updateRegion(id: regionID, name: name) } }
         .sitePageSheet($sitePage)

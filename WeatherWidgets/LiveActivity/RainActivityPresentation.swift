@@ -7,11 +7,14 @@ struct RainActivityPresentation: Equatable {
     /// Countdown target; nil when stale, absent, or already in the past.
     let countdownTarget: Date?
     let referenceTime: Date
+    /// Set for region payloads (area share, maximum class, radius); nil for places.
+    let region: RainActivityRegionPresentation?
 
-    init(state: RainActivityAttributes.ContentState, contextIsStale: Bool, now: Date) {
+    init(state: RainActivityAttributes.ContentState, contextIsStale: Bool, now: Date, localRadiusKm: Int? = nil) {
         phase = state.phase
         referenceTime = state.referenceTime
         isStale = contextIsStale || state.isStale(at: now)
+        region = state.isRegion ? RainActivityRegionPresentation(state: state, isStale: isStale, localRadiusKm: localRadiusKm) : nil
         if !isStale, state.phase == .startsIn || state.phase == .endsIn,
            let date = state.eventDate, date > now {
             countdownTarget = date
@@ -30,6 +33,9 @@ struct RainActivityPresentation: Equatable {
     }
 
     var headline: LocalizedStringKey {
+        if let region {
+            return LocalizedStringKey(region.headline(phase: phase, isStale: isStale, hasCountdown: countdownTarget != nil))
+        }
         if isStale { return "Daten veraltet" }
         switch phase {
         case .startsIn: return countdownTarget == nil ? "Regen gleich" : "Regen in"
@@ -57,6 +63,7 @@ struct RainActivityPresentation: Equatable {
 
     var compactLabel: LocalizedStringKey {
         if isStale { return "Veraltet" }
+        if let region, phase != .dry, let short = region.compactShareText { return LocalizedStringKey(short) }
         switch phase {
         case .startsIn, .raining, .endsIn: return "Regen"
         case .dry: return "Trocken"
@@ -66,16 +73,22 @@ struct RainActivityPresentation: Equatable {
 
 enum RainActivityPlace {
     /// Resolves an empty displayName (remote start) through the local mapping and PlaceStore.
-    static func resolve(_ attributes: RainActivityAttributes) -> (name: String?, url: URL?) {
+    /// Regions have no deep link; name and radius come from the local region mapping (never from the server).
+    static func resolve(_ attributes: RainActivityAttributes) -> (name: String?, url: URL?, radiusKm: Int?) {
         let trimmed = attributes.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let defaults = UserDefaults(suiteName: SharedConfig.appGroup),
-              let id = attributes.placeID(in: defaults) else {
-            return (trimmed.isEmpty ? nil : trimmed, nil)
+        guard let defaults = UserDefaults(suiteName: SharedConfig.appGroup) else {
+            return (trimmed.isEmpty ? nil : trimmed, nil, nil)
+        }
+        if let region = attributes.regionInfo(in: defaults) {
+            return (trimmed.isEmpty ? region.name : trimmed, nil, region.radiusKm)
+        }
+        guard let id = attributes.placeID(in: defaults) else {
+            return (trimmed.isEmpty ? nil : trimmed, nil, nil)
         }
         if trimmed.isEmpty,
            let place = try? PlaceStore().load().places.first(where: { $0.id == id }) {
-            return (place.name, WidgetDeepLink.url(for: id))
+            return (place.name, WidgetDeepLink.url(for: id), nil)
         }
-        return (trimmed.isEmpty ? nil : trimmed, WidgetDeepLink.url(for: id))
+        return (trimmed.isEmpty ? nil : trimmed, WidgetDeepLink.url(for: id), nil)
     }
 }

@@ -33,6 +33,20 @@ struct RainLiveActivity: Widget {
                         }
                     }
                 }
+                DynamicIslandExpandedRegion(.bottom) {
+                    RainActivityTimeline(context: context) { p, _ in
+                        if let region = p.region, region.shareText != nil || region.intensityText != nil {
+                            VStack(spacing: 2) {
+                                if let share = region.shareText { Text(share).font(.subheadline.weight(.semibold)) }
+                                if let fraction = region.barFraction {
+                                    ProgressView(value: fraction).tint(p.color).accessibilityHidden(true)
+                                }
+                                if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                }
             } compactLeading: {
                 RainActivityTimeline(context: context) { p, _ in
                     Image(systemName: p.symbol).foregroundStyle(p.color)
@@ -63,9 +77,11 @@ struct RainActivityTimeline<Content: View>: View {
     @ViewBuilder let content: (RainActivityPresentation, String?) -> Content
 
     var body: some View {
-        let title = RainActivityPlace.resolve(context.attributes).name
+        let place = RainActivityPlace.resolve(context.attributes)
         TimelineView(.explicit([Date.now, context.state.effectiveStaleDate])) { timeline in
-            content(RainActivityPresentation(state: context.state, contextIsStale: context.isStale, now: timeline.date), title)
+            let p = RainActivityPresentation(state: context.state, contextIsStale: context.isStale, now: timeline.date,
+                                             localRadiusKm: place.radiusKm)
+            content(p, p.region.map { $0.title(name: place.name) } ?? place.name)
         }
     }
 }
@@ -105,6 +121,13 @@ struct RainLockScreenView: View {
                 } else if p.phase == .endsIn, !p.isStale {
                     Text("Endet in").font(.subheadline).foregroundStyle(.secondary)
                 }
+                if let region = p.region {
+                    if let share = region.shareText { Text(share).font(.subheadline.weight(.semibold)) }
+                    if let fraction = region.barFraction {
+                        ProgressView(value: fraction).tint(p.color).accessibilityHidden(true)
+                    }
+                    if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
+                }
                 Text("Stand \(p.referenceTime, format: .dateTime.hour().minute())")
                     .font(.caption2).foregroundStyle(.secondary)
             }
@@ -126,7 +149,18 @@ private extension RainActivityAttributes.ContentState {
     }
 }
 
+private extension RainActivityAttributes.ContentState {
+    static func region(_ phase: RainActivityAttributes.Phase, in minutes: Double? = nil, wet: Int, peak: Int, maxClass: Int = 4,
+                       stale: Bool = false) -> Self {
+        var state = sample(phase, in: minutes, stale: stale)
+        state.intensityClass = maxClass
+        state.wetSharePercent = wet; state.peakSharePercent = peak; state.regionRadiusKm = 10
+        return state
+    }
+}
+
 private let previewAttributes = RainActivityAttributes(displayName: "Zuhause", subscriptionID: "preview")
+private let previewRegionAttributes = RainActivityAttributes(displayName: "Umland", subscriptionID: "preview-region")
 
 #Preview("Lock Screen", as: .content, using: previewAttributes) {
     RainLiveActivity()
@@ -156,5 +190,29 @@ private let previewAttributes = RainActivityAttributes(displayName: "Zuhause", s
     RainLiveActivity()
 } contentStates: {
     RainActivityAttributes.ContentState.sample(.raining)
+}
+
+#Preview("Lock Screen Umkreis", as: .content, using: previewRegionAttributes) {
+    RainLiveActivity()
+} contentStates: {
+    RainActivityAttributes.ContentState.region(.startsIn, in: 12, wet: 0, peak: 34)
+    RainActivityAttributes.ContentState.region(.raining, wet: 34, peak: 60)
+    RainActivityAttributes.ContentState.region(.endsIn, in: 18, wet: 12, peak: 40, maxClass: 8)
+    RainActivityAttributes.ContentState.region(.dry, wet: 0, peak: 0, maxClass: 0)
+    RainActivityAttributes.ContentState.region(.raining, wet: 34, peak: 60, stale: true)
+}
+
+#Preview("Island expanded Umkreis", as: .dynamicIsland(.expanded), using: previewRegionAttributes) {
+    RainLiveActivity()
+} contentStates: {
+    RainActivityAttributes.ContentState.region(.startsIn, in: 12, wet: 0, peak: 34)
+    RainActivityAttributes.ContentState.region(.raining, wet: 34, peak: 60)
+}
+
+#Preview("Island compact Umkreis", as: .dynamicIsland(.compact), using: previewRegionAttributes) {
+    RainLiveActivity()
+} contentStates: {
+    RainActivityAttributes.ContentState.region(.startsIn, in: 12, wet: 0, peak: 34)
+    RainActivityAttributes.ContentState.region(.raining, wet: 34, peak: 60)
 }
 #endif
