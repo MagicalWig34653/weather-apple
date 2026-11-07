@@ -3,7 +3,7 @@ import Foundation
 /// Radar cache backend (public Showers service). The app sends no location, cookies or
 /// identifying headers; the server sees only the request itself (IP address technically).
 enum RadarBackendConfig {
-    static let productionBaseURL = URL(string: "https://showernow.linolaske.de/v1/radar/")!
+    static let productionBaseURL = URL(string: "https://showers.linolaske.de/v1/radar/")!
     /// Same freshness bound as the direct DWD path (`RainForecast.maximumAge`).
     static let maximumDataAge: TimeInterval = RainForecast.maximumAge
     /// Re-check interval for `latest.json` while the app is visible (ETag, 304 is cheap).
@@ -15,11 +15,11 @@ enum RadarBackendConfig {
     /// 1.2 MB at midday (backend estimate), so 1 MiB would reject them; German-grid images stay far below.
     static let maximumImageBytes = 2_097_152
     /// Privacy policy page of the Showers site (opened in the browser; no network dependency in the app).
-    static let privacyPolicyURL = URL(string: "https://showernow.linolaske.de/datenschutz")!
+    static let privacyPolicyURL = URL(string: "https://showers.linolaske.de/datenschutz")!
     /// Support page of the Showers site (opened in the browser; no network dependency in the app).
-    static let supportURL = URL(string: "https://showernow.linolaske.de/support")!
+    static let supportURL = URL(string: "https://showers.linolaske.de/support")!
     /// Marketing page ("Über Showers") of the Showers site (opened in the browser).
-    static let marketingURL = URL(string: "https://showernow.linolaske.de/marketing")!
+    static let marketingURL = URL(string: "https://showers.linolaske.de/marketing")!
 
     /// Debug builds accept `-radar-backend-url <https-url>` so the fallback path can be exercised.
     static func baseURL(arguments: [String] = ProcessInfo.processInfo.arguments) -> URL {

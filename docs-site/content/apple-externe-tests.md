@@ -1,6 +1,6 @@
 # Apple-Leitfaden: externe TestFlight-Tests (und später App Store)
 
-Stand: 31. Oktober 2026 (Build 11). Betreiberanleitung: Was ist bei Apple auszufüllen, damit ShowerNow (`de.linolaske.showernow`) an externe Tester geht? Geprüft gegen Apples Primärquellen (Tabelle am Ende, Abruf jeweils 30. Oktober 2026; für Build 11 nicht erneut abgerufen). Kein Rechtsrat.
+Stand: 31. Oktober 2026 (Build 11). Betreiberanleitung: Was ist bei Apple auszufüllen, damit Showers (`de.linolaske.showernow`) an externe Tester geht? Geprüft gegen Apples Primärquellen (Tabelle am Ende, Abruf jeweils 30. Oktober 2026; für Build 11 nicht erneut abgerufen). Kein Rechtsrat.
 
 Kennzeichnung je Aussage: **BESTÄTIGT** = in der genannten Apple-Quelle gefunden, **ANNAHME** = Erfahrung/Schlussfolgerung, nicht belegt, **UNKLAR** = nicht entscheidbar. Quellen als `[Q#]`.
 
@@ -75,16 +75,16 @@ Pfad (BESTÄTIGT, [Q3]): App öffnen, Tab TestFlight, Seitenleiste unter „Addi
 | Marketing URL, Privacy Policy URL | **UNKLAR**, ob in der TestFlight-Maske vorhanden/Pflicht. Die Apple-Seite nennt nur die zwei Pflichtfelder oben. Für den App Store gilt: Privacy Policy URL Pflicht, Marketing URL optional ([Q9], [Q6]) | Trotzdem eintragen, falls das Feld erscheint |
 | Beta App Review Information: Contact (Name, E-Mail, Telefon) | Apple verweist für die „TestFlight App Review information properties“ auf die App-Review-Information-Tabelle [Q3]; dort ist Contact (Name, E-Mail, Telefon im internationalen Format mit „+“) geführt [Q6]. Pflicht-Status je Feld in der Tabelle nicht eindeutig lesbar → **UNKLAR**, vorsorglich ausfüllen | Platzhalter unten |
 | Notes | optional laut Tabelle, bis 4000 Bytes, beliebige Sprache [Q6]; Guideline 2.3.1(a) verlangt konkrete Beschreibungen in den Review-Notizen | Textvorschlag unten |
-| Sign-in required (Demo-Konto) | **entfällt**: ShowerNow hat kein Konto [Q6: „if your app requires a login“] | Kontrollkästchen leer lassen |
+| Sign-in required (Demo-Konto) | **entfällt**: Showers hat kein Konto [Q6: „if your app requires a login“] | Kontrollkästchen leer lassen |
 | What to Test (je Build) | Pflichtdialog beim Zuordnen des Builds [Q2] | Textvorschlag unten |
 
 Persönliche Angaben bleiben Platzhalter: Kontakt `<Vorname Nachname>`, `<E-Mail für Prüfer>`, `<Telefon im Format +49…>`, Feedback-E-Mail `<Feedback-E-Mail>`. Nichts davon ins Repo schreiben.
 
 URLs (Abruf am 31. Oktober 2026, 04:59 Uhr MEZ: alle drei HTTP 200 mit den Titeln „Datenschutzerklärung“, „ShowerNow“, „Support“; am 30. Oktober noch 404; Inhalt nicht geprüft):
 
-- Datenschutz: `https://showernow.linolaske.de/datenschutz`
-- Marketing: `https://showernow.linolaske.de/marketing`
-- Support: `https://showernow.linolaske.de/support`
+- Datenschutz: `https://showers.linolaske.de/datenschutz`
+- Marketing: `https://showers.linolaske.de/marketing`
+- Support: `https://showers.linolaske.de/support`
 
 Hinweis zur Support-URL (für den App Store, BESTÄTIGT [Q6]): Sie muss echte Kontaktdaten enthalten, soweit lokales Recht es verlangt (Anschrift, E-Mail, Telefon). Für ein Impressum nach deutschem Recht ist das vermutlich relevant (ANNAHME, kein Rechtsrat).
 
@@ -92,11 +92,11 @@ Hinweis zur Support-URL (für den App Store, BESTÄTIGT [Q6]): Sie muss echte Ko
 
 **Beta App Description (Deutsch)**
 
-> ShowerNow zeigt in Deutschland, wann es bei dir regnet: Radarkarte mit Zeitleiste, Regenprognose für die nächsten Stunden und gespeicherte Orte. Basis sind offene Radardaten des Deutschen Wetterdienstes (DWD). Kein Konto, keine Werbung, kein Tracking. Frühe Testversion: Funktionen und Aussehen ändern sich.
+> Showers zeigt in Deutschland, wann es bei dir regnet: Radarkarte mit Zeitleiste, Regenprognose für die nächsten Stunden und gespeicherte Orte. Basis sind offene Radardaten des Deutschen Wetterdienstes (DWD). Kein Konto, keine Werbung, kein Tracking. Frühe Testversion: Funktionen und Aussehen ändern sich.
 
 **Beta App Description (Englisch, falls eine englische Lokalisierung angelegt wird)**
 
-> ShowerNow shows when it will rain where you are in Germany: radar map with timeline, short-term rain forecast and saved places. Based on open radar data from the German Weather Service (DWD). No account, no ads, no tracking. Early test version; features and design will change.
+> Showers shows when it will rain where you are in Germany: radar map with timeline, short-term rain forecast and saved places. Based on open radar data from the German Weather Service (DWD). No account, no ads, no tracking. Early test version; features and design will change.
 
 **Review-Notizen (Englisch, für Prüfer)**
 
@@ -116,7 +116,7 @@ Wichtigste Quellen: Apples Definition „collect“ [Q7] und die Antwort-Maske [
 
 | Datenfluss | Inhalt | Ziel | Quelle im Repo |
 |---|---|---|---|
-| Radar-Ganzbilder, Zeitpunktliste | feste Pfade je Lauf/Slot bzw. `history.json` (Build 11), kein Ort, keine Cookies, keine Kennung | ShowerNow-Radar-Server | `RadarBackend.swift`, `RadarHistory.swift`, `decisions.md` |
+| Radar-Ganzbilder, Zeitpunktliste | feste Pfade je Lauf/Slot bzw. `history.json` (Build 11), kein Ort, keine Cookies, keine Kennung | Showers-Radar-Server | `RadarBackend.swift`, `RadarHistory.swift`, `decisions.md` |
 | Radar-Fallback | Bildabfrage | DWD (`opendata.dwd.de`, `maps.dwd.de`) | `DWDRequest.swift` |
 | Punktprognose | Kartenausschnitt (BBOX, 3×3 Pixel) **um die gewählte Position** | direkt DWD (`maps.dwd.de`) | `DWDRequest.swift`, `decisions.md` |
 | Karte, Ortssuche | Apple MapKit | Apple | `InformationSheet.swift` |
@@ -130,17 +130,17 @@ Wichtigste Quellen: Apples Definition „collect“ [Q7] und die Antwort-Maske [
 - „Collect“ bedeutet: Daten das Gerät verlassen **und** so übertragen werden, dass **du und/oder deine Drittpartner** darauf länger zugreifen können, als zur Echtzeit-Bearbeitung der Anfrage nötig ist (BESTÄTIGT [Q7]). Daten, die nur auf dem Gerät verarbeitet werden, sind nicht „collected“; was daraus abgeleitet und gesendet wird, ist getrennt zu bewerten (BESTÄTIGT [Q7]).
 - „Third-party partners“ sind Analysetools, Werbenetze, Drittanbieter-SDKs oder andere externe Anbieter, **deren Code in die App eingebunden ist** (BESTÄTIGT [Q7]). Der DWD ist ein Datenserver, kein eingebundener Code.
 - Daten, die an einen Server gehen und dort sofort nach Bearbeitung verworfen werden, müssen nicht angegeben werden (BESTÄTIGT [Q7]). Für Apple-Dienste wie MapKit ist nicht der Entwickler zur Angabe verpflichtet (BESTÄTIGT [Q7]).
-- **Was ich nicht sicher entscheiden kann (UNKLAR):** Ob Apple die Übertragung der Koordinaten an einen fremden öffentlichen Datenserver (DWD), auf den ShowerNow keinen Zugriff hat, als Erhebung durch die App wertet. Nach dem Wortlaut sammelt der Betreiber hier nichts (kein Zugriff, kein Drittpartner-Code). Apple legt die Praxis aber im Review aus; es gibt in den gelesenen Seiten kein Beispiel „App ruft öffentlichen Drittserver mit Position ab“.
+- **Was ich nicht sicher entscheiden kann (UNKLAR):** Ob Apple die Übertragung der Koordinaten an einen fremden öffentlichen Datenserver (DWD), auf den Showers keinen Zugriff hat, als Erhebung durch die App wertet. Nach dem Wortlaut sammelt der Betreiber hier nichts (kein Zugriff, kein Drittpartner-Code). Apple legt die Praxis aber im Review aus; es gibt in den gelesenen Seiten kein Beispiel „App ruft öffentlichen Drittserver mit Position ab“.
 
-**Empfehlung:** Variante A („Data Not Collected“), weil der Wortlaut sie stützt und die Datenschutzerklärung die DWD-Übertragung offen nennt (Guideline 5.1.1(i) verlangt dort die Offenlegung, [Q15]). Variante B als vorsichtige Alternative, falls kein Risiko eingegangen werden soll: Location (Precise oder Coarse, Ausschnitt 3×3 Pixel ist etwa Rasterzellgröße, ANNAHME) angeben, Zweck App Functionality, nicht mit dem Nutzer verknüpft, nicht für Tracking. Zu viel anzugeben ist vermutlich weniger riskant als zu wenig (ANNAHME). Begründung zu MapKit: Karte und Ortssuche laufen über Apple MapKit; Suchtext und Kartenausschnitt gehen an Apple, nicht an einen Server, auf den ShowerNow zugreift, und ShowerNow empfängt oder speichert sie nicht. Die Datenschutzerklärung nennt diesen Weg ausdrücklich (Abschnitt „Kartenansicht und Ortssuche (Apple)“). **Entscheidung beim Betreiber**; in `decisions.md` festhalten.
+**Empfehlung:** Variante A („Data Not Collected“), weil der Wortlaut sie stützt und die Datenschutzerklärung die DWD-Übertragung offen nennt (Guideline 5.1.1(i) verlangt dort die Offenlegung, [Q15]). Variante B als vorsichtige Alternative, falls kein Risiko eingegangen werden soll: Location (Precise oder Coarse, Ausschnitt 3×3 Pixel ist etwa Rasterzellgröße, ANNAHME) angeben, Zweck App Functionality, nicht mit dem Nutzer verknüpft, nicht für Tracking. Zu viel anzugeben ist vermutlich weniger riskant als zu wenig (ANNAHME). Begründung zu MapKit: Karte und Ortssuche laufen über Apple MapKit; Suchtext und Kartenausschnitt gehen an Apple, nicht an einen Server, auf den Showers zugreift, und Showers empfängt oder speichert sie nicht. Die Datenschutzerklärung nennt diesen Weg ausdrücklich (Abschnitt „Kartenansicht und Ortssuche (Apple)“). **Entscheidung beim Betreiber**; in `decisions.md` festhalten.
 
-Offener Punkt, der Variante A kippen kann (UNKLAR): Der ShowerNow-Radar-Dienst führt laut Backend-Code keine Zugriffsprotokolle; der vorgeschaltete Reverse Proxy sieht die IP-Adresse, ob er protokolliert, ist offen (`decisions.md`). Werden IP-Adressen dort **gespeichert**, wäre „IP address collected“ nach [Q7] unter den passenden Datentypen (z. B. Diagnostics oder Device ID, je nach Verwendung) anzugeben. Vor der Antwort Proxy-Protokollierung klären.
+Offener Punkt, der Variante A kippen kann (UNKLAR): Der Showers-Radar-Dienst führt laut Backend-Code keine Zugriffsprotokolle; der vorgeschaltete Reverse Proxy sieht die IP-Adresse, ob er protokolliert, ist offen (`decisions.md`). Werden IP-Adressen dort **gespeichert**, wäre „IP address collected“ nach [Q7] unter den passenden Datentypen (z. B. Diagnostics oder Device ID, je nach Verwendung) anzugeben. Vor der Antwort Proxy-Protokollierung klären.
 
 ### Frage für Frage (Reihenfolge laut [Q8], englische Begriffe)
 
 | Frage / Bereich | Empfehlung | Sicherheit |
 |---|---|---|
-| Privacy Policy URL (Pflicht für alle Apps [Q9]) | `https://showernow.linolaske.de/datenschutz` (noch nicht live) | BESTÄTIGT, dass Pflicht |
+| Privacy Policy URL (Pflicht für alle Apps [Q9]) | `https://showers.linolaske.de/datenschutz` (noch nicht live) | BESTÄTIGT, dass Pflicht |
 | User Privacy Choices URL | leer lassen (optional [Q9]) | BESTÄTIGT |
 | „Do you or your third-party partners collect data from this app?“ | Variante A: **No**; Variante B: Yes, siehe oben | Variante A ANNAHME/UNKLAR, s. o. |
 | Data Types: Location | A: nicht ankreuzen; B: Precise/Coarse Location | UNKLAR |
@@ -156,12 +156,12 @@ Antworten gelten app-weit für alle Plattformen und lassen sich jederzeit ohne A
 
 - Die App setzt `ITSAppUsesNonExemptEncryption = false` in `Configuration/Info.plist` und die geprüften IPAs bestätigen es (`signing.md`).
 - Apple: Mit `NO` gibt die App an, dass sie – inklusive gelinkter Fremdbibliotheken – keine oder nur von der Exportkontrolle **ausgenommene** Verschlüsselung nutzt. **Fehlt der Schlüssel, führt App Store Connect bei jedem Upload durch den Compliance-Fragebogen** (BESTÄTIGT [Q11]). Mit gesetztem Schlüssel entfällt die Frage (BESTÄTIGT [Q10], [Q11]).
-- Apple verlangt eine Exportbewertung auch für Apps mit Standardalgorithmen oder Betriebssystem-Kryptografie; der Entwickler trägt die Verantwortung für die korrekte Einordnung, falsche Freistellung erzeugt Haftung (BESTÄTIGT [Q10]). ShowerNow nutzt nach Repo nur Netzwerkzugriffe über das Betriebssystem (HTTPS) und keine eigene Kryptografie. Dass das unter die Ausnahme fällt, ist die übliche Einordnung, aber **ANNAHME ohne Rechtsprüfung**.
+- Apple verlangt eine Exportbewertung auch für Apps mit Standardalgorithmen oder Betriebssystem-Kryptografie; der Entwickler trägt die Verantwortung für die korrekte Einordnung, falsche Freistellung erzeugt Haftung (BESTÄTIGT [Q10]). Showers nutzt nach Repo nur Netzwerkzugriffe über das Betriebssystem (HTTPS) und keine eigene Kryptografie. Dass das unter die Ausnahme fällt, ist die übliche Einordnung, aber **ANNAHME ohne Rechtsprüfung**.
 - Frankreich: Das französische Formular ist nur nötig, wenn die App im App Store **in Frankreich** angeboten wird (BESTÄTIGT [Q16]). Bei Ausnahme-Einordnung ist das vermutlich nicht relevant; ob Beta-Tests über TestFlight in Frankreich eine Rolle spielen, ist **UNKLAR**. Bei Zweifel Frankreich in der App-Store-Verfügbarkeit weglassen (ANNAHME).
 
 ## 6. Altersfreigabe, Kategorie, Rechte, Standort, KI
 
-- **Altersfreigabe (App Store):** Pflichtfeld, Apple errechnet den Wert aus einem Fragebogen mit Inhalten, In-App-Controls und Capabilities (BESTÄTIGT [Q12]); Apps ohne Rating können nicht veröffentlicht werden. ShowerNow hat nach Repo keinen Web-Zugang im Browsersinne (Links öffnen extern), keine Nutzerinhalte, keine Chats, keine Werbung, keine Gewalt/Glücksspiel/Medizininhalte. Erwartung: niedrigste Stufe (ANNAHME). Ob die Altersfrage vor externem TestFlight erscheint: **UNKLAR**.
+- **Altersfreigabe (App Store):** Pflichtfeld, Apple errechnet den Wert aus einem Fragebogen mit Inhalten, In-App-Controls und Capabilities (BESTÄTIGT [Q12]); Apps ohne Rating können nicht veröffentlicht werden. Showers hat nach Repo keinen Web-Zugang im Browsersinne (Links öffnen extern), keine Nutzerinhalte, keine Chats, keine Werbung, keine Gewalt/Glücksspiel/Medizininhalte. Erwartung: niedrigste Stufe (ANNAHME). Ob die Altersfrage vor externem TestFlight erscheint: **UNKLAR**.
 - **Kategorie:** Weather (ANNAHME; Kategorieliste nicht gelesen). Zweite Kategorie optional (ANNAHME).
 - **Datenrechte DWD:** Lizenzbasis laut Repo ist GeoNutzV, kompatibel zu CC BY 4.0, mit Quellenvermerk „Quelle: Deutscher Wetterdienst“ und Veränderungshinweis, an der Karte sichtbar (`decisions.md`, `docs-site/content/daten.md`). Das ist eine **dokumentierte Annahme**, keine DWD-Bestätigung, und keine Apple-Quelle. Eine „Content Rights“-Frage („enthält die App Fremdinhalte, und hast du die Rechte?“) erscheint nach meiner Erfahrung bei der App-Einreichung (ANNAHME, in den gelesenen Seiten nicht gefunden). Antwort vermutlich „Ja, Drittinhalte, Rechte durch offene Lizenz“.
 - **Apple Weather / WeatherKit:** nicht genutzt. Die Pflicht zur Apple-Weather-Attribution gilt nur für WeatherKit-Daten (ANNAHME, nicht geprüft, da nicht zutreffend). Stattdessen DWD-Quellenangabe.
@@ -174,7 +174,7 @@ Antworten gelten app-weit für alle Plattformen und lassen sich jederzeit ohne A
 - Relevante Guidelines für eine Wetter-/Radar-App (Wortlaut in [Q15], Einschätzung ANNAHME):
   - 2.1 App Completeness: keine Platzhalter, funktionierende URLs, Test auf dem Gerät. Gefahr: 404 bei Datenschutz-/Support-URL.
   - 2.3.1(a): konkrete Review-Notizen; Radar nur Deutschland erwähnen, sonst wirkt die App außerhalb leer.
-  - 4.2 Minimum Functionality: Kritik möglich, wenn die App „nicht nützlich, einzigartig oder app-artig“ wirkt. ShowerNow hat native Karte, Zeitleiste, Orte, Cache: gutes Gegenargument; in den Notizen nennen.
+  - 4.2 Minimum Functionality: Kritik möglich, wenn die App „nicht nützlich, einzigartig oder app-artig“ wirkt. Showers hat native Karte, Zeitleiste, Orte, Cache: gutes Gegenargument; in den Notizen nennen.
   - 5.1.1(i) Datenschutzerklärung benennt Datenerhebung und Weitergabe; 5.1.2 Nutzung/Weitergabe nur mit Einwilligung; 5.1.5 Standort nur bei Relevanz mit Einwilligung.
   - Genauigkeitshinweise: eine ausdrückliche Wetter-Genauigkeitsregel habe ich in den Guidelines nicht gefunden (Stichwort „weather“ ohne Treffer). 1.4.1 betrifft Medizin-Apps, nicht Wetter. Vorsichtshalber keine Sicherheitsversprechen.
 - **Dauer:** In den gelesenen Apple-Seiten nicht angegeben → **UNKLAR**. Erfahrung (ANNAHME): meist Stunden bis wenige Tage.
@@ -197,16 +197,16 @@ Build-Ablauf: Ein Build ist 90 Tage testbar und danach nicht mehr verfügbar (BE
 ## Screenshots
 
 - **Braucht externes TestFlight Screenshots? Nein.** Die Test-Information-Seite nennt nur Beta App Description und Feedback Email als Pflicht; Screenshots/Kategorie in der Einladung stammen optional aus der letzten freigegebenen App-Store-Version (BESTÄTIGT [Q3]). Ohne App-Store-Version bleibt das leer.
-- **Für den App Store (BESTÄTIGT [Q13]):** mindestens 1, höchstens 10 Screenshots je Gerätegröße, `.jpeg`/`.jpg`/`.png`, ohne Alphakanal/Transparenz. Pflichtgrößen: iPhone mit Dynamic Island (medium display), iPad 13-inch, **wenn die App auf iPad läuft**. ShowerNow läuft laut geprüften IPAs als Universal-App (`UIDeviceFamily [1,2]`, `signing.md`), also iPhone **und** iPad. Hinweis: `project.yml` nennt im Basisabschnitt `TARGETED_DEVICE_FAMILY: '1'`, die Projektdatei und die IPAs führen `1,2`. Das sollte der Release-Zuständige abgleichen.
+- **Für den App Store (BESTÄTIGT [Q13]):** mindestens 1, höchstens 10 Screenshots je Gerätegröße, `.jpeg`/`.jpg`/`.png`, ohne Alphakanal/Transparenz. Pflichtgrößen: iPhone mit Dynamic Island (medium display), iPad 13-inch, **wenn die App auf iPad läuft**. Showers läuft laut geprüften IPAs als Universal-App (`UIDeviceFamily [1,2]`, `signing.md`), also iPhone **und** iPad. Hinweis: `project.yml` nennt im Basisabschnitt `TARGETED_DEVICE_FAMILY: '1'`, die Projektdatei und die IPAs führen `1,2`. Das sollte der Release-Zuständige abgleichen.
 - **Pixelgrößen (Hochformat, Querformat vertauscht; [Q13]):**
   - iPhone medium display (z. B. 17 Pro, 16): 1179×2556 oder 1206×2622.
   - iPhone large display (z. B. Pro Max): 1260×2736, 1290×2796 oder 1320×2868.
   - iPad 13": 2064×2752 oder 2048×2732.
 - **Skalierung (BESTÄTIGT [Q13]):** Ist die Oberfläche über Größen und Sprachen hinweg konsistent, genügt die höchste benötigte Auflösung, kleinere werden automatisch skaliert. Fehlen Screenshots einer Größe, werden passende größere skaliert (Rückfallkette in [Q13]). Praktisch: iPhone 1206×2622 oder 1320×2868 und iPad 2064×2752 liefern; ob Apple beim Hochladen trotzdem eine zusätzliche Größe verlangt, zeigt die Maske (UNKLAR).
-- **Neu in der Tabelle (UNKLAR in der Auswirkung):** [Q13] vermerkt unter „iPhone Duo“: „Starting in April 2027, screenshots will be required for any app using the iOS 27.1 SDK or later.“ Die Builds nutzen `iphoneos27.1` (`signing.md`). Ob und wie das ShowerNow betrifft (Sondergröße nur für faltbares Gerät?), vor der App-Store-Einreichung in Apples Hinweis zu iPhone Duo klären.
+- **Neu in der Tabelle (UNKLAR in der Auswirkung):** [Q13] vermerkt unter „iPhone Duo“: „Starting in April 2027, screenshots will be required for any app using the iOS 27.1 SDK or later.“ Die Builds nutzen `iphoneos27.1` (`signing.md`). Ob und wie das Showers betrifft (Sondergröße nur für faltbares Gerät?), vor der App-Store-Einreichung in Apples Hinweis zu iPhone Duo klären.
 - **App-Vorschauvideos sind optional** (BESTÄTIGT [Q13], [Q14]): bis zu drei je Gerätegröße und Sprache, 15 bis 30 Sekunden, bis 500 MB, Hoch- oder Querformat, nur Bildschirmaufnahmen der App (Guideline 2.3.4, [Q15]).
 - **Inhaltliche Regeln (BESTÄTIGT [Q15]):** Screenshots zeigen die App in Benutzung, nicht nur Titelbild/Splash (2.3.3); irreführendes Marketing ist Entfernungsgrund (2.3.1).
-- **Erzeugung für ShowerNow (Vorgehensweise, ANNAHME aus Xcode-Erfahrung, Befehle vor Nutzung prüfen):**
+- **Erzeugung für Showers (Vorgehensweise, ANNAHME aus Xcode-Erfahrung, Befehle vor Nutzung prüfen):**
   - Simulator mit passendem Gerätetyp (iPhone der Klasse 1206×2622 oder 1320×2868; iPad 13-inch) wählen, Bildschirmaufnahme per `xcrun simctl io <Gerät> screenshot <Datei>.png`; danach Pixelmaße kontrollieren (`sips -g pixelWidth -g pixelHeight <Datei>`). Statusleiste über `xcrun simctl status_bar` vereinheitlichen. Ein Simulatorstandort kann per `xcrun simctl location` gesetzt werden; nur öffentliche Orte verwenden (z. B. Großstadtzentrum), keine privaten.
   - Realistische Inhalte: echter Regen im Radar (Wetterlage abwarten; keine eingefärbten oder gefälschten Radarbilder), nicht leerer Himmel; sinnvolle Orte; keine Namen privater Adressen in der Orte-Liste; Light und Dark mindestens je ein Motiv; DWD-Quellenangabe sichtbar lassen.
   - Die vorhandenen Entwicklungs-Screenshots aus Prüfläufen liegen nur lokal im Arbeitsverzeichnis des Agenten, sind **nicht store-tauglich** (kaum Regen, falsche Größen, nicht zur Veröffentlichung gedacht) und werden nicht ins Repo übernommen.

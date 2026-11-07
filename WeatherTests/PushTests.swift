@@ -721,7 +721,7 @@ final class HTTPPushGatewayTests: XCTestCase {
     }
 
     func testBaseURLDerivedFromRadarURL() {
-        XCTAssertEqual(PushBackendConfig.baseURL(radarBaseURL: URL(string: "https://showernow.linolaske.de/v1/radar/")!).absoluteString,
-                       "https://showernow.linolaske.de/v1/push/")
+        XCTAssertEqual(PushBackendConfig.baseURL(radarBaseURL: URL(string: "https://showers.linolaske.de/v1/radar/")!).absoluteString,
+                       "https://showers.linolaske.de/v1/push/")
     }
 }

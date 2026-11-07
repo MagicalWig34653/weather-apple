@@ -465,7 +465,7 @@ final class RadarBackendTests: XCTestCase {
     }
 
     func testBaseURLDefaultsToProductionService() {
-        XCTAssertEqual(RadarBackendConfig.baseURL(arguments: []).absoluteString, "https://showernow.linolaske.de/v1/radar/")
+        XCTAssertEqual(RadarBackendConfig.baseURL(arguments: []).absoluteString, "https://showers.linolaske.de/v1/radar/")
         XCTAssertEqual(RadarBackendConfig.maximumDataAge, 20 * 60)
         XCTAssertEqual(RadarBackendConfig.pollInterval, 60)
     }

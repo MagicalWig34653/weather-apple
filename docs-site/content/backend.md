@@ -28,7 +28,7 @@ Die App fragt `latest.json` beim Start und beim Aktivwerden sowie danach alle 60
 
 ## Fallback auf den DWD
 
-Build 9 nutzt den direkten DWD-Weg bei Fehler, 404, Timeout, ungültigem Manifest oder Daten älter als 20 Minuten. Auf diesem Weg wiederholt die App DWD-XML-Fehlerantworten (`InvalidDimensionValue`) begrenzt mit Wartezeit, bis zu drei Versuche. Liefert der Cache gar keine Bilder, bleibt die App 5 Minuten auf dem DWD-Weg. Die Karte zeigt die Quelle an („ShowerNow-Cache“ bzw. „direkt vom DWD“).
+Build 9 nutzt den direkten DWD-Weg bei Fehler, 404, Timeout, ungültigem Manifest oder Daten älter als 20 Minuten. Auf diesem Weg wiederholt die App DWD-XML-Fehlerantworten (`InvalidDimensionValue`) begrenzt mit Wartezeit, bis zu drei Versuche. Liefert der Cache gar keine Bilder, bleibt die App 5 Minuten auf dem DWD-Weg. Die Karte zeigt die Quelle an („Showers-Cache“ bzw. „direkt vom DWD“).
 
 ## Öffentliche Seiten
 
