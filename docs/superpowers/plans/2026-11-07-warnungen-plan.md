@@ -335,6 +335,8 @@ public final class WarnIngestor: Sendable {
 - [ ] **Step 1: Failing Tests** mit `FakeWarnFeedSource` (Skript aus Antworten): Nicht-Leader tut nichts; DIFF mit Alert wird gespeichert und in `newOrChanged` gemeldet; zweiter Lauf mit `.notModified` ändert nichts; identische Meldung aus STAT nach DIFF ist kein zweites `newOrChanged`; `Cancel` setzt die referenzierte Meldung auf `cancelled`; Fehler der Quelle erhöht Backoff (60 s, 120 s, 300 s) und lässt `warnFetchedAt` unverändert; nach erfolgreichem Lauf steht `warnFetchedAt` auf `now`; STAT-Lauf wird nach 15 min und bei fehlendem DIFF-Zeitstempel (Lücke über 90 s) sofort ausgelöst.
 - [ ] **Step 2:** FAIL. **Step 3:** Implementierung (Zustand: `etagDiff`, `etagStat`, `lastStatAt`, `failures` in einer `Mutex`/Actor-Struktur wie in `PushService`). DE immer, EN nur wenn `repo` mindestens eine Installation mit `locale = en` kennt (neue Methode **nicht** nötig: EN immer laden, weil die Dateien klein sind). **Step 4:** PASS. **Step 5: Commit** `feat: Warn-Ingest mit Leader-Lease`.
 
+**Stand W1 (7.11.2026, Backend-Repo, Commits 968750d bis 3d4f094, nicht deployt):** W1.1 bis W1.4 umgesetzt; 46 Ereigniscodes belegt (`docs/research/warnungen-ereigniscodes.md` im BE-Repo). Abweichungen: `alert_key` und Status `superseded`, Sprachen getrennt gespeichert, Vorabinformations-Kollision über Eventnamen gelöst, HTTP-Anbindung (`WarnHTTPGet` mit AsyncHTTPClient) und Stats-Label-Regel für `warn_ingest` folgen in W2.4. Migration 016 muss vor dem Aktivieren im Image sein.
+
 **W1 Abschluss:** `swift test` komplett (ohne DB), `docs/status.md` (BE) fortschreiben, Push auf `main`. Nicht deployt; Flag `WARN_INGEST_ENABLED` wird erst in W2.4 gelesen.
 
 ---
