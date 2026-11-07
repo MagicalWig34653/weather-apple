@@ -12,6 +12,12 @@ Quellen (gelesen am 7.11.2026): Live-Seitenquelle `Sources/RadarCore/SitePages.s
 
 ---
 
+## Benennung und Domain (Nutzervorgabe 7.11.2026)
+
+Nach außen heißt die App immer **„Showers“**, nie „ShowerNow“. „ShowerNow“ bleibt intern (Bundle-ID `de.linolaske.showernow`, App-Group, Repo, Code). Sichtbare URLs verwenden **showers.linolaske.de** (zeigt auf dieselbe Instanz wie showernow.linolaske.de). Der Seitentext in Teil A und die App-Privacy-Angaben in Teil B nennen daher nur „Showers“; Datenschutz-URL in App Store Connect: `https://showers.linolaske.de/datenschutz`. Im Entwurf kommt ausdrücklich kein „ShowerNow“ vor.
+
+---
+
 ## Teil A: Vollständiger Seitentext (Vorschlag für `/datenschutz`)
 
 Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckigen Klammern.
@@ -159,7 +165,8 @@ Hinweise zu den einzelnen Punkten:
 | 8 | **Englische Fassung:** Soll `/datenschutz` auch auf Englisch erscheinen? | Heute nur deutsch; Info-Sheet ist de/en. |
 | 9 | **Warnungen:** Weglassen bis Warn-Push (Empfehlung) oder als „geplant“ ausweisen? | Teil E. |
 | 10 | **Dashboard-Einsicht:** Ist die Aussage in Abschnitt 11 (Betreiber sieht die gerundete Position der Rasterzelle eines gekoppelten Geräts) so gewollt veröffentlicht? | Belegt in `PushMeasure.swift`/`dashboard-api.md`; bislang nicht im Live-Text. |
-| 11 | **EUMETSAT-Jahr in der Quellenangabe** und Wortlaut der Attribution. | Policy-Text gelesen, Wortlaut „Contains modified EUMETSAT Meteosat data [Jahr]“; Jahr anpassen. |
+| 11 | **Domain:** Ist showers.linolaske.de produktiv mit gültigem Zertifikat für /datenschutz, /support, /marketing? Soll showernow.linolaske.de weiterlaufen oder weiterleiten? | Nutzer nennt beide Hosts als dieselbe Instanz; nicht von mir geprüft. |
+| 12 | **EUMETSAT-Jahr in der Quellenangabe** und Wortlaut der Attribution. | Policy-Text gelesen, Wortlaut „Contains modified EUMETSAT Meteosat data [Jahr]“; Jahr anpassen. |
 
 ---
 
@@ -179,6 +186,7 @@ Hinweise zu den einzelnen Punkten:
 | Abschnitt 10 alt = 12 neu | + Push nur über feste Zähler | Beobachtungsdesign (`PushObserver`) |
 | Abschnitt 11 alt = 13 neu | + Widerruf der Einwilligung, Löschung durch Ausschalten, Hinweis zur Zuordnung | Art. 7 Abs. 3 DSGVO, kein Konto |
 | Abschnitt 12 alt = 14 neu | + EUMETSAT-Attribution, Apple Karten | EUMETSAT-Klärung 31.10. |
+| Name/Domain: Live-Seite nennt bereits „Showers“; die App verlinkt Datenschutz/Support/Über noch auf `showernow.linolaske.de` (`RadarBackendConfig`, bewusst nicht umgestellt, `decisions.md` 3.11.) | Entwurf nennt nur „Showers“ und `showers.linolaske.de`; keine sichtbare „ShowerNow“-Nennung | Nutzervorgabe 7.11. Folgeaufgaben (nicht in diesem Entwurf): App-URL-Konstanten, Connect-URLs, Seiten-Links und `docs-site` auf showers.linolaske.de umstellen; Domain-Redirect/Zertifikat prüfen; Texte `docs/apple-externe-tests.md` mit altem Namen |
 | Warnungen | nicht enthalten | Empfehlung, Teil E |
 
 Nicht in den Entwurf übernommen, weil nicht belegt: Hosting-Ort, Backups, Proxy-Logging.
