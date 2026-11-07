@@ -32,3 +32,9 @@
 "INFO_ROW_ALERTS" = "Mitteilungen";
 "INFO_ROW_PAST" = "Maximale Vergangenheit";
 "INFO_ROW_SUPPORT" = "Support und Über Showers";
+
+/* Installation ID for access requests (UUID only) */
+"PUSH_INSTALLATION_ID_TITLE" = "Installationskennung";
+"PUSH_INSTALLATION_ID_HINT" = "Nennen Sie diese Kennung bei einer Auskunftsanfrage.";
+"PUSH_INSTALLATION_ID_COPY" = "Kennung kopieren";
+"PUSH_INSTALLATION_ID_COPIED" = "Kopiert";

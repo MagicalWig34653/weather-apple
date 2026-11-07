@@ -96,6 +96,9 @@ struct InformationSheet: View {
                     if push.canSendTest || push.testState != .idle {
                         testRow
                     }
+                    if let installationID = push.installationID {
+                        InstallationIDRow(installationID: installationID)
+                    }
                     SitePageButton(page: .privacy, selection: $sitePage)
                 } header: {
                     Text("Mitteilungen")

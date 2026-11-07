@@ -222,6 +222,12 @@ final class PushManager {
         return settings.subscriptionID != nil && !settings.needsUpload ? .active : .pending
     }
     var isAnyEnabled: Bool { enabledCount > 0 }
+
+    /// Installation ID (UUID only, never the secret) for data-subject access requests; nil unless push is registered.
+    var installationID: String? {
+        guard isAnyEnabled else { return nil }
+        return InstallationIDDisplay.validated(secrets.load()?.installationID)
+    }
     var canAddSubscription: Bool { enabledCount < Self.maxSubscriptions }
 
     func settings(for placeID: UUID) -> PlacePushSettings? { state.places[placeID] }
