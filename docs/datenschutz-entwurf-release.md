@@ -1,6 +1,6 @@
 # Datenschutz-Entwurf für das Release (Seitentext und App-Privacy, Variante B)
 
-Stand 7. November 2026 (Nutzerentscheidungen eingearbeitet). **ENTWURF zur Freigabe durch den Nutzer, NICHT live.** Weder `/datenschutz` im Backend noch `docs-site/content/datenschutz.md` noch App Store Connect wurden geändert. Dies ist keine Rechtsberatung; Rechtsgrundlagen, Impressum und Einordnung sind Vorschläge und vor Livegang rechtlich zu prüfen. Aussagen sind aus dem Code und den Repo-Dokumenten belegt; Unbekanntes steht in Teil C als Nutzerfrage und im Seitentext als `[ ... ]`.
+Stand 7. November 2026 (Nutzerentscheidungen eingearbeitet; zweite Runde: Hosting Hetzner, Dashboard-Einsicht, Auskunft über die Installationskennung; danach technisch-redaktionelle Plausibilitätsprüfung gegen den Code, Korrekturen im Text mit `[R1]` bis `[R9]` markiert und in Teil F erklärt, Fragen für die externe Rechtsprüfung in Teil G). **ENTWURF zur Freigabe durch den Nutzer, NICHT live.** Weder `/datenschutz` im Backend noch `docs-site/content/datenschutz.md` noch App Store Connect wurden geändert. Dies ist keine Rechtsberatung; Rechtsgrundlagen, Impressum und Einordnung sind Vorschläge und vor Livegang rechtlich zu prüfen. Aussagen sind aus dem Code und den Repo-Dokumenten belegt; Unbekanntes steht in Teil C als Nutzerfrage und im Seitentext als `[ ... ]`.
 
 Quellen (gelesen am 7.11.2026): Live-Seitenquelle `Sources/RadarCore/SitePages.swift` (Schwesterrepo, Methode `privacy`), Schwesterrepo `migrations/003, 006, 007, 010, 015`, `docs-site/content/api.md` (Push, Testmeldung, Live Activity, Kopplung, Warnungen), `PushService.swift` (Aufbewahrung), `PushMeasure.swift` (Dashboard), `docs/datenschutz-gebiets-live-activity.md`, `docs/decisions.md` beider Repos, `docs/app-store-release-checkliste.md`, `docs/superpowers/specs/2026-11-07-warnungen-design.md`, `docs/research/dwd-warnungen-weitergabe.md`, App-Code `Weather/Push/PushGateway.swift`, `Shared/Data/DWDClient.swift`.
 
@@ -13,6 +13,9 @@ Quellen (gelesen am 7.11.2026): Live-Seitenquelle `Sources/RadarCore/SitePages.s
 5. **Speicherfristen unverändert:** 60 Tage Inaktivität, Warteschlange 6 Stunden, Diagnose-Verlauf 48 Stunden, Zähler 30 Tage / 72 Stunden.
 6. **Verantwortlicher:** Der Nutzer trägt `OPERATOR_NAME`, `OPERATOR_ADDRESS`, `OPERATOR_EMAIL` selbst im Betrieb ein; der Text enthält nur Platzhalter, keine erfundenen Angaben.
 7. **Domains:** showers.linolaske.de und showernow.linolaske.de laufen parallel (keine Weiterleitung); sichtbar nach außen nur showers.linolaske.de.
+8. **Hosting:** eigener virtueller Server (vServer) bei Hetzner in Deutschland; Hetzner ist Hosting-Anbieter und Auftragsverarbeiter. Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO) schließt der Nutzer selbst ab. Backup-Rhythmus bleibt offene Nutzerangabe (nicht geraten). Eingearbeitet in neuen Abschnitt 15.
+9. **Dashboard-Einsicht** wird offen benannt: Für ein gekoppeltes Gerät sieht der Betreiber die auf etwa 1 km gerundete Position, nur bei Kopplung (Abschnitte 2 und 11).
+10. **Auskunft:** Die App soll die Installationskennung in den Einstellungen anzeigen und kopierbar machen; Text in Abschnitt 13 entsprechend. **App-Änderung folgt nach Build 34** (bis dahin ist der Satz in der App nicht erfüllt, also nicht vorher live schalten).
 
 Weiterhin Empfehlung: **Rechtsgrundlage Push** ist Einwilligung, Art. 6 Abs. 1 lit. a DSGVO (Opt-in, jederzeit widerrufbar); Vorschlag, Betreiber entscheidet (Teil C). **App Privacy:** Variante A („Data Not Collected“) entfällt, sobald Push live ist; Variante B in Teil B.
 
@@ -42,7 +45,8 @@ Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckig
 > - Wer die App nur zum Ansehen von Radar und Prognose nutzt, erzeugt im Radar-Dienst keine personenbezogene Kennung: Die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Technisch bedingt sieht der vorgeschaltete Reverse Proxy die IP-Adresse und protokolliert sie befristet (Abschnitt 3).
 > - Nur wenn du Regenhinweise einschaltest, registriert die App dein Gerät auf dem Radar-Dienst, mit einer zufälligen Installationskennung, dem Gerätetoken für Mitteilungen und dem gewählten, gröber gerundeten Ort oder Gebiet (Abschnitt 5). Das ist freiwillig und jederzeit in der App widerrufbar.
 > - Gespeicherte Orte mit ihren Namen und deine Einstellungen bleiben auf deinem Gerät. Der Ortsname in einer Mitteilung wird auf dem Gerät angehängt (Abschnitt 5).
-> - Betriebsstatistik nur als aggregierte, personenlose Zähler; Geräte-Diagnose nur freiwillig und nur nach Freigabe des Betreibers (Abschnitte 10 und 11).
+> - Betriebsstatistik nur als aggregierte, personenlose Zähler; Geräte-Diagnose nur freiwillig und nur nach Freigabe des Betreibers (Abschnitte 10 und 11). Nur für ein so gekoppeltes Gerät sieht der Betreiber dessen Regenhinweise mit der auf etwa 1 km gerundeten Position; ohne Kopplung sieht er keine einzelnen Geräte oder Orte.
+> - Der Server steht bei Hetzner in Deutschland (Abschnitt 15).
 >
 > ## 3. Radarkarte und Radar-Dienst
 >
@@ -52,7 +56,7 @@ Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckig
 >
 > Dem Radar-Dienst ist ein Reverse Proxy (TLS, Weiterleitung) vorgeschaltet. Dieser sieht technisch bedingt die IP-Adresse jedes Abrufs und protokolliert Zugriffe einschließlich der IP-Adresse. Zweck sind der Betrieb, die Fehlersuche und die Abwehr von Missbrauch; Rechtsgrundlage ist unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO). Die Protokolldateien rotieren nach Größe (höchstens 64 MB je Datei, 16 Dateien) und werden danach überschrieben. Je nach Verkehr bleiben die Einträge daher bis zu rund 14 Monate erhalten. [Entwurfshinweis: Frist am Proxy auf 14 bis 30 Tage kürzen empfohlen; dann diesen Absatz und die englische Fassung anpassen.]
 >
-> Zusätzlich zeigt die App Karten für Luftdruck, Blitze und Wolken beziehungsweise Sonne. Diese Bilder kommen ebenfalls vom Radar-Dienst, ohne Ort. Sie beruhen auf Daten des DWD und, für Wolken und Sonne, auf Satellitendaten von EUMETSAT (Abschnitt 14). Der Radar-Dienst ruft diese Daten bei den Quellen ab; dabei werden keine Nutzerdaten übermittelt.
+> Zusätzlich zeigt die App Karten für Luftdruck, Blitze und Wolken beziehungsweise Sonne. Diese Bilder kommen ebenfalls vom Radar-Dienst, ohne Ort. Sie beruhen auf Daten des DWD und, für Wolken und Sonne, auf Satellitendaten von EUMETSAT (Abschnitt 14). Der Radar-Dienst ruft diese Daten bei den Quellen ab; dabei werden keine Nutzerdaten übermittelt. Nur das kleine Legendenbild dieser Karten lädt die App direkt beim DWD beziehungsweise bei EUMETSAT (EUMETView), ohne Ortsangabe; dabei sieht die jeweilige Stelle, wie bei jeder Internetverbindung, deine IP-Adresse. [R1]
 >
 > ## 4. Direktabruf beim Deutschen Wetterdienst
 >
@@ -68,7 +72,7 @@ Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckig
 >
 > - eine zufällige Installationskennung und der Hash eines Geheimnisses, mit dem sich die App beim Server ausweist (das Geheimnis selbst liegt nur im Schlüsselbund deines Geräts);
 > - das Gerätetoken für Apple Push-Mitteilungen (APNs), die Umgebung (Entwicklung oder Produktion) und die Sprache (Deutsch oder Englisch);
-> - je Regenhinweis: bei einem Ort die Rasterzelle des Radarbildes, in der er liegt (Kantenlänge etwa 0,7 km, keine Koordinate, kein Ortsname); bei einem Gebiet der Mittelpunkt, auf einen Block von etwa 2 km gerundet, und der Radius (5, 10 oder 25 km); außerdem Schwelle, Vorlauf (10, 20 oder 30 Minuten), bei Gebieten der Mindestanteil, ob der Hinweis zeitkritisch zugestellt werden soll, ob eine Live Activity gewünscht ist, der Zustand der Regelauswertung sowie Zeitpunkte (angelegt, zuletzt gesehen, zuletzt gesendet);
+> - je Regenhinweis: bei einem Ort die Rasterzelle des Radarbildes, in der er liegt (Kantenlänge etwa 0,7 km, keine Koordinate, kein Ortsname); bei einem Gebiet der Mittelpunkt, auf einen Block von etwa 2 km gerundet (die App übermittelt die Rasterzelle des Mittelpunkts, der Server rundet sie vor dem Speichern), und der Radius (5, 10 oder 25 km); außerdem Schwelle, Vorlauf (10, 20 oder 30 Minuten), bei Gebieten der Mindestanteil, ob der Hinweis zeitkritisch zugestellt werden soll, ob eine Live Activity gewünscht ist, der Zustand der Regelauswertung sowie Zeitpunkte (angelegt, zuletzt geändert, zuletzt gesendet; „zuletzt gesehen“ gilt für die Installation); [R2]
 > - bei eingeschalteter Live Activity der Start-Token deines Geräts und je Regenhinweis ein Activity-Token. Die Live Activity zeigt nur Zeiten, Regenklasse und bei Gebieten den Anteil nasser Fläche, keinen Ortsnamen und keine Koordinaten. Je Gerät läuft höchstens eine Live Activity gleichzeitig; ein Activity-Token wird spätestens nach acht Stunden, beim Ausschalten oder beim Löschen des Regenhinweises entfernt;
 > - kurzzeitig der zu sendende Mitteilungstext in einer Warteschlange (siehe Speicherdauer).
 >
@@ -78,9 +82,9 @@ Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckig
 >
 > **Testmeldung.** In den Einstellungen kannst du eine Testmeldung auslösen. Sie geht an das Gerätetoken deiner Installation, enthält einen festen Text ohne Ort und wird nicht gespeichert (höchstens 3 je Stunde).
 >
-> **Empfänger Apple.** Mitteilungen und Live Activities werden über Apple Push Notification Service zugestellt. Dafür erhält Apple vom Server das Gerätetoken und den Mitteilungstext. Es gelten die Datenschutzbestimmungen von Apple.
+> **Empfänger Apple.** Mitteilungen und Live Activities werden über Apple Push Notification Service zugestellt. Dafür erhält Apple vom Server das Gerätetoken, den Inhalt der Mitteilung beziehungsweise Live Activity und technische Kennungen zum Zusammenfassen von Mitteilungen (die Kennung des Regenhinweises, bei der Testmeldung die Installationskennung). Es gelten die Datenschutzbestimmungen von Apple. Dabei können Daten an Server von Apple außerhalb der EU, insbesondere in den USA, übermittelt werden. [R3] [Rechtsprüfung: Grundlage der Drittlandübermittlung und Rolle von Apple, Teil G.]
 >
-> **Speicherdauer und Löschung.** Wenn du einen Regenhinweis löschst oder die Funktion ausschaltest, löscht die App die Registrierung auf dem Server; damit werden Installation, Regenhinweise, Activity-Daten und wartende Mitteilungen gelöscht. Meldet Apple ein Gerätetoken als ungültig (zum Beispiel nach Löschen der App), löscht der Server die Registrierung sofort. Registrierungen, die 60 Tage lang nicht mehr von der App gemeldet wurden, werden automatisch gelöscht. Wartende oder versendete Mitteilungen in der Warteschlange werden nach etwa 6 Stunden entfernt. [Datensicherungen: Betreiberangabe, Teil C Frage 4.]
+> **Speicherdauer und Löschung.** Wenn du einen Regenhinweis löschst oder die Funktion ausschaltest, löscht die App die Registrierung auf dem Server; damit werden Installation, Regenhinweise, Activity-Daten und wartende Mitteilungen gelöscht. Meldet Apple ein Gerätetoken als ungültig (zum Beispiel nach Löschen der App), löscht der Server die Registrierung sofort. Registrierungen, die 60 Tage lang nicht mehr von der App gemeldet wurden, werden automatisch gelöscht. Wartende oder versendete Mitteilungen in der Warteschlange werden nach etwa 6 Stunden entfernt. Zu Datensicherungen siehe Abschnitt 15.
 >
 > **Rechtsgrundlage.** Deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du mit dem Einschalten erteilst und durch Ausschalten oder Löschen jederzeit mit Wirkung für die Zukunft widerrufen kannst. [Rechtliche Prüfung, Teil C Frage 3.]
 >
@@ -100,7 +104,7 @@ Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckig
 >
 > ## 9. Apple Watch, Widgets und Live Activities
 >
-> Widgets, Apple Watch und Live Activities nutzen die gespeicherten Orte und Einstellungen auf deinem Gerät. Die Prognose für Widgets und Watch wird wie in Abschnitt 4 direkt beim DWD abgerufen. Der Server erfährt davon nichts, außer du hast Regenhinweise oder Live Activities eingeschaltet (Abschnitt 5).
+> Widgets, Apple Watch und Live Activities nutzen die gespeicherten Orte und Einstellungen auf deinem Gerät. Die Prognose für Widgets und Watch wird wie in Abschnitt 4 direkt beim DWD abgerufen. Die Radarkarte der Apple Watch lädt die Radarbilder wie die App ohne Ortsangabe vom Radar-Dienst (Abschnitt 3). Deine Orte erfährt der Server dabei nicht, außer du hast Regenhinweise oder Live Activities eingeschaltet (Abschnitt 5). [R4]
 >
 > ## 10. Betriebsstatistik des Radar-Dienstes
 >
@@ -113,9 +117,11 @@ Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckig
 > - Beim Einschalten zeigt die App einen kurzen Koppelcode (10 Minuten gültig, einmal verwendbar), den der Betreiber im Dashboard eingibt und dem Gerät dabei eine eigene Bezeichnung gibt.
 > - Der Code wird nur im Kopplungsfenster ausgegeben und ist nur nutzbar, wenn sich der Betreiber im Dashboard mit seinem Passkey angemeldet hat. Es wird kein Beleg von Apple (StoreKit) übertragen oder gespeichert.
 > - Gespeichert werden die Zuordnung zur Push-Registrierung des Geräts, die Bezeichnung, Zeitpunkte (Kopplung, zuletzt gesehen) und ein Verlauf technischer Versandergebnisse der letzten 48 Stunden (zum Beispiel Testmitteilung zugestellt oder von Apple abgelehnt).
-> - Für ein gekoppeltes Gerät sieht der Betreiber im Dashboard dessen Regenhinweise samt der gerundeten Position der Rasterzelle (Mittelpunkt, auf etwa 1 km gerundet) und die aktuelle Auswertung. Andere Geräte sind im Dashboard nicht einzeln sichtbar.
-> - Die Kopplung gilt bis zum Widerruf. Du kannst sie jederzeit durch Ausschalten in der App widerrufen; dabei wird sie auf dem Server gelöscht. Der Betreiber kann sie ebenfalls entfernen. Höchstens drei Geräte können gleichzeitig gekoppelt sein.
+> - Nur für ein gekoppeltes Gerät und nur solange es gekoppelt ist, sieht der Betreiber im Dashboard dessen Regenhinweise samt der Position (Mittelpunkt der Rasterzelle beziehungsweise des Gebiets, als Koordinate auf etwa 1 km gerundet) und die aktuelle Auswertung. Andere Geräte und deren Orte sind im Dashboard nicht einzeln sichtbar.
+> - Die Kopplung gilt bis zum Widerruf, längstens bis die Push-Registrierung gelöscht wird (Abschnitt 5). Du kannst sie jederzeit durch Ausschalten in der App widerrufen; dabei wird sie auf dem Server gelöscht. Der Betreiber kann sie ebenfalls entfernen. Höchstens drei Geräte können gleichzeitig gekoppelt sein. [R5]
 > - Der Betreiber kann dem gekoppelten Gerät Testmeldungen und eine Test-Live-Activity senden.
+> - Im Betreiberprotokoll des Dashboards werden Kopplung, Entkopplung und Aktionen ohne Installationskennung, Token oder Ort mit einem kurzen Prüfwert der Kopplung 365 Tage aufbewahrt; nach dem Entkoppeln ist dieser Prüfwert keinem Gerät mehr zuzuordnen. [R5]
+> - Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du durch Einschalten und Anzeigen des Codes erteilst und durch Ausschalten jederzeit widerrufen kannst. [R5] [Rechtsprüfung, Teil G.]
 >
 > ## 12. Keine Debuglogs mit Personenbezug
 >
@@ -123,11 +129,25 @@ Gestaltung wie bisher (Überschriften nummeriert, Du-Form). Platzhalter in eckig
 >
 > ## 13. Deine Rechte
 >
-> Dir stehen nach der Datenschutz-Grundverordnung (DSGVO) insbesondere die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch zu (Art. 15 bis 21 DSGVO) sowie das Recht, eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft zu widerrufen. Zudem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren. Am einfachsten löschst du deine Daten auf dem Server selbst: Schalte alle Regenhinweise in der App aus oder lösche sie. Da die Installationskennung nur auf deinem Gerät liegt, kann der Betreiber Daten auf Anfrage nur zuordnen, wenn du die Installationskennung nennst [Hinweis zur Auskunft: Betreiber prüft, ob die App die Kennung anzeigen soll, Teil C Frage 5]. Wende dich für Anfragen an die oben genannte Stelle.
+> Dir stehen nach der Datenschutz-Grundverordnung (DSGVO) insbesondere die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch zu (Art. 15 bis 21 DSGVO) sowie das Recht, eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft zu widerrufen. Zudem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren, insbesondere in dem Mitgliedstaat deines Aufenthaltsorts [zuständige Aufsichtsbehörde des Betreibers: vom Betreiber einzutragen, Teil G]. [R6]
+>
+> **Widerspruchsrecht.** Soweit wir Daten auf Grundlage berechtigter Interessen verarbeiten (Art. 6 Abs. 1 lit. f DSGVO, Protokolle des Reverse Proxy in Abschnitt 3), kannst du aus Gründen, die sich aus deiner besonderen Situation ergeben, jederzeit widersprechen (Art. 21 DSGVO). [R6]
+>
+> Am einfachsten löschst du deine Daten auf dem Server selbst: Schalte alle Regenhinweise in der App aus oder lösche sie. Da die Installationskennung nur auf deinem Gerät liegt, kann der Betreiber Daten auf Anfrage nur zuordnen, wenn du die Installationskennung nennst. Du findest sie in der App in den Einstellungen und kannst sie dort kopieren. [Entwurfshinweis: App-Änderung folgt nach Build 34; diesen Satz erst live schalten, wenn die Anzeige in der App veröffentlicht ist.] Wende dich für Anfragen an die oben genannte Stelle.
+>
+> **Pflicht und Freiwilligkeit.** Du bist weder gesetzlich noch vertraglich verpflichtet, Daten bereitzustellen. Ohne IP-Adresse kann die App technisch keine Radarbilder laden; ohne Registrierung gibt es keine Regenhinweise und Live Activities vom Server, ohne Kopplung keine Betreiber-Diagnose. Eine automatisierte Entscheidungsfindung im Sinne von Art. 22 DSGVO findet nicht statt; Regenhinweise werden allein aus den Radardaten für deinen gewählten Ort berechnet. [R6]
 >
 > ## 14. Quellen
 >
 > Quelle: Deutscher Wetterdienst. Die Radarbilder sind aus Rasterdaten des DWD bildlich wiedergegeben und aufbereitet. Wolken- und Sonnenkarten: Contains modified EUMETSAT Meteosat data 2026 (EUMETSAT, Jahr der Veröffentlichung der Daten; Jahr anpassen). Kartenhintergrund: Apple Karten.
+>
+> ## 15. Hosting und Empfänger
+>
+> Der Radar-Dienst und seine Datenbank laufen auf einem eigenen virtuellen Server bei der Hetzner Online GmbH in einem Rechenzentrum in Deutschland. [Betreiber bestätigt: Der Reverse Proxy aus Abschnitt 3 läuft auf demselben Server beziehungsweise ebenfalls bei Hetzner in Deutschland.] Hetzner stellt Server und Netz bereit und verarbeitet die dort gespeicherten Daten als Auftragsverarbeiter nach Art. 28 DSGVO nur nach unseren Weisungen, nicht für eigene Zwecke. [Nutzeraktion vor Livegang: Vertrag zur Auftragsverarbeitung mit Hetzner abschließen.]
+>
+> Datensicherungen: [Betreiberangabe offen: ob Sicherungen oder Snapshots des Servers oder der Datenbank bestehen, in welchem Rhythmus und wie lange sie aufbewahrt werden. Bis dahin hier nichts behaupten.]
+>
+> Weitere Empfänger: Apple für die Zustellung von Mitteilungen und Live Activities (Abschnitt 5). Direkt von deinem Gerät, ohne Beteiligung des Betreibers, gehen Anfragen an den DWD (Abschnitte 3 und 4), an EUMETSAT (Legendenbilder, Abschnitt 3) und an Apple (Karten und Ortssuche, Abschnitt 7); diese Stellen verarbeiten die Daten in eigener Verantwortung. Darüber hinaus geben wir keine Daten weiter und verkaufen keine Daten. Der Server steht in Deutschland; eine Übermittlung in Drittländer kann nur über Apple erfolgen (Abschnitt 5). [R7]
 
 ---
 
@@ -149,7 +169,8 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 > - If you only use the app to view radar and forecasts, the radar service creates no personal identifier: radar requests contain no location, no cookies and no identifier. Technically, the reverse proxy in front of the service sees the IP address and logs it for a limited time (section 3).
 > - Only if you turn on rain alerts does the app register your device with the radar service, using a random installation ID, the device token for notifications and the chosen location or area, rounded to a coarser grid (section 5). This is voluntary and can be revoked in the app at any time.
 > - Saved places with their names and your settings stay on your device. The place name in a notification is added on the device (section 5).
-> - Operational statistics only as aggregated counters that contain no personal data; device diagnostics only voluntarily and only after approval by the operator (sections 10 and 11).
+> - Operational statistics only as aggregated counters that contain no personal data; device diagnostics only voluntarily and only after approval by the operator (sections 10 and 11). Only for a device paired in this way does the operator see its rain alerts with the position rounded to about 1 km; without pairing, the operator sees no individual devices or places.
+> - The server is hosted by Hetzner in Germany (section 15).
 >
 > ## 3. Radar map and radar service
 >
@@ -159,7 +180,7 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 >
 > A reverse proxy (TLS, forwarding) sits in front of the radar service. It technically sees the IP address of every request and logs accesses including the IP address. The purposes are operation, troubleshooting and abuse prevention; the legal basis is our legitimate interest (Art. 6(1)(f) GDPR). Log files rotate by size (at most 64 MB per file, 16 files) and are overwritten afterwards. Depending on traffic, entries are therefore kept for up to roughly 14 months. [Draft note: shortening the period at the proxy to 14 to 30 days is recommended; then adjust this paragraph and the German version.]
 >
-> The app also shows maps for air pressure, lightning, and clouds or sun. These images also come from the radar service, without a location. They are based on data from the German Weather Service (DWD) and, for clouds and sun, on satellite data from EUMETSAT (section 14). The radar service fetches this data from the sources; no user data is transmitted in doing so.
+> The app also shows maps for air pressure, lightning, and clouds or sun. These images also come from the radar service, without a location. They are based on data from the German Weather Service (DWD) and, for clouds and sun, on satellite data from EUMETSAT (section 14). The radar service fetches this data from the sources; no user data is transmitted in doing so. Only the small legend image of these maps is loaded by the app directly from the DWD or from EUMETSAT (EUMETView), without a location; as with any internet connection, the respective body sees your IP address. [R1]
 >
 > ## 4. Direct retrieval from the German Weather Service
 >
@@ -175,7 +196,7 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 >
 > - a random installation ID and the hash of a secret with which the app identifies itself to the server (the secret itself is kept only in your device's keychain);
 > - the device token for Apple Push Notifications (APNs), the environment (development or production) and the language (German or English);
-> - for each rain alert: for a place, the grid cell of the radar image it lies in (edge length about 0.7 km, no coordinate, no place name); for an area, the center point, rounded to a block of about 2 km, and the radius (5, 10 or 25 km); also the threshold, lead time (10, 20 or 30 minutes), for areas the minimum share, whether the alert should be delivered as time-sensitive, whether a Live Activity is wanted, the state of the rule evaluation and timestamps (created, last seen, last sent);
+> - for each rain alert: for a place, the grid cell of the radar image it lies in (edge length about 0.7 km, no coordinate, no place name); for an area, the center point, rounded to a block of about 2 km (the app transmits the grid cell of the center, the server rounds it before storing), and the radius (5, 10 or 25 km); also the threshold, lead time (10, 20 or 30 minutes), for areas the minimum share, whether the alert should be delivered as time-sensitive, whether a Live Activity is wanted, the state of the rule evaluation and timestamps (created, last changed, last sent; "last seen" applies to the installation); [R2]
 > - if Live Activities are on, the start token of your device and one activity token per rain alert. The Live Activity shows only times, rain class and, for areas, the share of wet area, no place name and no coordinates. At most one Live Activity runs per device at a time; an activity token is removed after eight hours at the latest, when you turn it off or when you delete the rain alert;
 > - briefly, the notification text to be sent, in a queue (see retention).
 >
@@ -185,9 +206,9 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 >
 > **Test notification.** In the settings you can trigger a test notification. It goes to the device token of your installation, contains a fixed text without a place and is not stored (at most 3 per hour).
 >
-> **Recipient Apple.** Notifications and Live Activities are delivered through the Apple Push Notification service. For this, Apple receives the device token and the notification text from the server. Apple's privacy terms apply.
+> **Recipient Apple.** Notifications and Live Activities are delivered through the Apple Push Notification service. For this, Apple receives from the server the device token, the content of the notification or Live Activity and technical identifiers for grouping notifications (the identifier of the rain alert, for the test notification the installation ID). Apple's privacy terms apply. Data may be transferred to Apple servers outside the EU, in particular in the USA. [R3] [Legal review: basis of the third-country transfer and Apple's role, Part G.]
 >
-> **Retention and deletion.** If you delete a rain alert or turn the function off, the app deletes the registration on the server; this deletes the installation, rain alerts, activity data and waiting notifications. If Apple reports a device token as invalid (for example after the app is deleted), the server deletes the registration immediately. Registrations that the app has not reported for 60 days are deleted automatically. Waiting or sent notifications in the queue are removed after about 6 hours. [Backups: operator information, Part C question 4.]
+> **Retention and deletion.** If you delete a rain alert or turn the function off, the app deletes the registration on the server; this deletes the installation, rain alerts, activity data and waiting notifications. If Apple reports a device token as invalid (for example after the app is deleted), the server deletes the registration immediately. Registrations that the app has not reported for 60 days are deleted automatically. Waiting or sent notifications in the queue are removed after about 6 hours. For backups, see section 15.
 >
 > **Legal basis.** Your consent (Art. 6(1)(a) GDPR), which you give by turning the function on and can withdraw at any time with effect for the future by turning it off or deleting it. [Legal review, Part C.]
 >
@@ -207,7 +228,7 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 >
 > ## 9. Apple Watch, widgets and Live Activities
 >
-> Widgets, Apple Watch and Live Activities use the saved places and settings on your device. The forecast for widgets and watch is retrieved directly from the DWD as described in section 4. The server learns nothing about it unless you have turned on rain alerts or Live Activities (section 5).
+> Widgets, Apple Watch and Live Activities use the saved places and settings on your device. The forecast for widgets and watch is retrieved directly from the DWD as described in section 4. The radar map on Apple Watch loads the radar images from the radar service like the app, without a location (section 3). The server does not learn your places in the process unless you have turned on rain alerts or Live Activities (section 5). [R4]
 >
 > ## 10. Operational statistics of the radar service
 >
@@ -220,9 +241,11 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 > - When you turn it on, the app shows a short pairing code (valid for 10 minutes, usable once), which the operator enters in the dashboard, giving the device a label of their own.
 > - The code is issued only during the pairing window and can only be used if the operator is signed in to the dashboard with their passkey. No receipt from Apple (StoreKit) is transmitted or stored.
 > - Stored are the link to the push registration of the device, the label, timestamps (pairing, last seen) and a history of technical delivery results for the last 48 hours (for example test notification delivered or rejected by Apple).
-> - For a paired device, the operator sees in the dashboard its rain alerts including the rounded position of the grid cell (center point, rounded to about 1 km) and the current evaluation. Other devices are not individually visible in the dashboard.
-> - Pairing applies until revoked. You can revoke it at any time by turning it off in the app; it is then deleted on the server. The operator can also remove it. At most three devices can be paired at the same time.
+> - Only for a paired device and only while it is paired does the operator see in the dashboard its rain alerts including the position (center of the grid cell or of the area, as a coordinate rounded to about 1 km) and the current evaluation. Other devices and their places are not individually visible in the dashboard.
+> - Pairing applies until revoked, at most until the push registration is deleted (section 5). You can revoke it at any time by turning it off in the app; it is then deleted on the server. The operator can also remove it. At most three devices can be paired at the same time. [R5]
 > - The operator can send test notifications and a test Live Activity to the paired device.
+> - The dashboard's operator log keeps pairing, unpairing and actions for 365 days, without installation ID, token or place, with a short check value of the pairing; after unpairing, this check value can no longer be matched to any device. [R5]
+> - The legal basis is your consent (Art. 6(1)(a) GDPR), which you give by turning the function on and showing the code, and which you can withdraw at any time by turning it off. [R5] [Legal review, Part G.]
 >
 > ## 12. No debug logs containing personal data
 >
@@ -230,11 +253,25 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 >
 > ## 13. Your rights
 >
-> Under the General Data Protection Regulation (GDPR) you have in particular the rights of access, rectification, erasure, restriction of processing, data portability and objection (Art. 15 to 21 GDPR), as well as the right to withdraw consent given at any time with effect for the future. You can also lodge a complaint with a data protection supervisory authority. The simplest way to delete your data on the server is to turn off or delete all rain alerts in the app. Because the installation ID is stored only on your device, the operator can match data on request only if you provide the installation ID [note on access requests: the operator checks whether the app should display the ID, Part C question 5]. For requests, contact the address given above.
+> Under the General Data Protection Regulation (GDPR) you have in particular the rights of access, rectification, erasure, restriction of processing, data portability and objection (Art. 15 to 21 GDPR), as well as the right to withdraw consent given at any time with effect for the future. You can also lodge a complaint with a data protection supervisory authority, in particular in the member state of your habitual residence [competent supervisory authority of the operator: to be entered by the operator, Part G]. [R6]
+>
+> **Right to object.** Where we process data on the basis of legitimate interests (Art. 6(1)(f) GDPR, reverse proxy logs in section 3), you can object at any time on grounds relating to your particular situation (Art. 21 GDPR). [R6]
+>
+> The simplest way to delete your data on the server is to turn off or delete all rain alerts in the app. Because the installation ID is stored only on your device, the operator can match data on request only if you provide the installation ID. You can find it in the app's settings and copy it there. [Draft note: the app change follows after build 34; publish this sentence only once the display is released in the app.] For requests, contact the address given above.
+>
+> **Obligation and voluntariness.** You are not obliged by law or contract to provide data. Without an IP address the app cannot technically load radar images; without registration there are no rain alerts or Live Activities from the server, without pairing no operator diagnostics. There is no automated decision-making within the meaning of Art. 22 GDPR; rain alerts are computed solely from the radar data for the place you chose. [R6]
 >
 > ## 14. Sources
 >
 > Source: Deutscher Wetterdienst (German Weather Service). The radar images are graphical renderings prepared from DWD raster data. Cloud and sun maps: Contains modified EUMETSAT Meteosat data 2026 (EUMETSAT, year of data publication; adjust the year). Map background: Apple Maps.
+>
+> ## 15. Hosting and recipients
+>
+> The radar service and its database run on a dedicated virtual server operated by Hetzner Online GmbH in a data center in Germany. [Operator to confirm: the reverse proxy from section 3 runs on the same server or likewise at Hetzner in Germany.] Hetzner provides the server and network and processes the data stored there as a processor under Art. 28 GDPR, only on our instructions and not for its own purposes. [User action before go-live: conclude a data processing agreement with Hetzner.]
+>
+> Backups: [operator information pending: whether backups or snapshots of the server or database exist, how often and how long they are kept. Do not state anything here until then.]
+>
+> Other recipients: Apple for delivering notifications and Live Activities (section 5). Directly from your device, without involvement of the operator, requests go to the DWD (sections 3 and 4), to EUMETSAT (legend images, section 3) and to Apple (maps and place search, section 7); these bodies process the data under their own responsibility. Beyond that, we do not pass on or sell any data. The server is located in Germany; a transfer to third countries can only take place via Apple (section 5). [R7]
 
 ---
 
@@ -261,7 +298,7 @@ Hinweise zu den einzelnen Punkten:
 6. **Nicht erfasst:** Kontaktdaten, Gesundheit, Finanzen, Nutzerinhalte, Browserverlauf, Suchverlauf (der Suchtext geht an Apple MapKit, nicht an den Betreiber), Käufe, Nutzungsdaten (nur aggregierte Zähler ohne Kennung), Diagnosedaten (kein Crash-SDK; Apples eigene TestFlight-/App-Store-Berichte zählen nicht zur App), Sensible Daten, Sonstige Daten.
 7. **Betreiber-Diagnose (Kopplung):** Zusätzliche Datensätze (Bezeichnung des Geräts, Zeitpunkte, 48-h-Versandverlauf) hängen an derselben Installation. Die Bezeichnung ist eine vom Betreiber vergebene Gerätebezeichnung; sie ist in den Kategorien oben mit abgedeckt (Geräte-ID, kein neuer Datentyp). Nutzerprüfung, falls die Bezeichnung personenbezogen vergeben wird.
 8. **Warnungen (später):** Warngebiets-IDs (Gemeinde) sind dem Standort (grob) zuzuordnen, Kategorien voraussichtlich unverändert (Spec §5). Bei Push-Livegang erneut prüfen.
-9. **Zusätzlich im Projekt (Agent-Aufgabe, nicht Teil dieses Entwurfs; laut Status erledigt, Commit `b29be64`):** `PrivacyInfo.xcprivacy` je Target mit UserDefaults-Gründen (CA92.1, 1C8F.1), Release-Checkliste Blocker.
+9. **Zusätzlich im Projekt (Agent-Aufgabe, nicht Teil dieses Entwurfs):** `PrivacyInfo.xcprivacy` je Target mit UserDefaults-Gründen (CA92.1, 1C8F.1), erstmals `b29be64` (Build 33: Device ID und Coarse Location, *nicht* verknüpft). Seit `8eb9715` (Build 34) deklariert `Weather/PrivacyInfo.xcprivacy` Device ID, Coarse **und** Precise Location, jeweils verknüpft, kein Tracking, Zweck App Functionality; das stimmt mit dieser Tabelle überein (am 7.11. gegen die Datei geprüft). Build 33 und Teil B widersprechen sich bei „verknüpft“; maßgeblich für den Release ist Build 34 oder neuer. [R8]
 
 10. **Proxy-IP-Logs und App Privacy (neu, ungeprüft):** Der Proxy protokolliert IP-Adressen aller Abrufe (nur Betrieb/Sicherheit, nicht mit Installations-ID verknüpft). Ob Apple dafür eine Angabe verlangt (z. B. unter Nutzungs- oder Diagnosedaten, Zweck Sicherheit/Betrieb), ist nicht geprüft; vor Abgabe in Connect gegen die aktuelle Apple-Definition prüfen. Teil B führt dazu bewusst noch nichts auf.
 
@@ -274,7 +311,10 @@ Hinweise zu den einzelnen Punkten:
 | # | Frage | Antwort / Umsetzung |
 |---|---|---|
 | 1 | Reverse Proxy: Protokollierung? | **Beantwortet:** Zoraxy protokolliert mit IP. Rotation nach Größe (64 MB x 16 Dateien), neue Datei laut Nutzer alle 2 bis 4 Wochen (Schätzung) ⇒ ca. 7 bis 14 Monate. Text: „bis zu rund 14 Monate“, Zweck Betrieb/Fehlersuche/Missbrauchsabwehr, Art. 6 Abs. 1 lit. f (Vorschlag). **Empfehlung/Nutzeraktion:** am Proxy auf zeitbasierte 14 bis 30 Tage kürzen, danach Abschnitt 3 anpassen. |
-| 2 | Verantwortlicher | **Beantwortet:** Nutzer trägt `OPERATOR_NAME/ADDRESS/EMAIL` selbst im Betrieb ein; Text nutzt Platzhalter. Offen bleibt nur die Impressumspflicht (`/impressum` liefert 404), siehe unten. |
+| 2 | Verantwortlicher | **Beantwortet:** Nutzer trägt `OPERATOR_NAME/ADDRESS/EMAIL` selbst im Betrieb ein; Text nutzt Platzhalter. Impressum: Korrektur [R9] – die Seite `/impressum` (§ 5 DDG, aus denselben Betreiberangaben) ist im Backend-Code vorhanden (Commit `91bed98`, Navigation und Footer verlinkt); die frühere Angabe „liefert 404“ war veraltet. Ob die Live-Instanz sie ausliefert, nicht geprüft. |
+| 4a | Hosting-Ort | **Beantwortet (7.11.):** eigener vServer bei Hetzner in Deutschland; Abschnitt 15 (de/en). Nutzeraktion: Vertrag zur Auftragsverarbeitung mit Hetzner. |
+| 5 | Auskunft / Installationskennung | **Beantwortet (7.11.):** App zeigt die Kennung in den Einstellungen an und macht sie kopierbar; Abschnitt 13 (de/en). App-Änderung folgt nach Build 34. |
+| 10 | Dashboard-Einsicht | **Beantwortet (7.11.):** offen benennen; Abschnitte 2 und 11 (de/en): Position auf etwa 1 km gerundet, nur bei Kopplung. |
 | 6 | Speicherdauer | **Beantwortet:** unverändert (60 Tage Inaktivität, Warteschlange 6 h, Diagnose-Verlauf 48 h, Zähler 30 Tage/72 h, Kopplung bis Widerruf). |
 | 7 | App Privacy Standort | **Beantwortet:** Ortszelle = Precise, Gebiete = Coarse; verknüpft, kein Tracking (Teil B). Definition in Connect weiterhin zu prüfen. |
 | 8 | Englische Fassung | **Beantwortet:** ja, vollständig (Teil A-EN). Umsetzung auf der Seite (Sprachumschaltung/URL) ist eine spätere Aufgabe. |
@@ -285,13 +325,15 @@ Hinweise zu den einzelnen Punkten:
 
 | # | Frage | Warum / Stand |
 |---|---|---|
-| 4 | **Hosting-Ort und Datensicherungen:** Wo wird gehostet (Land/Anbieter, Auftragsverarbeitung)? Gibt es Backups der Datenbank (Rhythmus, Aufbewahrung)? | Im Repo nicht belegt; erscheint nicht im Text, bis beantwortet (Platzhalter in Abschnitt 5). |
+| 4b | **Datensicherungen:** Gibt es Backups/Snapshots (Hetzner-Backup, Datenbank-Dump)? Rhythmus, Aufbewahrung? | Offene Nutzerangabe, Platzhalter in Abschnitt 15; nicht geraten. Beeinflusst die tatsächliche Löschfrist aller Angaben in Abschnitt 5. |
+| 4c | **Vertrag zur Auftragsverarbeitung mit Hetzner** abschließen (Art. 28 DSGVO) | Nutzeraktion vor Livegang. |
+| 4d | **Läuft der Reverse Proxy (Zoraxy) auf demselben Hetzner-Server?** | Platzhalter in Abschnitt 15; sonst weiterer Auftragsverarbeiter zu nennen. |
+| 5b | **App: Installationskennung in den Einstellungen anzeigen und kopierbar machen** | App-Änderung nach Build 34 (eigene Aufgabe); Satz in Abschnitt 13 erst danach live. |
 | 12 | **EUMETSAT-Jahr und Wortlaut** der Attribution | Policy-Text gelesen, Wortlaut „Contains modified EUMETSAT Meteosat data [Jahr]“; Jahr beim Livegang anpassen (Entwurf: 2026). |
-| 5 | **Auskunft / Installationskennung:** Soll die App die Installationskennung anzeigen (Auskunft/Löschung auf Anfrage), oder genügt „in der App ausschalten“? | Ohne Kennung kann der Betreiber nichts zuordnen (Abschnitt 13, Platzhalter). |
-| 3 | **Rechtsprüfung:** Einwilligung Art. 6 Abs. 1 lit. a (Push/Live Activity), lit. f (Proxy-IP-Logs, 14-Monate-Frist), Impressumspflicht, Verantwortlichen-Angaben | Alles Vorschläge, keine Rechtsprüfung; vor Livegang prüfen lassen. |
-| 10 | **Dashboard-Einsicht:** Ist die Aussage in Abschnitt 11 (Betreiber sieht die gerundete Position der Rasterzelle eines gekoppelten Geräts) so gewollt veröffentlicht? | Belegt in `PushMeasure.swift`/`dashboard-api.md`; bislang nicht im Live-Text. Im Entwurf enthalten. |
-| 13 | **Proxy-Frist kürzen** (zeitbasiert 14 bis 30 Tage) und anschließend Text anpassen | Nutzeraktion am Zoraxy. |
+| 3 | **Rechtsprüfung** | Alle Rechtsgrundlagen und Einordnungen sind Vorschläge; Fragenliste in Teil G. |
+| 13 | **Proxy-Frist kürzen** (zeitbasiert, Empfehlung nach Prüfung eher 7 bis 14 Tage, höchstens 30) und anschließend Text anpassen | Nutzeraktion am Zoraxy; siehe Teil G Frage 1. |
 | 14 | **Proxy-IP-Logs in App Privacy** (siehe Teil B, Punkt 10) | ungeprüft. |
+| 15 | **Zuständige Aufsichtsbehörde** des Betreibers (Bundesland) eintragen | Platzhalter in Abschnitt 13. |
 
 ---
 
@@ -317,8 +359,13 @@ Hinweise zu den einzelnen Punkten:
 | Nur deutsch | zusätzlich vollständige englische Fassung (Teil A-EN) | Nutzerentscheidung 7.11. |
 | Verantwortlicher: "wie bisher aus Betreiberkonfiguration" | Platzhalter `OPERATOR_NAME/ADDRESS/EMAIL`, vom Betreiber einzutragen | Nutzerentscheidung 7.11. |
 | App Privacy: eine Standort-Zeile (grob) | Ortszelle Precise, Gebiete Coarse (Teil B 2a/2b) | Nutzerentscheidung 7.11. |
+| Betreiber-Diagnose: „Es werden keine Standortdaten gespeichert.“ | gestrichen; stattdessen offen: Betreiber sieht für gekoppeltes Gerät die Position auf etwa 1 km gerundet (auch im Überblick) | Nutzerentscheidung 7.11.; `PushMeasure.swift` (`place`, Koordinate auf 2 Dezimalstellen) |
+| kein Hosting-Abschnitt | neu Abschnitt 15 „Hosting und Empfänger“: Hetzner vServer Deutschland, Auftragsverarbeiter, Empfängerübersicht, Drittland nur über Apple; Backups Platzhalter | Nutzerangabe 7.11.; Art. 13 Abs. 1 lit. e/f |
+| Rechte ohne Auskunftsweg | Installationskennung in den Einstellungen anzeigen/kopieren (App-Änderung nach Build 34), Widerspruchsrecht Art. 21, Pflicht/Freiwilligkeit, keine automatisierte Entscheidung | Nutzerentscheidung 7.11.; Review [R6] |
+| Legendenbilder nicht erwähnt | Direktabruf beim DWD und bei EUMETSAT (IP sichtbar) | Review [R1] |
+| Empfänger Apple: Token und Text | + Kennung des Regenhinweises bzw. Installationskennung (Testmeldung) als Collapse-/Thread-Kennung, Drittland USA | Review [R3] |
 
-Nicht in den Entwurf übernommen, weil nicht belegt: Hosting-Ort, Backups.
+Nicht in den Entwurf übernommen, weil nicht belegt: Backups (Platzhalter in Abschnitt 15).
 
 ---
 
@@ -330,6 +377,55 @@ Bereit zum Einfügen, sobald `warnings_push` aktiviert wird (nach DWD-Antwort un
 
 Hinweis: Die Kombination aus Regenhinweis-Zelle und Warngemeinde derselben Installation ist ein etwas genaueres Merkmal (Spec §5); die Kategorien in App Privacy bleiben voraussichtlich Geräte-ID und grober Standort.
 
+---
+
+## Teil F: Technisch-redaktionelle Plausibilitätsprüfung (7.11.2026)
+
+**Art der Prüfung:** technisch-redaktioneller Abgleich des Entwurfs mit dem Code durch einen KI-Agenten, **keine Rechtsberatung und keine rechtliche Prüfung.** Geprüft wurde, ob die Aussagen den Datenflüssen im Code entsprechen und ob die in Art. 13 DSGVO genannten Angaben vorkommen; ob sie rechtlich ausreichen, entscheidet die externe Rechtsprüfung (Teil G).
+
+Gelesen (Stand 7.11.): Backend `migrations/003, 006, 007, 009, 010, 012, 013, 015`, `PushService.swift` (Löschfristen: 60 Tage, Warteschlange 6 h, stündlicher Purge), `MariaRepo+Push.swift`, `PushApi.swift` (Testmeldung, Begrenzung je Installation ohne IP), `PushActivity.swift`, `PushMeasure.swift`/`PushModels.swift` (Dashboard-Position: Zellmitte auf 2 Dezimalstellen), `DeviceLinkRepo+Maria.swift`, `DeviceCommandRepo*.swift` (48 h), `DashboardRepo*.swift` (Statistik 30 Tage, Audit 365 Tage), `Config.swift` (`DASH_DEVICE_TTL_DAYS` Standard 0), `Layers.swift` (Legenden-URLs), `SitePages.swift` (Impressum), `Sources/radar/Radar.swift` (Middleware ohne Zugriffslog); App: Hosts in allen Targets, `Weather/Data/RadarLayer.swift` (Legenden-Hosts), `Shared/Data/DWDRequest.swift`, `Shared/Data/RainForecast.swift` (20 Minuten), `WeatherWatch/Radar/WatchRadarStore.swift`, `WatchMapBackdrop.swift`, `Weather/PrivacyInfo.xcprivacy`.
+
+**Bestätigt:** keine Zugriffsprotokolle im Dienst (eigene Middleware-Liste ohne Request-Logging, Logs nur mit Lauf-IDs und Zählern); Begrenzungen je Installation/global ohne IP; Löschfristen 60 Tage/6 h/48 h/30 Tage/72 h; Kaskadenlöschung (Install → Abos, Activities, Warteschlange, Kopplung, Codes); ungültiges Token löscht sofort; Testmeldung wird nicht gespeichert; Ortsnamen nie an den Server; App-Hosts nur eigener Dienst, `maps.dwd.de`, `opendata.dwd.de` (nur Link), `view.eumetsat.int`, Apple MapKit; Dashboard zeigt Push-Daten sonst nur aggregiert; Privacy Manifest (Build 34) = Teil B; kein Tracking, keine Analyse-SDKs.
+
+**Korrigiert (im Text markiert):**
+
+| Marke | Fehler / Lücke | Beleg | Korrektur |
+|---|---|---|---|
+| R1 | „Diese Bilder kommen vom Radar-Dienst“ unvollständig: Legendenbilder lädt die App direkt bei `maps.dwd.de` und `view.eumetsat.int`; EUMETSAT war als Empfänger der IP nicht genannt | Backend `Layers.swift` (Legend-URLs), App `RadarLayer.swift` `allowedHosts` | Satz in Abschnitt 3 de/en |
+| R2 | Zeitpunkte je Regenhinweis: „zuletzt gesehen“ liegt an der Installation, nicht am Abo; „zuletzt geändert“ (`changed_at`) fehlte. Gebiet: App überträgt die ungerundete Zelle, Server rundet erst | `015_push_eval_trace.sql`, `api.md` Regionen | Abschnitt 5 de/en |
+| R3 | Empfänger Apple: Apple erhält neben Token und Text auch `apns-collapse-id` (Abo-Kennung; Testmeldung `test-<Installationskennung>`); Drittlandbezug fehlte | `PushService.swift` (`collapseID: sub.id`), `PushApi.swift` `sendTest` | Abschnitt 5 de/en |
+| R4 | „Der Server erfährt davon nichts“ (Watch) falsch: Die Watch lädt Radarbilder vom Radar-Dienst (ohne Ort, Proxy sieht IP) | `WatchRadarStore.swift` | Abschnitt 9 de/en |
+| R5 | Betreiber-Diagnose: keine Rechtsgrundlage genannt (Art. 13 Abs. 1 lit. c); Kopplung endet auch mit Löschung der Registrierung (Kaskade); Audit-Protokoll 365 Tage mit 8-stelligem Prüfwert (`sha256(device_id)`) nicht erwähnt | `010_device_link.sql` (FK Cascade), `DashboardRepo.swift` (`auditDays = 365`, `deviceRef`) | Abschnitt 11 de/en |
+| R6 | Art. 13 Abs. 2: Hinweis auf Widerspruchsrecht bei lit. f (Art. 21 Abs. 4 verlangt gesonderten Hinweis), Pflicht/Freiwilligkeit (lit. e), automatisierte Entscheidung (lit. f) fehlten; Aufsichtsbehörde ohne Nennung | DSGVO-Text | Abschnitt 13 de/en, Platzhalter Behörde |
+| R7 | Empfänger/Drittland fehlten als Übersicht (Art. 13 Abs. 1 lit. e/f) | – | Abschnitt 15 de/en |
+| R8 | Teil B Punkt 9 verwies auf Build-33-Manifest (nicht verknüpft) | `Weather/PrivacyInfo.xcprivacy` (Stand `8eb9715`) | Teil B Punkt 9 |
+| R9 | Teil C: „`/impressum` liefert 404“ veraltet | Backend `SitePages.swift` `imprint`, Commit `91bed98` | Teil C Zeile 2 |
+
+**Geprüft, ohne Widerspruch:** DE und EN sind nach den Änderungen inhaltlich gleich (Abschnitt für Abschnitt verglichen; die Redaktionsvermerke „unverändert gegenüber …“ in DE-Abschnitten 7, 10 und 11 fehlen in EN bewusst und sind vor Livegang auch im DE-Text zu entfernen). Tracking-Aussagen („kein Tracking“, Teil B „Tracking: Nein“, Manifest `NSPrivacyTracking=false`, keine Tracking-Domains) widerspruchsfrei. Apple 5.1.1(i) (Datenschutzerklärung in App und Connect, welche Daten, wie erhoben, Verwendung, Dritte, Aufbewahrung/Löschung, Widerruf) inhaltlich abgedeckt; 5.1.1(v) Kontolöschung entfällt (kein Konto); 5.1.2 keine Weitergabe für Werbung/Tracking. Datenschutz-URL und Erreichbarkeit in der App nicht geprüft.
+
+**Hinweise ohne Textänderung:** Die Rasterzelle eines Ortes (~0,7 km) ist Precise; Abschnitt 5 nennt sie korrekt „keine Koordinate“, technisch ist sie aber in eine Koordinate rückrechenbar (das Dashboard tut das). Der Push-Registrierungsaufruf selbst geht über den Proxy und ist damit mit der IP im Proxy-Log verbunden (Pfad enthält die Installationskennung, falls Zoraxy Pfade protokolliert); dann wären Proxy-Logs entgegen Teil B Punkt 10 doch mit der Installationskennung verknüpfbar. Nicht geprüft, Teil G Frage 2.
+
+---
+
+## Teil G: Fragen für die externe Rechtsprüfung
+
+1. **Proxy-Logs 14 Monate (Art. 5 Abs. 1 lit. c/e, Art. 6 Abs. 1 lit. f):** Eine größenbasierte Rotation mit bis zu rund 14 Monaten ist für Betrieb und Missbrauchsabwehr nach unserer Einschätzung schwer als erforderlich zu begründen; üblich sind Tage bis wenige Wochen (oft 7 Tage). Ist der Text bei aktueller Konfiguration überhaupt vertretbar, oder muss die Frist vor Livegang gekürzt werden? Reicht eine IP-Kürzung statt Löschung?
+2. **Proxy-Logs und Pfade:** Falls Zoraxy die Request-URL protokolliert, stehen dort für Push-Aufrufe die Installationskennung und (bei Abo-Aufrufen) Abo-Kennungen neben der IP. Muss Abschnitt 3 das nennen, und ändert das die App-Privacy-Angabe (Teil B Punkt 10)? (Technisch erst in der Zoraxy-Konfiguration zu prüfen.)
+3. **Rechtsgrundlage Push/Live Activity:** Einwilligung (lit. a) oder Vertragserfüllung/Nutzungsverhältnis (lit. b)? Genügt das Einschalten des Schalters als Einwilligungshandlung, und braucht die App vor dem ersten Einschalten einen Hinweistext mit Link?
+4. **§ 25 TDDDG:** Speicherung von Installationskennung/Geheimnis im Schlüsselbund, Abruf des APNs-Tokens, UserDefaults: unbedingt erforderlich (Abs. 2 Nr. 2) oder einwilligungspflichtig? Muss die Erklärung das gesondert nennen?
+5. **Apple APNs:** Rolle von Apple (eigener Verantwortlicher oder Auftragsverarbeiter des Betreibers?), Grundlage der Drittlandübermittlung (z. B. Angemessenheitsbeschluss EU-US Data Privacy Framework, falls Apple zertifiziert ist; nicht geprüft) und ob der Text das konkreter benennen muss.
+6. **Betreiber-Diagnose:** Ist Einwilligung (lit. a) passend, wenn praktisch nur Geräte des Betreibers selbst gekoppelt werden? Ist die Einsicht in die auf etwa 1 km gerundete Position so ausreichend transparent?
+7. **Hetzner:** Genügt der Standard-AVV von Hetzner; muss der Firmensitz/die Anschrift genannt werden; Unterauftragsverarbeiter?
+8. **Impressum (§ 5 DDG) und Verantwortlicher:** Ist bei einer kostenlosen App eines Einzelnen die Impressumspflicht gegeben (geschäftsmäßig)? Reicht die Verlinkung aus der Datenschutzerklärung? Ist eine ladungsfähige Anschrift nötig?
+9. **Datenschutzbeauftragter:** Bestätigen, dass keine Benennungspflicht besteht (Art. 37 DSGVO, § 38 BDSG) und deshalb keine Kontaktangabe nötig ist.
+10. **Direktabrufe (DWD, EUMETSAT, Apple MapKit):** Reicht der Hinweis „eigene Verantwortung“, oder ist der Betreiber für die Auslösung der Abrufe mitverantwortlich (gemeinsame Verantwortung, vgl. Fanpage-/Like-Button-Rechtsprechung)?
+11. **Englische Fassung:** Klausel „the German text is the reference“ (Teil A-EN Vorspann) gewollt und wirksam?
+12. **Rasterzelle als personenbezogenes Datum:** Ist die Formulierung „kann je nach Lage personenbezogen sein“ zu weich (Zelle + Installationskennung + Token sind einem Gerät zugeordnet)?
+
 ## Nicht geprüft
+
+Live-Instanz (`/datenschutz`, `/impressum` auf showers.linolaske.de) nicht abgerufen; tatsächliche Zoraxy-Konfiguration (welche Felder, Pfade, Rotation) und Hetzner-Vertrag/Backups; App-Store-Connect-Formular; aktuelle Apple-Definitionen (Precise/Coarse, linked, Pflichtangabe für Server-Logs) und aktueller Wortlaut der Richtlinien 5.1.1/5.1.2 (nur aus Wissensstand); DPF-Zertifizierung von Apple; rechtliche Würdigung jeder Art; Laufzeitverhalten (keine Builds, keine Tests, keine Netzmitschnitte; Aussagen beruhen auf Code-Lesen); Notification Service Extension und Widgets nur über Host-Suche, nicht vollständig gelesen; Foundation Models nur als Import belegt (Abschnitt 8 on-device nicht im Detail geprüft); Backend-Warnungscode (Migration 016 ff.) nicht geprüft, da nicht im Release-Text.
+
+### Nicht geprüft (erste Runde)
 
 Ob die Live-Seite exakt dem Quellcode entspricht (nur Quellcode gelesen, Seite nicht abgerufen); App Store Connect; aktuelle Apple-Definitionen zu Coarse/Precise Location und „linked to identity“; rechtliche Würdigung; ob Widgets Apple-Karten nutzen (nur Watch belegt); tatsächliche Zoraxy-Konfiguration (Rotation, Dateigröße, Protokollinhalt, Intervall 2 bis 4 Wochen nur Nutzerschätzung; 7 bis 14 Monate ist Rechenwert); Sprachliche Passung und juristische Qualität der englischen Fassung (eigene Übersetzung); Apple-Pflichtangabe für Proxy-IP-Logs.
