@@ -524,3 +524,14 @@ Quellencheckpoint: Commit „chore: Buildnummer 37“ (`f733616`, `CURRENT_PROJE
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 38 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 38“ (`3176433`, `CURRENT_PROJECT_VERSION = 38`; Inhalt gegenüber Build 37: Liquid-Glass-Audit `2717dc1` (Ort-Button, Detailkarte, rechte Glaskreise, Sheet-Zoom, Zeitleisten-Pille, Wald-Schalter-Fix), Quellenzeilen ICON-D2/WorldCover im Info-Sheet `0b79e25`, Header-Fix `9b4c039`: Ortsname behält Vorrang, Ebenen-Menü kürzt sich statt „Be…“). Verfahren wie Build 37 (`git archive`-Kopie `/private/tmp/showers-b38`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) 606 Unit- und 25 UI-Tests ohne Fehler (neue Prüfung der Ortsnamen-Breite im Test `testScaleLegendHumiditySwitchAndForestAttribution`). Lokaler Export und IPA-Prüfung: CFBundleVersion 38 und `PrivacyInfo.xcprivacy` in allen fünf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp` und `scales-v1.json` im App-Bundle.
+
+**Genau ein Upload, 8. November 2026 von 17:06 bis 17:09 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry.
+
+| Zustand Build 38 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
