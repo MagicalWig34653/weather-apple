@@ -307,10 +307,10 @@ struct RadarScreen: View {
                 }
                 if !dynamicTypeSize.isAccessibilitySize {
                     Text(store.activeLayer.title).font(.subheadline.weight(.semibold)).lineLimit(1)
+                        .minimumScaleFactor(0.7).truncationMode(.tail)
                 }
                 Image(systemName: "chevron.down").font(.caption.bold())
             }
-            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 14)
             .frame(minHeight: 44)
             .glassControl(Capsule())
@@ -368,6 +368,7 @@ struct RadarScreen: View {
             }
             .buttonStyle(.plain)
             .matchedTransitionSource(id: Sheet.places.rawValue, in: glassNamespace)
+            .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
             .accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             layerMenu

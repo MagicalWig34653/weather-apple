@@ -381,6 +381,14 @@ final class WeatherSmokeTests: XCTestCase {
             XCTAssertTrue(opened)
             XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (relativ)")).firstMatch.exists)
             dew.tap()
+            // Header: the long layer title must not squeeze the place name (used to shrink to "Be…").
+            let placeButton = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Ort auswählen")).firstMatch
+            XCTAssertTrue(placeButton.waitForExistence(timeout: 5))
+            XCTAssertGreaterThan(placeButton.frame.width, large ? 100 : 150, "Ortsname darf nicht vom Ebenen-Menü verdrängt werden")
+            let header = XCTAttachment(screenshot: app.screenshot())
+            header.name = large ? "header-dew-xxxl" : "header-dew-normal"
+            header.lifetime = .keepAlways
+            add(header)
             app.buttons["radar-legend-toggle"].tap()
             XCTAssertTrue(app.descendants(matching: .any)["radar-legend"].waitForExistence(timeout: 5))
             let early = XCTAttachment(screenshot: app.screenshot())
