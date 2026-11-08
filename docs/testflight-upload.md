@@ -556,3 +556,10 @@ Quellencheckpoint: Commit "chore: Buildnummer 41" (`862130f`, `CURRENT_PROJECT_V
 Lokaler Export und IPA-Pruefung: CFBundleVersion 41 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle.
 
 **Genau ein Upload, 8. November 2026 von 22:17 bis 22:20 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
+
+## Showers Build 42 (0.1.1): Upload (Xcode 27.1)
+
+Quellencheckpoint: Commit `f81530e` "fix: Pull-to-Refresh in Warnungen wertet Abbruch nicht mehr als Fehler; Buildnummer 42" (`CURRENT_PROJECT_VERSION = 42`; Inhalt gegenueber Build 41: Abbruch eines Warnungen-Abrufs ist kein Fehler mehr, Abruf in eigenem Task). Verfahren wie Build 41 (`git archive`-Kopie `/private/tmp/showers-b42`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) 609 Unit-Tests ohne Fehler, UI-Suite ohne Fehler.
+Lokaler Export und IPA-Pruefung: CFBundleVersion 42 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle.
+
+**Genau ein Upload, 8. November 2026 von 23:18 bis 23:20 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
