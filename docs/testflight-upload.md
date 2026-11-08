@@ -542,3 +542,7 @@ Quellencheckpoint: Commit „chore: Buildnummer 39“ (`CURRENT_PROJECT_VERSION 
 Lokaler Export und IPA-Prüfung: CFBundleVersion 39 und `PrivacyInfo.xcprivacy` in allen fünf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle. Archiv aus Commit `55a4495`.
 
 **Genau ein Upload, 8. November 2026 von 17:39 bis 17:42 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprüft.
+
+## Showers Build 40 (0.1.1): Upload (Xcode 27.1)
+
+Quellencheckpoint: Commit "chore: Buildnummer 40" (`CURRENT_PROJECT_VERSION = 40`; Inhalt gegenueber Build 39: einheitlicher Sheet-Zoom Orte/Warnungen/Info, Zeitleisten-Haptik, Farblinie, Zeitanzeige). Verfahren wie Build 39 (`git archive`-Kopie `/private/tmp/showers-b40`). Testergebnis, Exportpruefung und Uploadergebnis folgen unten.

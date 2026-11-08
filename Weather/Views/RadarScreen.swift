@@ -29,7 +29,7 @@ struct RadarScreen: View {
     @State private var screenWidth: CGFloat?
     @Namespace private var glassNamespace
 
-    private enum Sheet: String, Identifiable {
+    fileprivate enum Sheet: String, Identifiable {
         case places, details, information, warnings
         var id: String { rawValue }
     }
@@ -118,9 +118,11 @@ struct RadarScreen: View {
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                GlassEffectContainer(spacing: 8) {
-                    HStack(alignment: .top, spacing: 10) {
-                        Spacer()
+                HStack(alignment: .top, spacing: 10) {
+                    Spacer()
+                    // The container only morphs the legend panel. The round buttons stay OUTSIDE it: inside a
+                    // GlassEffectContainer their glass lives in the shared container layer, which made the zoom source unreliable.
+                    GlassEffectContainer(spacing: 8) {
                         if showLegend {
                             Group {
                                 if store.activeLayer == .radar {
@@ -134,37 +136,38 @@ struct RadarScreen: View {
                             }
                             .glassEffectID("legend-panel", in: glassNamespace)
                         }
-                        VStack(spacing: 10) {
-                            Button { store.requestLocation() } label: {
-                                Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
-                                    .glassControl(Circle())
-                            }.accessibilityLabel("Aktuellen Standort verwenden")
-                            Button { withAnimation(reduceMotion ? nil : .bouncy(duration: 0.4)) { showLegend.toggle() } } label: {
-                                Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
-                                    .glassControl(Circle())
-                            }
-                            .accessibilityLabel("Legende \(store.activeLayer.title)")
-                            .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
-                            .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
-                            .accessibilityIdentifier("radar-legend-toggle")
-                            if canReadValue {
-                                Button { readoutRevision += 1 } label: {
-                                    Image(systemName: "scope").font(.system(size: 20)).frame(width: 46, height: 46)
-                                        .glassControl(Circle())
-                                }
-                                .accessibilityLabel(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))
-                                .accessibilityIdentifier("radar-read-center")
-                            }
-                            if warn.capabilityWarnings { warningsButton }
-                            Button { sheet = .information } label: {
-                                Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
-                                    .glassControl(Circle())
-                            }
-                            .accessibilityLabel("Datenquellen und Datenschutz")
-                        }
-                        .buttonStyle(.plain)
-                        .font(.title3)
                     }
+                    VStack(spacing: 10) {
+                        Button { store.requestLocation() } label: {
+                            Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
+                                .glassControl(Circle())
+                        }.accessibilityLabel("Aktuellen Standort verwenden")
+                        Button { withAnimation(reduceMotion ? nil : .bouncy(duration: 0.4)) { showLegend.toggle() } } label: {
+                            Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
+                                .glassControl(Circle())
+                        }
+                        .accessibilityLabel("Legende \(store.activeLayer.title)")
+                        .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
+                        .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
+                        .accessibilityIdentifier("radar-legend-toggle")
+                        if canReadValue {
+                            Button { readoutRevision += 1 } label: {
+                                Image(systemName: "scope").font(.system(size: 20)).frame(width: 46, height: 46)
+                                    .glassControl(Circle())
+                            }
+                            .accessibilityLabel(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))
+                            .accessibilityIdentifier("radar-read-center")
+                        }
+                        if warn.capabilityWarnings { warningsButton }
+                        Button { sheet = .information } label: {
+                            Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
+                                .glassControl(Circle())
+                        }
+                        .glassSheetSource(.information, in: glassNamespace)
+                        .accessibilityLabel("Datenquellen und Datenschutz")
+                    }
+                    .buttonStyle(.plain)
+                    .font(.title3)
                 }
             }
             .padding(.horizontal, 16)
@@ -183,7 +186,7 @@ struct RadarScreen: View {
             switch item {
             case .places: PlacesSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             case .details: ForecastDetails(store: store)
-            case .information: InformationSheet(store: store)
+            case .information: InformationSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             }
         }
@@ -341,7 +344,7 @@ struct RadarScreen: View {
                     }
                 }
         }
-        .matchedTransitionSource(id: Sheet.warnings.rawValue, in: glassNamespace)
+        .glassSheetSource(.warnings, in: glassNamespace)
         .accessibilityLabel(WarningPresentation.buttonLabel())
         .accessibilityValue(WarningPresentation.buttonValue(summary, stale: stale))
         .accessibilityIdentifier("radar-warnings-button")
@@ -365,8 +368,7 @@ struct RadarScreen: View {
                 .padding(.horizontal, 16).padding(.vertical, 11)
                 .glassControl(Capsule())
             }
-            .buttonStyle(.plain)
-            .matchedTransitionSource(id: Sheet.places.rawValue, in: glassNamespace)
+            .glassSheetSource(.places, in: glassNamespace)
             .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
             .accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
@@ -471,6 +473,11 @@ struct RadarScreen: View {
     /// so measurement/forecast or another day never changes the layout (the slider must not move).
     private var frameLabel: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
+        // The label sits on the side the thumb is NOT on, so the finger never covers it.
+        let labelAtTrailing: Bool = {
+            guard let count = store.displayTimeline?.dates.count, count > 1 else { return false }
+            return Double(displayedIndex) / Double(count - 1) < 0.5
+        }()
         return Button {
             guard let timeline = store.displayTimeline else { return }
             store.isPlaying = false
@@ -480,7 +487,7 @@ struct RadarScreen: View {
                 .lineLimit(1)
                 .hidden()
                 .frame(maxWidth: .infinity, minHeight: 44)
-                .overlay {
+                .overlay(alignment: labelAtTrailing ? .trailing : .leading) {
                     if let date = displayedDate {
                         let time = Text(date, style: .time).font(.title3.weight(.semibold)).monospacedDigit()
                         let day = otherDayLabel(for: date).map { Text($0).font(.subheadline).foregroundStyle(.secondary) }
@@ -488,9 +495,11 @@ struct RadarScreen: View {
                             if let day { Text("\(day) · \(time)") } else { time }
                         }
                         .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.6)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(labelAtTrailing ? .trailing : .leading)
+                        .padding(.horizontal, 8)
                     }
                 }
+                .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: labelAtTrailing)
                 .contentShape(Rectangle())
         }
         .buttonStyle(PressFeedbackButtonStyle(scale: 0.97))
@@ -517,9 +526,21 @@ struct RadarScreen: View {
                 if let state { ScreenGlowPresenter.updateScrub(isForecast: state, reduceMotion: reduceMotion) }
                 else { ScreenGlowPresenter.endScrub() }
             }
-            .sensoryFeedback(.selection, trigger: scrubIndex) { _, new in new != nil }
-            .sensoryFeedback(.impact(weight: .light), trigger: scrubStage) { old, new in old != nil && new != nil }
+            // Build 40: gentle tick per slot (was `.selection`), a distinct firm tap exactly once when the thumb crosses or
+            // lands on "Now" (past <-> future), and the light stage tap softened. Haptics settings stay with the system.
+            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.35), trigger: scrubIndex) { old, new in
+                guard let new, new != old else { return false }
+                let now = timeline.dates.firstIndex(of: timeline.referenceTime)
+                return TimelineNowCrossing.side(index: new, nowIndex: now) == TimelineNowCrossing.side(index: old ?? new, nowIndex: now)
+            }
+            .sensoryFeedback(.impact(flexibility: .rigid, intensity: 1.0), trigger: scrubIndex) { old, new in
+                guard let old, let new, old != new else { return false }
+                let now = timeline.dates.firstIndex(of: timeline.referenceTime)
+                return TimelineNowCrossing.side(index: new, nowIndex: now) != TimelineNowCrossing.side(index: old, nowIndex: now)
+            }
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.5), trigger: scrubStage) { old, new in old != nil && new != nil }
             .overlay(alignment: .bottom) {
+                // Same horizontal extent as the slider track (inset by half the thumb); "Now" marker where the thumb centre is.
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
@@ -531,7 +552,7 @@ struct RadarScreen: View {
                         .offset(x: max(0, geometry.size.width * boundary - 1), y: -1)
                 }
                 .frame(height: 2)
-                .padding(.horizontal, 2)
+                .padding(.horizontal, TimelineScrubSlider.thumbWidth / 2)
                 .accessibilityHidden(true)
                 .allowsHitTesting(false)
             }
@@ -763,6 +784,12 @@ struct SunPlaceSection: View {
 }
 
 extension View {
+    /// Zoom source for a sheet: one uniform shell for places, warnings and info. Always applied as the outermost modifier on the
+    /// `Button` itself, with its own plain style, outside any `GlassEffectContainer`, with a constant id; never in an if/else branch.
+    fileprivate func glassSheetSource(_ sheet: RadarScreen.Sheet, in namespace: Namespace.ID) -> some View {
+        buttonStyle(.plain).matchedTransitionSource(id: sheet.rawValue, in: namespace)
+    }
+
     /// Interactive Liquid Glass for a touchable control (press and bounce feedback); the whole shape is the touch target.
     func glassControl<S: Shape>(_ shape: S) -> some View {
         contentShape(shape).glassEffect(.regular.interactive(), in: shape)
@@ -779,5 +806,14 @@ struct PressFeedbackButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1)
             .opacity(configuration.isPressed ? 0.7 : 1)
             .animation(reduceMotion ? nil : .bouncy(duration: 0.3), value: configuration.isPressed)
+    }
+}
+
+/// Which side of "Now" a slot is on ("Now" itself counts as future, so crossing fires exactly once); a change between two sides marks the firm haptic tap.
+enum TimelineNowCrossing: Equatable {
+    case past, future
+    static func side(index: Int, nowIndex: Int?) -> TimelineNowCrossing {
+        guard let nowIndex else { return .past }
+        return index < nowIndex ? .past : .future
     }
 }
