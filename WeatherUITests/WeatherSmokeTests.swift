@@ -469,7 +469,7 @@ final class WarningsUITests: XCTestCase {
     private func launch(mode: String?, xxxl: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         var args = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
-        if let mode { args += ["-UITestWarnings", mode] }
+        if let mode { args += ["-UITestWarnings", mode] } else { args += ["-UITestWarnCapabilities", "none"] }
         if xxxl { args += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
         app.launchArguments = args
         app.launch()
@@ -487,7 +487,6 @@ final class WarningsUITests: XCTestCase {
 
     func testNoEntryWithoutCapability() throws {
         let app = launch(mode: nil)
-        app.launchArguments += []
         XCTAssertTrue(app.buttons["Datenquellen und Datenschutz"].waitForExistence(timeout: 15))
         sleep(2)
         XCTAssertFalse(app.buttons["radar-warnings-button"].exists)

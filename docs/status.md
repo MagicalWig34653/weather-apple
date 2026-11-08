@@ -334,3 +334,8 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 - Jetzt-Button und Scrub-Bubble entfernt; die feste Zeit-Zeile (`.title3`) bleibt immer sichtbar und ist zugleich Button "Zur aktuellen Zeit springen" (Tippen springt auf Jetzt, VoiceOver-Hint). Zeit erscheint pro Zustand genau einmal; Layout stabil. `ScrubBubble`-Code samt Platzierungstests bleibt ungenutzt im Repo.
 - Glow: Vergangenheit sehr dezent (Intensität 0,22 bis 0,34, Breite ca. 0,5, langsam); Zukunft unverändert stark, 6 Töne inkl. Gold, schnellere gegenläufige Ringe, Intensität 0,45 bis 1, Breite 0,8 bis 1,3. Winkel ohne 360-Sprung.
 - Geprüft: Volllauf `Weather` (B15 iPhone 18 Pro, ohne Signing) 452 Unit + 13 UI grün; Screenshots normal und XXXL der Ruhe-Ansicht (Zeit prominent, keine Überlappung). Glow-Optik während der Geste nicht gesehen. Nicht hochgeladen.
+
+## UI-Test ohne Live-Server (8.11.2026)
+
+- Ursache: `WarningsUITests.testNoEntryWithoutCapability` startete ohne Stub und las die echte Capability `warnings` vom Live-Server (Warnknopf erschien). Fix nur im Test: Start mit `-UITestWarnCapabilities none` (überschreibt in `WarnManager.live` per DEBUG-Stub die Server-Antwort). Produktcode unverändert.
+- Geprüft: Volllauf `Weather` (B15 iPhone 18 Pro, ohne Signing) 582 Unit + 23 UI grün. Übrige UI-Tests ohne Warn-Stub laufen gegen Live-Radar/Status, bestanden aber; Warnknopf-unabhängig.
