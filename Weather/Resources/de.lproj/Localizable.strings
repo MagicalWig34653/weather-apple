@@ -85,10 +85,13 @@
 "WARN_FAILED_NONE" = "Warnungen sind derzeit nicht abrufbar. Es wird nichts als „keine Warnung“ angezeigt.";
 "WARN_RETRY" = "Erneut versuchen";
 "WARN_LOADING" = "Warnungen werden geladen …";
-"WARN_EMPTY_MINE" = "Keine aktiven Warnungen für deine Orte. Gezeigt werden amtliche Unwetter-, Frost- und Glättewarnungen.";
-"WARN_EMPTY_ALL" = "Derzeit keine aktiven Warnungen. Gezeigt werden amtliche Unwetter-, Frost- und Glättewarnungen.";
+"WARN_EMPTY_MINE" = "Keine aktiven Warnungen für deine Orte.";
+"WARN_EMPTY_ALL" = "Derzeit keine aktiven Warnungen.";
 "WARN_NO_PLACES" = "Du hast noch keine Orte gespeichert. Unter „Alle“ siehst du die Warnungen in ganz Deutschland.";
 "WARN_NO_CELLS" = "Für deine Orte konnte kein Warngebiet bestimmt werden. Unter „Alle“ siehst du die Warnungen in ganz Deutschland.";
+"WARN_EMPTY_TYPES" = "Gezeigt werden Unwetter-, Frost- und Glättewarnungen.";
+"WARN_LEVEL_SHORT" = "Stufe %d";
+"WARN_MODE_HINT" = "Wechselt zwischen Liste und Karte";
 "WARN_AFFECTS" = "Betrifft: %@";
 "WARN_LANG_ONLY_DE" = "Amtlicher Text nur auf Deutsch verfügbar.";
 "WARN_LANG_ONLY_EN" = "Amtlicher Text nur auf Englisch verfügbar.";

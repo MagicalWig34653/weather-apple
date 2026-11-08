@@ -31,6 +31,44 @@ enum WarningPresentation {
         }
     }
 
+    /// Type symbol of the card (the type is also named in the VoiceOver label).
+    static func kindSymbol(_ kind: WarnKind) -> String {
+        switch kind {
+        case .severeWeather: "cloud.bolt.rain.fill"
+        case .frost: "thermometer.snowflake"
+        case .ice: "snowflake"
+        }
+    }
+
+    // MARK: Grouping
+
+    /// A section of the list: one saved place ("my places") or the whole list without a title ("all").
+    struct Group: Identifiable, Equatable {
+        let title: String?
+        let warnings: [ActiveWarning]
+        var id: String { title ?? "-" }
+    }
+
+    /// "My places": one group per saved place (a warning appears under every place it affects), groups by highest level, then name.
+    /// Warnings without a matching place name go to a trailing untitled group. "All": one untitled group in the given order.
+    static func groups(_ warnings: [ActiveWarning], scope: WarnScope, placeNames: (ActiveWarning) -> [String]) -> [Group] {
+        guard !warnings.isEmpty else { return [] }
+        guard scope == .mine else { return [Group(title: nil, warnings: warnings)] }
+        var byPlace: [String: [ActiveWarning]] = [:]
+        var unnamed: [ActiveWarning] = []
+        for warning in warnings {
+            let names = Set(placeNames(warning))
+            if names.isEmpty { unnamed.append(warning) }
+            for name in names { byPlace[name, default: []].append(warning) }
+        }
+        var result = byPlace.map { Group(title: $0.key, warnings: $0.value) }.sorted {
+            let (a, b) = ($0.warnings.map(\.severity).max() ?? 0, $1.warnings.map(\.severity).max() ?? 0)
+            return a != b ? a > b : $0.title!.localizedStandardCompare($1.title!) == .orderedAscending
+        }
+        if !unnamed.isEmpty { result.append(Group(title: nil, warnings: unnamed)) }
+        return result
+    }
+
     // MARK: Times
 
     private static func calendar(_ timeZone: TimeZone) -> Calendar {
@@ -135,6 +173,25 @@ enum WarningPresentation {
         case .empty: text(scope == .mine ? "WARN_EMPTY_MINE" : "WARN_EMPTY_ALL", bundle)
         case .list: nil
         }
+    }
+
+    /// Calm symbol of the centered state (never a "shield" for missing data).
+    static func contentSymbol(_ content: Content) -> String {
+        switch content {
+        case .loading: "clock"
+        case .unavailable: "wifi.exclamationmark"
+        case .noPlaces, .noCells: "mappin.slash"
+        case .empty, .list: "checkmark.circle"
+        }
+    }
+
+    /// Short second line, only where the feed itself is healthy and empty.
+    static func contentDetail(_ content: Content, bundle: Bundle = .main) -> String? {
+        content == .empty ? text("WARN_EMPTY_TYPES", bundle) : nil
+    }
+
+    static func levelShort(_ level: Int, bundle: Bundle = .main) -> String {
+        String(format: text("WARN_LEVEL_SHORT", bundle), min(max(level, 1), 4))
     }
 
     static func failedNotice(bundle: Bundle = .main) -> String { text("WARN_FAILED_CACHED", bundle) }

@@ -124,4 +124,32 @@ final class WarningPresentationTests: XCTestCase {
         XCTAssertEqual(shapes.count, 2)   // outer (with one hole) and the island inside the hole
         XCTAssertEqual(shapes.map { $0.holes.count }.sorted(), [0, 1])
     }
+
+    func testGroupsByPlaceOrderedByLevelAndWarningUnderEveryPlace() {
+        func make(_ id: String, _ severity: Int) -> ActiveWarning {
+            let w = sample(severity: severity)
+            return ActiveWarning(id: id, kind: w.kind, severity: severity, event: w.event, sent: w.sent, onset: w.onset, expires: w.expires,
+                                 headline: w.headline, text: w.text, instruction: w.instruction, lang: w.lang, warncellIDs: w.warncellIDs)
+        }
+        let names: [String: [String]] = ["a": ["Berlin", "Anger"], "b": ["Berlin"], "c": []]
+        let groups = P.groups([make("b", 3), make("c", 2), make("a", 1)], scope: .mine) { names[$0.id] ?? [] }
+        XCTAssertEqual(groups.map(\.title), ["Berlin", "Anger", nil])
+        XCTAssertEqual(groups[0].warnings.map(\.id), ["b", "a"])
+        XCTAssertEqual(groups[1].warnings.map(\.id), ["a"])
+        XCTAssertEqual(groups[2].warnings.map(\.id), ["c"])
+    }
+
+    func testGroupsAllIsOneUntitledGroupAndEmptyIsNoGroup() {
+        XCTAssertEqual(P.groups([sample()], scope: .all) { _ in ["Berlin"] }.map(\.title), [nil])
+        XCTAssertTrue(P.groups([], scope: .mine) { _ in [] }.isEmpty)
+    }
+
+    func testEmptyStateStaysHonestAndShort() throws {
+        let de = try bundle("de")
+        XCTAssertEqual(P.contentText(.empty, scope: .mine, bundle: de), "Keine aktiven Warnungen für deine Orte.")
+        XCTAssertNotNil(P.contentDetail(.empty, bundle: de))
+        XCTAssertNil(P.contentDetail(.unavailable, bundle: de))
+        XCTAssertTrue(P.contentText(.unavailable, scope: .all, bundle: de)!.contains("nicht abrufbar"))
+        XCTAssertEqual(P.levelShort(3, bundle: de), "Stufe 3")
+    }
 }

@@ -85,10 +85,13 @@
 "WARN_FAILED_NONE" = "Warnings are currently unavailable. Nothing is shown as \"no warning\".";
 "WARN_RETRY" = "Try again";
 "WARN_LOADING" = "Loading warnings …";
-"WARN_EMPTY_MINE" = "No active warnings for your places. Official severe weather, frost and ice warnings are shown.";
-"WARN_EMPTY_ALL" = "No active warnings at the moment. Official severe weather, frost and ice warnings are shown.";
+"WARN_EMPTY_MINE" = "No active warnings for your places.";
+"WARN_EMPTY_ALL" = "No active warnings at the moment.";
 "WARN_NO_PLACES" = "You have not saved any places yet. \"All\" shows the warnings for all of Germany.";
 "WARN_NO_CELLS" = "No warning area could be determined for your places. \"All\" shows the warnings for all of Germany.";
+"WARN_EMPTY_TYPES" = "Severe weather, frost and ice warnings are shown.";
+"WARN_LEVEL_SHORT" = "Level %d";
+"WARN_MODE_HINT" = "Switches between list and map";
 "WARN_AFFECTS" = "Affects: %@";
 "WARN_LANG_ONLY_DE" = "Official text only available in German.";
 "WARN_LANG_ONLY_EN" = "Official text only available in English.";

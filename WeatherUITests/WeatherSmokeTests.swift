@@ -555,6 +555,9 @@ final class WarningsUITests: XCTestCase {
         XCTAssertTrue(row.label.contains("Quelle: Deutscher Wetterdienst"))
         XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "warning-row").count, 2)
         XCTAssertTrue(app.staticTexts["Kein Ersatz für amtliche Warnkanäle (WarnWetter-App, NINA)."].exists)
+        // Grouped by place: header "Berlin", one calm stand line, disclaimer as footer text.
+        XCTAssertTrue(app.staticTexts["Berlin"].exists)
+        XCTAssertTrue(app.staticTexts["warn-stand"].label.hasPrefix("Stand der Daten:"))
         app.screenshot().writeForW5("liste")
         // Scope "Alle" adds the level 4 warning of another district.
         app.buttons["Alle"].tap()
@@ -576,27 +579,47 @@ final class WarningsUITests: XCTestCase {
         XCTAssertTrue(text.label.contains("nicht abrufbar"))
         XCTAssertFalse(text.label.hasPrefix("Keine aktiven"))
         XCTAssertTrue(app.buttons["Erneut versuchen"].exists)
+        app.screenshot().writeForW5("offline")
     }
 
     func testStaleDataShowsNotice() throws {
         let app = launch(mode: "stale")
         openSheet(app)
         XCTAssertTrue(app.staticTexts["warn-stale"].waitForExistence(timeout: 5))
+        app.screenshot().writeForW5("stale")
     }
 
     func testEmptyState() throws {
         let app = launch(mode: "empty")
         openSheet(app)
         XCTAssertTrue(app.staticTexts["warn-empty"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["warn-empty"].label.localizedCaseInsensitiveContains("keine aktiven Warnungen"))
+        XCTAssertTrue(app.staticTexts["warn-disclaimer"].exists)
+        app.screenshot().writeForW5("leer")
     }
 
     func testMapModeShowsMap() throws {
         let app = launch(mode: "fixture")
         openSheet(app)
-        app.buttons["Karte"].tap()
+        XCTAssertFalse(app.segmentedControls["warn-mode"].exists, "list/map is a toolbar symbol, not a second segmented control")
+        XCTAssertEqual(app.segmentedControls.count, 1)
+        XCTAssertEqual(app.buttons["warn-mode"].label, "Karte")
+        app.buttons["warn-mode"].tap()
+        XCTAssertEqual(app.buttons["warn-mode"].label, "Liste")
         XCTAssertTrue(app.maps["warn-map"].waitForExistence(timeout: 5) || app.otherElements["warn-map"].waitForExistence(timeout: 5))
         sleep(2)
         app.screenshot().writeForW5("karte")
+    }
+
+    func testStatesXXXLScreenshots() throws {
+        for mode in ["empty", "stale", "offline"] {
+            let app = launch(mode: mode, xxxl: true)
+            openSheet(app)
+            XCTAssertTrue(app.buttons["Fertig"].isHittable)
+            sleep(1)
+            app.screenshot().writeForW5("\(mode)-xxxl")
+            app.terminate()
+        }
     }
 
     func testAccessibilityXXXL() throws {
