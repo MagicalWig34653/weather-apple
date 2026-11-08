@@ -335,4 +335,4 @@ Das Info-Sheet nennt DWD ICON-D2/ICON-EU und, bei vorhandener Waldebene, ESA Wor
 
 - 8.11.2026: Beruehrbare Hauptansicht-Elemente nutzen `glassControl` (Liquid Glass interactive); Sheets oeffnen per Zoom aus dem Knopf; Zeitleisten-Daumen ist eine Glas-Pille. Keine Material-Hintergruende mehr fuer schwebende Pillen.
 
-- 8.11.2026: Nutzerfeedback zu Build 38 (Menues erscheinen "aus dem Nichts"): Sheet-Zoom (`matchedTransitionSource`/`navigationTransition(.zoom)`) entfernt; Orte, Details, Info und Warnungen oeffnen wieder als normales Sheet von unten. Uebrige Glas-Aenderungen bleiben.
+- 8.11.2026: Nutzerfeedback zu Build 38 (Menues erscheinen "aus dem Nichts"): Zoom-Uebergang bleibt fuer **Warnungen und Meine Orte** (Nutzer: funktioniert sehr gut, unveraendert). **Info und Prognosedetails** oeffnen wieder als normales Sheet von unten (Option b): Ursache des fehlenden Zoom-Ursprungs nicht belegbar (gleiches Muster wie Warnungen), Animation im Simulator nicht beurteilbar; zudem ignoriert Zoom die Details-Detents `.medium/.large`. Uebrige Glas-Aenderungen bleiben.
