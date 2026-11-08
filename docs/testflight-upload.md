@@ -549,3 +549,10 @@ Quellencheckpoint: Commit "chore: Buildnummer 40" (`CURRENT_PROJECT_VERSION = 40
 Lokaler Export und IPA-Pruefung: CFBundleVersion 40 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle.
 
 **Genau ein Upload, 8. November 2026 von 21:07 bis 21:09 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
+
+## Showers Build 41 (0.1.1): Upload (Xcode 27.1)
+
+Quellencheckpoint: Commit "chore: Buildnummer 41" (`862130f`, `CURRENT_PROJECT_VERSION = 41`; Inhalt gegenueber Build 40: Zeit als ruhige Glas-Pille ueber Quellzeile (Tippen Play/Pause, Long-Press Jetzt), Play-Knopf entfernt, kompaktere Zeitleistenkarte, Farblinie 4 pt unter der Spur). Verfahren wie Build 40 (`git archive`-Kopie `/private/tmp/showers-b41`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) Volllauf 634 von 635 gruen; einziger Fehler `testTimelineLayoutStaysStableBetweenMeasurementAndForecast` (Pillenhoehe bei XXXL mit Tagesangabe), danach Pille mit festem Platzhalter stabilisiert und die sechs Zeitleisten-UI-Tests zweimal in Folge gruen.
+Lokaler Export und IPA-Pruefung: CFBundleVersion 41 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle.
+
+**Genau ein Upload, 8. November 2026 von 22:17 bis 22:20 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
