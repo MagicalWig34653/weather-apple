@@ -513,3 +513,14 @@ Quellencheckpoint: Commit „chore: Buildnummer 36“ (`c6f2ba8`, `CURRENT_PROJE
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 37 (0.1.1): Upload angenommen (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 37“ (`f733616`, `CURRENT_PROJECT_VERSION = 37`; Inhalt gegenüber Build 36: Warnungen-Seite neu gestaltet, Temperatur-/Feuchtekarte App-Teil P2/P5 mit Skalen-Legende, Wertabfrage und Waldebene, UI-Test-Fix). Verfahren wie Build 36 (`git archive`-Kopie `/private/tmp/showers-b37`, Xcode 27.1 per `DEVELOPER_DIR`, PATH-Workaround, Automatic Signing, Team `J2DU2P47XW`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) 606 Unit- und 25 UI-Tests; ein UI-Fehler (`testRadarControlsOpenDetailsAndReturnToCurrentFrame`, Live-Radardienst, flaky), Einzelwiederholung grün. Lokaler Export und IPA-Prüfung: CFBundleVersion 37 und `PrivacyInfo.xcprivacy` in allen fünf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` in der App geprüft, `WarnGeometry.bin`, `forest-de-v1.webp` und `scales-v1.json` im App-Bundle (Bundle-Wurzel).
+
+**Genau ein Upload, 8. November 2026 gegen 12:05 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`. Kein Retry.
+
+| Zustand Build 37 | Beleg |
+|---|---|
+| Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
+| Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
