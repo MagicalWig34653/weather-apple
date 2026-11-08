@@ -545,4 +545,7 @@ Lokaler Export und IPA-Prüfung: CFBundleVersion 39 und `PrivacyInfo.xcprivacy` 
 
 ## Showers Build 40 (0.1.1): Upload (Xcode 27.1)
 
-Quellencheckpoint: Commit "chore: Buildnummer 40" (`CURRENT_PROJECT_VERSION = 40`; Inhalt gegenueber Build 39: einheitlicher Sheet-Zoom Orte/Warnungen/Info, Zeitleisten-Haptik, Farblinie, Zeitanzeige). Verfahren wie Build 39 (`git archive`-Kopie `/private/tmp/showers-b40`). Testergebnis, Exportpruefung und Uploadergebnis folgen unten.
+Quellencheckpoint: Commit "chore: Buildnummer 40" (`CURRENT_PROJECT_VERSION = 40`; Inhalt gegenueber Build 39: einheitlicher Sheet-Zoom Orte/Warnungen/Info, Zeitleisten-Haptik, Farblinie, Zeitanzeige). Verfahren wie Build 39 (`git archive`-Kopie `/private/tmp/showers-b40`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) 606 Unit-Tests ohne Fehler, 25 UI-Tests; im Volllauf je einmal flaky `testTimelineLayoutStaysStableBetweenMeasurementAndForecast` (Lauf 1) bzw. `testTimeShownOnceAndNoBubbleOrNowButton` (Lauf 2), beide einzeln gruen (Live-Radardaten/Timing).
+Lokaler Export und IPA-Pruefung: CFBundleVersion 40 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle.
+
+**Genau ein Upload, 8. November 2026 von 21:07 bis 21:09 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
