@@ -160,7 +160,6 @@ struct RadarScreen: View {
                                 Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
                                     .glassControl(Circle())
                             }
-                            .matchedTransitionSource(id: Sheet.information.rawValue, in: glassNamespace)
                             .accessibilityLabel("Datenquellen und Datenschutz")
                         }
                         .buttonStyle(.plain)
@@ -182,10 +181,10 @@ struct RadarScreen: View {
 
         .sheet(item: $sheet) { item in
             switch item {
-            case .places: PlacesSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
-            case .details: ForecastDetails(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
-            case .information: InformationSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
-            case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
+            case .places: PlacesSheet(store: store)
+            case .details: ForecastDetails(store: store)
+            case .information: InformationSheet(store: store)
+            case .warnings: WarningsListView(feed: warnFeed)
             }
         }
         .alert("Ort speichern", isPresented: $showSave) {
@@ -342,7 +341,6 @@ struct RadarScreen: View {
                     }
                 }
         }
-        .matchedTransitionSource(id: Sheet.warnings.rawValue, in: glassNamespace)
         .accessibilityLabel(WarningPresentation.buttonLabel())
         .accessibilityValue(WarningPresentation.buttonValue(summary, stale: stale))
         .accessibilityIdentifier("radar-warnings-button")
@@ -367,7 +365,6 @@ struct RadarScreen: View {
                 .glassControl(Capsule())
             }
             .buttonStyle(.plain)
-            .matchedTransitionSource(id: Sheet.places.rawValue, in: glassNamespace)
             .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
             .accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
@@ -578,7 +575,6 @@ struct RadarScreen: View {
                     .glassControl(RoundedRectangle(cornerRadius: 24))
                 }
                 .buttonStyle(.plain)
-                .matchedTransitionSource(id: Sheet.details.rawValue, in: glassNamespace)
                 .accessibilityIdentifier("forecast-details")
                 .accessibilityHint("Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise")
                 Button {

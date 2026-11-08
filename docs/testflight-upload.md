@@ -535,3 +535,7 @@ Quellencheckpoint: Commit „chore: Buildnummer 38“ (`3176433`, `CURRENT_PROJE
 |---|---|
 | Uploadannahme | Erfolgreich, Exit 0 (erster Versuch) |
 | Verarbeitung / Installierbarkeit / Zuordnung | Nicht geprüft |
+
+## Showers Build 39 (0.1.1): Upload (Xcode 27.1)
+
+Quellencheckpoint: Commit „chore: Buildnummer 39“ (`CURRENT_PROJECT_VERSION = 39`; Inhalt gegenüber Build 38: Sheet-Zoom-Übergang entfernt, Sheets Orte/Details/Info/Warnungen öffnen wieder von unten). Verfahren wie Build 38 (`git archive`-Kopie `/private/tmp/showers-b39`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) 606 Unit- und 25 UI-Tests ohne Fehler.
