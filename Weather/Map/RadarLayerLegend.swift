@@ -15,6 +15,33 @@ enum RadarLayerLegendText {
             "Satellitenbild von Meteosat: Wolken erscheinen weiß bis grau. Es gibt keine Farbskala, und das Bild zeigt Bewölkung, keinen Niederschlag."
         case .cloudmask, .cloudmaskVis:
             "Rückblick, keine Vorhersage: Wolkenmaske von Meteosat (Satellit, 25 bis 40 Minuten alt) kombiniert mit dem berechneten Sonnenstand. Die Maske kennt nur klar oder bewölkt, keine Wolkendicke: dünne Wolken zählen als bewölkt. Tagsüber verfeinert, wenn der Server ihn liefert, der sichtbare Kanal die Bewölkung weich; bei tiefem Sonnenstand und nachts gilt nur die Maske. Kein Schattenwurf, Nebel kann als klar erscheinen."
+        case .temperature:
+            NSLocalizedString("LAYER_TEMPERATURE_HINT", value: "Lufttemperatur 2 m über Grund in Grad Celsius, stündlich bis 48 Stunden voraus. Modellprognose des DWD, kein Messwert: im Gelände, in Tälern und Städten kann es deutlich abweichen.", comment: "Legend hint")
+        case .dewpoint:
+            NSLocalizedString("LAYER_DEWPOINT_HINT", value: "Taupunkt 2 m über Grund in Grad Celsius, stündlich bis 48 Stunden voraus. Je höher der Taupunkt, desto mehr Wasserdampf enthält die Luft. Modellprognose des DWD, kein Messwert.", comment: "Legend hint")
+        case .humidity:
+            NSLocalizedString("LAYER_HUMIDITY_HINT", value: "Relative Feuchte 2 m über Grund in Prozent, stündlich bis 48 Stunden voraus. Sie schwankt stark mit der Tageszeit. Modellprognose des DWD, kein Messwert.", comment: "Legend hint")
+        }
+    }
+
+    /// Extra note when the manifest names a source or scale this app version cannot show as a legend.
+    /// Fail closed: the overlay stays, but no raster is guessed.
+    static func sourceNote(for layer: RadarLayer, manifest: RadarLayerManifest?) -> String? {
+        guard layer.isAirField, let manifest else { return nil }
+        switch (manifest.source, manifest.scale) {
+        case ("wms", nil), (nil, nil): return nil
+        default:
+            // A scale (or source) without a native table yet: only the notes, no legend raster.
+            return NSLocalizedString("LAYER_SCALE_UNKNOWN", value: "Die Farbskala dieser Datenquelle ist in dieser App-Version noch nicht hinterlegt. Deshalb gibt es hier keine Legende, nur diesen Hinweis. Die Karte zeigt Modellwerte.", comment: "Legend note")
+        }
+    }
+
+    /// Legend image loaded from the manifest: lightning, and WMS temperature (the DWD colours the image).
+    static func usesLegendImage(for layer: RadarLayer, manifest: RadarLayerManifest?) -> Bool {
+        switch layer {
+        case .lightning: true
+        case .temperature: manifest?.source == "wms" && manifest?.scale == nil
+        default: false
         }
     }
 
@@ -26,6 +53,9 @@ enum RadarLayerLegendText {
         case .lightning: "Blitzdichte"
         case .clouds: "Wolken"
         case .cloudmask, .cloudmaskVis: "Sonne"
+        case .temperature: NSLocalizedString("LAYER_TEMPERATURE_LEGEND_TITLE", value: "Temperatur 2 m (Modell)", comment: "Legend title")
+        case .dewpoint: NSLocalizedString("LAYER_DEWPOINT_LEGEND_TITLE", value: "Taupunkt 2 m (Modell)", comment: "Legend title")
+        case .humidity: NSLocalizedString("LAYER_HUMIDITY_LEGEND_TITLE", value: "Relative Feuchte 2 m (Modell)", comment: "Legend title")
         }
     }
 
@@ -37,6 +67,8 @@ enum RadarLayerLegendText {
         case .lightning: "Zeigt oder verbirgt die Legende der Blitzdichte"
         case .clouds: "Zeigt oder verbirgt den Hinweis zum Satellitenbild"
         case .cloudmask, .cloudmaskVis: "Zeigt oder verbirgt die Legende der Sonnenebene"
+        case .temperature, .dewpoint, .humidity:
+            NSLocalizedString("LAYER_FIELD_TOGGLE_HINT", value: "Zeigt oder verbirgt die Legende und den Hinweis zum Modellwert", comment: "Legend toggle hint")
         }
     }
 }
@@ -102,16 +134,19 @@ struct RadarLayerLegendPanel: View {
     let layer: RadarLayer
     let manifest: RadarLayerManifest?
     @State private var image: CGImage?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    var body: some View {
+    /// Panel content. At the largest Dynamic Type sizes the long notes would make the glass panel taller than the
+    /// GPU's texture limit (the app crashed in MapKit's renderer), so there it scrolls within a bounded height.
+    @ViewBuilder private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(RadarLayerLegendText.title(for: layer)).font(.caption.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
             VStack(alignment: .leading, spacing: 6) {
-                    if layer == .lightning, let image {
+                    if RadarLayerLegendText.usesLegendImage(for: layer, manifest: manifest), let image {
                         Image(decorative: image, scale: 1)
                             .resizable().scaledToFit()
-                            .frame(maxWidth: 150, maxHeight: 220)
+                            .frame(maxWidth: 150, maxHeight: layer == .lightning ? 220 : 300)
                             .padding(4)
                             .background(.white, in: RoundedRectangle(cornerRadius: 6))
                             .accessibilityHidden(true)
@@ -131,21 +166,34 @@ struct RadarLayerLegendPanel: View {
                         }
                     }
                     Text(RadarLayerLegendText.hint(for: layer)).font(.caption2)
+                    if let note = RadarLayerLegendText.sourceNote(for: layer, manifest: manifest) {
+                        Text(note).font(.caption2)
+                    }
                     if let manifest {
                         Text("\(manifest.attribution). \(manifest.modificationNotice).")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
             }
         }
+    }
+
+    var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView { content }.frame(maxHeight: 360)
+            } else {
+                content
+            }
+        }
         .padding(10)
-        .frame(width: layer == .cloudmask ? 220 : 190, alignment: .leading)
+        .frame(width: dynamicTypeSize.isAccessibilitySize ? 260 : (layer == .cloudmask ? 220 : 190), alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Legende \(layer.title)")
         .accessibilityIdentifier("radar-legend")
         .task(id: manifest?.legend?.url) {
-            guard layer == .lightning, let reference = manifest?.legend else { image = nil; return }
+            guard RadarLayerLegendText.usesLegendImage(for: layer, manifest: manifest), let reference = manifest?.legend else { image = nil; return }
             image = await RadarLegendImageLoader.load(reference)
         }
     }

@@ -165,7 +165,7 @@ struct InformationSheet: View {
         if store.layers.snapshot(.clouds).manifest != nil {
             Link("EUMETSAT · EUMETView", destination: URL(string: "https://view.eumetsat.int")!)
         }
-        Text("Zusatzebenen (Luftdruck, Blitze, Wolken) liefert der Showers-Server nur, wenn sie dort aktiviert sind; sonst sind sie ausgegraut. Einen Ersatzweg direkt beim DWD gibt es für sie nicht.")
+        Text("Zusatzebenen (Luftdruck, Blitze, Wolken, Temperatur, Feuchte) liefert der Showers-Server nur, wenn sie dort aktiviert sind; sonst sind sie ausgegraut. Einen Ersatzweg direkt beim DWD gibt es für sie nicht.")
             .font(.footnote).foregroundStyle(.secondary)
     }
 

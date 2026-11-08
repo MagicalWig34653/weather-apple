@@ -272,7 +272,7 @@ struct RadarScreen: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Kartenebene wählen")
         .accessibilityValue(store.activeLayer.spokenName)
-        .accessibilityHint("Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken oder Sonne. Enthält auch Daten neu laden.")
+        .accessibilityHint("Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.")
         .accessibilityIdentifier("radar-layer-menu")
     }
 

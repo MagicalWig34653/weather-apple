@@ -311,6 +311,56 @@ final class WeatherSmokeTests: XCTestCase {
         createdNames.removeAll()
     }
 
+    /// Temperature and dew point appear only with a manifest (Debug stub `-UITestLayers d2`), the timeline stays usable,
+    /// the legend names the model value; relative humidity (not offered by the stub server) stays hidden.
+    func testTemperatureLayersAppearWithManifestAndKeepTimelineUsable() throws {
+        for large in [false, true] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestLayers", "d2"]
+                + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+            app.launch()
+            let menu = app.buttons["radar-layer-menu"]
+            XCTAssertTrue(menu.waitForExistence(timeout: 15))
+            func layerButton(_ prefix: String) -> XCUIElement {
+                app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
+            }
+            let temperature = layerButton("Temperatur")
+            var opened = false
+            for _ in 0..<6 where !opened {
+                menu.tap()
+                opened = temperature.waitForExistence(timeout: 3)
+                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
+            }
+            XCTAssertTrue(opened, "Temperatur erscheint, sobald der Server sie meldet (large=\(large)).")
+            XCTAssertTrue(layerButton("Feuchte (Taupunkt)").exists)
+            XCTAssertFalse(layerButton("Feuchte (relativ)").exists, "Relative Feuchte wird nicht angeboten (Server-Flag aus).")
+            temperature.tap()
+            let slider = app.sliders["Zeitpunkt Temperatur"]
+            XCTAssertTrue(slider.waitForExistence(timeout: 10))
+            XCTAssertTrue((slider.value as? String ?? "").contains("Modell"), slider.value as? String ?? "")
+            if !large {
+                dragSlider(slider, to: 0.9)
+                let forecast = NSPredicate(format: "value CONTAINS %@", "Modellvorhersage")
+                XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: forecast, evaluatedWith: slider)], timeout: 5), .completed,
+                               slider.value as? String ?? "")
+            }
+            // XXXL: the stub serves no images, so the (honest) missing-image banners crowd the layout and push the
+            // slider partly off screen; the timeline itself is covered by the radar XXXL tests. Here only existence and value.
+            let legendToggle = app.buttons["radar-legend-toggle"]
+            XCTAssertTrue(legendToggle.isHittable)
+            legendToggle.tap()
+            let legend = app.descendants(matching: .any)["radar-legend"]
+            let found = legend.waitForExistence(timeout: 5)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = large ? "temperature-legend-xxxl" : "temperature-legend-normal"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            XCTAssertTrue(found)
+            XCTAssertTrue(app.staticTexts["Temperatur 2 m (Modell)"].exists)
+            XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "kein Messwert")).firstMatch.exists)
+        }
+    }
+
     private func launchApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]

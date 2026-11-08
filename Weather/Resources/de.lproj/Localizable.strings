@@ -106,3 +106,21 @@
 "WARN_PUSH_TITLE_FROST" = "Frosthinweis, Stufe %d";
 "WARN_PUSH_TITLE_ICE" = "Glättehinweis, Stufe %d";
 "WARN_PUSH_BODY" = "Tippen für Details.";
+
+/* Temperatur-/Feuchteebenen (Modellwerte) */
+"LAYER_TEMPERATURE_TITLE" = "Temperatur";
+"LAYER_DEWPOINT_TITLE" = "Feuchte (Taupunkt)";
+"LAYER_HUMIDITY_TITLE" = "Feuchte (relativ)";
+"LAYER_TEMPERATURE_SPOKEN" = "Temperatur 2 Meter über Grund, Modellwert";
+"LAYER_DEWPOINT_SPOKEN" = "Feuchte als Taupunkt 2 Meter über Grund, Modellwert";
+"LAYER_HUMIDITY_SPOKEN" = "Relative Feuchte 2 Meter über Grund, Modellwert";
+"LAYER_CAPTION_MODEL" = "Modell";
+"LAYER_CAPTION_MODEL_FORECAST" = "Modellvorhersage";
+"LAYER_TEMPERATURE_LEGEND_TITLE" = "Temperatur 2 m (Modell)";
+"LAYER_DEWPOINT_LEGEND_TITLE" = "Taupunkt 2 m (Modell)";
+"LAYER_HUMIDITY_LEGEND_TITLE" = "Relative Feuchte 2 m (Modell)";
+"LAYER_TEMPERATURE_HINT" = "Lufttemperatur 2 m über Grund in Grad Celsius, stündlich bis 48 Stunden voraus. Modellprognose des DWD, kein Messwert: im Gelände, in Tälern und Städten kann es deutlich abweichen.";
+"LAYER_DEWPOINT_HINT" = "Taupunkt 2 m über Grund in Grad Celsius, stündlich bis 48 Stunden voraus. Je höher der Taupunkt, desto mehr Wasserdampf enthält die Luft. Modellprognose des DWD, kein Messwert.";
+"LAYER_HUMIDITY_HINT" = "Relative Feuchte 2 m über Grund in Prozent, stündlich bis 48 Stunden voraus. Sie schwankt stark mit der Tageszeit. Modellprognose des DWD, kein Messwert.";
+"LAYER_FIELD_TOGGLE_HINT" = "Zeigt oder verbirgt die Legende und den Hinweis zum Modellwert";
+"LAYER_SCALE_UNKNOWN" = "Die Farbskala dieser Datenquelle ist in dieser App-Version noch nicht hinterlegt. Deshalb gibt es hier keine Legende, nur diesen Hinweis. Die Karte zeigt Modellwerte.";

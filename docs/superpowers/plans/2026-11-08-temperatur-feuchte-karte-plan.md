@@ -96,6 +96,8 @@ Dateibesitz (keine Überschneidung innerhalb einer Welle): **P1** `BE Sources/Ra
 
 ## P2: App Ebenen, Manifest, generische Legende, Zeitleiste (APP)
 
+**Status (8.11.2026): umgesetzt, Details und Prüfungen in `docs/status.md`.** Abweichungen: Test-Stub `-UITestLayers wms|d2` (Debug) statt Fixture-Menü; Legendenpanel scrollt ab Accessibility-Textgrößen (Absturzfund); Vertrag aus Spec 3.2/3.4 (BE `api.md` war noch ohne Abschnitt).
+
 **Aufwand:** M. **Nach:** Spec (Manifest-Vertrag aus Spec 3.2/3.4; keine Abhängigkeit von P1). **Build/Test:** `xcodebuild` laut `README.md`, Schema `Weather`, iPhone-Simulator ohne Signing; **dieser Agent ist in Welle 1 der einzige mit `xcodebuild` im APP-Repo.**
 
 ### Task P2.1: Ebenen im Modell (TDD)

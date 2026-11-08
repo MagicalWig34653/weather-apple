@@ -106,3 +106,21 @@
 "WARN_PUSH_TITLE_FROST" = "Frost notice, level %d";
 "WARN_PUSH_TITLE_ICE" = "Ice and slippery roads notice, level %d";
 "WARN_PUSH_BODY" = "Tap for details.";
+
+/* Temperature / humidity layers (model values) */
+"LAYER_TEMPERATURE_TITLE" = "Temperature";
+"LAYER_DEWPOINT_TITLE" = "Humidity (dew point)";
+"LAYER_HUMIDITY_TITLE" = "Humidity (relative)";
+"LAYER_TEMPERATURE_SPOKEN" = "Temperature 2 metres above ground, model value";
+"LAYER_DEWPOINT_SPOKEN" = "Humidity as dew point 2 metres above ground, model value";
+"LAYER_HUMIDITY_SPOKEN" = "Relative humidity 2 metres above ground, model value";
+"LAYER_CAPTION_MODEL" = "Model";
+"LAYER_CAPTION_MODEL_FORECAST" = "Model forecast";
+"LAYER_TEMPERATURE_LEGEND_TITLE" = "Temperature 2 m (model)";
+"LAYER_DEWPOINT_LEGEND_TITLE" = "Dew point 2 m (model)";
+"LAYER_HUMIDITY_LEGEND_TITLE" = "Relative humidity 2 m (model)";
+"LAYER_TEMPERATURE_HINT" = "Air temperature 2 m above ground in degrees Celsius, hourly up to 48 hours ahead. Model forecast by the DWD, not a measurement: terrain, valleys and cities can differ considerably.";
+"LAYER_DEWPOINT_HINT" = "Dew point 2 m above ground in degrees Celsius, hourly up to 48 hours ahead. The higher the dew point, the more water vapour the air holds. Model forecast by the DWD, not a measurement.";
+"LAYER_HUMIDITY_HINT" = "Relative humidity 2 m above ground in percent, hourly up to 48 hours ahead. It varies strongly with the time of day. Model forecast by the DWD, not a measurement.";
+"LAYER_FIELD_TOGGLE_HINT" = "Shows or hides the legend and the note on the model value";
+"LAYER_SCALE_UNKNOWN" = "This app version does not know the colour scale of this data source yet, so there is no legend, only this note. The map shows model values.";

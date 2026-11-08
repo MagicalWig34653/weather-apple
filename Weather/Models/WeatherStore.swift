@@ -86,7 +86,16 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         self.reloadWidgets = reloadWidgets
         self.client = client
         self.backend = backend
+        #if DEBUG
+        if layers == nil, let mode = RadarLayerStore.uiTestMode {
+            self.layers = RadarLayerStore(radarBaseURL: backend.baseURL,
+                                          client: RadarLayerStore.uiTestClient(mode: mode, radarBaseURL: backend.baseURL))
+        } else {
+            self.layers = layers ?? RadarLayerStore(radarBaseURL: backend.baseURL)
+        }
+#else
         self.layers = layers ?? RadarLayerStore(radarBaseURL: backend.baseURL)
+#endif
         self.defaults = defaults
         super.init()
         pastHours = RadarPastWindow.load(defaults)

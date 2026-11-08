@@ -7,6 +7,9 @@ import Observation
 /// combines the cloud mask with the computed sun position (`SunOverlay`).
 enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     case radar, pressure, pressureEU = "pressure_eu", lightning, clouds, cloudmask
+    /// Model fields of the 2 m air (ICON-EU via WMS or ICON-D2): temperature, dew point, relative humidity.
+    /// Public ids; the server resolves them to its active source. Only offered once the backend reports them.
+    case temperature, dewpoint, humidity
     /// Visible channel (Germany grid): never chosen by the user, only refines the sun layer by day.
     case cloudmaskVis = "cloudmask_vis"
 
@@ -14,15 +17,18 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
 
     /// Layers the user can choose (the cloud mask is the data basis of the sun layer). Europe is its own entry
     /// (no zoom automatism); `pressureEU` is only offered once the backend reports it (`isOfferedWhenUnavailable`).
-    static let selectable: [RadarLayer] = [.radar, .pressure, .pressureEU, .lightning, .clouds, .cloudmask]
+    static let selectable: [RadarLayer] = [.radar, .pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask]
     /// Helper layers fetched with their parent layer, not chosen and not probed on their own.
     static let auxiliary: [RadarLayer] = [.cloudmaskVis]
     /// Layers fetched from the backend's `/v1/layers/<id>/` API.
-    static let backendLayers: [RadarLayer] = [.pressure, .pressureEU, .lightning, .clouds, .cloudmask, .cloudmaskVis]
+    static let backendLayers: [RadarLayer] = [.pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask, .cloudmaskVis]
 
     /// `false` for layers newer than the first backend release: while the backend does not report them
     /// (404, not yet asked, unreachable) they are not shown in the menu at all instead of greyed out.
-    var isOfferedWhenUnavailable: Bool { self != .pressureEU }
+    var isOfferedWhenUnavailable: Bool { self != .pressureEU && !isAirField }
+
+    /// 2 m model fields (temperature, dew point, relative humidity): hourly forecast, always shown as model values.
+    var isAirField: Bool { self == .temperature || self == .dewpoint || self == .humidity }
 
     /// Layer that is drawn with the Europe extent (own bounds from its manifest).
     var isEurope: Bool { self == .pressureEU }
@@ -38,6 +44,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .clouds: "Wolken"
         case .cloudmask: "Sonne"
         case .cloudmaskVis: "Sonne (sichtbarer Kanal)"
+        case .temperature: Self.localized("LAYER_TEMPERATURE_TITLE", "Temperatur")
+        case .dewpoint: Self.localized("LAYER_DEWPOINT_TITLE", "Feuchte (Taupunkt)")
+        case .humidity: Self.localized("LAYER_HUMIDITY_TITLE", "Feuchte (relativ)")
         }
     }
 
@@ -50,6 +59,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .lightning: "Blitze"
         case .clouds: "Wolken, Satellitenbild"
         case .cloudmask, .cloudmaskVis: "Sonne, Rückblick aus Satellit und Sonnenstand"
+        case .temperature: Self.localized("LAYER_TEMPERATURE_SPOKEN", "Temperatur 2 Meter über Grund, Modellwert")
+        case .dewpoint: Self.localized("LAYER_DEWPOINT_SPOKEN", "Feuchte als Taupunkt 2 Meter über Grund, Modellwert")
+        case .humidity: Self.localized("LAYER_HUMIDITY_SPOKEN", "Relative Feuchte 2 Meter über Grund, Modellwert")
         }
     }
 
@@ -60,6 +72,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .lightning: "bolt.fill"
         case .clouds: "cloud"
         case .cloudmask, .cloudmaskVis: "sun.max"
+        case .temperature: "thermometer.medium"
+        case .dewpoint, .humidity: "humidity"
         }
     }
 
@@ -72,7 +86,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .radar, .lightning: 5
         case .clouds, .cloudmaskVis: 10
         case .cloudmask: 15
-        case .pressure, .pressureEU: 60
+        case .pressure, .pressureEU, .temperature, .dewpoint, .humidity: 60
         }
     }
 
@@ -81,7 +95,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .radar, .lightning: 60
         case .clouds, .cloudmask, .cloudmaskVis: 120
-        case .pressure, .pressureEU: 300
+        case .pressure, .pressureEU, .temperature, .dewpoint, .humidity: 300
         }
     }
 
@@ -90,7 +104,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .lightning: 30 * 60
         case .clouds, .cloudmask, .cloudmaskVis: 2 * 3600
-        case .pressure, .pressureEU, .radar: 0
+        case .pressure, .pressureEU, .radar, .temperature, .dewpoint, .humidity: 0
         }
     }
 
@@ -104,6 +118,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .clouds, .cloudmask: 19
         // Europe isobars are transparent lossless images, but decode to 17.8 MB each: only a window is preloaded.
         case .pressureEU: 13
+        // Hourly +48 h fields (49 images): only a window around the selected slot is preloaded.
+        case .temperature, .dewpoint, .humidity: 13
         default: nil
         }
     }
@@ -115,6 +131,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .clouds: 0.8
         case .cloudmask: 0.85
         case .pressure, .pressureEU, .lightning, .cloudmaskVis: 0.9
+        // Coloured field over the base map: lets the map show through.
+        case .temperature, .dewpoint, .humidity: 0.8
         }
     }
 
@@ -125,7 +143,15 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .radar, .lightning, .clouds: isForecast ? "Vorhersage" : "Messung"
         case .pressure, .pressureEU: isForecast ? "Vorhersage" : "Modell"
         case .cloudmaskVis: "Rückblick"
+        // Never a measurement: "Modell" for the analysis slot, "Modellvorhersage" for later slots.
+        case .temperature, .dewpoint, .humidity:
+            isForecast ? Self.localized("LAYER_CAPTION_MODEL_FORECAST", "Modellvorhersage")
+                : Self.localized("LAYER_CAPTION_MODEL", "Modell")
         }
+    }
+
+    private static func localized(_ key: String, _ german: String) -> String {
+        NSLocalizedString(key, value: german, comment: "Layer name or caption")
     }
 
     var backendPathComponent: String { rawValue }
@@ -189,6 +215,10 @@ struct RadarLayerManifest: Equatable, Sendable {
     let forecastHorizonMinutes: Int?
     let historyHours: Int?
     let legend: RadarLayerLegendRef?
+    /// Data source of the 2 m fields (`wms` or `icon_d2`); `nil` for the other layers.
+    let source: String?
+    /// Colour scale id (`t2m-d2-v1` …) when the server colours the image itself; `nil` with a DWD legend image.
+    let scale: String?
     let backend: RadarManifest
 
     var attribution: String { backend.attribution }
@@ -241,6 +271,14 @@ struct RadarLayerManifest: Equatable, Sendable {
         let slots: [RawSlot]
         let attribution: String, modificationNotice: String
         let legend: RawLegend?
+        let source: String?, scale: String?
+    }
+
+    /// Optional short ids only: empty, over-long or odd strings count as absent (never shown, never guessed).
+    private static func cleaned(_ value: String?) -> String? {
+        guard let value, (1...32).contains(value.count),
+              value.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }) else { return nil }
+        return value
     }
 
     /// `layersBaseURL` is `…/v1/layers/<layer>/`; slot URLs must stay below it on the same origin.
@@ -298,7 +336,8 @@ struct RadarLayerManifest: Equatable, Sendable {
         return RadarLayerManifest(layer: expected, title: raw.title, kind: kind, run: raw.run, referenceTime: reference,
                                   generatedAt: generated, stepMinutes: raw.stepMinutes,
                                   forecastHorizonMinutes: raw.forecastHorizonMinutes, historyHours: raw.historyHours,
-                                  legend: legend, backend: backend)
+                                  legend: legend,
+                                  source: Self.cleaned(raw.source), scale: Self.cleaned(raw.scale), backend: backend)
     }
 }
 
