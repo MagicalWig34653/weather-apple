@@ -236,6 +236,8 @@ struct RadarLayerLegendPanel: View {
         VStack(alignment: .leading, spacing: 2) {
             Toggle(NSLocalizedString("FOREST_TOGGLE", value: "Wald", comment: "Forest switch"), isOn: $showForest)
                 .font(.caption.weight(.semibold))
+                // The system switch is wider than its layout slot at this size and was clipped flat by the scroll view.
+                .padding(.trailing, 6)
                 .accessibilityIdentifier("forest-toggle")
             Text(NSLocalizedString("FOREST_CAPTION", value: "Waldfläche zur Orientierung, ohne Einfluss auf die Werte", comment: "Forest caption"))
                 .font(.caption2).foregroundStyle(.secondary)
@@ -245,7 +247,7 @@ struct RadarLayerLegendPanel: View {
     var body: some View {
         Group {
             if dynamicTypeSize.isAccessibilitySize || layer.isAirField {
-                ScrollView { content }.scrollBounceBehavior(.basedOnSize)
+                ScrollView { content }.scrollBounceBehavior(.basedOnSize).scrollClipDisabled()
                     .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 360 : 300)
             } else {
                 content

@@ -332,3 +332,5 @@ Native Legende aus der gebündelten Skalentabelle `Weather/Resources/scales-v1.j
 ## 8.11.2026: Temperatur-/Feuchtekarte P6 (Quellenseite, Datenschutz)
 
 Das Info-Sheet nennt DWD ICON-D2/ICON-EU und, bei vorhandener Waldebene, ESA WorldCover. **Datenschutztexte bleiben unveraendert:** keine neuen Datenfluesse (Bilder nur vom Showers-Server ohne Ortsbezug, Wertabfrage lokal, Wald-Schalter nur auf dem Geraet, Waldbild gebuendelt).
+
+- 8.11.2026: Beruehrbare Hauptansicht-Elemente nutzen `glassControl` (Liquid Glass interactive); Sheets oeffnen per Zoom aus dem Knopf; Zeitleisten-Daumen ist eine Glas-Pille. Keine Material-Hintergruende mehr fuer schwebende Pillen.
