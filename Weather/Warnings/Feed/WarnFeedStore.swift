@@ -33,6 +33,7 @@ final class WarnFeedStore {
     @ObservationIgnored private let languageCode: () -> String
     @ObservationIgnored private let clock: () -> Date
     @ObservationIgnored private var lastAttempt: Date?
+    @ObservationIgnored private var inflight: Task<Void, Never>?
 
     init(isEnabled: @escaping @MainActor () -> Bool, url: URL = WarnFeedBackendConfig.activeURL(),
          cacheURL: URL? = WarnFeedStore.defaultCacheURL(), transport: Transport? = nil,
@@ -79,14 +80,24 @@ final class WarnFeedStore {
     }
 
     /// `force` skips the minimum interval (pull to refresh). Without the capability no request is made.
+    /// The request runs in its own unstructured task: SwiftUI cancels the `.refreshable`/`.task` task when the view
+    /// updates during the refresh, which must neither abort the request nor show up as a failure.
+    /// A call while a request is running joins it.
     func refresh(force: Bool = false) async {
         guard isEnabled() else { return }
-        if state == .loading { return }
+        if let inflight { await inflight.value; return }
         let now = clock()
         if !force, let lastAttempt, now.timeIntervalSince(lastAttempt) < Self.minInterval { return }
         lastAttempt = now
         reloadPlaces()
         state = .loading
+        let task = Task { await self.load() }
+        inflight = task
+        await task.value
+        inflight = nil
+    }
+
+    private func load() async {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.httpShouldHandleCookies = false
@@ -100,11 +111,16 @@ final class WarnFeedStore {
             fetchedAt = decoded.fetchedAt
             state = .loaded
             if let cacheURL { try? data.write(to: cacheURL, options: .atomic) }
-        } catch is CancellationError {
-            state = fetchedAt == nil ? .idle : .failed(cachedAt: fetchedAt)
+        } catch where Self.isCancellation(error) {
+            // Not a failure: keep what was shown before.
+            state = fetchedAt == nil ? .idle : .loaded
         } catch {
             state = .failed(cachedAt: fetchedAt)
         }
+    }
+
+    nonisolated static func isCancellation(_ error: Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled
     }
 
     private func loadCache() {

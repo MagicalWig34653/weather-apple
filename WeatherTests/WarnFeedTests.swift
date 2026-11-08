@@ -50,6 +50,7 @@ final class WarnFeedTests: XCTestCase {
         var requests: [URLRequest] = []
         var fail = false
         var status = 200
+        var cancelWith: Error?
         var data = Data()
     }
 
@@ -93,6 +94,45 @@ final class WarnFeedTests: XCTestCase {
         await feed.refresh(force: true)
         XCTAssertEqual(feed.warnings.count, 1)
         XCTAssertEqual(feed.state, .failed(cachedAt: iso("2026-11-07T11:34:05Z")))
+    }
+
+    func testCancelledCallerDoesNotAbortOrFail() async throws {
+        let rec = Recorder(); rec.data = try fixture()
+        let feed = store(rec)
+        await feed.refresh()
+        // Caller task is cancelled while the request runs (SwiftUI cancels the refreshable task): request still completes.
+        let caller = Task { await feed.refresh(force: true) }
+        caller.cancel()
+        await caller.value
+        XCTAssertEqual(feed.state, .loaded)
+        XCTAssertEqual(rec.requests.count, 2)
+    }
+
+    func testTransportCancellationIsNotAFailure() async throws {
+        for error in [URLError(.cancelled) as Error, CancellationError()] {
+            let rec = Recorder(); rec.data = try fixture()
+            let feed = WarnFeedStore(isEnabled: { true }, url: URL(string: "https://example.test/v1/warnings/active")!, cacheURL: nil,
+                                     transport: { request in
+                                         if let e = rec.cancelWith { throw e }
+                                         return (rec.data, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+                                     })
+            await feed.refresh()
+            XCTAssertEqual(feed.state, .loaded)
+            rec.cancelWith = error
+            await feed.refresh(force: true)
+            XCTAssertEqual(feed.state, .loaded, "\(error)")
+            XCTAssertEqual(feed.warnings.count, 1)
+        }
+    }
+
+    func testRateLimitIsAHonestFailureWithCache() async throws {
+        let rec = Recorder(); rec.data = try fixture()
+        let feed = store(rec)
+        await feed.refresh()
+        rec.status = 429
+        await feed.refresh(force: true)
+        XCTAssertEqual(feed.state, .failed(cachedAt: iso("2026-11-07T11:34:05Z")))
+        XCTAssertEqual(feed.warnings.count, 1)
     }
 
     func testServerErrorWithoutCacheIsFailedNil() async {
