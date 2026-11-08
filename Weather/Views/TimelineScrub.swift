@@ -156,50 +156,7 @@ enum ScrubBubblePlacement {
     }
 }
 
-/// Time bubble above the finger while dragging (overlay of the slider; sits outside the slider's accessibility representation).
-struct ScrubBubble: View {
-    let count: Int
-    let index: Int
-    let text: String
-    var tint: Color = .cyan
-    var lift: CGFloat = 0
-    /// Width of the screen area the bubble may use, measured from the screen's left edge.
-    var viewportWidth: CGFloat?
-    /// UI tests: expose the bubble to accessibility (it is hidden from VoiceOver otherwise).
-    var exposed = false
-    @State private var size = CGSize(width: 96, height: 34)
-
-    private let thumb: CGFloat = 28
-    private let height: CGFloat = 44
-
-    var body: some View {
-        GeometryReader { geometry in
-            let trackWidth = max(geometry.size.width - thumb, 1)
-            let fraction = count > 1 ? CGFloat(min(max(index, 0), count - 1)) / CGFloat(count - 1) : 0
-            let global = geometry.frame(in: .global)
-            let bounds: ClosedRange<CGFloat> = viewportWidth.map { (8 - global.minX)...max(8 - global.minX, $0 - 8 - global.minX) }
-                ?? 0...geometry.size.width
-            let spot = ScrubBubblePlacement.place(thumbX: thumb / 2 + trackWidth * fraction, bubbleSize: size,
-                                                  bounds: bounds, lift: lift)
-            Text(text)
-                .font(.headline.monospacedDigit())
-                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                .lineLimit(1)
-                .fixedSize()
-                .padding(.horizontal, 14).padding(.vertical, 7)
-                .glassEffect(.regular.tint(tint.opacity(0.35)), in: Capsule())
-                .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
-                .position(x: spot.centerX, y: geometry.size.height / 2 + spot.offsetY)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(text)
-                .accessibilityIdentifier("timeline-scrub-bubble")
-                .accessibilityHidden(!exposed)
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-/// Drag-gesture slider in the look of the system slider (capsule track, glass thumb) with fine scrubbing.
+/// Drag-gesture slider in the look of the system slider (capsule track, Liquid Glass pill thumb) with fine scrubbing.
 struct TimelineScrubSlider: View {
     let count: Int
     let displayedIndex: Int
@@ -209,7 +166,11 @@ struct TimelineScrubSlider: View {
     @State private var session: ScrubSession?
     @ScaledMetric(relativeTo: .body) private var distanceScale: CGFloat = 1
 
-    private let thumb: CGFloat = 28
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Pill thumb: wide enough to read as a pill, the touch target is the whole 44 pt high slider area.
+    private let thumb: CGFloat = 40
+    private let thumbHeight: CGFloat = 26
     private let height: CGFloat = 44
 
     var body: some View {
@@ -219,10 +180,12 @@ struct TimelineScrubSlider: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.secondary.opacity(0.3)).frame(height: 4).padding(.horizontal, thumb / 2)
                 Capsule().fill(Color.accentColor).frame(width: thumb / 2 + trackWidth * fraction, height: 4)
-                Circle().fill(.clear)
-                    .frame(width: thumb, height: thumb)
-                    .glassEffect(.regular.interactive(), in: Circle())
-                    .scaleEffect(session == nil ? 1 : 1.12)
+                Capsule().fill(.clear)
+                    .frame(width: thumb, height: thumbHeight)
+                    .glassEffect(.regular.interactive(), in: Capsule())
+                    .shadow(color: .black.opacity(0.18), radius: session == nil ? 3 : 6, y: 1)
+                    .scaleEffect(session == nil ? 1 : 1.2)
+                    .animation(reduceMotion ? nil : .bouncy(duration: 0.35), value: session == nil)
                     .offset(x: trackWidth * fraction)
             }
             .frame(width: geometry.size.width, height: height)

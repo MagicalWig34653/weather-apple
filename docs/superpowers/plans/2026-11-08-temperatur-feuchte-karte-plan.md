@@ -233,6 +233,8 @@ Dateibesitz (keine Überschneidung innerhalb einer Welle): **P1** `BE Sources/Ra
 
 **Aufwand:** S. **Nach:** P4, P5.
 
+**Status 8.11.2026:** umgesetzt (Quellenzeilen BE/APP, Datenschutz unveraendert, Rollout-Checkliste und lokale Schalterprobe `off` -> `wms` -> `icon_d2` -> Ausfall mit Messwerten in BE `docs-site/content/betrieb.md` und BE `docs/status.md`). Offen: Deploy-Schritte durch den Nutzer.
+
 - [ ] Quellenseite/Info-Sheet und Landingpage-`dataSource` (BE `LandingPage.swift`) um DWD ICON/ICON-D2 und WorldCover ergänzen; Prüfung, ob Datenschutztext unverändert bleibt (Spec 5), Ergebnis in `docs/decisions.md` beider Repos.
 - [ ] Rollout-Checkliste (Spec 7) in `BE docs-site/content/betrieb.md` finalisieren; Schalterwechsel-Probe lokal (Memory-Repo): `off` -> `wms` -> `icon_d2` -> Ausfall -> Fallback.
 - [ ] `docs/status.md` beider Repos: tatsächlich ausgeführte Prüfungen, **nicht geprüft** (Spec §11 abarbeiten oder bestätigen), nächste Schritte (Deploy mit `TEMP_SOURCE=off`, dann `wms`, dann `icon_d2`; App-Build und TestFlight nur auf Auftrag).

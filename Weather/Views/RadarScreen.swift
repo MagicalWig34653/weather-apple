@@ -27,6 +27,7 @@ struct RadarScreen: View {
     @State private var scrubStage: ScrubStage?
     @State private var mapBottomInset: CGFloat = 70
     @State private var screenWidth: CGFloat?
+    @Namespace private var glassNamespace
 
     private enum Sheet: String, Identifiable {
         case places, details, information, warnings
@@ -74,14 +75,14 @@ struct RadarScreen: View {
                     Label(label, systemImage: "slider.horizontal.3")
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 12).padding(.vertical, 7)
-                        .background(.regularMaterial, in: Capsule())
+                        .glassEffect(.regular, in: Capsule())
                         .accessibilityHidden(true)
                 }
                 if let slot = heldFeedback {
                     Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 12).padding(.vertical, 7)
-                        .background(.regularMaterial, in: Capsule())
+                        .glassEffect(.regular, in: Capsule())
                         .transition(.opacity)
                         .accessibilityIdentifier("radar-slot-status")
                 }
@@ -89,7 +90,7 @@ struct RadarScreen: View {
                     Label(readout.text, systemImage: "scope")
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 12).padding(.vertical, 7)
-                        .background(.regularMaterial, in: Capsule())
+                        .glassEffect(.regular, in: Capsule())
                         .accessibilityLabel(readout.spoken)
                         .accessibilityIdentifier("radar-readout")
                 }
@@ -101,7 +102,7 @@ struct RadarScreen: View {
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(.thinMaterial, in: Capsule())
+                        .glassEffect(.regular, in: Capsule())
                         .accessibilityIdentifier("radar-attribution")
                 }
             }
@@ -114,47 +115,57 @@ struct RadarScreen: View {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                HStack(alignment: .top) {
-                    Spacer()
-                    if showLegend {
-                        if store.activeLayer == .radar {
-                            RadarLegendPanel(legend: .precipitationRadar)
-                        } else {
-                            RadarLayerLegendPanel(
-                                layer: store.activeLayer, manifest: store.layers.activeManifest,
-                                humidityChoices: [RadarLayer.dewpoint, .humidity].filter { store.layers.availability($0) == .available },
-                                onSelectLayer: { store.layers.select($0) })
-                        }
-                    }
-                    VStack(spacing: 14) {
-                        Button { store.requestLocation() } label: {
-                            Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
-                        }.accessibilityLabel("Aktuellen Standort verwenden")
-                        Button { withAnimation(reduceMotion ? nil : .snappy) { showLegend.toggle() } } label: {
-                            Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
-                        }
-                        .accessibilityLabel("Legende \(store.activeLayer.title)")
-                        .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
-                        .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
-                        .accessibilityIdentifier("radar-legend-toggle")
-                        if canReadValue {
-                            Button { readoutRevision += 1 } label: {
-                                Image(systemName: "scope").font(.system(size: 20)).frame(width: 46, height: 46)
+                GlassEffectContainer(spacing: 8) {
+                    HStack(alignment: .top, spacing: 10) {
+                        Spacer()
+                        if showLegend {
+                            Group {
+                                if store.activeLayer == .radar {
+                                    RadarLegendPanel(legend: .precipitationRadar)
+                                } else {
+                                    RadarLayerLegendPanel(
+                                        layer: store.activeLayer, manifest: store.layers.activeManifest,
+                                        humidityChoices: [RadarLayer.dewpoint, .humidity].filter { store.layers.availability($0) == .available },
+                                        onSelectLayer: { store.layers.select($0) })
+                                }
                             }
-                            .accessibilityLabel(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))
-                            .accessibilityIdentifier("radar-read-center")
+                            .glassEffectID("legend-panel", in: glassNamespace)
                         }
-                        if warn.capabilityWarnings { warningsButton }
-                        Button { sheet = .information } label: {
-                            Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
-                        }.accessibilityLabel("Datenquellen und Datenschutz")
+                        VStack(spacing: 10) {
+                            Button { store.requestLocation() } label: {
+                                Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
+                                    .glassControl(Circle())
+                            }.accessibilityLabel("Aktuellen Standort verwenden")
+                            Button { withAnimation(reduceMotion ? nil : .bouncy(duration: 0.4)) { showLegend.toggle() } } label: {
+                                Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
+                                    .glassControl(Circle())
+                            }
+                            .accessibilityLabel("Legende \(store.activeLayer.title)")
+                            .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
+                            .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
+                            .accessibilityIdentifier("radar-legend-toggle")
+                            if canReadValue {
+                                Button { readoutRevision += 1 } label: {
+                                    Image(systemName: "scope").font(.system(size: 20)).frame(width: 46, height: 46)
+                                        .glassControl(Circle())
+                                }
+                                .accessibilityLabel(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))
+                                .accessibilityIdentifier("radar-read-center")
+                            }
+                            if warn.capabilityWarnings { warningsButton }
+                            Button { sheet = .information } label: {
+                                Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)
+                                    .glassControl(Circle())
+                            }
+                            .matchedTransitionSource(id: Sheet.information.rawValue, in: glassNamespace)
+                            .accessibilityLabel("Datenquellen und Datenschutz")
+                        }
+                        .buttonStyle(.plain)
+                        .font(.title3)
                     }
-                    .glassEffect(.regular, in: Capsule())
-                    .buttonStyle(.plain)
-                    .font(.title3)
                 }
             }
             .padding(.horizontal, 16)
@@ -171,10 +182,10 @@ struct RadarScreen: View {
 
         .sheet(item: $sheet) { item in
             switch item {
-            case .places: PlacesSheet(store: store)
-            case .details: ForecastDetails(store: store)
-            case .information: InformationSheet(store: store)
-            case .warnings: WarningsListView(feed: warnFeed)
+            case .places: PlacesSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
+            case .details: ForecastDetails(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
+            case .information: InformationSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
+            case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             }
         }
         .alert("Ort speichern", isPresented: $showSave) {
@@ -302,8 +313,7 @@ struct RadarScreen: View {
             .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 14)
             .frame(minHeight: 44)
-            .contentShape(Capsule())
-            .glassEffect(.regular.interactive(), in: Capsule())
+            .glassControl(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Kartenebene wählen")
@@ -322,6 +332,7 @@ struct RadarScreen: View {
             Image(systemName: summary.count > 0 ? WarningPresentation.levelSymbol(summary.maxLevel) : "exclamationmark.triangle")
                 .font(.system(size: 20)).frame(width: 46, height: 46)
                 .foregroundStyle(summary.count > 0 ? WarnStyle.color(summary.maxLevel) : Color.primary)
+                .glassControl(Circle())
                 .overlay(alignment: .topTrailing) {
                     if summary.count > 0 {
                         Text("\(summary.count)").font(.system(size: 11, weight: .bold)).foregroundStyle(summary.maxLevel <= 2 ? Color.black : Color.white)
@@ -331,6 +342,7 @@ struct RadarScreen: View {
                     }
                 }
         }
+        .matchedTransitionSource(id: Sheet.warnings.rawValue, in: glassNamespace)
         .accessibilityLabel(WarningPresentation.buttonLabel())
         .accessibilityValue(WarningPresentation.buttonValue(summary, stale: stale))
         .accessibilityIdentifier("radar-warnings-button")
@@ -352,8 +364,11 @@ struct RadarScreen: View {
                     Image(systemName: "chevron.down").font(.caption.bold())
                 }
                 .padding(.horizontal, 16).padding(.vertical, 11)
-                .glassEffect(.regular, in: Capsule())
-            }.buttonStyle(.plain).accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
+                .glassControl(Capsule())
+            }
+            .buttonStyle(.plain)
+            .matchedTransitionSource(id: Sheet.places.rawValue, in: glassNamespace)
+            .accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             layerMenu
         }
@@ -439,7 +454,7 @@ struct RadarScreen: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressFeedbackButtonStyle())
         .disabled(store.displayTimeline == nil)
         .accessibilityLabel(store.isPlaying ? "Animation pausieren" : (store.activeLayer == .radar ? "Radaranimation starten" : "Animation starten"))
     }
@@ -478,7 +493,7 @@ struct RadarScreen: View {
                 }
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressFeedbackButtonStyle(scale: 0.97))
         .disabled(store.displayTimeline == nil)
         .accessibilityHint("Zur aktuellen Zeit springen")
         .accessibilityIdentifier("radar-frame-label")
@@ -548,31 +563,35 @@ struct RadarScreen: View {
     }
 
     private var forecastCard: some View {
-        HStack(spacing: 4) {
-            Button { sheet = .details } label: {
-                HStack(spacing: 6) {
-                    Text(dynamicTypeSize.isAccessibilitySize ? "Prognosedetails" : forecastHeadline)
-                        .font(.subheadline.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 8) {
+                Button { sheet = .details } label: {
+                    HStack(spacing: 6) {
+                        Text(dynamicTypeSize.isAccessibilitySize ? "Prognosedetails" : forecastHeadline)
+                            .font(.subheadline.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                    .glassControl(RoundedRectangle(cornerRadius: 24))
                 }
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .matchedTransitionSource(id: Sheet.details.rawValue, in: glassNamespace)
+                .accessibilityIdentifier("forecast-details")
+                .accessibilityHint("Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise")
+                Button {
+                    placeName = store.selectedPlace.name
+                    showSave = true
+                } label: {
+                    Image(systemName: store.places.contains(where: { $0.id == store.selectedPlace.id }) ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 20)).frame(width: 48, height: 48)
+                        .glassControl(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Ausgewählten Ort speichern oder umbenennen")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("forecast-details")
-            .accessibilityHint("Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise")
-            Button {
-                placeName = store.selectedPlace.name
-                showSave = true
-            } label: {
-                Image(systemName: store.places.contains(where: { $0.id == store.selectedPlace.id }) ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 20)).frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Ausgewählten Ort speichern oder umbenennen")
         }
-        .padding(.leading, 14).padding(.trailing, 4)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
     }
 
     private var forecastHeadline: String {
@@ -741,5 +760,25 @@ struct SunPlaceSection: View {
                                               latitude: place.coordinate.latitude, longitude: place.coordinate.longitude),
               !Task.isCancelled else { return }
         cloud = (state, slot.time)
+    }
+}
+
+extension View {
+    /// Interactive Liquid Glass for a touchable control (press and bounce feedback); the whole shape is the touch target.
+    func glassControl<S: Shape>(_ shape: S) -> some View {
+        contentShape(shape).glassEffect(.regular.interactive(), in: shape)
+    }
+}
+
+/// Press feedback for plain buttons that sit inside a glass card (glass on glass is avoided): small scale, none with Reduce Motion.
+struct PressFeedbackButtonStyle: ButtonStyle {
+    var scale: CGFloat = 0.88
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1)
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .animation(reduceMotion ? nil : .bouncy(duration: 0.3), value: configuration.isPressed)
     }
 }

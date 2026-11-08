@@ -162,6 +162,10 @@ struct InformationSheet: View {
                 .accessibilityIdentifier("layer-source-\(layer.rawValue)")
             }
         }
+        let modelLayers = ModelLayerSources.visibleLayers(manifestPresent: { store.layers.snapshot($0).manifest != nil })
+        ForEach(ModelLayerSources.lines(modelLayersAvailable: !modelLayers.isEmpty, forest: ForestInfo.bundled), id: \.id) { line in
+            Text(line.text).accessibilityIdentifier("layer-source-\(line.id)")
+        }
         if store.layers.snapshot(.clouds).manifest != nil {
             Link("EUMETSAT · EUMETView", destination: URL(string: "https://view.eumetsat.int")!)
         }
@@ -218,5 +222,25 @@ struct InformationSheet: View {
         default:
             return base
         }
+    }
+}
+
+/// Source lines for the model layers (temperature, dew point, humidity) and the optional forest layer; shown only while the layers exist.
+enum ModelLayerSources {
+    struct Line: Equatable { let id: String, text: String }
+
+    static let iconText = "Temperatur-, Taupunkt- und Feuchtekarten: DWD ICON-D2/ICON-EU Modelldaten (CC BY 4.0, Quelle: Deutscher Wetterdienst), bildlich wiedergegeben und aufbereitet (verändert). Modellprognosen, keine Messwerte."
+
+    static func visibleLayers(manifestPresent: (RadarLayer) -> Bool) -> [RadarLayer] {
+        [RadarLayer.temperature, .dewpoint, .humidity].filter(manifestPresent)
+    }
+
+    static func lines(modelLayersAvailable: Bool, forest: ForestInfo?) -> [Line] {
+        guard modelLayersAvailable else { return [] }
+        var result = [Line(id: "icon", text: iconText)]
+        if let forest {
+            result.append(Line(id: "worldcover", text: "Optionale Waldfläche: \(forest.attribution) (CC BY 4.0); \(forest.modificationNotice)."))
+        }
+        return result
     }
 }
