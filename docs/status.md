@@ -354,3 +354,4 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 
 - Ursache: `WarningsUITests.testNoEntryWithoutCapability` startete ohne Stub und las die echte Capability `warnings` vom Live-Server (Warnknopf erschien). Fix nur im Test: Start mit `-UITestWarnCapabilities none` (überschreibt in `WarnManager.live` per DEBUG-Stub die Server-Antwort). Produktcode unverändert.
 - Geprüft: Volllauf `Weather` (B15 iPhone 18 Pro, ohne Signing) 582 Unit + 23 UI grün. Übrige UI-Tests ohne Warn-Stub laufen gegen Live-Radar/Status, bestanden aber; Warnknopf-unabhängig.
+- 8.11.2026: Build 41 in Arbeit: Zeit-Pille, Play-Knopf entfernt, kompaktere Zeitleistenkarte (siehe decisions.md).

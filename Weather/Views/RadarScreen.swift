@@ -28,6 +28,7 @@ struct RadarScreen: View {
     @State private var mapBottomInset: CGFloat = 70
     @State private var screenWidth: CGFloat?
     @Namespace private var glassNamespace
+    @State private var nowJumps = 0
 
     fileprivate enum Sheet: String, Identifiable {
         case places, details, information, warnings
@@ -71,43 +72,49 @@ struct RadarScreen: View {
                 }
             VStack(spacing: 6) {
                 Spacer()
-                if let label = scrubStage?.label {
-                    Label(label, systemImage: "slider.horizontal.3")
-                        .font(.caption.weight(.medium))
-                        .padding(.horizontal, 12).padding(.vertical, 7)
-                        .glassEffect(.regular, in: Capsule())
-                        .accessibilityHidden(true)
+                VStack(spacing: 6) {
+                    if let label = scrubStage?.label {
+                        Label(label, systemImage: "slider.horizontal.3")
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .glassEffect(.regular, in: Capsule())
+                            .accessibilityHidden(true)
+                    }
+                    if let slot = heldFeedback {
+                        Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .glassEffect(.regular, in: Capsule())
+                            .transition(.opacity)
+                            .accessibilityIdentifier("radar-slot-status")
+                    }
+                    if let readout {
+                        Label(readout.text, systemImage: "scope")
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .glassEffect(.regular, in: Capsule())
+                            .accessibilityLabel(readout.spoken)
+                            .accessibilityIdentifier("radar-readout")
+                    }
                 }
-                if let slot = heldFeedback {
-                    Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
-                        .font(.caption.weight(.medium))
-                        .padding(.horizontal, 12).padding(.vertical, 7)
-                        .glassEffect(.regular, in: Capsule())
-                        .transition(.opacity)
-                        .accessibilityIdentifier("radar-slot-status")
+                .allowsHitTesting(false)
+                timePill
+                Group {
+                    if let line = ForestPreference.sourceLine(base: store.displayAttributionLine, layer: store.activeLayer,
+                                                              visible: forestVisible, info: ForestInfo.bundled) {
+                        Text(line)
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .lineLimit(ForestPreference.isShown(layer: store.activeLayer, visible: forestVisible, info: ForestInfo.bundled) ? 6 : 2)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .glassEffect(.regular, in: Capsule())
+                            .accessibilityIdentifier("radar-attribution")
+                    }
                 }
-                if let readout {
-                    Label(readout.text, systemImage: "scope")
-                        .font(.caption.weight(.medium))
-                        .padding(.horizontal, 12).padding(.vertical, 7)
-                        .glassEffect(.regular, in: Capsule())
-                        .accessibilityLabel(readout.spoken)
-                        .accessibilityIdentifier("radar-readout")
-                }
-                if let line = ForestPreference.sourceLine(base: store.displayAttributionLine, layer: store.activeLayer,
-                                                          visible: forestVisible, info: ForestInfo.bundled) {
-                    Text(line)
-                        .font(.caption2).foregroundStyle(.secondary)
-                        .lineLimit(ForestPreference.isShown(layer: store.activeLayer, visible: forestVisible, info: ForestInfo.bundled) ? 6 : 2)
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .glassEffect(.regular, in: Capsule())
-                        .accessibilityIdentifier("radar-attribution")
-                }
+                .allowsHitTesting(false)
             }
             .padding(.bottom, 8)
-            .allowsHitTesting(false)
             VStack(spacing: 10) {
                 header
                 forecastCard
@@ -435,30 +442,13 @@ struct RadarScreen: View {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) { heldFeedback = next }
     }
 
+    /// Compact card: only the slider (the time moved to `timePill`, play/pause is the pill's tap).
     private var timeline: some View {
-        VStack(spacing: 0) {
-            frameLabel
-            HStack(spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 8) {
-                playButton
-                timeSlider
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
-        .accessibilityIdentifier("radar-timeline")
-    }
-
-    private var playButton: some View {
-        Button { store.isPlaying.toggle() } label: {
-            Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
-                .font(.system(size: 18, weight: .semibold))
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(PressFeedbackButtonStyle())
-        .disabled(store.displayTimeline == nil)
-        .accessibilityLabel(store.isPlaying ? "Animation pausieren" : (store.activeLayer == .radar ? "Radaranimation starten" : "Animation starten"))
+        timeSlider
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
+            .accessibilityIdentifier("radar-timeline")
     }
 
     private var displayedIsForecast: Bool {
@@ -469,43 +459,58 @@ struct RadarScreen: View {
     /// `nil` while not dragging; otherwise whether the dragged time is in the future (drives the scrub glow).
     private var scrubGlowState: Bool? { scrubIndex == nil ? nil : displayedIsForecast }
 
-    /// Time (and day) display with a fixed size: a hidden template reserves the widest content and both lines,
-    /// so measurement/forecast or another day never changes the layout (the slider must not move).
-    private var frameLabel: some View {
-        let stacked = dynamicTypeSize.isAccessibilitySize
-        // The label sits on the side the thumb is NOT on, so the finger never covers it.
-        let labelAtTrailing: Bool = {
-            guard let count = store.displayTimeline?.dates.count, count > 1 else { return false }
-            return Double(displayedIndex) / Double(count - 1) < 0.5
-        }()
-        return Button {
-            guard let timeline = store.displayTimeline else { return }
-            store.isPlaying = false
-            store.displayFrameIndex = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
-        } label: {
-            Text("Mo., 88. Okt. 88:88 AM").font(.title3.weight(.semibold)).monospacedDigit()
-                .lineLimit(1)
-                .hidden()
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .overlay(alignment: labelAtTrailing ? .trailing : .leading) {
-                    if let date = displayedDate {
-                        let time = Text(date, style: .time).font(.title3.weight(.semibold)).monospacedDigit()
-                        let day = otherDayLabel(for: date).map { Text($0).font(.subheadline).foregroundStyle(.secondary) }
-                        Group {
-                            if let day { Text("\(day) · \(time)") } else { time }
-                        }
-                        .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.6)
-                        .multilineTextAlignment(labelAtTrailing ? .trailing : .leading)
-                        .padding(.horizontal, 8)
+    /// Standing glass pill above the source line (calm: no sideways movement). Tint: future = orange (like the line), past = blue, subtle.
+    /// Tap plays/pauses the animation, long press jumps to "Now". The pill is a plain tinted glass capsule, not inside another glass layer.
+    @ViewBuilder private var timePill: some View {
+        if store.displayTimeline != nil, let date = displayedDate {
+            let stacked = dynamicTypeSize.isAccessibilitySize
+            let forecast = displayedIsForecast
+            let time = Text(date.formatted(date: .omitted, time: .shortened)).font(.title3.weight(.semibold)).monospacedDigit()
+            let day = otherDayLabel(for: date).map { Text($0).font(.subheadline) }
+            let playing = store.isPlaying
+            HStack(spacing: 8) {
+                Image(systemName: playing ? "pause.fill" : "play.fill").font(.system(size: 13, weight: .bold))
+                // A hidden template with the widest content fixes the height, so another day never changes the pill's size.
+                Text("Mo., 88. Okt. · 88:88 AM").font(.title3.weight(.semibold)).monospacedDigit()
+                    .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.center)
+                    .hidden()
+                    .overlay {
+                        Group { if let day { Text("\(day) · \(time)") } else { time } }
+                            .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.7)
+                            .multilineTextAlignment(.center)
                     }
-                }
-                .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: labelAtTrailing)
-                .contentShape(Rectangle())
+            }
+            .foregroundStyle(.primary)
+            .accessibilityHidden(true)
+            .padding(.horizontal, 16)
+            .frame(minWidth: 112, minHeight: 44)
+            .contentShape(Capsule())
+            .background(Capsule().fill(.black.opacity(0.3)))
+            .glassEffect(.regular.tint((forecast ? ScreenGlow.futureColor : ScreenGlow.pastColor).opacity(forecast ? 0.5 : 0.3)).interactive(), in: Capsule())
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: forecast)
+            .onTapGesture { togglePlayback() }
+            .onLongPressGesture(minimumDuration: 0.4) { jumpToNow() }
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: nowJumps)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(playing ? "Animation pausieren" : "Animation abspielen")
+            .accessibilityValue(TimelineAccessibility.value(date: date, isForecast: forecast, reference: store.displayTimeline?.referenceTime ?? date,
+                                                            caption: store.activeLayer.frameCaption(isForecast: forecast)))
+            .accessibilityHint("Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(named: "Zur aktuellen Zeit springen") { jumpToNow() }
+            .accessibilityAction(named: playing ? "Animation pausieren" : "Animation abspielen") { togglePlayback() }
+            .accessibilityIdentifier("radar-frame-label")
         }
-        .buttonStyle(PressFeedbackButtonStyle(scale: 0.97))
-        .disabled(store.displayTimeline == nil)
-        .accessibilityHint("Zur aktuellen Zeit springen")
-        .accessibilityIdentifier("radar-frame-label")
+    }
+
+    private func togglePlayback() { store.isPlaying.toggle() }
+
+    private func jumpToNow() {
+        guard let timeline = store.displayTimeline else { return }
+        store.isPlaying = false
+        store.displayFrameIndex = timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0
+        nowJumps += 1
     }
 
     /// With up to 48 hours of past the time alone is ambiguous: name the day when it is not the reference day.
@@ -539,8 +544,9 @@ struct RadarScreen: View {
                 return TimelineNowCrossing.side(index: new, nowIndex: now) != TimelineNowCrossing.side(index: old, nowIndex: now)
             }
             .sensoryFeedback(.impact(weight: .light, intensity: 0.5), trigger: scrubStage) { old, new in old != nil && new != nil }
-            .overlay(alignment: .bottom) {
-                // Same horizontal extent as the slider track (inset by half the thumb); "Now" marker where the thumb centre is.
+            .overlay(alignment: .center) {
+                // Same horizontal extent as the slider track (inset by half the thumb); sits a constant 4 pt under the 4 pt track.
+                // "Now" marker where the thumb centre is.
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
@@ -548,10 +554,12 @@ struct RadarScreen: View {
                         ScreenGlow.futureColor
                     }
                     .clipShape(Capsule())
-                    Rectangle().fill(.primary).frame(width: 2, height: 5)
-                        .offset(x: max(0, geometry.size.width * boundary - 1), y: -1)
+                    .frame(height: 2)
+                    Rectangle().fill(.primary).frame(width: 2, height: 6)
+                        .offset(x: max(0, geometry.size.width * boundary - 1), y: -2)
                 }
                 .frame(height: 2)
+                .offset(y: 7)
                 .padding(.horizontal, TimelineScrubSlider.thumbWidth / 2)
                 .accessibilityHidden(true)
                 .allowsHitTesting(false)

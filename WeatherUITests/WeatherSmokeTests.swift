@@ -106,10 +106,11 @@ final class WeatherSmokeTests: XCTestCase {
             throw XCTSkip("Der Live-Kartendienst hat keine Radarzeitpunkte geliefert.")
         }
         dragSlider(slider, to: 1)
-        XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
-        timeButton(app).tap()
-        XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
-        app.buttons["Radaranimation starten"].tap()
+        XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
+        timePill(app).press(forDuration: 0.8)
+        XCTAssertTrue(waitForValue(slider, containing: "Messung"))
+        timePill(app).tap()
+        XCTAssertTrue(app.descendants(matching: .any)["radar-frame-label"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["Animation pausieren"].waitForExistence(timeout: 2))
         app.buttons["Animation pausieren"].tap()
         let details = app.buttons["forecast-details"]
@@ -146,19 +147,18 @@ final class WeatherSmokeTests: XCTestCase {
         let app = launchApp()
         let slider = app.sliders["Radarzeitpunkt"]
         guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
-        let play = app.buttons["Radaranimation starten"]
-        let now = timeButton(app)
-        XCTAssertGreaterThanOrEqual(play.frame.height, 44)
-        XCTAssertGreaterThanOrEqual(play.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(now.frame.height, 44)
-        XCTAssertLessThan(app.frame.maxY - play.frame.minY, 110, "Die gesamte untere Bedienung soll im unteren 110-Punkt-Bereich liegen.")
-        XCTAssertLessThanOrEqual(play.frame.maxX, slider.frame.minX)
-        XCTAssertLessThanOrEqual(now.frame.maxY, slider.frame.minY + 1, "Die Zeitanzeige liegt über dem Regler.")
+        let pill = timePill(app)
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Radaranimation starten"].exists, "Der Play-Knopf ist entfallen.")
+        XCTAssertGreaterThanOrEqual(pill.frame.height, 44)
+        XCTAssertLessThan(app.frame.maxY - slider.frame.minY, 90, "Die Zeitleistenkarte ist kompakt am unteren Rand (Regler + Home-Indikator-Bereich).")
+        XCTAssertLessThanOrEqual(pill.frame.maxY, slider.frame.minY, "Die Zeit-Pille liegt über dem Regler.")
+        XCTAssertEqual(pill.frame.midX, app.frame.midX, accuracy: 1, "Die Pille ist zentriert.")
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "timeline-normal"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        print("TIMELINE_NORMAL play=\(play.frame) slider=\(slider.frame) now=\(now.frame) screen=\(app.frame)")
+        print("TIMELINE_NORMAL slider=\(slider.frame) pill=\(pill.frame) screen=\(app.frame)")
     }
 
     func testTimelineAtMaximumDynamicTypeKeepsControlsSeparate() throws {
@@ -167,26 +167,26 @@ final class WeatherSmokeTests: XCTestCase {
         app.launch()
         let slider = app.sliders["Radarzeitpunkt"]
         guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
-        let play = app.buttons["Radaranimation starten"]
-        let now = timeButton(app)
-        XCTAssertTrue(play.isHittable)
-        XCTAssertTrue(now.isHittable)
-        XCTAssertGreaterThanOrEqual(now.frame.height, 44)
-        XCTAssertLessThanOrEqual(play.frame.maxX, slider.frame.minX)
-        XCTAssertLessThanOrEqual(now.frame.maxY, slider.frame.minY + 1, "Die Zeitanzeige liegt über dem Regler.")
+        let pill = timePill(app)
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        XCTAssertTrue(pill.isHittable)
+        XCTAssertGreaterThanOrEqual(pill.frame.height, 44)
+        XCTAssertLessThanOrEqual(pill.frame.maxY, slider.frame.minY, "Die Zeit-Pille liegt über dem Regler.")
+        XCTAssertGreaterThan(pill.frame.minY, app.buttons["forecast-details"].frame.maxY, "Die Pille liegt nicht über dem Header.")
         XCTAssertTrue(app.buttons["forecast-details"].isHittable)
         dragSlider(slider, to: 1)
-        XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
-        now.tap()
-        XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
+        XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
+        pill.press(forDuration: 0.8)
+        XCTAssertTrue(waitForValue(slider, containing: "Messung"))
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "timeline-maximum-dynamic-type"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        print("TIMELINE_AXMAX play=\(play.frame) slider=\(slider.frame) now=\(now.frame)")
+        print("TIMELINE_AXMAX slider=\(slider.frame) pill=\(pill.frame)")
     }
 
-    func testTimeShownOnceAndNoBubbleOrNowButton() throws {
+    /// The time is one standing pill (no bubble, no Jetzt button, no second time label); the pill never overlaps the slider.
+    func testTimeShownOnceAsStandingPill() throws {
         for large in [false, true] {
             let app = XCUIApplication()
             app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
@@ -196,22 +196,60 @@ final class WeatherSmokeTests: XCTestCase {
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
             XCTAssertFalse(app.buttons["Jetzt"].exists, "Der Jetzt-Button ist entfallen (large=\(large)).")
             dragSlider(slider, to: 0.8)
-            let times = app.descendants(matching: .any).matching(NSPredicate(format: "label MATCHES %@", "(.*[,·] )?\\d{1,2}:\\d{2}( [AP]M)?"))
-            XCTAssertEqual(times.count, 1, "Die Zeit erscheint genau einmal (large=\(large)).")
-            let time = timeButton(app)
+            let pills = app.descendants(matching: .any).matching(identifier: "radar-frame-label")
+            XCTAssertEqual(pills.count, 1, "Genau eine Zeit-Pille (large=\(large)).")
+            let times = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "(.*[,·] )?\\d{1,2}:\\d{2}( [AP]M)?"))
+            // Ignore the status bar clock and the pill's own text child (inside the pill's frame, not a separate element for VoiceOver).
+            let pillFrame = timePill(app).frame
+            let timeLabels = times.allElementsBoundByIndex.filter { $0.frame.minY > 100 && !pillFrame.contains($0.frame) }
+            XCTAssertEqual(timeLabels.count, 0, "Keine zweite Zeitanzeige oder Bubble (large=\(large)): \(timeLabels.map { "\($0.label)@\($0.frame)" })")
+            let time = timePill(app)
             XCTAssertTrue(time.isHittable)
-            XCTAssertFalse(time.frame.intersects(slider.frame), "Zeitanzeige und Regler überlappen nicht (large=\(large)).")
+            XCTAssertFalse(time.frame.intersects(slider.frame), "Zeit-Pille und Regler überlappen nicht (large=\(large)).")
             let shot = XCTAttachment(screenshot: app.screenshot())
             shot.name = large ? "timeline-time-maximum-type" : "timeline-time-normal"
             shot.lifetime = .keepAlways
             add(shot)
+            dragSlider(slider, to: 0.0)
+            XCTAssertTrue(waitForValue(slider, containing: "Messung"))
+            let past = XCTAttachment(screenshot: app.screenshot())
+            past.name = large ? "timeline-past-maximum-type" : "timeline-past-normal"
+            past.lifetime = .keepAlways
+            add(past)
             app.terminate()
         }
     }
 
-    /// The always-visible time row; tapping it jumps back to "now". Found by its time-only label.
-    private func timeButton(_ app: XCUIApplication) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label MATCHES %@", "(.*[,·] )?\\d{1,2}:\\d{2}( [AP]M)?")).firstMatch
+    private func timePill(_ app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "radar-frame-label").firstMatch
+    }
+
+    private func waitForLabel(_ element: XCUIElement, _ text: String, timeout: TimeInterval = 5) -> Bool {
+        let predicate = NSPredicate(format: "label == %@", text)
+        return XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
+    }
+
+    private func waitForValue(_ element: XCUIElement, containing text: String, timeout: TimeInterval = 5) -> Bool {
+        let predicate = NSPredicate(format: "value CONTAINS %@", text)
+        return XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
+    }
+
+    /// Tap plays/pauses; long press jumps to "Now" (Messung = reference slot or earlier, Vorhersage = later).
+    func testTimePillTapTogglesPlaybackAndLongPressJumpsToNow() throws {
+        let app = launchApp()
+        let slider = app.sliders["Radarzeitpunkt"]
+        guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
+        let pill = timePill(app)
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        XCTAssertEqual(pill.label, "Animation abspielen")
+        pill.tap()
+        XCTAssertTrue(waitForLabel(pill, "Animation pausieren"), "Tippen startet die Animation.")
+        pill.tap()
+        XCTAssertTrue(waitForLabel(pill, "Animation abspielen"), "Erneutes Tippen pausiert.")
+        dragSlider(slider, to: 1)
+        XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
+        pill.press(forDuration: 0.8)
+        XCTAssertTrue(waitForValue(slider, containing: "Messung"), "Gedrückt halten springt auf Jetzt.")
     }
 
     func testTimelineLayoutStaysStableBetweenMeasurementAndForecast() throws {
@@ -222,23 +260,21 @@ final class WeatherSmokeTests: XCTestCase {
             app.launch()
             let slider = app.sliders["Radarzeitpunkt"]
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
-            let play = app.buttons["Radaranimation starten"]
-            let now = timeButton(app)
-            func frames() -> [CGRect] { [slider.frame, play.frame, now.frame] }
-            now.tap()
+            let pill = timePill(app)
+            XCTAssertTrue(pill.waitForExistence(timeout: 5))
+            func frames() -> [CGRect] { [slider.frame, pill.frame] }
             let reference = frames()
             dragSlider(slider, to: 1)
-            XCTAssertTrue((slider.value as? String ?? "").contains("Vorhersage"))
+            XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
             let forecast = frames()
             dragSlider(slider, to: 0)
-            XCTAssertTrue((slider.value as? String ?? "").contains("Messung"))
+            XCTAssertTrue(waitForValue(slider, containing: "Messung"))
             let past = frames()
-            for (index, name) in ["slider", "play", "now"].enumerated() {
-                XCTAssertEqual(forecast[index].origin.x, reference[index].origin.x, accuracy: 0.5, "\(name) bleibt stehen (Vorhersage, large=\(large))")
-                XCTAssertEqual(forecast[index].width, reference[index].width, accuracy: 0.5, "\(name) Breite (Vorhersage, large=\(large))")
-                XCTAssertEqual(past[index].origin.x, reference[index].origin.x, accuracy: 0.5, "\(name) bleibt stehen (Messung, large=\(large))")
-                XCTAssertEqual(past[index].width, reference[index].width, accuracy: 0.5, "\(name) Breite (Messung, large=\(large))")
-                XCTAssertEqual(past[index].origin.y, reference[index].origin.y, accuracy: 0.5, "\(name) Höhe/Position (Messung, large=\(large))")
+            // Vertical position and the slider never move; the centred pill keeps its centre (its width may follow the text by a few points).
+            for (name, frame) in [("Vorhersage", forecast), ("Messung", past)] {
+                XCTAssertEqual(frame[0], reference[0], "Regler bleibt stehen (\(name), large=\(large))")
+                XCTAssertEqual(frame[1].origin.y, reference[1].origin.y, accuracy: 0.5, "Pille Höhe (\(name), large=\(large))")
+                XCTAssertEqual(frame[1].midX, reference[1].midX, accuracy: 0.5, "Pille bleibt zentriert (\(name), large=\(large))")
             }
             app.terminate()
         }
