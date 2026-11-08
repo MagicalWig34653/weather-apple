@@ -539,3 +539,6 @@ Quellencheckpoint: Commit „chore: Buildnummer 38“ (`3176433`, `CURRENT_PROJE
 ## Showers Build 39 (0.1.1): Upload (Xcode 27.1)
 
 Quellencheckpoint: Commit „chore: Buildnummer 39“ (`CURRENT_PROJECT_VERSION = 39`; Inhalt gegenüber Build 38: Info- und Prognosedetails-Sheet ohne Zoom (normal von unten), Zoom bei Warnungen und Orte unverändert). Verfahren wie Build 38 (`git archive`-Kopie `/private/tmp/showers-b39`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) 606 Unit- und 25 UI-Tests ohne Fehler.
+Lokaler Export und IPA-Prüfung: CFBundleVersion 39 und `PrivacyInfo.xcprivacy` in allen fünf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle. Archiv aus Commit `55a4495`.
+
+**Genau ein Upload, 8. November 2026 von 17:39 bis 17:42 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprüft.
