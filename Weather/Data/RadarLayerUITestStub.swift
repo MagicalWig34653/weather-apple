@@ -3,7 +3,8 @@ import Foundation
 
 /// UI tests only (Debug builds): `-UITestLayers wms|d2` simulates the layer manifests without network.
 /// `wms`: temperature from the WMS source (legend image); `d2`: temperature and dew point from ICON-D2 with scale ids
-/// (relative humidity stays unavailable, like with the server flag off). All other layers answer 404.
+/// (relative humidity stays unavailable, like with the server flag off); `d2rh`: like `d2` plus relative humidity.
+/// All other layers answer 404.
 extension RadarLayerStore {
     static var uiTestMode: String? {
         guard let index = CommandLine.arguments.firstIndex(of: "-UITestLayers"),
@@ -22,8 +23,10 @@ extension RadarLayerStore {
                 : ["temperature": ("Temperatur 2 m (ICON-D2)", "Datenbasis: Deutscher Wetterdienst (ICON-D2), Lufttemperatur 2 m bildlich wiedergegeben",
                                    ["source": "icon_d2", "scale": "t2m-d2-v1"]),
                    "dewpoint": ("Taupunkt 2 m (ICON-D2)", "Datenbasis: Deutscher Wetterdienst (ICON-D2), Taupunkt 2 m bildlich wiedergegeben",
-                                ["source": "icon_d2", "scale": "td-d2-v1"])]
-            guard let entry = known[id], request.url?.lastPathComponent == "latest.json" else { return (Data(), response(404)) }
+                                ["source": "icon_d2", "scale": "td-d2-v1"]),
+                   "humidity": ("Relative Feuchte 2 m (ICON-D2)", "Datenbasis: Deutscher Wetterdienst (ICON-D2), relative Feuchte 2 m bildlich wiedergegeben",
+                                ["source": "icon_d2", "scale": "rh-d2-v1"])]
+            guard let entry = known[id], id != "humidity" || mode == "d2rh", request.url?.lastPathComponent == "latest.json" else { return (Data(), response(404)) }
             let now = Date()
             let start = Date(timeIntervalSince1970: (now.timeIntervalSince1970 / 3600).rounded(.down) * 3600 - 3600)
             let iso = ISO8601DateFormatter()

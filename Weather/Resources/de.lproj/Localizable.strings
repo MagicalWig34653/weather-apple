@@ -124,3 +124,27 @@
 "LAYER_HUMIDITY_HINT" = "Relative Feuchte 2 m über Grund in Prozent, stündlich bis 48 Stunden voraus. Sie schwankt stark mit der Tageszeit. Modellprognose des DWD, kein Messwert.";
 "LAYER_FIELD_TOGGLE_HINT" = "Zeigt oder verbirgt die Legende und den Hinweis zum Modellwert";
 "LAYER_SCALE_UNKNOWN" = "Die Farbskala dieser Datenquelle ist in dieser App-Version noch nicht hinterlegt. Deshalb gibt es hier keine Legende, nur diesen Hinweis. Die Karte zeigt Modellwerte.";
+
+/* Temperatur-/Feuchtekarte P5: Legende, Wertabfrage, Wald */
+"TEMP_UNIT_PERCENT_SPOKEN" = "Prozent";
+"TEMP_UNIT_CELSIUS_SPOKEN" = "Grad Celsius";
+"TEMP_RANGE_BELOW" = "unter %@%@%@";
+"TEMP_RANGE_FROM" = "ab %@%@%@";
+"TEMP_RANGE_BETWEEN" = "%@ bis %@%@%@";
+"TEMP_READOUT" = "Etwa %@ (Modell)";
+"TEMP_READOUT_SPOKEN" = "Etwa %@, Modellwert";
+"TEMP_READOUT_NONE" = "Kein Wert an dieser Stelle";
+"TEMP_READOUT_UNREADABLE" = "Wert nicht lesbar";
+"TEMP_READOUT_HINT" = "Antippen der Karte nennt den Modellwert an dieser Stelle. Die Abfrage läuft auf dem Gerät, ohne Netz und ohne Standort.";
+"TEMP_READ_CENTER" = "Wert in Kartenmitte vorlesen";
+"TEMP_ROW_BELOW" = "unter %@";
+"TEMP_ROW_BELOW_SPOKEN" = "unter %@ %@";
+"TEMP_ROW_FROM" = "ab %@";
+"TEMP_ROW_FROM_SPOKEN" = "ab %@ %@";
+"TEMP_ROW_BETWEEN" = "%@ bis %@";
+"TEMP_ROW_BETWEEN_SPOKEN" = "%@ bis unter %@ %@";
+"TEMP_HUMIDITY_SWITCH" = "Feuchte";
+"TEMP_SWITCH_DEWPOINT" = "Taupunkt";
+"TEMP_SWITCH_HUMIDITY" = "Rel. Feuchte";
+"FOREST_TOGGLE" = "Wald";
+"FOREST_CAPTION" = "Waldfläche zur Orientierung, ohne Einfluss auf die Werte";

@@ -28,6 +28,7 @@ enum RadarLayerLegendText {
     /// Fail closed: the overlay stays, but no raster is guessed.
     static func sourceNote(for layer: RadarLayer, manifest: RadarLayerManifest?) -> String? {
         guard layer.isAirField, let manifest else { return nil }
+        if manifest.nativeScale != nil { return nil }
         switch (manifest.source, manifest.scale) {
         case ("wms", nil), (nil, nil): return nil
         default:
@@ -133,6 +134,10 @@ enum RadarLegendImageLoader {
 struct RadarLayerLegendPanel: View {
     let layer: RadarLayer
     let manifest: RadarLayerManifest?
+    /// 2 m fields: dew point / relative humidity layers the server offers (switch only with both) and the action.
+    var humidityChoices: [RadarLayer] = []
+    var onSelectLayer: (RadarLayer) -> Void = { _ in }
+    @AppStorage(ForestPreference.key) private var showForest = false
     @State private var image: CGImage?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -151,6 +156,9 @@ struct RadarLayerLegendPanel: View {
                             .background(.white, in: RoundedRectangle(cornerRadius: 6))
                             .accessibilityHidden(true)
                     }
+                    if humidityChoices.count > 1, humidityChoices.contains(layer) { humiditySwitch }
+                    if layer.isAirField { forestSwitch }
+                    if let scale = manifest?.nativeScale { scaleRows(scale) }
                     if layer == .cloudmask {
                         VStack(alignment: .leading, spacing: 3) {
                             ForEach(SunLegend.entries) { entry in
@@ -169,18 +177,76 @@ struct RadarLayerLegendPanel: View {
                     if let note = RadarLayerLegendText.sourceNote(for: layer, manifest: manifest) {
                         Text(note).font(.caption2)
                     }
+                    if layer.isAirField, manifest?.nativeScale != nil {
+                        Text(NSLocalizedString("TEMP_READOUT_HINT", value: "Antippen der Karte nennt den Modellwert an dieser Stelle. Die Abfrage läuft auf dem Gerät, ohne Netz und ohne Standort.", comment: "Readout hint"))
+                            .font(.caption2)
+                    }
                     if let manifest {
                         Text("\(manifest.attribution). \(manifest.modificationNotice).")
                             .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    if ForestPreference.isShown(layer: layer, visible: showForest, info: ForestInfo.bundled), let info = ForestInfo.bundled {
+                        Text(info.sourceLine).font(.caption2).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("forest-attribution")
                     }
             }
         }
     }
 
+    /// Dew point / relative humidity: only the layers the server really offers.
+    @ViewBuilder private var humiditySwitch: some View {
+        let picker = Picker(NSLocalizedString("TEMP_HUMIDITY_SWITCH", value: "Feuchte", comment: "Switch label"),
+                            selection: Binding(get: { layer }, set: { onSelectLayer($0) })) {
+            ForEach(humidityChoices) { choice in
+                Text(choice == .dewpoint ? NSLocalizedString("TEMP_SWITCH_DEWPOINT", value: "Taupunkt", comment: "Switch")
+                                         : NSLocalizedString("TEMP_SWITCH_HUMIDITY", value: "Rel. Feuchte", comment: "Switch")).tag(choice)
+            }
+        }
+        if dynamicTypeSize.isAccessibilitySize {
+            picker.pickerStyle(.menu).accessibilityIdentifier("humidity-switch")
+        } else {
+            picker.pickerStyle(.segmented).accessibilityIdentifier("humidity-switch")
+        }
+    }
+
+    /// Numerical scale: one row per label step (highest on top), swatches plus text, never colour alone.
+    private func scaleRows(_ scale: TemperatureScale) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(scale.legendRows.reversed()) { row in
+                HStack(spacing: 8) {
+                    HStack(spacing: 0) {
+                        ForEach(Array(row.bands.enumerated()), id: \.offset) { _, band in
+                            Rectangle().fill(Color(.sRGB, red: Double(band.red) / 255, green: Double(band.green) / 255, blue: Double(band.blue) / 255))
+                        }
+                    }
+                    .frame(width: 30, height: 12)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(.secondary.opacity(0.5), lineWidth: 0.5) }
+                    Text(row.label).font(.caption2.monospacedDigit())
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(row.spokenLabel)
+            }
+            Text(scale.unit == "%" ? "%" : "°C").font(.caption2.weight(.semibold)).accessibilityHidden(true)
+        }
+        .accessibilityIdentifier("temperature-scale")
+    }
+
+    private var forestSwitch: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Toggle(NSLocalizedString("FOREST_TOGGLE", value: "Wald", comment: "Forest switch"), isOn: $showForest)
+                .font(.caption.weight(.semibold))
+                .accessibilityIdentifier("forest-toggle")
+            Text(NSLocalizedString("FOREST_CAPTION", value: "Waldfläche zur Orientierung, ohne Einfluss auf die Werte", comment: "Forest caption"))
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                ScrollView { content }.frame(maxHeight: 360)
+            if dynamicTypeSize.isAccessibilitySize || layer.isAirField {
+                ScrollView { content }.scrollBounceBehavior(.basedOnSize)
+                    .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 360 : 300)
             } else {
                 content
             }

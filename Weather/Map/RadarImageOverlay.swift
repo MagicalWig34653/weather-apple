@@ -281,26 +281,6 @@ final class RadarImageRenderer: MKOverlayRenderer {
 
     override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
         guard let overlay = overlay as? RadarImageOverlay, let image = overlay.currentImage() else { return }
-        let bounds = overlay.boundingMapRect
-        let visible = mapRect.intersection(bounds)
-        guard !visible.isNull, visible.width > 0, visible.height > 0 else { return }
-        // Draw only the part of the image this tile chunk needs (1 px margin for interpolation),
-        // never the whole image scaled to the full overlay size.
-        let scale = Double(image.width) / bounds.width
-        var source = CGRect(x: (visible.minX - bounds.minX) * scale, y: (visible.minY - bounds.minY) * scale,
-                            width: visible.width * scale, height: visible.height * scale)
-            .insetBy(dx: -1, dy: -1).integral
-            .intersection(CGRect(x: 0, y: 0, width: image.width, height: image.height))
-        guard !source.isNull, source.width >= 1, source.height >= 1, let part = image.cropping(to: source) else { return }
-        source = CGRect(x: source.minX, y: source.minY, width: CGFloat(part.width), height: CGFloat(part.height))
-        let destination = self.rect(for: MKMapRect(x: bounds.minX + source.minX / scale, y: bounds.minY + source.minY / scale,
-                                                   width: source.width / scale, height: source.height / scale))
-        context.saveGState()
-        context.interpolationQuality = .medium
-        // Renderer contexts are flipped (y down); CGImage needs an upright drawing space.
-        context.translateBy(x: destination.minX, y: destination.maxY)
-        context.scaleBy(x: 1, y: -1)
-        context.draw(part, in: CGRect(x: 0, y: 0, width: destination.width, height: destination.height))
-        context.restoreGState()
+        drawCropped(image, imageBounds: overlay.boundingMapRect, mapRect: mapRect, in: context, quality: .medium)
     }
 }

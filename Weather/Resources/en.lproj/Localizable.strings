@@ -124,3 +124,27 @@
 "LAYER_HUMIDITY_HINT" = "Relative humidity 2 m above ground in percent, hourly up to 48 hours ahead. It varies strongly with the time of day. Model forecast by the DWD, not a measurement.";
 "LAYER_FIELD_TOGGLE_HINT" = "Shows or hides the legend and the note on the model value";
 "LAYER_SCALE_UNKNOWN" = "This app version does not know the colour scale of this data source yet, so there is no legend, only this note. The map shows model values.";
+
+/* Temperature/humidity map P5: legend, value readout, forest */
+"TEMP_UNIT_PERCENT_SPOKEN" = "percent";
+"TEMP_UNIT_CELSIUS_SPOKEN" = "degrees Celsius";
+"TEMP_RANGE_BELOW" = "below %@%@%@";
+"TEMP_RANGE_FROM" = "from %@%@%@";
+"TEMP_RANGE_BETWEEN" = "%@ to %@%@%@";
+"TEMP_READOUT" = "About %@ (model)";
+"TEMP_READOUT_SPOKEN" = "About %@, model value";
+"TEMP_READOUT_NONE" = "No value at this spot";
+"TEMP_READOUT_UNREADABLE" = "Value not readable";
+"TEMP_READOUT_HINT" = "Tapping the map gives the model value at that spot. The lookup runs on the device, without network and without location.";
+"TEMP_READ_CENTER" = "Read value at map centre";
+"TEMP_ROW_BELOW" = "below %@";
+"TEMP_ROW_BELOW_SPOKEN" = "below %@ %@";
+"TEMP_ROW_FROM" = "from %@";
+"TEMP_ROW_FROM_SPOKEN" = "from %@ %@";
+"TEMP_ROW_BETWEEN" = "%@ to %@";
+"TEMP_ROW_BETWEEN_SPOKEN" = "%@ to below %@ %@";
+"TEMP_HUMIDITY_SWITCH" = "Humidity";
+"TEMP_SWITCH_DEWPOINT" = "Dew point";
+"TEMP_SWITCH_HUMIDITY" = "Rel. humidity";
+"FOREST_TOGGLE" = "Forest";
+"FOREST_CAPTION" = "Forest cover for orientation, no effect on the values";

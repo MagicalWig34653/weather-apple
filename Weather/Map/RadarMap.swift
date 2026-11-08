@@ -15,6 +15,14 @@ struct RadarMap: UIViewRepresentable {
     var layer: RadarLayer = .radar
     /// Sun layer only: manifest of the visible-channel helper layer (`nil` = backend does not offer it, mask only).
     var visibleManifest: RadarManifest?
+    /// 2 m fields: native colour scale of the shown manifest (`nil` = unknown scale, no value readout).
+    var scale: TemperatureScale?
+    /// Forest orientation layer on (only drawn over 2 m fields).
+    var showForest = false
+    /// Counts "read the value in the map centre" requests (VoiceOver action, button).
+    var readoutRevision = 0
+    /// Local value readout of the tapped point (`nil` = none); never leaves the device.
+    var onReadout: @MainActor (ReadoutState?) -> Void = { _ in }
     let onSelect: (CLLocationCoordinate2D) -> Void
     /// Called when a backend image failed; the argument is the number of images loaded so far.
     var onBackendFailure: @MainActor (Int) -> Void = { _ in }
@@ -34,6 +42,10 @@ struct RadarMap: UIViewRepresentable {
         let press = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.selectPoint(_:)))
         press.minimumPressDuration = 0.6
         map.addGestureRecognizer(press)
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.readPoint(_:)))
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        map.addGestureRecognizer(tap)
         context.coordinator.map = map
         center(map, animated: false)
         context.coordinator.lastCenterRevision = centerRevision
@@ -43,6 +55,14 @@ struct RadarMap: UIViewRepresentable {
     func updateUIView(_ map: MKMapView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
+        defer {
+            coordinator.syncForest(map: map)
+            coordinator.refreshReadout(map: map)
+        }
+        if coordinator.lastReadoutRevision != readoutRevision {
+            coordinator.lastReadoutRevision = readoutRevision
+            coordinator.setProbe(map.centerCoordinate, announce: true)
+        }
         let contextMoved = coordinator.lastCenterRevision != centerRevision || coordinator.placeID != place.id
         // Keep MapKit attribution/controls above the forecast panel, including larger text sizes.
         map.layoutMargins = UIEdgeInsets(top: 96, left: 12, bottom: bottomInset + 12, right: 12)
@@ -123,7 +143,14 @@ struct RadarMap: UIViewRepresentable {
                                         latitudinalMeters: 180_000, longitudinalMeters: 180_000), animated: animated)
     }
 
-    @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
+    @MainActor final class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
+        var forestOverlay: ForestOverlay?
+        var lastReadoutRevision = 0
+        private var probe: CLLocationCoordinate2D?
+        private var probeAnnotation: ReadoutAnnotation?
+        private var announceNext = false
+        private var lastReadout: ReadoutState?
+
         var parent: RadarMap
         weak var map: MKMapView?
         var date: Date?
@@ -161,6 +188,93 @@ struct RadarMap: UIViewRepresentable {
             map.removeOverlays(map.overlays)
             overlay = nil; backendOverlay = nil; activeContextID = nil; currentState = nil
             date = nil; referenceTime = nil; reloadRevision = -1
+            forestOverlay = nil
+        }
+
+        // MARK: Forest
+
+        /// Forest above the field overlay, only while wanted. Re-added when a new field overlay came on top of it.
+        func syncForest(map: MKMapView) {
+            let wanted = ForestPreference.isShown(layer: parent.layer, visible: parent.showForest, info: ForestInfo.bundled)
+                && backendOverlay != nil
+            let present = forestOverlay.flatMap { forest in map.overlays.firstIndex(where: { $0 === forest }) }
+            if !wanted {
+                if let forest = forestOverlay { map.removeOverlay(forest) }
+                forestOverlay = nil
+                if present != nil { ForestImageStore.shared.release() }
+                return
+            }
+            if let present, let backendOverlay,
+               let fieldIndex = map.overlays.firstIndex(where: { $0 === backendOverlay }), present > fieldIndex { return }
+            if let forest = forestOverlay { map.removeOverlay(forest) }
+            guard let info = ForestInfo.bundled else { return }
+            let forest = ForestOverlay(info: info)
+            forestOverlay = forest
+            map.addOverlay(forest, level: .aboveRoads)
+        }
+
+        // MARK: Value readout (local, from the shown image)
+
+        func setProbe(_ coordinate: CLLocationCoordinate2D, announce: Bool) {
+            guard parent.layer.isAirField, parent.scale != nil else { return }
+            probe = coordinate
+            announceNext = announce
+            lastReadout = nil
+        }
+
+        func refreshReadout(map: MKMapView) {
+            guard parent.layer.isAirField, let scale = parent.scale, let probe else {
+                if probe != nil { clearProbe(map: map) }
+                return
+            }
+            if let annotation = probeAnnotation {
+                annotation.coordinate = probe
+                if !map.annotations.contains(where: { $0 === annotation }) { map.addAnnotation(annotation) }
+            } else {
+                let annotation = ReadoutAnnotation(coordinate: probe)
+                probeAnnotation = annotation
+                map.addAnnotation(annotation)
+            }
+            guard let overlay = backendOverlay, let image = overlay.currentImage() else { return }
+            let result = PixelReadout.result(image: image, latitude: probe.latitude, longitude: probe.longitude,
+                                             bounds: overlay.loader.manifest.bounds, scale: scale)
+            let state = ReadoutState(text: PixelReadout.text(result, scale: scale, spoken: false),
+                                     spoken: PixelReadout.text(result, scale: scale, spoken: true), announce: announceNext)
+            announceNext = false
+            guard state != lastReadout else { return }
+            lastReadout = state
+            let callback = parent.onReadout
+            Task { @MainActor in callback(state) }
+        }
+
+        private func clearProbe(map: MKMapView) {
+            probe = nil; lastReadout = nil; announceNext = false
+            if let annotation = probeAnnotation { map.removeAnnotation(annotation) }
+            probeAnnotation = nil
+            let callback = parent.onReadout
+            Task { @MainActor in callback(nil) }
+        }
+
+        @objc func readPoint(_ recognizer: UITapGestureRecognizer) {
+            guard recognizer.state == .ended, let map else { return }
+            setProbe(map.convert(recognizer.location(in: map), toCoordinateFrom: map), announce: true)
+            refreshReadout(map: map)
+        }
+
+        nonisolated func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                                           shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard annotation is ReadoutAnnotation else { return nil }
+            let view = MKAnnotationView(annotation: annotation, reuseIdentifier: "readout")
+            let configuration = UIImage.SymbolConfiguration(pointSize: 30, weight: .regular)
+            view.image = UIImage(systemName: "scope", withConfiguration: configuration)?
+                .withTintColor(.black, renderingMode: .alwaysOriginal)
+            view.layer.shadowColor = UIColor.white.cgColor
+            view.layer.shadowOpacity = 1; view.layer.shadowRadius = 2; view.layer.shadowOffset = .zero
+            view.canShowCallout = false
+            view.isAccessibilityElement = false
+            return view
         }
 
         /// Shows the selected slot from the cache backend. Slot changes only redraw the same
@@ -212,7 +326,10 @@ struct RadarMap: UIViewRepresentable {
                         let ok = await loader.demand(slot.url)
                         guard let self, let backendOverlay, self.backendOverlay === backendOverlay,
                               self.date == date, self.reloadRevision == revision else { return }
-                        if ok { map?.renderer(for: backendOverlay)?.setNeedsDisplay() }
+                        if ok {
+                            map?.renderer(for: backendOverlay)?.setNeedsDisplay()
+                            if let map { self.refreshReadout(map: map) }
+                        }
                         self.reportBackend(ok ? .ready : .failed, date: date, reference: reference, loader: loader)
                         if !ok { self.parent.onBackendFailure(loader.successCount) }
                     }
@@ -353,6 +470,11 @@ struct RadarMap: UIViewRepresentable {
         init(parent: RadarMap) { self.parent = parent }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if overlay is ForestOverlay {
+                let renderer = ForestOverlayRenderer(overlay: overlay)
+                renderer.alpha = ForestOverlay.opacity
+                return renderer
+            }
             if overlay is RadarImageOverlay {
                 let renderer = RadarImageRenderer(overlay: overlay)
                 renderer.alpha = (overlay as? RadarImageOverlay)?.opacity ?? 0.72
@@ -763,4 +885,17 @@ final class TileRequests: @unchecked Sendable {
         }
     }
     deinit { cancelAll() }
+}
+
+/// Result of the local value readout shown below the map.
+struct ReadoutState: Equatable, Sendable {
+    let text: String
+    let spoken: String
+    /// `true` right after the user tapped or asked for the centre value: VoiceOver announces it once.
+    let announce: Bool
+}
+
+final class ReadoutAnnotation: NSObject, MKAnnotation {
+    dynamic var coordinate: CLLocationCoordinate2D
+    init(coordinate: CLLocationCoordinate2D) { self.coordinate = coordinate }
 }

@@ -11,6 +11,10 @@ struct RadarScreen: View {
     @State private var sheet: Sheet?
     @State private var showSave = false
     @State private var showLegend = false
+    @AppStorage(ForestPreference.key) private var forestVisible = false
+    /// Local value readout of the tapped point (2 m fields) and the "read centre value" request counter.
+    @State private var readout: ReadoutState?
+    @State private var readoutRevision = 0
     @State private var placeName = ""
     @State private var radarLoadState: RadarLoadState?
     /// Calms the per-slot loading hint (see `SlotFeedbackGate`); `heldFeedback` is what is currently shown.
@@ -29,6 +33,9 @@ struct RadarScreen: View {
         var id: String { rawValue }
     }
 
+    /// Value readout exists only for 2 m fields with a known native scale.
+    private var canReadValue: Bool { store.layers.activeManifest?.nativeScale != nil && store.activeLayer.isAirField }
+
     var body: some View {
         ZStack(alignment: .top) {
             RadarMap(place: store.selectedPlace, date: store.displayFrameDate,
@@ -37,6 +44,13 @@ struct RadarScreen: View {
                      timeline: store.displayTimeline, prefetchActive: scenePhase == .active && !store.isPlaying,
                      bottomInset: mapBottomInset, layer: store.activeLayer,
                      visibleManifest: store.activeLayer == .cloudmask ? store.layers.sunVisibleManifest?.backend : nil,
+                     scale: store.layers.activeManifest?.nativeScale,
+                     showForest: forestVisible,
+                     readoutRevision: readoutRevision,
+                     onReadout: { state in
+                         readout = state
+                         if let state, state.announce { UIAccessibility.post(notification: .announcement, argument: state.spoken) }
+                     },
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
                      onBackendFailure: { loaded in
                          // Optional layers have no fallback: a failed layer image never switches the radar source.
@@ -51,6 +65,9 @@ struct RadarScreen: View {
                 .ignoresSafeArea()
                 .accessibilityLabel("\(store.activeLayer.spokenName) für \(store.selectedPlace.name)")
                 .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
+                .accessibilityAction(named: Text(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))) {
+                    if canReadValue { readoutRevision += 1 }
+                }
             VStack(spacing: 6) {
                 Spacer()
                 if let label = scrubStage?.label {
@@ -68,10 +85,19 @@ struct RadarScreen: View {
                         .transition(.opacity)
                         .accessibilityIdentifier("radar-slot-status")
                 }
-                if let line = store.displayAttributionLine {
+                if let readout {
+                    Label(readout.text, systemImage: "scope")
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 12).padding(.vertical, 7)
+                        .background(.regularMaterial, in: Capsule())
+                        .accessibilityLabel(readout.spoken)
+                        .accessibilityIdentifier("radar-readout")
+                }
+                if let line = ForestPreference.sourceLine(base: store.displayAttributionLine, layer: store.activeLayer,
+                                                          visible: forestVisible, info: ForestInfo.bundled) {
                     Text(line)
                         .font(.caption2).foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .lineLimit(ForestPreference.isShown(layer: store.activeLayer, visible: forestVisible, info: ForestInfo.bundled) ? 6 : 2)
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 8).padding(.vertical, 3)
@@ -97,7 +123,10 @@ struct RadarScreen: View {
                         if store.activeLayer == .radar {
                             RadarLegendPanel(legend: .precipitationRadar)
                         } else {
-                            RadarLayerLegendPanel(layer: store.activeLayer, manifest: store.layers.activeManifest)
+                            RadarLayerLegendPanel(
+                                layer: store.activeLayer, manifest: store.layers.activeManifest,
+                                humidityChoices: [RadarLayer.dewpoint, .humidity].filter { store.layers.availability($0) == .available },
+                                onSelectLayer: { store.layers.select($0) })
                         }
                     }
                     VStack(spacing: 14) {
@@ -111,6 +140,13 @@ struct RadarScreen: View {
                         .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
                         .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
                         .accessibilityIdentifier("radar-legend-toggle")
+                        if canReadValue {
+                            Button { readoutRevision += 1 } label: {
+                                Image(systemName: "scope").font(.system(size: 20)).frame(width: 46, height: 46)
+                            }
+                            .accessibilityLabel(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))
+                            .accessibilityIdentifier("radar-read-center")
+                        }
                         if warn.capabilityWarnings { warningsButton }
                         Button { sheet = .information } label: {
                             Image(systemName: "info.circle").font(.system(size: 20)).frame(width: 46, height: 46)

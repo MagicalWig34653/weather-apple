@@ -19,7 +19,7 @@
 - Skala und Farben nicht nur als Farbe: numerische Legende, `spokenLabel`, Wertabfrage; Palette gegen Farbfehlsichtigkeit geprüft (Skript).
 - Unbekannte `scale`/`source` in der App: kein erratenes Raster, nur Hinweistext (Fail-closed).
 - GRIB: Schablonen 3.0 und 5.0 mit Bitmap, Gitter 1215 x 746; alles andere verwerfen (`invalid`) und auf A zurückfallen.
-- Quellenvermerke: DWD "Quelle: Deutscher Wetterdienst" + Veränderungshinweis; Wald "(c) ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2020/2021) processed by ESA WorldCover consortium" (Wortlaut in P3.1 gegen die Nutzungsbedingungen prüfen).
+- Quellenvermerke: DWD "Quelle: Deutscher Wetterdienst" + Veränderungshinweis; Wald "(c) ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" (Wortlaut in P3.1 gegen die Nutzungsbedingungen prüfen).
 - Wald im App-Bundle: Ziel höchstens 1 MB, Messwert in `docs/status.md`.
 
 ## Wellen und Abhängigkeiten
@@ -198,6 +198,8 @@ Dateibesitz (keine Überschneidung innerhalb einer Welle): **P1** `BE Sources/Ra
 ---
 
 ## P5: App native Legende, Wertabfrage, Waldebene (APP)
+
+**Status (8.11.2026): umgesetzt**, Details, Pruefungen und Abweichungen in `docs/status.md`. Spec-Quellzeile Wald auf "(2021)" korrigiert.
 
 **Aufwand:** M. **Nach:** P1.0 (Skalen-JSON), P2, P3. **Build/Test:** ein einziger `xcodebuild`-Verantwortlicher (nach P2).
 

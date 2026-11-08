@@ -361,6 +361,59 @@ final class WeatherSmokeTests: XCTestCase {
         }
     }
 
+    /// Native scale legend, humidity switch (stub `d2rh`), forest switch and its source line, centre readout button.
+    /// The stub serves no images, so the readout itself is covered by unit tests.
+    func testScaleLegendHumiditySwitchAndForestAttribution() throws {
+        for large in [false, true] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestLayers", "d2rh"]
+                + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+            app.launch()
+            let menu = app.buttons["radar-layer-menu"]
+            XCTAssertTrue(menu.waitForExistence(timeout: 15))
+            let dew = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (Taupunkt)")).firstMatch
+            var opened = false
+            for _ in 0..<6 where !opened {
+                menu.tap()
+                opened = dew.waitForExistence(timeout: 3)
+                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
+            }
+            XCTAssertTrue(opened)
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (relativ)")).firstMatch.exists)
+            dew.tap()
+            app.buttons["radar-legend-toggle"].tap()
+            XCTAssertTrue(app.descendants(matching: .any)["radar-legend"].waitForExistence(timeout: 5))
+            let early = XCTAttachment(screenshot: app.screenshot())
+            early.name = large ? "scale-legend-xxxl" : "scale-legend-normal"
+            early.lifetime = .keepAlways
+            add(early)
+            XCTAssertTrue(app.descendants(matching: .any)["temperature-scale"].exists, "numerische Skala")
+            XCTAssertTrue(app.descendants(matching: .any)["humidity-switch"].exists, "Umschalter Taupunkt/relative Feuchte")
+            XCTAssertTrue(app.buttons["radar-read-center"].exists)
+            XCTAssertFalse(app.staticTexts["forest-attribution"].exists, "Wald standardmäßig aus")
+            let forest = app.descendants(matching: .any)["forest-toggle"]
+            XCTAssertTrue(forest.exists)
+            XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "WorldCover")).firstMatch.exists)
+            // At XXXL the stub's "image missing" banners push the panel partly off screen: existence only there.
+            if large {
+                let screenshot = XCTAttachment(screenshot: app.screenshot())
+                screenshot.name = "scale-legend-forest-xxxl"
+                screenshot.lifetime = .keepAlways
+                add(screenshot)
+                continue
+            }
+            forest.switches.firstMatch.tap()
+            XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "ESA WorldCover")).firstMatch.waitForExistence(timeout: 5),
+                          "Quellzeile nennt WorldCover bei eingeblendetem Wald")
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "scale-legend-forest-normal"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            // Setting is remembered: switch off again so later runs start clean.
+            forest.switches.firstMatch.tap()
+        }
+    }
+
     private func launchApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
