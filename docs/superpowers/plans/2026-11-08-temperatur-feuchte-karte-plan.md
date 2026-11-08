@@ -137,6 +137,8 @@ Dateibesitz (keine Überschneidung innerhalb einer Welle): **P1** `BE Sources/Ra
 
 ### Task P3.2: Werkzeug und Rohdaten
 
+**Status 08.11.2026: erledigt** (P3.1 und P3.2). Ergebnis, Abweichungen (4 Alpha-Stufen wegen 1-MB-Ziel, Hoehe 2622, 19 Kacheln, Attributionsjahr 2021) und Pruefung in `docs/research/wald-ebene.md`.
+
 **Files:** Create `APP tools/forest_overlay.py`; Output `APP Weather/Resources/Forest/forest-de-v1.webp` und `forest-de-v1.json` (Bounds EPSG:3857 der Radar-BBOX, Breite/Höhe, Quelle, Erzeugungsdatum, Attribution).
 
 - [ ] **Step 1:** Werkzeugprüfung: `which gdalinfo gdalwarp cwebp` (lokal: GDAL **nicht** installiert, `cwebp` vorhanden [G 08.11.]); falls GDAL fehlt, `brew install gdal` (kostenlos) oder eigener COG-Leser mit `zlib` (Stdlib) im Skript; Entscheidung dokumentieren.

@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "bounds_epsg3857": [
+    612257.5,
+    5942074.0,
+    1736584.0,
+    7381298.0
+  ],
+  "width": 2048,
+  "height": 2622,
+  "pixel_size_m": [
+    548.99,
+    548.9
+  ],
+  "alpha_meaning": "Waldanteil 0..100 % als Alpha 0..255, auf 4 Stufen quantisiert (Klasse 10 Baumbedeckung)",
+  "alpha_levels": [
+    0,
+    85,
+    170,
+    255
+  ],
+  "rgb": [
+    34,
+    120,
+    52
+  ],
+  "source": "ESA WorldCover 10 m 2021 v200, Klasse 10 (Tree cover)",
+  "source_doi": "10.5281/zenodo.7254221",
+  "license": "CC BY 4.0",
+  "attribution": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
+  "modification_notice": "Auf ca. 550 m gemittelter und in 4 Stufen gerundeter Waldanteil, eigene Faerbung",
+  "generated": "2026-11-08",
+  "tiles": [
+    "N45E003",
+    "N45E006",
+    "N45E009",
+    "N45E012",
+    "N45E015",
+    "N48E003",
+    "N48E006",
+    "N48E009",
+    "N48E012",
+    "N48E015",
+    "N51E003",
+    "N51E006",
+    "N51E009",
+    "N51E012",
+    "N51E015",
+    "N54E006",
+    "N54E009",
+    "N54E012",
+    "N54E015"
+  ]
+}
