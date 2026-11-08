@@ -110,7 +110,11 @@ Siehe Plan (P1 BE Variante A + Schalter + Vertrag, P2 APP Ebenen/Legende/Zeitlei
 3. Wald nur als einblendbare Orientierungsebene, keine Umrechnung, keine Waldkorrektur, kein "gefühlt".
 4. Eigene Frost-/Glätteschätzung (Teilprojekt 2) kommt nach dieser Karte.
 
-## 10. Offene Fragen an den Nutzer
+### Nachtrag 8. November 2026: Antworten auf §10 (verbindlich)
+
+1. **Taupunkt zuerst**, relative Feuchte per Server-Flag zuschaltbar (`TEMP_D2_PARAMS` mit `relhum_2m`), nicht Standard. 2. Im Betrieb zuerst Quelle **`wms`**; ICON-D2 später, Takt der Läufe **6 h** (`TEMP_D2_RUN_INTERVAL_HOURS=6` Standard, `3` konfigurierbar; ersetzt die 3 h in §3.3). 3. Wald **550 m** genügt für v1. 4. Wald nur bei Temperatur und Feuchte einblendbar. 5. Feuchte-Wörter (schwül/trocken) erst nach belegten Schwellen, bis dahin nur Zahlen.
+
+## 10. Offene Fragen an den Nutzer (beantwortet, siehe Nachtrag)
 
 1. **Ebenenname/Parameter:** Reicht Taupunkt als Standard (Empfehlung) mit relativer Feuchte hinter Flag, oder beide von Anfang an aktiv (zusätzlich ca. 51 MB Download je Lauf)?
 2. **Erste Quelle im Betrieb:** zunächst `wms` (nur Temperatur) oder gleich `icon_d2`? Läufe alle 3 h (1,2 GB/Tag mit allen drei Variablen) oder 6 h (halbiert)?

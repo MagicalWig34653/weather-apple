@@ -36,6 +36,8 @@ Dateibesitz (keine Überschneidung innerhalb einer Welle): **P1** `BE Sources/Ra
 
 ## P1: Backend Vertrag, Variante A, Schalter, Alias/Fallback (BE)
 
+**Stand 8.11.2026: umgesetzt** (Backend-Repo, Details und Abweichungen in dessen `docs/status.md`). Vertrag fuer P2/P5: Layer-IDs `temperature`/`dewpoint`/`humidity`, Manifest-Felder `source` (`wms`|`icon_d2`) und `scale` (nur `icon_d2`), Skalen `scales-v1.json` im Backend unter `docs/fixtures/scales/`. Nutzerentscheidungen: ICON-D2-Takt Standard 6 h (nicht 3 h), Taupunkt zuerst, Betrieb zuerst `wms`.
+
 **Aufwand:** L. **Nach:** Spec. **Build/Test:** `cd /Users/linolaske/Development/PhpstormProjects/weather && swift test --filter Temp` (Memory-Repo, ohne DB), vor Abschluss volle Suite.
 
 ### Task P1.0: Skalen-Vertrag und Palette
