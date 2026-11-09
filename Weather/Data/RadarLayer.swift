@@ -37,31 +37,31 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .radar: "Regenradar"
-        case .pressure: "Luftdruck"
-        case .pressureEU: "Luftdruck Europa"
-        case .lightning: "Blitze"
-        case .clouds: "Wolken"
-        case .cloudmask: "Sonne"
-        case .cloudmaskVis: "Sonne (sichtbarer Kanal)"
-        case .temperature: Self.localized("LAYER_TEMPERATURE_TITLE", "Temperatur")
-        case .dewpoint: Self.localized("LAYER_DEWPOINT_TITLE", "Feuchte (Taupunkt)")
-        case .humidity: Self.localized("LAYER_HUMIDITY_TITLE", "Feuchte (relativ)")
+        case .radar: NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Layer name or caption")
+        case .pressure: NSLocalizedString("LAYER_PRESSURE_TITLE", value: "Luftdruck", comment: "Layer name or caption")
+        case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_TITLE", value: "Luftdruck Europa", comment: "Layer name or caption")
+        case .lightning: NSLocalizedString("LAYER_LIGHTNING_TITLE", value: "Blitze", comment: "Layer name or caption")
+        case .clouds: NSLocalizedString("LAYER_CLOUDS_TITLE", value: "Wolken", comment: "Layer name or caption")
+        case .cloudmask: NSLocalizedString("LAYER_SUN_TITLE", value: "Sonne", comment: "Layer name or caption")
+        case .cloudmaskVis: NSLocalizedString("LAYER_SUN_VIS_TITLE", value: "Sonne (sichtbarer Kanal)", comment: "Layer name or caption")
+        case .temperature: NSLocalizedString("LAYER_TEMPERATURE_TITLE", value: "Temperatur", comment: "Layer name or caption")
+        case .dewpoint: NSLocalizedString("LAYER_DEWPOINT_TITLE", value: "Feuchte (Taupunkt)", comment: "Layer name or caption")
+        case .humidity: NSLocalizedString("LAYER_HUMIDITY_TITLE", value: "Feuchte (relativ)", comment: "Layer name or caption")
         }
     }
 
-    /// German VoiceOver name.
+    /// VoiceOver name.
     var spokenName: String {
         switch self {
-        case .radar: "Regenradar"
-        case .pressure: "Luftdruck, Isobaren"
-        case .pressureEU: "Luftdruck Europa, Isobaren"
-        case .lightning: "Blitze"
-        case .clouds: "Wolken, Satellitenbild"
-        case .cloudmask, .cloudmaskVis: "Sonne, Rückblick aus Satellit und Sonnenstand"
-        case .temperature: Self.localized("LAYER_TEMPERATURE_SPOKEN", "Temperatur 2 Meter über Grund, Modellwert")
-        case .dewpoint: Self.localized("LAYER_DEWPOINT_SPOKEN", "Feuchte als Taupunkt 2 Meter über Grund, Modellwert")
-        case .humidity: Self.localized("LAYER_HUMIDITY_SPOKEN", "Relative Feuchte 2 Meter über Grund, Modellwert")
+        case .radar: NSLocalizedString("LAYER_RADAR_SPOKEN", value: "Regenradar", comment: "Layer name or caption")
+        case .pressure: NSLocalizedString("LAYER_PRESSURE_SPOKEN", value: "Luftdruck, Isobaren", comment: "Layer name or caption")
+        case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_SPOKEN", value: "Luftdruck Europa, Isobaren", comment: "Layer name or caption")
+        case .lightning: NSLocalizedString("LAYER_LIGHTNING_SPOKEN", value: "Blitze", comment: "Layer name or caption")
+        case .clouds: NSLocalizedString("LAYER_CLOUDS_SPOKEN", value: "Wolken, Satellitenbild", comment: "Layer name or caption")
+        case .cloudmask, .cloudmaskVis: NSLocalizedString("LAYER_SUN_SPOKEN", value: "Sonne, Rückblick aus Satellit und Sonnenstand", comment: "Layer name or caption")
+        case .temperature: NSLocalizedString("LAYER_TEMPERATURE_SPOKEN", value: "Temperatur 2 Meter über Grund, Modellwert", comment: "Layer name or caption")
+        case .dewpoint: NSLocalizedString("LAYER_DEWPOINT_SPOKEN", value: "Feuchte als Taupunkt 2 Meter über Grund, Modellwert", comment: "Layer name or caption")
+        case .humidity: NSLocalizedString("LAYER_HUMIDITY_SPOKEN", value: "Relative Feuchte 2 Meter über Grund, Modellwert", comment: "Layer name or caption")
         }
     }
 
@@ -78,7 +78,10 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// VoiceOver label of the time slider.
-    var timeAxisLabel: String { self == .radar ? "Radarzeitpunkt" : "Zeitpunkt \(title)" }
+    var timeAxisLabel: String {
+        self == .radar ? NSLocalizedString("LAYER_TIME_AXIS_RADAR", value: "Radarzeitpunkt", comment: "Layer name or caption")
+            : String(format: NSLocalizedString("LAYER_TIME_AXIS", value: "Zeitpunkt %@", comment: "Layer name or caption"), title)
+    }
 
     /// Own time grid per layer (minutes); only documentation/tests, the real step comes from the manifest.
     var nominalStepMinutes: Int {
@@ -139,19 +142,17 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Caption below the slider time.
     func frameCaption(isForecast: Bool) -> String {
         switch self {
-        case .cloudmask: "Rückblick"
-        case .radar, .lightning, .clouds: isForecast ? "Vorhersage" : "Messung"
-        case .pressure, .pressureEU: isForecast ? "Vorhersage" : "Modell"
-        case .cloudmaskVis: "Rückblick"
+        case .cloudmask: NSLocalizedString("LAYER_CAPTION_LOOKBACK", value: "Rückblick", comment: "Layer name or caption")
+        case .radar, .lightning, .clouds:
+            isForecast ? NSLocalizedString("LAYER_CAPTION_FORECAST", value: "Vorhersage", comment: "Layer name or caption") : NSLocalizedString("LAYER_CAPTION_MEASUREMENT", value: "Messung", comment: "Layer name or caption")
+        case .pressure, .pressureEU:
+            isForecast ? NSLocalizedString("LAYER_CAPTION_FORECAST", value: "Vorhersage", comment: "Layer name or caption") : NSLocalizedString("LAYER_CAPTION_MODEL", value: "Modell", comment: "Layer name or caption")
+        case .cloudmaskVis: NSLocalizedString("LAYER_CAPTION_LOOKBACK", value: "Rückblick", comment: "Layer name or caption")
         // Never a measurement: "Modell" for the analysis slot, "Modellvorhersage" for later slots.
         case .temperature, .dewpoint, .humidity:
-            isForecast ? Self.localized("LAYER_CAPTION_MODEL_FORECAST", "Modellvorhersage")
-                : Self.localized("LAYER_CAPTION_MODEL", "Modell")
+            isForecast ? NSLocalizedString("LAYER_CAPTION_MODEL_FORECAST", value: "Modellvorhersage", comment: "Layer name or caption")
+                : NSLocalizedString("LAYER_CAPTION_MODEL", value: "Modell", comment: "Layer name or caption")
         }
-    }
-
-    private static func localized(_ key: String, _ german: String) -> String {
-        NSLocalizedString(key, value: german, comment: "Layer name or caption")
     }
 
     var backendPathComponent: String { rawValue }
@@ -181,10 +182,10 @@ enum LayerAvailability: Equatable, Sendable {
     var hint: String? {
         switch self {
         case .unknown, .available: nil
-        case .notPublished: "nicht verfügbar"
-        case .unreachable: "nicht erreichbar"
-        case .invalid: "nicht lesbar"
-        case .stale: "nicht aktuell"
+        case .notPublished: NSLocalizedString("LAYER_STATE_UNAVAILABLE", value: "nicht verfügbar", comment: "Layer state")
+        case .unreachable: NSLocalizedString("LAYER_STATE_UNREACHABLE", value: "nicht erreichbar", comment: "Layer state")
+        case .invalid: NSLocalizedString("LAYER_STATE_UNREADABLE", value: "nicht lesbar", comment: "Layer state")
+        case .stale: NSLocalizedString("LAYER_STATE_STALE", value: "nicht aktuell", comment: "Layer state")
         }
     }
 }
@@ -588,7 +589,8 @@ extension WeatherStore {
         if layers.active == .radar {
             guard timeline != nil else { return nil }
             return "\(radarAttribution.attribution) · \(radarSource.label)"
-                + (historyStatus == .unavailable && radarSource == .cache ? " · Historie nicht verfügbar" : "")
+                + (historyStatus == .unavailable && radarSource == .cache
+                   ? NSLocalizedString("RADAR_HISTORY_UNAVAILABLE_SUFFIX", value: " · Historie nicht verfügbar", comment: "Source line suffix") : "")
         }
         guard let manifest = layers.activeManifest else { return nil }
         return "\(manifest.attribution) · \(RadarSource.cache.label)"

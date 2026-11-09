@@ -6,15 +6,12 @@ import SwiftUI
 enum RadarLayerLegendText {
     static func hint(for layer: RadarLayer) -> String {
         switch layer {
-        case .radar: "Niederschlag in Millimeter pro Stunde."
-        case .pressure, .pressureEU:
-            "Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage\(layer == .pressureEU ? ", Ausschnitt Europa" : ""). Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind."
-        case .lightning:
-            "Blitzdichte der letzten 15 Minuten (NowCastMIX des DWD). Je kräftiger die Farbe, desto mehr Blitze in dem Gebiet."
-        case .clouds:
-            "Satellitenbild von Meteosat: Wolken erscheinen weiß bis grau. Es gibt keine Farbskala, und das Bild zeigt Bewölkung, keinen Niederschlag."
-        case .cloudmask, .cloudmaskVis:
-            "Rückblick, keine Vorhersage: Wolkenmaske von Meteosat (Satellit, 25 bis 40 Minuten alt) kombiniert mit dem berechneten Sonnenstand. Die Maske kennt nur klar oder bewölkt, keine Wolkendicke: dünne Wolken zählen als bewölkt. Tagsüber verfeinert, wenn der Server ihn liefert, der sichtbare Kanal die Bewölkung weich; bei tiefem Sonnenstand und nachts gilt nur die Maske. Kein Schattenwurf, Nebel kann als klar erscheinen."
+        case .radar: NSLocalizedString("LEGEND_RADAR_HINT", value: "Niederschlag in Millimeter pro Stunde.", comment: "Legend hint")
+        case .pressure: NSLocalizedString("LEGEND_PRESSURE_HINT", value: "Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage. Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind.", comment: "Legend hint")
+        case .pressureEU: NSLocalizedString("LEGEND_PRESSURE_EU_HINT", value: "Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage, Ausschnitt Europa. Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind.", comment: "Legend hint")
+        case .lightning: NSLocalizedString("LEGEND_LIGHTNING_HINT", value: "Blitzdichte der letzten 15 Minuten (NowCastMIX des DWD). Je kräftiger die Farbe, desto mehr Blitze in dem Gebiet.", comment: "Legend hint")
+        case .clouds: NSLocalizedString("LEGEND_CLOUDS_HINT", value: "Satellitenbild von Meteosat: Wolken erscheinen weiß bis grau. Es gibt keine Farbskala, und das Bild zeigt Bewölkung, keinen Niederschlag.", comment: "Legend hint")
+        case .cloudmask, .cloudmaskVis: NSLocalizedString("LEGEND_SUN_HINT", value: "Rückblick, keine Vorhersage: Wolkenmaske von Meteosat (Satellit, 25 bis 40 Minuten alt) kombiniert mit dem berechneten Sonnenstand. Die Maske kennt nur klar oder bewölkt, keine Wolkendicke: dünne Wolken zählen als bewölkt. Tagsüber verfeinert, wenn der Server ihn liefert, der sichtbare Kanal die Bewölkung weich; bei tiefem Sonnenstand und nachts gilt nur die Maske. Kein Schattenwurf, Nebel kann als klar erscheinen.", comment: "Legend hint")
         case .temperature:
             NSLocalizedString("LAYER_TEMPERATURE_HINT", value: "Lufttemperatur 2 m über Grund in Grad Celsius, stündlich bis 48 Stunden voraus. Modellprognose des DWD, kein Messwert: im Gelände, in Tälern und Städten kann es deutlich abweichen.", comment: "Legend hint")
         case .dewpoint:
@@ -48,12 +45,12 @@ enum RadarLayerLegendText {
 
     static func title(for layer: RadarLayer) -> String {
         switch layer {
-        case .radar: "Niederschlag in mm/h"
-        case .pressure: "Luftdruck (Isobaren)"
-        case .pressureEU: "Luftdruck Europa (Isobaren)"
-        case .lightning: "Blitzdichte"
-        case .clouds: "Wolken"
-        case .cloudmask, .cloudmaskVis: "Sonne"
+        case .radar: NSLocalizedString("LEGEND_TITLE_RADAR", value: "Niederschlag in mm/h", comment: "Legend title")
+        case .pressure: NSLocalizedString("LEGEND_TITLE_PRESSURE", value: "Luftdruck (Isobaren)", comment: "Legend title")
+        case .pressureEU: NSLocalizedString("LEGEND_TITLE_PRESSURE_EU", value: "Luftdruck Europa (Isobaren)", comment: "Legend title")
+        case .lightning: NSLocalizedString("LEGEND_TITLE_LIGHTNING", value: "Blitzdichte", comment: "Legend title")
+        case .clouds: NSLocalizedString("LAYER_CLOUDS_TITLE", value: "Wolken", comment: "Legend title")
+        case .cloudmask, .cloudmaskVis: NSLocalizedString("LAYER_SUN_TITLE", value: "Sonne", comment: "Legend title")
         case .temperature: NSLocalizedString("LAYER_TEMPERATURE_LEGEND_TITLE", value: "Temperatur 2 m (Modell)", comment: "Legend title")
         case .dewpoint: NSLocalizedString("LAYER_DEWPOINT_LEGEND_TITLE", value: "Taupunkt 2 m (Modell)", comment: "Legend title")
         case .humidity: NSLocalizedString("LAYER_HUMIDITY_LEGEND_TITLE", value: "Relative Feuchte 2 m (Modell)", comment: "Legend title")
@@ -63,11 +60,11 @@ enum RadarLayerLegendText {
     /// Hint for the legend toggle button.
     static func toggleHint(for layer: RadarLayer) -> String {
         switch layer {
-        case .radar: "Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde"
-        case .pressure, .pressureEU: "Zeigt oder verbirgt den Hinweis zu den Isobaren"
-        case .lightning: "Zeigt oder verbirgt die Legende der Blitzdichte"
-        case .clouds: "Zeigt oder verbirgt den Hinweis zum Satellitenbild"
-        case .cloudmask, .cloudmaskVis: "Zeigt oder verbirgt die Legende der Sonnenebene"
+        case .radar: NSLocalizedString("LEGEND_TOGGLE_RADAR", value: "Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde", comment: "Legend toggle hint")
+        case .pressure, .pressureEU: NSLocalizedString("LEGEND_TOGGLE_PRESSURE", value: "Zeigt oder verbirgt den Hinweis zu den Isobaren", comment: "Legend toggle hint")
+        case .lightning: NSLocalizedString("LEGEND_TOGGLE_LIGHTNING", value: "Zeigt oder verbirgt die Legende der Blitzdichte", comment: "Legend toggle hint")
+        case .clouds: NSLocalizedString("LEGEND_TOGGLE_CLOUDS", value: "Zeigt oder verbirgt den Hinweis zum Satellitenbild", comment: "Legend toggle hint")
+        case .cloudmask, .cloudmaskVis: NSLocalizedString("LEGEND_TOGGLE_SUN", value: "Zeigt oder verbirgt die Legende der Sonnenebene", comment: "Legend toggle hint")
         case .temperature, .dewpoint, .humidity:
             NSLocalizedString("LAYER_FIELD_TOGGLE_HINT", value: "Zeigt oder verbirgt die Legende und den Hinweis zum Modellwert", comment: "Legend toggle hint")
         }
@@ -78,15 +75,15 @@ enum RadarLayerLegendText {
 /// no "heiter" class, because the mask has no cloud thickness.
 enum SunLegend {
     static let entries: [MapLegendEntry] = [
-        .init(id: "sunny", label: "Sonnig (Tag, klar)", spokenLabel: "Sonnig: Sonne über dem Horizont und laut Satellit klar",
+        .init(id: "sunny", label: NSLocalizedString("LEGEND_SUN_SUNNY", value: "Sonnig (Tag, klar)", comment: "Sun legend"), spokenLabel: NSLocalizedString("LEGEND_SUN_SUNNY_SPOKEN", value: "Sonnig: Sonne über dem Horizont und laut Satellit klar", comment: "Sun legend"),
               red: UInt8(SunOverlay.sunny.r), green: UInt8(SunOverlay.sunny.g), blue: UInt8(SunOverlay.sunny.b), opacity: SunOverlay.sunny.a + 0.2),
-        .init(id: "cloudy", label: "Bewölkt (Tag)", spokenLabel: "Bewölkt: Sonne über dem Horizont, laut Satellit bedeckt",
+        .init(id: "cloudy", label: NSLocalizedString("LEGEND_SUN_CLOUDY", value: "Bewölkt (Tag)", comment: "Sun legend"), spokenLabel: NSLocalizedString("LEGEND_SUN_CLOUDY_SPOKEN", value: "Bewölkt: Sonne über dem Horizont, laut Satellit bedeckt", comment: "Sun legend"),
               red: UInt8(SunOverlay.cloudy.r), green: UInt8(SunOverlay.cloudy.g), blue: UInt8(SunOverlay.cloudy.b), opacity: SunOverlay.cloudy.a + 0.3),
-        .init(id: "civil", label: "Dämmerung", spokenLabel: "Dämmerung: Sonne bis 18 Grad unter dem Horizont, zunehmend dunkler",
+        .init(id: "civil", label: NSLocalizedString("LEGEND_SUN_TWILIGHT", value: "Dämmerung", comment: "Sun legend"), spokenLabel: NSLocalizedString("LEGEND_SUN_TWILIGHT_SPOKEN", value: "Dämmerung: Sonne bis 18 Grad unter dem Horizont, zunehmend dunkler", comment: "Sun legend"),
               red: 8, green: 14, blue: 42, opacity: 0.3),
-        .init(id: "night", label: "Nacht", spokenLabel: "Nacht: Sonne mehr als 18 Grad unter dem Horizont",
+        .init(id: "night", label: NSLocalizedString("LEGEND_SUN_NIGHT", value: "Nacht", comment: "Sun legend"), spokenLabel: NSLocalizedString("LEGEND_SUN_NIGHT_SPOKEN", value: "Nacht: Sonne mehr als 18 Grad unter dem Horizont", comment: "Sun legend"),
               red: 8, green: 14, blue: 42, opacity: 0.68),
-        .init(id: "terminator", label: "Grenze Tag/Nacht", spokenLabel: "Dünne helle Linie: Grenze zwischen Tag und Nacht",
+        .init(id: "terminator", label: NSLocalizedString("LEGEND_SUN_TERMINATOR", value: "Grenze Tag/Nacht", comment: "Sun legend"), spokenLabel: NSLocalizedString("LEGEND_SUN_TERMINATOR_SPOKEN", value: "Dünne helle Linie: Grenze zwischen Tag und Nacht", comment: "Sun legend"),
               red: 255, green: 236, blue: 190)
     ]
 }
@@ -266,7 +263,7 @@ struct RadarLayerLegendPanel: View {
         .fixedSize(horizontal: false, vertical: true)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Legende \(layer.title)")
+        .accessibilityLabel(String(format: NSLocalizedString("RADAR_LEGEND_LABEL", value: "Legende %@", comment: "Radar"), layer.title))
         .accessibilityIdentifier("radar-legend")
         .task(id: manifest?.legend?.url) {
             guard RadarLayerLegendText.usesLegendImage(for: layer, manifest: manifest), let reference = manifest?.legend else { image = nil; return }

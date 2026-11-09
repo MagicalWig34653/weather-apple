@@ -30,13 +30,13 @@ enum ScrubStage: Int, CaseIterable, Comparable, Sendable {
         }
     }
 
-    /// Short German feedback while dragging; `nil` for the normal stage.
+    /// Short feedback while dragging; `nil` for the normal stage.
     var label: String? {
         switch self {
         case .normal: nil
-        case .half: "Halbe Geschwindigkeit"
-        case .quarter: "Viertel-Geschwindigkeit"
-        case .fine: "Feinsteuerung"
+        case .half: NSLocalizedString("TIMELINE_SCRUB_HALF", value: "Halbe Geschwindigkeit", comment: "Scrub stage")
+        case .quarter: NSLocalizedString("TIMELINE_SCRUB_QUARTER", value: "Viertel-Geschwindigkeit", comment: "Scrub stage")
+        case .fine: NSLocalizedString("TIMELINE_SCRUB_FINE", value: "Feinsteuerung", comment: "Scrub stage")
         }
     }
 
@@ -113,17 +113,19 @@ enum PlaybackWindow {
     }
 }
 
-/// German VoiceOver text for the timeline slider (value, step and move logic), free of UI so it is unit-testable.
+/// VoiceOver text for the timeline slider (value, step and move logic), free of UI so it is unit-testable.
 enum TimelineAccessibility {
     /// "HH:mm, Messung" / "Vorhersage"; names the day (e.g. "Fr., 30. Okt., 23:55, Messung") when it is not the reference day.
     static func value(date: Date?, isForecast: Bool, reference: Date?, calendar: Calendar = .current,
-                      locale: Locale = Locale(identifier: "de_DE"), caption: String? = nil) -> String {
-        guard let date else { return "Unbekannt" }
+                      locale: Locale = .current, caption: String? = nil) -> String {
+        guard let date else { return NSLocalizedString("TIMELINE_UNKNOWN", value: "Unbekannt", comment: "Timeline value") }
         var text = date.formatted(.dateTime.hour().minute().locale(locale))
         if let reference, !calendar.isDate(date, inSameDayAs: reference) {
             text = date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(locale)) + ", " + text
         }
-        return "\(text), \(caption ?? (isForecast ? "Vorhersage" : "Messung"))"
+        let word = caption ?? (isForecast ? NSLocalizedString("LAYER_CAPTION_FORECAST", value: "Vorhersage", comment: "Layer name or caption")
+                                          : NSLocalizedString("LAYER_CAPTION_MEASUREMENT", value: "Messung", comment: "Layer name or caption"))
+        return "\(text), \(word)"
     }
 
     /// Index after a VoiceOver increment (+1) or decrement (-1); stays within the slots.

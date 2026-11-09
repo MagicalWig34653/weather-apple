@@ -42,6 +42,7 @@
 		2C1B9B24C34E78D4E2248796 /* SunMaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6018099B64B163F2C896E19 /* SunMaskTests.swift */; };
 		2CD5AE787F1A1C3084FFA463 /* PushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05E42607D07EFF4916F6D7D /* PushTests.swift */; };
 		2D04244DF258A543C6B7C6E6 /* PixelReadoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796AB54092884CB077B30165 /* PixelReadoutTests.swift */; };
+		2D2396336B5A33F83F839249 /* RadarEnglishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C15E85470A90E23A2F92CB7 /* RadarEnglishTests.swift */; };
 		2DD5FF78C21C8E03F62B8073 /* WeatherStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F8FE16C19C5BE9106AE9D4 /* WeatherStore.swift */; };
 		3235BAD98627B4A1A41E6299 /* WarningNotificationText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5885CB7D5218A56A13B1E6 /* WarningNotificationText.swift */; };
 		32E5BC5AD66C41818D563927 /* ForecastCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45AC674C1BC6565A9747880 /* ForecastCache.swift */; };
@@ -201,6 +202,7 @@
 		CC458C7884F536183181BC11 /* RadarScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A440D7382B3E3A38BDB4DE9A /* RadarScreen.swift */; };
 		CE3C6ED65668F452019C5D5F /* TemperatureScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF85868E74A383961907D79 /* TemperatureScaleTests.swift */; };
 		CE600B6E262288FE7C5EE6E9 /* RadarLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2783C476525B964D6423D7 /* RadarLayerTests.swift */; };
+		CE9C7455F028DB5AC30829AA /* RadarLocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 644477897CAB2CA1D4977AD7 /* RadarLocalizationTests.swift */; };
 		CFF6185C499996B91BB926F6 /* SharedStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE612EC61757EC43E7C452B /* SharedStorageTests.swift */; };
 		D2A91364788C1F526A607365 /* PlacesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36810EBB689143D24E645BAD /* PlacesSheet.swift */; };
 		D3780BCBAD82DB83E7CEE7FC /* AppWidgetIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3689859954B0D5427E9040 /* AppWidgetIntegrationTests.swift */; };
@@ -407,11 +409,13 @@
 		61CDEBBB74B55C46B73047CE /* forest-de-v1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "forest-de-v1.json"; sourceTree = "<group>"; };
 		62EBA2CD8D6F764BF574CD77 /* RadarMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarMap.swift; sourceTree = "<group>"; };
 		6422AD7A28B3F83EBA931E76 /* WarningPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningPresentationTests.swift; sourceTree = "<group>"; };
+		644477897CAB2CA1D4977AD7 /* RadarLocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLocalizationTests.swift; sourceTree = "<group>"; };
 		64BC2AA69647D32EB7906CA6 /* WarnGatewayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnGatewayTests.swift; sourceTree = "<group>"; };
 		6552ED0F0BA86E40F95403D1 /* forest-de-v1.webp */ = {isa = PBXFileReference; path = "forest-de-v1.webp"; sourceTree = "<group>"; };
 		675CCA6FAED802E013E30A91 /* WarnFeedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnFeedTests.swift; sourceTree = "<group>"; };
 		68BBD9CDA345943E9413FDE5 /* RainBarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainBarChart.swift; sourceTree = "<group>"; };
 		6BE612EC61757EC43E7C452B /* SharedStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStorageTests.swift; sourceTree = "<group>"; };
+		6C15E85470A90E23A2F92CB7 /* RadarEnglishTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarEnglishTests.swift; sourceTree = "<group>"; };
 		6C16D04B5FE323C2D2B475C0 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6F7B3D1CE91807719FEDFDD2 /* RadarLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarLegend.swift; sourceTree = "<group>"; };
 		726B436C0E12726B60981BCB /* PlaceEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceEntity.swift; sourceTree = "<group>"; };
@@ -536,6 +540,7 @@
 		300BB2229F474C45AD8DA764 /* WeatherUITests */ = {
 			isa = PBXGroup;
 			children = (
+				6C15E85470A90E23A2F92CB7 /* RadarEnglishTests.swift */,
 				8937CBAA8908C4993B3CCFC4 /* UITestLaunch.swift */,
 				D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */,
 			);
@@ -594,6 +599,7 @@
 				DA63B6A013727DF97BC2FE8B /* RadarHistoryTests.swift */,
 				1B2783C476525B964D6423D7 /* RadarLayerTests.swift */,
 				4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */,
+				644477897CAB2CA1D4977AD7 /* RadarLocalizationTests.swift */,
 				EBC9EBD9EB7EC18BA4EE6C0D /* RadarPollScheduleTests.swift */,
 				16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */,
 				89C6E818DA20B198D44B2860 /* RainActivityContractTests.swift */,
@@ -1355,6 +1361,7 @@
 				0781212813E824E22BB277EF /* RadarHistoryTests.swift in Sources */,
 				CE600B6E262288FE7C5EE6E9 /* RadarLayerTests.swift in Sources */,
 				C47A6FE5458CA968A49A5BF7 /* RadarLegendTests.swift in Sources */,
+				CE9C7455F028DB5AC30829AA /* RadarLocalizationTests.swift in Sources */,
 				59C05B2C531A8C515A468777 /* RadarPollScheduleTests.swift in Sources */,
 				FC53F4ADAD5AE068572020BE /* RadarPrefetchTests.swift in Sources */,
 				C91DE7525CE8DA49DA94820C /* RainActivityContractTests.swift in Sources */,
@@ -1473,6 +1480,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2D2396336B5A33F83F839249 /* RadarEnglishTests.swift in Sources */,
 				6CA759BB4928578FA47BBF7C /* UITestLaunch.swift in Sources */,
 				86B36E4BDF49626AAF532EB6 /* WeatherSmokeTests.swift in Sources */,
 			);

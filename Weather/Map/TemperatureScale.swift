@@ -98,10 +98,9 @@ struct TemperatureScale: Equatable, Sendable {
 
     // MARK: Text
 
-    private static func number(_ value: Double) -> String {
-        let text = value == value.rounded() ? String(Int(value)) : String(value)
-        let localized = Locale.current.language.languageCode?.identifier == "de" ? text.replacingOccurrences(of: ".", with: ",") : text
-        return localized.replacingOccurrences(of: "-", with: "\u{2212}")
+    /// Locale number (decimal separator from `locale`), typographic minus U+2212. No language special cases.
+    static func number(_ value: Double, locale: Locale = .current) -> String {
+        LocaleFormat.decimal(value, maxFractionDigits: 2, useTypographicMinus: true, locale: locale)
     }
 
     private var isPercent: Bool { unit == "%" }

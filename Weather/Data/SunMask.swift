@@ -371,6 +371,9 @@ enum SunPlace {
     static func cloudLine(_ cloudClass: CloudMaskClass?, slotTime: Date, now: Date) -> String? {
         guard let cloudClass, cloudClass != .unknown else { return nil }
         let minutes = max(0, Int((now.timeIntervalSince(slotTime) / 60).rounded(.down)))
-        return "Aktuell \(cloudClass.isClear ? "klar" : "bewölkt") (Satellit, vor \(minutes) min)"
+        return String(format: cloudClass.isClear
+                      ? NSLocalizedString("SUN_CLOUD_CLEAR", value: "Aktuell klar (Satellit, vor %d min)", comment: "Place cloud line")
+                      : NSLocalizedString("SUN_CLOUD_CLOUDY", value: "Aktuell bewölkt (Satellit, vor %d min)", comment: "Place cloud line"),
+                      minutes)
     }
 }

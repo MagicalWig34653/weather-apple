@@ -18,7 +18,10 @@ enum RadarPastWindow {
         defaults.set(hours, forKey: defaultsKey)
     }
 
-    static func label(_ hours: Int) -> String { hours == 1 ? "1 Stunde" : "\(hours) Stunden" }
+    static func label(_ hours: Int) -> String {
+        hours == 1 ? NSLocalizedString("RADAR_PAST_WINDOW_ONE", value: "1 Stunde", comment: "History window")
+            : String(format: NSLocalizedString("RADAR_PAST_WINDOW_MANY", value: "%d Stunden", comment: "History window"), hours)
+    }
 }
 
 /// Parsed `history.json`: analysis slots only (the past), ascending, 5-minute grid, gaps allowed.

@@ -69,8 +69,8 @@ struct RadarScreen: View {
                          if store.activeLayer == .radar { store.acceptRadarLoadState(state) }
                      })
                 .ignoresSafeArea()
-                .accessibilityLabel("\(store.activeLayer.spokenName) für \(store.selectedPlace.name)")
-                .accessibilityHint("Lange auf die Karte drücken, um einen Ort zu wählen")
+                .accessibilityLabel(String(format: NSLocalizedString("RADAR_MAP_LABEL", value: "%1$@ für %2$@", comment: "Radar"), store.activeLayer.spokenName, store.selectedPlace.name))
+                .accessibilityHint(NSLocalizedString("RADAR_MAP_HINT", value: "Lange auf die Karte drücken, um einen Ort zu wählen", comment: "Radar"))
                 .accessibilityAction(named: Text(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))) {
                     if canReadValue { readoutRevision += 1 }
                 }
@@ -156,13 +156,13 @@ struct RadarScreen: View {
                         Button { store.requestLocation() } label: {
                             Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
                                 .glassControl(Circle())
-                        }.accessibilityLabel("Aktuellen Standort verwenden")
+                        }.accessibilityLabel(NSLocalizedString("RADAR_USE_LOCATION", value: "Aktuellen Standort verwenden", comment: "Radar"))
                         Button { withAnimation(reduceMotion ? nil : .bouncy(duration: 0.4)) { showLegend.toggle() } } label: {
                             Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
                                 .glassControl(Circle())
                         }
-                        .accessibilityLabel("Legende \(store.activeLayer.title)")
-                        .accessibilityValue(showLegend ? "eingeblendet" : "ausgeblendet")
+                        .accessibilityLabel(String(format: NSLocalizedString("RADAR_LEGEND_LABEL", value: "Legende %@", comment: "Radar"), store.activeLayer.title))
+                        .accessibilityValue(showLegend ? NSLocalizedString("RADAR_LEGEND_SHOWN", value: "eingeblendet", comment: "Radar") : NSLocalizedString("RADAR_LEGEND_HIDDEN", value: "ausgeblendet", comment: "Radar"))
                         .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
                         .accessibilityIdentifier("radar-legend-toggle")
                         if canReadValue {
@@ -179,7 +179,7 @@ struct RadarScreen: View {
                                 .glassControl(Circle())
                         }
                         .glassSheetSource(.information, in: glassNamespace)
-                        .accessibilityLabel("Datenquellen und Datenschutz")
+                        .accessibilityLabel(NSLocalizedString("RADAR_INFO_BUTTON", value: "Datenquellen und Datenschutz", comment: "Radar"))
                     }
                     .buttonStyle(.plain)
                     .font(.title3)
@@ -207,11 +207,11 @@ struct RadarScreen: View {
             case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             }
         }
-        .alert("Ort speichern", isPresented: $showSave) {
-            TextField("Name", text: $placeName)
-            Button("Speichern") { store.saveSelection(name: placeName) }
-            Button("Abbrechen", role: .cancel) { }
-        } message: { Text("Name und Koordinaten bleiben auf deinem iPhone und werden auch an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist.") }
+        .alert(NSLocalizedString("RADAR_SAVE_PLACE_TITLE", value: "Ort speichern", comment: "Radar"), isPresented: $showSave) {
+            TextField(NSLocalizedString("COMMON_NAME", value: "Name", comment: "Text field"), text: $placeName)
+            Button(NSLocalizedString("COMMON_SAVE", value: "Speichern", comment: "Common")) { store.saveSelection(name: placeName) }
+            Button(NSLocalizedString("COMMON_CANCEL", value: "Abbrechen", comment: "Common"), role: .cancel) { }
+        } message: { Text(NSLocalizedString("RADAR_SAVE_PLACE_MESSAGE", value: "Name und Koordinaten bleiben auf deinem iPhone und werden auch an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist.", comment: "Radar")) }
         .task(id: store.isPlaying) {
             guard store.isPlaying else { return }
             // Playback covers only a window (at most 3 h of past); start there if the slider is further back.
@@ -287,7 +287,7 @@ struct RadarScreen: View {
     /// the adaptive poll already fetches `latest.json` every 10 to 60 s, so a manual reload is a rare action.
     private var layerMenu: some View {
         Menu {
-            Section("Kartenebene") {
+            Section(NSLocalizedString("RADAR_LAYER_SECTION", value: "Kartenebene", comment: "Radar")) {
                 ForEach(store.layers.offeredLayers) { layer in
                     let availability = store.layers.availability(layer)
                     Button {
@@ -300,7 +300,7 @@ struct RadarScreen: View {
                     }
                     .disabled(!availability.isSelectable)
                     .accessibilityLabel(layer.spokenName + (availability.hint.map { ", \($0)" } ?? "")
-                                        + (layer == store.activeLayer ? ", ausgewählt" : ""))
+                                        + (layer == store.activeLayer ? NSLocalizedString("RADAR_LAYER_SELECTED_SUFFIX", value: ", ausgewählt", comment: "Radar") : ""))
                     .accessibilityIdentifier("radar-layer-\(layer.rawValue)")
                 }
             }
@@ -311,10 +311,10 @@ struct RadarScreen: View {
                     Task { await store.refresh() }
                     Task { await store.layers.probeAll(force: true, restricted: ProcessInfo.processInfo.isLowPowerModeEnabled) }
                 } label: {
-                    Label("Daten neu laden", systemImage: "arrow.clockwise")
+                    Label(NSLocalizedString("RADAR_RELOAD", value: "Daten neu laden", comment: "Radar"), systemImage: "arrow.clockwise")
                 }
                 .disabled(store.isRadarLoading)
-                .accessibilityHint("Lädt den aktuellen Datenstand der Karte neu")
+                .accessibilityHint(NSLocalizedString("RADAR_RELOAD_HINT", value: "Lädt den aktuellen Datenstand der Karte neu", comment: "Radar"))
                 .accessibilityIdentifier("radar-refresh")
             }
         } label: {
@@ -335,9 +335,9 @@ struct RadarScreen: View {
             .glassControl(Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Kartenebene wählen")
+        .accessibilityLabel(NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"))
         .accessibilityValue(store.activeLayer.spokenName)
-        .accessibilityHint("Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.")
+        .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.", comment: "Radar"))
         .accessibilityIdentifier("radar-layer-menu")
     }
 
@@ -377,7 +377,7 @@ struct RadarScreen: View {
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .fixedSize(horizontal: false, vertical: true)
                         if !dynamicTypeSize.isAccessibilitySize {
-                            Text("Regenradar").font(.caption).foregroundStyle(.secondary)
+                            Text(NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Radar")).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     Image(systemName: "chevron.down").font(.caption.bold())
@@ -387,7 +387,7 @@ struct RadarScreen: View {
             }
             .glassSheetSource(.places, in: glassNamespace)
             .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
-            .accessibilityLabel("Ort auswählen: \(store.selectedPlace.name)")
+            .accessibilityLabel(String(format: NSLocalizedString("RADAR_PLACE_PICK", value: "Ort auswählen: %@", comment: "Radar"), store.selectedPlace.name))
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             layerMenu
         }
@@ -414,16 +414,16 @@ struct RadarScreen: View {
         let layer = store.activeLayer
         if layer != .radar, store.displayTimeline == nil {
             // No data for the chosen layer (outage): a quiet hint instead of an error banner.
-            if store.layers.isLoading { return ("\(layer.title) lädt …", false) }
-            return ("\(layer.title) derzeit nicht verfügbar", true)
+            if store.layers.isLoading { return (String(format: NSLocalizedString("TIMELINE_LOADING_LAYER", value: "%@ lädt …", comment: "Radar"), layer.title), false) }
+            return (String(format: NSLocalizedString("RADAR_LAYER_UNAVAILABLE", value: "%@ derzeit nicht verfügbar", comment: "Radar"), layer.title), true)
         }
         guard store.displayTimeline != nil, !store.isPlaying, let date = displayedDate else { return nil }
         let time = date.formatted(date: .omitted, time: .shortened)
-        let name = layer == .radar ? "Radar" : layer.title
+        let name = layer == .radar ? NSLocalizedString("RADAR_NAME_SHORT", value: "Radar", comment: "Radar") : layer.title
         switch TimelineSlot.status(for: currentRadarLoadState) {
         case .ready: return nil
-        case .loading: return ("\(name) für \(time) lädt …", false)
-        case .failed: return ("\(name) für \(time) nicht geladen", true)
+        case .loading: return (String(format: NSLocalizedString("RADAR_SLOT_LOADING", value: "%1$@ für %2$@ lädt …", comment: "Radar"), name, time), false)
+        case .failed: return (String(format: NSLocalizedString("RADAR_SLOT_FAILED", value: "%1$@ für %2$@ nicht geladen", comment: "Radar"), name, time), true)
         }
     }
 
@@ -504,13 +504,13 @@ struct RadarScreen: View {
             .onLongPressGesture(minimumDuration: 0.4) { jumpToNow() }
             .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: nowJumps)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(playing ? "Animation pausieren" : "Animation abspielen")
+            .accessibilityLabel(playing ? NSLocalizedString("TIMELINE_PAUSE", value: "Animation pausieren", comment: "Radar") : NSLocalizedString("TIMELINE_PLAY", value: "Animation abspielen", comment: "Radar"))
             .accessibilityValue(TimelineAccessibility.value(date: date, isForecast: forecast, reference: store.displayTimeline?.referenceTime ?? date,
                                                             caption: store.activeLayer.frameCaption(isForecast: forecast)))
-            .accessibilityHint("Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen")
+            .accessibilityHint(NSLocalizedString("TIMELINE_PILL_HINT", value: "Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen", comment: "Radar"))
             .accessibilityAddTraits(.isButton)
-            .accessibilityAction(named: "Zur aktuellen Zeit springen") { jumpToNow() }
-            .accessibilityAction(named: playing ? "Animation pausieren" : "Animation abspielen") { togglePlayback() }
+            .accessibilityAction(named: Text(NSLocalizedString("TIMELINE_JUMP_NOW", value: "Zur aktuellen Zeit springen", comment: "Radar"))) { jumpToNow() }
+            .accessibilityAction(named: Text(playing ? NSLocalizedString("TIMELINE_PAUSE", value: "Animation pausieren", comment: "Radar") : NSLocalizedString("TIMELINE_PLAY", value: "Animation abspielen", comment: "Radar"))) { togglePlayback() }
             .accessibilityIdentifier("radar-frame-label")
         }
     }
@@ -591,11 +591,12 @@ struct RadarScreen: View {
                 }
                 .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime,
                                                                 caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast)))
-                .accessibilityHint("Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened)). Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.")
+                .accessibilityHint(String(format: NSLocalizedString("TIMELINE_SLIDER_HINT", value: "Von %1$@ bis %2$@. Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.", comment: "Radar"), timeline.dates.first!.formatted(date: .abbreviated, time: .shortened), timeline.dates.last!.formatted(date: .omitted, time: .shortened)))
             }
         } else {
-            Text(store.activeLayer != .radar ? (store.layers.isLoading ? "\(store.activeLayer.title) lädt …" : "Keine Zeiten für \(store.activeLayer.title)")
-                 : store.isLoading ? "Radar lädt …" : "Keine Radarzeiten")
+            Text(store.activeLayer != .radar
+                 ? (store.layers.isLoading ? String(format: NSLocalizedString("TIMELINE_LOADING_LAYER", value: "%@ lädt …", comment: "Radar"), store.activeLayer.title) : String(format: NSLocalizedString("TIMELINE_NO_TIMES_LAYER", value: "Keine Zeiten für %@", comment: "Radar"), store.activeLayer.title))
+                 : store.isLoading ? NSLocalizedString("TIMELINE_LOADING_RADAR", value: "Radar lädt …", comment: "Radar") : NSLocalizedString("TIMELINE_NO_TIMES_RADAR", value: "Keine Radarzeiten", comment: "Radar"))
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -607,7 +608,7 @@ struct RadarScreen: View {
             HStack(spacing: 8) {
                 Button { sheet = .details } label: {
                     HStack(spacing: 6) {
-                        Text(dynamicTypeSize.isAccessibilitySize ? "Prognosedetails" : forecastHeadline)
+                        Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar") : forecastHeadline)
                             .font(.subheadline.weight(.semibold))
                             .fixedSize(horizontal: false, vertical: true)
                         Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
@@ -618,7 +619,7 @@ struct RadarScreen: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("forecast-details")
-                .accessibilityHint("Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise")
+                .accessibilityHint(NSLocalizedString("RADAR_FORECAST_DETAILS_HINT", value: "Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise", comment: "Radar"))
                 Button {
                     placeName = store.selectedPlace.name
                     showSave = true
@@ -628,17 +629,17 @@ struct RadarScreen: View {
                         .glassControl(Circle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Ausgewählten Ort speichern oder umbenennen")
+                .accessibilityLabel(NSLocalizedString("RADAR_SAVE_PLACE_BUTTON", value: "Ausgewählten Ort speichern oder umbenennen", comment: "Radar"))
             }
         }
     }
 
     private var forecastHeadline: String {
         guard let forecast = store.forecast else {
-            return store.isForecastLoading ? "Regenprognose wird geladen …" : "Prognose nicht verfügbar"
+            return store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar")
         }
         if store.forecastError != nil || forecast.isStale(at: displayNow) {
-            return "Ältere Prognose (\(forecast.ageDescription(at: displayNow))) · bitte aktualisieren"
+            return String(format: NSLocalizedString("RADAR_FORECAST_OLD", value: "Ältere Prognose (%@) · bitte aktualisieren", comment: "Radar"), forecast.ageDescription(at: displayNow))
         }
         return forecast.summary(at: displayNow)
     }
@@ -647,21 +648,21 @@ struct RadarScreen: View {
         if let message = store.locationMessage { return message }
         if let message = store.storageMessage { return message }
         if let state = currentRadarLoadState, state.failed > 0 {
-            if store.activeLayer != .radar { return "Das Bild der Ebene \(store.activeLayer.title) für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren." }
+            if store.activeLayer != .radar { return String(format: NSLocalizedString("RADAR_STATUS_LAYER_IMAGE_MISSING", value: "Das Bild der Ebene %@ für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.", comment: "Radar"), store.activeLayer.title) }
             return store.radarSource == .cache
-                ? "Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren."
-                : "Einige Radarkacheln fehlen. Bitte erneut aktualisieren."
+                ? NSLocalizedString("RADAR_STATUS_IMAGE_MISSING", value: "Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.", comment: "Radar")
+                : NSLocalizedString("RADAR_STATUS_TILES_MISSING", value: "Einige Radarkacheln fehlen. Bitte erneut aktualisieren.", comment: "Radar")
         }
         if store.activeLayer != .radar { return nil }
-        if let error = store.radarError { return "Radar: \(error)" }
-        if let error = store.forecastError { return "Ortsprognose: \(error)" }
+        if let error = store.radarError { return String(format: NSLocalizedString("RADAR_STATUS_RADAR_ERROR", value: "Radar: %@", comment: "Radar"), error) }
+        if let error = store.forecastError { return String(format: NSLocalizedString("RADAR_STATUS_FORECAST_ERROR", value: "Ortsprognose: %@", comment: "Radar"), error) }
         if let notice = store.radarNotice { return notice }
         return nil
     }
 
     private func age(_ date: Date) -> String {
         let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
-        return minutes == 0 ? "gerade aktualisiert" : "vor \(minutes) Min."
+        return minutes == 0 ? NSLocalizedString("RADAR_AGE_NOW", value: "gerade aktualisiert", comment: "Radar") : String(format: NSLocalizedString("RADAR_AGE_MINUTES", value: "vor %d Min.", comment: "Radar"), minutes)
     }
 }
 
@@ -691,23 +692,23 @@ struct RainChart: View {
         Chart {
             ForEach(forecast.samples) { sample in
                 if let value = sample.rateMMPerHour {
-                    BarMark(x: .value("Zeit", sample.date, unit: .minute), y: .value("Niederschlag", value), width: .ratio(0.85))
+                    BarMark(x: .value(NSLocalizedString("RADAR_CHART_TIME", value: "Zeit", comment: "Radar"), sample.date, unit: .minute), y: .value(NSLocalizedString("RADAR_CHART_PRECIPITATION", value: "Niederschlag", comment: "Radar"), value), width: .ratio(0.85))
                         .foregroundStyle(.cyan.gradient)
                         .accessibilityLabel(sample.date.formatted(date: .omitted, time: .shortened))
-                        .accessibilityValue("\(value.formatted(.number.precision(.fractionLength(1)))) Millimeter pro Stunde")
+                        .accessibilityValue(String(format: NSLocalizedString("RADAR_CHART_SPOKEN_RATE", value: "%@ Millimeter pro Stunde", comment: "Radar"), value.formatted(.number.precision(.fractionLength(1)))))
                 } else {
-                    RuleMark(x: .value("Fehlender Wert", sample.date))
+                    RuleMark(x: .value(NSLocalizedString("RADAR_CHART_MISSING", value: "Fehlender Wert", comment: "Radar"), sample.date))
                         .foregroundStyle(.gray.opacity(0.3))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 3]))
-                        .accessibilityLabel("Keine Daten um \(sample.date.formatted(date: .omitted, time: .shortened))")
+                        .accessibilityLabel(String(format: NSLocalizedString("RADAR_CHART_NO_DATA", value: "Keine Daten um %@", comment: "Radar"), sample.date.formatted(date: .omitted, time: .shortened)))
                 }
             }
-            RuleMark(x: .value("Jetzt", Date())).foregroundStyle(.secondary)
+            RuleMark(x: .value(NSLocalizedString("RADAR_CHART_NOW", value: "Jetzt", comment: "Radar"), Date())).foregroundStyle(.secondary)
         }
         .chartYScale(domain: 0...max(1, forecast.samples.compactMap(\.rateMMPerHour).max() ?? 1))
         .chartXAxis(compact ? .hidden : .automatic)
         .chartYAxis(compact ? .hidden : .automatic)
-        .accessibilityLabel("Niederschlagsverlauf")
+        .accessibilityLabel(NSLocalizedString("RADAR_CHART_LABEL", value: "Niederschlagsverlauf", comment: "Radar"))
     }
 }
 
@@ -724,32 +725,32 @@ struct ForecastDetails: View {
                         Text(forecast.summary(at: context.date)).font(.title2.bold())
                         RainChart(forecast: forecast).frame(height: 220)
                         SunPlaceSection(store: store, now: context.date)
-                        Text("Durchschnittliche Intensität in mm/h für Fünf-Minuten-Intervalle. Gestrichelte Markierungen zeigen fehlende Werte.")
+                        Text(NSLocalizedString("RADAR_DETAILS_CAPTION", value: "Durchschnittliche Intensität in mm/h für Fünf-Minuten-Intervalle. Gestrichelte Markierungen zeigen fehlende Werte.", comment: "Radar"))
                             .font(.caption).foregroundStyle(.secondary)
-                        LabeledContent("Datenlauf", value: forecast.referenceTime.formatted(date: .abbreviated, time: .shortened))
-                        Text("DWD · \(forecast.ageDescription(at: context.date))")
+                        LabeledContent(NSLocalizedString("RADAR_DETAILS_RUN", value: "Datenlauf", comment: "Radar"), value: forecast.referenceTime.formatted(date: .abbreviated, time: .shortened))
+                        Text(String(format: NSLocalizedString("RADAR_DETAILS_SOURCE_AGE", value: "DWD · %@", comment: "Radar"), forecast.ageDescription(at: context.date)))
                             .font(.caption).foregroundStyle(.secondary)
-                        LabeledContent("Radarbilder", value: store.radarSource.label)
+                        LabeledContent(NSLocalizedString("RADAR_DETAILS_IMAGES", value: "Radarbilder", comment: "Radar"), value: store.radarSource.label)
                         if store.forecastError != nil || forecast.isStale(at: context.date) {
                             Label(store.forecastError != nil
-                                  ? "Aktualisierung fehlgeschlagen. Letzte gültige Prognose, \(forecast.ageDescription(at: context.date)). Sie ist nicht aktuell bestätigt."
-                                  : "Die Prognose ist nicht aktuell bestätigt.", systemImage: "exclamationmark.triangle")
+                                  ? String(format: NSLocalizedString("RADAR_DETAILS_UPDATE_FAILED", value: "Aktualisierung fehlgeschlagen. Letzte gültige Prognose, %@. Sie ist nicht aktuell bestätigt.", comment: "Radar"), forecast.ageDescription(at: context.date))
+                                  : NSLocalizedString("RADAR_DETAILS_NOT_CONFIRMED", value: "Die Prognose ist nicht aktuell bestätigt.", comment: "Radar"), systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
                         }
                         ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastError != nil)
-                        Text("Lange auf die Karte drücken, um einen Ort zu wählen.")
-                        Text("Radarprognosen beschreiben die erwartete Entwicklung. Gerade bei entstehenden oder sich auflösenden Schauern können Beginn, Ende und Intensität abweichen.")
-                        Text("\(store.radarAttribution.modificationNotice). Niederschlagswerte der Ortsprognose umgerechnet und aufbereitet.")
+                        Text(NSLocalizedString("RADAR_MAP_HINT_SENTENCE", value: "Lange auf die Karte drücken, um einen Ort zu wählen.", comment: "Radar"))
+                        Text(NSLocalizedString("RADAR_DETAILS_DISCLAIMER", value: "Radarprognosen beschreiben die erwartete Entwicklung. Gerade bei entstehenden oder sich auflösenden Schauern können Beginn, Ende und Intensität abweichen.", comment: "Radar"))
+                        Text(String(format: NSLocalizedString("RADAR_DETAILS_MODIFICATION", value: "%@. Niederschlagswerte der Ortsprognose umgerechnet und aufbereitet.", comment: "Radar"), store.radarAttribution.modificationNotice))
                             .font(.footnote).foregroundStyle(.secondary)
                     } else {
-                        ContentUnavailableView("Keine Ortsprognose", systemImage: "cloud.rain", description: Text(store.forecastError ?? "Bitte Wetterdaten aktualisieren."))
+                        ContentUnavailableView(NSLocalizedString("RADAR_DETAILS_EMPTY_TITLE", value: "Keine Ortsprognose", comment: "Radar"), systemImage: "cloud.rain", description: Text(store.forecastError ?? NSLocalizedString("RADAR_DETAILS_EMPTY_HINT", value: "Bitte Wetterdaten aktualisieren.", comment: "Radar")))
                     }
                 }.padding(24)
             }
             }
             .navigationTitle(store.selectedPlace.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(NSLocalizedString("COMMON_DONE", value: "Fertig", comment: "Common")) { dismiss() } } }
         }.presentationDetents([.medium, .large])
     }
 }

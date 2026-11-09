@@ -24,10 +24,15 @@ enum LocaleFormat {
 
     /// Short clock time following the locale (24 h in `de_DE`, 12 h with am/pm in `en_US`).
     /// `timeZone` defaults to the device zone, like the rest of the UI.
+    /// `DateFormatter` (short time style) on purpose: `Date.FormatStyle.shortened` drops the leading zero in German
+    /// ("4:00"), the formatter keeps "04:00" like the earlier fixed `HH:mm`.
     static func time(_ date: Date, timeZone: TimeZone = .current, locale: Locale = .current) -> String {
-        var style = Date.FormatStyle(date: .omitted, time: .shortened, locale: locale, timeZone: timeZone)
-        style.calendar = locale.calendar
-        return date.formatted(style)
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     /// Short date and time, locale-ordered.

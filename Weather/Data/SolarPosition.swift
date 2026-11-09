@@ -189,24 +189,24 @@ enum SolarPosition {
             .first { $0.isRising }?.date
     }
 
-    /// Text "Sonne bis HH:mm" (Sonne oben) bzw. "Sonne ab HH:mm" (Sonne unten, Aufgang folgt) in `timeZone`.
+    /// Text "Sonne bis <Uhrzeit>" (Sonne oben) bzw. "Sonne ab <Uhrzeit>" (Sonne unten, Aufgang folgt) in `timeZone`;
+    /// die Uhrzeit folgt `locale` (24 h in Deutschland, 12 h mit AM/PM im US-Format), der Text der App-Sprache.
     /// Polartag: "Sonne den ganzen Tag", Polarnacht: "Sonne geht nicht auf".
-    static func sunLabel(at date: Date, latitude: Double, longitude: Double, timeZone: TimeZone) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = timeZone
-        f.dateFormat = "HH:mm"
+    static func sunLabel(at date: Date, latitude: Double, longitude: Double, timeZone: TimeZone,
+                         locale: Locale = .current) -> String {
         let isUp = elevation(at: date, latitude: latitude, longitude: longitude) >= sunriseElevation
         if isUp {
             guard let set = nextSunset(after: date, latitude: latitude, longitude: longitude) else {
-                return "Sonne den ganzen Tag"
+                return NSLocalizedString("SUN_ALL_DAY", value: "Sonne den ganzen Tag", comment: "Sun line, polar day")
             }
-            return "Sonne bis \(f.string(from: set))"
+            return String(format: NSLocalizedString("SUN_UNTIL", value: "Sonne bis %@", comment: "Sun line, time of sunset"),
+                          LocaleFormat.time(set, timeZone: timeZone, locale: locale))
         }
         guard let rise = nextSunrise(after: date, latitude: latitude, longitude: longitude) else {
-            return "Sonne geht nicht auf"
+            return NSLocalizedString("SUN_NO_RISE", value: "Sonne geht nicht auf", comment: "Sun line, polar night")
         }
-        return "Sonne ab \(f.string(from: rise))"
+        return String(format: NSLocalizedString("SUN_FROM", value: "Sonne ab %@", comment: "Sun line, time of sunrise"),
+                      LocaleFormat.time(rise, timeZone: timeZone, locale: locale))
     }
 
     static func normalizeLongitude(_ lon: Double) -> Double {

@@ -5,3 +5,8 @@ identical:Radar
 identical:Pause
 identical:In %dm
 identical:COMMON_OK
+identical:COMMON_NAME
+identical:LEGEND_TITLE_IN_UNIT
+identical:RADAR_NAME_SHORT
+identical:RADAR_STATUS_RADAR_ERROR
+identical:RADAR_DETAILS_SOURCE_AGE

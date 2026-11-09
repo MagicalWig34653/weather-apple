@@ -6,7 +6,10 @@ import WidgetKit
 
 enum RadarSource: Equatable, Sendable {
     case cache, direct
-    var label: String { self == .cache ? "Showers-Cache" : "direkt vom DWD" }
+    var label: String {
+        self == .cache ? NSLocalizedString("RADAR_SOURCE_CACHE", value: "Showers-Cache", comment: "Radar source")
+            : NSLocalizedString("RADAR_SOURCE_DIRECT", value: "direkt vom DWD", comment: "Radar source")
+    }
 }
 
 struct RadarAttribution: Equatable, Sendable {
