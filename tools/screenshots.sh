@@ -51,15 +51,20 @@ xcrun simctl status_bar $U override --time 9:41 --batteryState charged --battery
 xcrun simctl launch $U $BID >/dev/null; sleep 20; xcrun simctl terminate $U $BID
 for c in $CITIES; do run testAddPlace SHOT_CITY=$c; done
 
-# Radar mit Archivregen: 48 h Rueckblick, Position 0.84 = Messung mit Regenband bei Hamburg (haengt vom Zeitpunkt ab, vorher pruefen)
-scene radar    01-regenradar        SHOT_ARGS="-radarPastHours 48" SHOT_POS=${SHOT_RAIN_POS:-0.84}
+# Radar: Regenmotive mit aktuellem Regen. Standard: Ort SHOT_RAIN_PLACE (Standard Muenchen/Munich), Position SHOT_RAIN_POS (Standard 0.47 = juengste Messung vor "jetzt";
+# haengt vom Zeitpunkt ab, vorher mit testSweep pruefen). SHOT_ONLY_RADAR=1: nur die beiden Radarmotive aufnehmen und ersetzen (andere Dateien bleiben unveraendert).
+RAINPLACE=${SHOT_RAIN_PLACE:-$CITIES[2]}; RAINPOS=${SHOT_RAIN_POS:-0.47}
+scene radar    01-regenradar        SHOT_PLACE=$RAINPLACE SHOT_POS=$RAINPOS
+if [[ ${SHOT_ONLY_RADAR:-0} != 1 ]]; then
 scene details  02-ortsdetails
 scene temp     03-temperatur        SHOT_POS=0.3 SHOT_READ=1
 scene warnings 04-warnungen         SHOT_PLACE=Berlin SHOT_ARGS="-UITestWarnings fixture"
 scene regionnew 06-region           && mv $RAW/06-region-places.png $RAW/07-orte-regionen.png
 scene humidity 05-feuchte-wald      SHOT_FOREST=1 SHOT_POS=0.3 SHOT_READ=1
+fi
 xcrun simctl ui $U appearance dark
-scene radar    08-regenradar-dunkel SHOT_ARGS="-radarPastHours 48" SHOT_POS=${SHOT_RAIN_POS:-0.84}
+scene radar    08-regenradar-dunkel SHOT_PLACE=$RAINPLACE SHOT_POS=$RAINPOS
 xcrun simctl ui $U appearance light
 xcrun simctl status_bar $U clear 2>/dev/null; xcrun simctl status_bar $U override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
-rm -f $OUT/*.png; cp $RAW/[0-9]*.png $OUT/; ls -l $OUT
+[[ ${SHOT_ONLY_RADAR:-0} == 1 ]] || rm -f $OUT/*.png
+cp $RAW/[0-9]*.png $OUT/; ls -l $OUT

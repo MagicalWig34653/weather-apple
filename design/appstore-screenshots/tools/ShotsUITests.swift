@@ -29,6 +29,7 @@ final class ShotsUITests: XCTestCase {
 
     func testSweep() throws {
         let app = launch()
+        if let place = env["SHOT_PLACE"] { select(app, place) }
         let slider = app.sliders[t("Radarzeitpunkt", "Radar time")]
         XCTAssertTrue(slider.waitForExistence(timeout: 40))
         sleep(8)
