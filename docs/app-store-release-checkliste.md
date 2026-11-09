@@ -34,14 +34,15 @@ Status: erledigt / offen / unklar. Wer: Agent oder Nutzer.
 
 | Punkt | Status | Beleg | Wer |
 |---|---|---|---|
-| iPhone 1206x2622 (Pflicht) | erledigt (Dateien) | `design/appstore-screenshots/iphone/`; Upload nie ausgefuehrt; Radar zeigt Archivregen/Banner "kein Regen" | Agent (Neuaufnahme), Nutzer (Upload) |
-| iPhone 1320x2868 (optional) | erledigt (Dateien) | wie oben | s. o. |
-| iPad 13" 2064x2752 | erledigt (Dateien) | `ipad/2064x2752/de` | s. o. |
-| Apple Watch 422x514 | erledigt (Dateien) | `watch/422x514/de`, 2 Bilder | s. o. |
+| iPhone 1206x2622 (Pflicht) | Dateien neu (9.11., Build 42) | `design/appstore-screenshots/iphone/1206x2622/de/` 8 Motive: Radar, Ortsdetails, Temperatur, Warnungen, Feuchte+Wald, Region, Orte, Dunkel; Upload nie ausgefuehrt; Details `appstore-screenshots.md` | Nutzer (Upload) |
+| iPhone 1320x2868 (optional) | Dateien neu | `iphone/1320x2868/de/`, 8 Motive wie oben | Nutzer (Upload) |
+| iPad 13" 2064x2752 | Dateien neu | `ipad/2064x2752/de`, 5 Motive (Radar, Temperatur, Warnungen, Feuchte, Dunkel) | Nutzer (Upload) |
+| Apple Watch 422x514 | Dateien neu | `watch/422x514/de`, 2 Bilder (Ortsliste, Ortsprognose "kein Regen"; Uhrzeit echt, nicht 9:41) | Nutzer (Upload) |
 | Mac | nicht noetig | kein natives Mac-Ziel; Verfuegbarkeit "iPhone/iPad-App auf Mac" in Connect pruefen/abwaehlen | Nutzer |
-| Englische Screenshots | offen | nur `de` | Agent |
-| Neue Motive (Gebiete, Live Activity, Widgets, Warnungen) | offen | nicht erzeugt | Agent |
-| Namensstand der Bilder | unklar | Stand Build 17 geprueft, spaetere UI-Aenderungen (Zeitleiste ohne Jetzt-Button, Glow) nicht neu aufgenommen | Agent |
+| Englische Screenshots | offen, Voraussetzung fehlt | Oberflaeche nicht vollstaendig lokalisiert (Radar-Screen, Sheets, Warnungen deutsch im Code); gemischtsprachige Bilder nicht erzeugt | Agent (Lokalisierung), dann Neuaufnahme |
+| Neue Motive (Gebiete, Live Activity, Widgets, Warnungen) | teilweise | Warnungen, Neue Region, Orte/Regionen, Temperatur, Feuchte+Wald aufgenommen; Widget und Live Activity nicht (Simulator ohne Push/Widget-Platzierung) | Nutzer/Agent mit Geraet |
+| Namensstand der Bilder | erledigt | Neuaufnahme auf Build 42 (`19ece2c`) | - |
+| iPhone-Duo-Screenshots (Pflicht ab April 2027) | offen | Pflicht fuer Apps mit iOS-27.1-SDK oder neuer (Showers: Simulator-SDK 27.1, Deployment 27.0); Masse Aussen 1398x2034, Innen 2007x2853 (hoch) bzw. quer vertauscht; Quelle https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications (9.11.2026); Duo-Simulator startet lokal nicht (Runtime-Pfad fehlt), siehe `research/iphone-duo.md` und `appstore-screenshots.md` | Agent (Runtime reparieren, aufnehmen), Nutzer (Upload) |
 | Preview-Video / Creatives | erledigt (optional) | `preview/`, `creative/` | - |
 
 ## Datenfluesse und Compliance

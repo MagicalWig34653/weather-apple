@@ -17,6 +17,7 @@ final class ShotsUITests: XCTestCase {
     func launch() -> XCUIApplication {
         let app = XCUIApplication(bundleIdentifier: "de.linolaske.showernow")
         app.launchArguments = ["-AppleLanguages", "(\(env["SHOT_LANG"] ?? "de"))", "-AppleLocale", env["SHOT_LOCALE"] ?? "de_DE"]
+            + (env["SHOT_ARGS"] ?? "").split(separator: " ").map(String.init)
         app.launch()
         return app
     }
@@ -172,5 +173,90 @@ final class ShotsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Deine Orte"].waitForExistence(timeout: 10))
         sleep(2)
         snap(env["SHOT_NAME"] ?? "places")
+    }
+
+    // MARK: Neue Motive (Store-Screenshots 2026-11, nur Deutsch: die englische Oberflaeche ist nicht vollstaendig lokalisiert)
+
+    func openLayer(_ app: XCUIApplication, prefix: String) {
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 20))
+        menu.tap()
+        let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 8), "Ebene \(prefix) fehlt im Menue")
+        item.tap()
+    }
+
+    func dragSlider(_ app: XCUIApplication, _ pos: Double) {
+        let slider = app.sliders.firstMatch
+        XCTAssertTrue(slider.waitForExistence(timeout: 20))
+        slider.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)).press(forDuration: 0.1, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: pos, dy: 0.5)))
+    }
+
+    /// SHOT_SCENE: radar | details | temp | humidity | warnings | regionnew | alerts | places
+    func testScene() throws {
+        let app = launch()
+        let scene = env["SHOT_SCENE"] ?? "radar"
+        let name = env["SHOT_NAME"] ?? scene
+        let pos = Double(env["SHOT_POS"] ?? "")
+        select(app, env["SHOT_PLACE"] ?? "Hamburg")
+        switch scene {
+        case "radar":
+            sleep(8)
+            dragSlider(app, pos ?? 0.84)
+            sleep(8)
+        case "details":
+            sleep(8)
+            if let pos { dragSlider(app, pos); sleep(6) }
+            app.buttons["forecast-details"].tap()
+            sleep(5)
+        case "temp", "humidity":
+            sleep(4)
+            openLayer(app, prefix: scene == "temp" ? "Temperatur" : "Feuchte (relativ)")
+            sleep(14)
+            if let pos { dragSlider(app, pos); sleep(12) }
+            let legend = app.buttons["radar-legend-toggle"]
+            if env["SHOT_FOREST"] == "1" {
+                legend.tap()
+                sleep(2)
+                app.descendants(matching: .any)["forest-toggle"].switches.firstMatch.tap()
+                sleep(3)
+                legend.tap()
+                sleep(6)
+            }
+            if env["SHOT_LEGEND"] == "1" { legend.tap(); sleep(2) }
+            if env["SHOT_READ"] == "1" {
+                app.buttons["radar-read-center"].tap()
+                sleep(4)
+            }
+        case "warnings":
+            let b = app.buttons["radar-warnings-button"]
+            XCTAssertTrue(b.waitForExistence(timeout: 20))
+            sleep(3)
+            b.tap()
+            XCTAssertTrue(app.navigationBars["Amtliche Warnungen"].waitForExistence(timeout: 8))
+            sleep(3)
+        case "regionnew":
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ort auswählen:'")).firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["Deine Orte"].waitForExistence(timeout: 10))
+            sleep(3)
+            snap(name + "-places")
+            let add = app.buttons["region-new"]
+            if !add.exists { app.swipeUp() }
+            XCTAssertTrue(add.waitForExistence(timeout: 5))
+            add.tap()
+            sleep(6)
+        case "menu":
+            sleep(4)
+            app.buttons["radar-layer-menu"].tap()
+            sleep(2)
+        case "alerts":
+            app.buttons["Datenquellen und Datenschutz"].tap()
+            let row = app.buttons["info-row-alerts"]
+            XCTAssertTrue(row.waitForExistence(timeout: 8))
+            row.tap()
+            sleep(4)
+        default: break
+        }
+        snap(name)
     }
 }

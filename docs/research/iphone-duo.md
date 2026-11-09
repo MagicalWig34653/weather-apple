@@ -62,6 +62,8 @@ Zu prüfen (ungeprüft, nur als Fragen; Annahme, dass Duo-Simulator nötig ist):
 - Belegt (Apple): iPhone-Duo-Simulator in Xcode 27.1 ist der beste Weg für das native Erlebnis; zusätzlich der skalierbare iOS-Simulator im Device Hub und iPhone Mirroring (macOS 27) mit extremen Fenstergrößen.
 - Lokal (9.11.2026): Xcode 27.2 (Build 27B52). `xcrun simctl list devicetypes` listet den Typ `iPhone Duo` (`com.apple.CoreSimulator.SimDeviceType.iPhone-Duo`). Nur aufgelistet, kein Simulator gestartet, keine Runtime-Verfügbarkeit (`simctl list runtimes`) geprüft (Offen).
 
+- Ergaenzung 9.11.2026 (Screenshot-Auftrag, Xcode 27.1 unter Downloads und 27.2 unter /Applications): Simulator-SDK `iphonesimulator27.1`, `IPHONEOS_DEPLOYMENT_TARGET = 27.0`. `simctl list runtimes` fuehrt iOS 27.1 (24A94232) als verfuegbar, vier Duo-Geraete (drei "iPhone Duo", "ShowerNow Duo") sind angelegt; `simctl boot` scheitert aber mit "The iOS 27.1 simulator runtime is not available. runtime path not found" (beide Xcode-Versionen); neues Duo-Geraet auf iOS 27.0: "Incompatible device". Duo-Screenshots und Layoutpruefung deshalb nicht moeglich, keine skalierten Ersatzbilder.
+
 ## Offene Fragen
 
 - Sind Screenshots für beide Displays Pflicht oder genügt eines? Ist der Stichtag April 2027 an das Einreichungs-SDK gekoppelt (ja laut Quelle) und gilt er für Updates?
@@ -71,5 +73,5 @@ Zu prüfen (ungeprüft, nur als Fragen; Annahme, dass Duo-Simulator nötig ist):
 
 ## Verknüpfung
 
-- Release-Checkliste: `docs/app-store-release-checkliste.md` (Verweis auf dieses Dokument dort noch ergänzen).
+- Release-Checkliste: `docs/app-store-release-checkliste.md` (Zeile "iPhone-Duo-Screenshots").
 - Screenshot-Anleitung: `docs/appstore-screenshots.md`.

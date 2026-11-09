@@ -1,4 +1,51 @@
-# App-Store-Screenshots (Stand 3.11.2026)
+# App-Store-Screenshots (Neuaufnahme 9.11.2026, Stand Build 42)
+
+**Dieser Abschnitt ersetzt die Dateiliste unten.** Alle Motive sind neu aufgenommen (origin/main `19ece2c`, Build 42, Debug-Simulator, ohne Signing, nur Deutsch). Die Abschnitte darunter (Stand 3.11., Build 15) bleiben als Historie, ihre Dateinamen und Motive (Hannover, Archivregen) sind überholt.
+
+Ablage: `design/appstore-screenshots/<gerät>/<maße>/de/NN-<motiv>.png`. Alle PNG ohne Alphakanal, nativ aufgenommen (nicht skaliert), Maße mit `sips` geprüft.
+
+| Gerät / Feld in Connect | Ordner | Maße | Dateien |
+|---|---|---|---|
+| iPhone 6,3" (Simulator "SN Shots iPhone Pro", iPhone 17 Pro) | `iphone/1206x2622/de/` | 1206x2622 | 01 bis 08 (Liste unten) |
+| iPhone 6,9" (Simulator "SN Shots iPhone Max", 17 Pro Max) | `iphone/1320x2868/de/` | 1320x2868 | 01 bis 08 |
+| iPad 13" (Simulator "SN Shots iPad 13", Pro 13" M5) | `ipad/2064x2752/de/` | 2064x2752 | 01-regenradar, 02-temperatur, 03-warnungen, 04-feuchte-wald, 05-regenradar-dunkel |
+| Apple Watch Ultra (Simulator "SN Shots Watch Ultra") | `watch/422x514/de/` | 422x514 | 01-ortsliste, 02-ortsprognose |
+
+iPhone-Motive: 01 Regenradar mit Regenband, Zeit-Pille (Vergangenheit, blau) und Farblinie; 02 Ortsdetails (Prognosekarte, Stand "vorerst kein messbarer Regen", siehe Einschränkungen); 03 Temperatur 2 m (Modell) mit Wertabfrage "Etwa 8 bis 9 °C (Modell)", Zeit-Pille in der Zukunft orange; 04 Amtliche Warnungen (Fixture, Ort Berlin, Stufe 3 und 1); 05 Relative Feuchte mit Waldebene und Wertabfrage; 06 Neue Region (Radius, Auslöser, Kartenvorschau); 07 Deine Orte mit Regionen; 08 Regenradar dunkel (einziges Dark-Motiv). Orte: Hamburg, München, Berlin (öffentliche Beispielorte, kein Standort).
+
+## Reproduktion
+
+```sh
+export DEVELOPER_DIR=/Users/linolaske/Downloads/Xcode.app    # Xcode 27.1
+tools/screenshots.sh build                                    # App bauen (Debug, Simulator, ohne Signing)
+tools/screenshots.sh iphone-pro | iphone-max | ipad           # Simulator zurücksetzen, Orte anlegen, alle Motive aufnehmen, nach design/appstore-screenshots/ kopieren
+```
+
+- Statusleiste: `simctl status_bar override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3` (nur iPhone/iPad). Der Watch-Simulator lässt die Zeit nicht überschreiben; die Watch-Bilder zeigen die echte Uhrzeit (07:25/07:28).
+- UI-Test-Bundle: `design/appstore-screenshots/tools/ShotsUITests.swift` (Test `testScene`, Szenen radar, details, temp, humidity, warnings, regionnew; Umgebung `TEST_RUNNER_SHOT_*`). Das Skript ändert keinen Produktcode.
+- Regenradar: Live-Daten des Showers-Servers mit `-radarPastHours 48`; Position `SHOT_RAIN_POS` (Standard 0.84) wählt ein Archivbild mit Regen. Ob und wo Regen liegt, hängt vom Aufnahmetag ab; vor jeder Neuaufnahme mit `testSweep` prüfen. Die Server-Bilder sind echte DWD-Daten (Archiv), keine erfundenen Werte.
+- Warnungen: Debug-Stub `-UITestWarnings fixture` (Beispielwarnungen, Ort muss "Berlin" heißen). Die Texte sind Testdaten, in den Bildern aber nicht als solche gekennzeichnet.
+- Watch: `xcodebuild -scheme WeatherWatch` für den Watch-Simulator bauen und installieren, die iPhone-App auf dem gekoppelten "SN Shots iPhone Max" starten (Orte werden per WatchConnectivity synchronisiert), dann `WatchShotsUITests` (`design/appstore-screenshots/tools/project-watch.yml`) halten und per `xcrun simctl io <watch> screenshot` aufnehmen. Alphakanal danach mit `tools/strip-alpha.swift` entfernen.
+
+## Einschränkungen (ehrlich)
+
+- **Nur Deutsch.** Die englische Oberfläche ist nicht vollständig lokalisiert (Radar-Screen, Sheets, Warnungen, Accessibility-Beschriftungen stehen im Code deutsch; `Localizable.strings` hat je 144 Zeilen). Beim Test mit `-AppleLanguages "(en)"` blieben Menüs, Banner und Ebenenname deutsch, nur Kartenbeschriftung und Zeitformat wechselten. Englische Store-Screenshots wären gemischtsprachig und wurden nicht erzeugt (Lücke für Entwicklung, nicht für Screenshots).
+- **Keine Widget-/Live-Activity-Motive.** Beides lässt sich per `simctl`/UI-Test nicht ohne Weiteres platzieren (Widget-Galerie nur per Geste, Live Activity braucht Push-Registrierung und Server-Abo; die Simulator-Installation hat keine APNs-Anbindung, ein echtes Abo auf dem Produktionsserver wurde bewusst nicht angelegt). Der Live-Activity-Schalter erscheint nur bei einer bestehenden Region und ist deshalb nicht abgebildet. Stattdessen: 06 Neue Region und 07 Orte/Regionen.
+- **Ortsdetails (02) zeigt "Vorerst kein messbarer Regen"**: zum Aufnahmezeitpunkt war in Hamburg, München, Leipzig, Kiel und Bremerhaven keine Regenprognose vorhanden. Das Bild ist echt, aber wenig aussagekräftig; bei Regenlage am Aufnahmetag neu aufnehmen (`SHOT_PLACE`).
+- **Temperatur/Feuchte ohne geöffnete Legende:** Das Legendenpanel (Skala plus Hinweistexte, Wald-Schalter) läuft auf iPhone 17 Pro und Pro Max (Simulator iOS 27.0) mit seinem Text unten aus dem Glaspanel heraus und überlagert Zeit-Pille und Quellzeile. Das ist ein App-Layoutfehler (nicht behoben, nicht Teil dieses Auftrags), deshalb zeigen 03 und 05 stattdessen die Wertabfrage; die Skala ist dadurch nicht sichtbar. Die Feuchte-Ebene des Live-Servers bietet nur "Feuchte (relativ)", kein Taupunkt-Eintrag.
+- Das Warnungen-Sheet (04) füllt auf dem iPhone nicht die ganze Höhe (Sheet-Höhe nach Inhalt); auf dem iPad ist es ein kleines Fenster. Auf dem iPad sind Ortsdetails, Region und Orte wegen kleiner Sheets nicht verwendet.
+- Zeitleistenfarbe: Zeit-Pille ist bei Messung grau/blau, in der Zukunft orange; 01 zeigt Vergangenheit (Messung), 03 und 05 Zukunft.
+- Nicht hochgeladen, keine Connect-Aktion; Upload macht der Nutzer.
+
+## iPhone Duo
+
+Pflichtmaße (Quelle: https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications, abgerufen 9.11.2026; Details in `docs/research/iphone-duo.md`): Außendisplay 1398x2034 (hoch) / 2034x1398 (quer), Innendisplay 2007x2853 (hoch) / 2853x2007 (quer). Pflicht ab April 2027 für Apps, die mit dem iOS-27.1-SDK oder neuer gebaut werden; Showers baut mit dem Simulator-SDK 27.1 (Xcode 27.1, `iphonesimulator27.1`), Deployment Target 27.0, die Pflicht gilt also voraussichtlich.
+
+**Keine Duo-Screenshots erzeugt (9.11.2026):** `xcrun simctl list devicetypes` listet "iPhone Duo" (`com.apple.CoreSimulator.SimDeviceType.iPhone-Duo`), es existieren vier Geräte (drei "iPhone Duo", ein "ShowerNow Duo") auf der Runtime iOS 27.1 (24A94232). Der Start scheitert mit "The iOS 27.1 simulator runtime is not available. runtime path not found" (Xcode 27.1 und 27.2, Disk-Image als "Ready" gelistet); ein neues Duo-Gerät auf iOS 27.0 ist "Incompatible device". Es wurden bewusst keine skalierten Bilder erzeugt. Nächster Schritt: iOS-27.1-Simulator-Runtime in Xcode neu laden/reparieren, dann Außen- und Innendisplay aufnehmen und die Layoutprüfung nachholen (Prüfpunkte in `docs/research/iphone-duo.md`).
+
+---
+
+## Historie (Stand 3.11.2026, überholt)
 
 Erzeugt aus Build-15-Quellstand (Debug, Simulator, ohne Signing). Ablage: `design/appstore-screenshots/<plattform>/<maße>/<sprache>/NN-<motiv>.png` (Reihenfolge: 01 Radar, 02 Orte, 03 Wolken, 04 Radar dunkel, 05 Orte dunkel; iPhone 1206x2622 ebenfalls neu aufgenommen); Hilfsdateien in `design/appstore-screenshots/tools/`. Rohbilder nicht nachbearbeitet (außer Entfernen des Alphakanals bei Watch); Kopfzeilen-Varianten separat; alle Bilder sind echte App-Ausgaben mit Live-Daten.
 
