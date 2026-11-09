@@ -27,6 +27,10 @@ struct RadarScreen: View {
     @State private var scrubStage: ScrubStage?
     @State private var mapBottomInset: CGFloat = 70
     @State private var screenWidth: CGFloat?
+    /// Legend space: top of the legend row and top of the time pill block, in the screen's own coordinate space.
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var legendTop: CGFloat = 0
+    @State private var pillBlockTop: CGFloat?
     @Namespace private var glassNamespace
     @State private var nowJumps = 0
 
@@ -98,6 +102,7 @@ struct RadarScreen: View {
                     }
                 }
                 .allowsHitTesting(false)
+                VStack(spacing: 6) {
                 timePill
                 Group {
                     if let line = ForestPreference.sourceLine(base: store.displayAttributionLine, layer: store.activeLayer,
@@ -113,6 +118,8 @@ struct RadarScreen: View {
                     }
                 }
                 .allowsHitTesting(false)
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { pillBlockTop = $0 }
             }
             .padding(.bottom, 8)
             VStack(spacing: 10) {
@@ -138,7 +145,8 @@ struct RadarScreen: View {
                                     RadarLayerLegendPanel(
                                         layer: store.activeLayer, manifest: store.layers.activeManifest,
                                         humidityChoices: [RadarLayer.dewpoint, .humidity].filter { store.layers.availability($0) == .available },
-                                        onSelectLayer: { store.layers.select($0) })
+                                        onSelectLayer: { store.layers.select($0) },
+                                        maxHeight: pillBlockTop.map { max(0, $0 - legendTop - 8) })
                                 }
                             }
                             .glassEffectID("legend-panel", in: glassNamespace)
@@ -176,10 +184,12 @@ struct RadarScreen: View {
                     .buttonStyle(.plain)
                     .font(.title3)
                 }
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { legendTop = $0 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
         }
+        .coordinateSpace(name: "radarScreen")
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             timeline
@@ -486,8 +496,9 @@ struct RadarScreen: View {
             .padding(.horizontal, 16)
             .frame(minWidth: 112, minHeight: 44)
             .contentShape(Capsule())
-            .background(Capsule().fill(.black.opacity(0.3)))
-            .glassEffect(.regular.tint((forecast ? ScreenGlow.futureColor : ScreenGlow.pastColor).opacity(forecast ? 0.5 : 0.3)).interactive(), in: Capsule())
+            // Dark: a dark underlay lifts the white text's contrast. Light: a light underlay and dark text (the dark one made the pill too dark).
+            .background(Capsule().fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.6)))
+            .glassEffect(.regular.tint((forecast ? ScreenGlow.futureColor : ScreenGlow.pastColor).opacity(colorScheme == .dark ? (forecast ? 0.5 : 0.3) : (forecast ? 0.3 : 0.2))).interactive(), in: Capsule())
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: forecast)
             .onTapGesture { togglePlayback() }
             .onLongPressGesture(minimumDuration: 0.4) { jumpToNow() }

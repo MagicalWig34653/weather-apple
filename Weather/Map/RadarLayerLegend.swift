@@ -138,7 +138,10 @@ struct RadarLayerLegendPanel: View {
     var humidityChoices: [RadarLayer] = []
     var onSelectLayer: (RadarLayer) -> Void = { _ in }
     @AppStorage(ForestPreference.key) private var showForest = false
+    /// Height the panel may use (between header and time pill); `nil` = unknown yet, then a fixed fallback.
+    var maxHeight: CGFloat?
     @State private var image: CGImage?
+    @State private var contentHeight: CGFloat = 0
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Panel content. At the largest Dynamic Type sizes the long notes would make the glass panel taller than the
@@ -244,14 +247,19 @@ struct RadarLayerLegendPanel: View {
         }
     }
 
+    /// The glass panel never exceeds the space the screen gives it (also keeps it below the GPU texture limit):
+    /// content taller than that scrolls inside the panel and is clipped to it.
+    private var scrollHeight: CGFloat? {
+        let limit = max(80, (maxHeight ?? (dynamicTypeSize.isAccessibilitySize ? 360 : 300)) - 20)
+        guard contentHeight > 0 else { return limit }
+        return min(contentHeight, limit)
+    }
+
     var body: some View {
         Group {
-            if dynamicTypeSize.isAccessibilitySize || layer.isAirField {
-                ScrollView { content }.scrollBounceBehavior(.basedOnSize).scrollClipDisabled()
-                    .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 360 : 300)
-            } else {
-                content
-            }
+            ScrollView { content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 } }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(height: scrollHeight)
         }
         .padding(10)
         .frame(width: dynamicTypeSize.isAccessibilitySize ? 260 : (layer == .cloudmask ? 220 : 190), alignment: .leading)

@@ -210,14 +210,22 @@ final class WeatherSmokeTests: XCTestCase {
             shot.name = large ? "timeline-time-maximum-type" : "timeline-time-normal"
             shot.lifetime = .keepAlways
             add(shot)
+            writeShot(app, "pill-future-\(large ? "xxxl" : "normal")")
             dragSlider(slider, to: 0.0)
             XCTAssertTrue(waitForValue(slider, containing: "Messung"))
             let past = XCTAttachment(screenshot: app.screenshot())
             past.name = large ? "timeline-past-maximum-type" : "timeline-past-normal"
             past.lifetime = .keepAlways
             add(past)
+            writeShot(app, "pill-past-\(large ? "xxxl" : "normal")")
             app.terminate()
         }
+    }
+
+    /// Optional PNG export for manual contrast checks (`TEST_RUNNER_SHOT_DIR`).
+    private func writeShot(_ app: XCUIApplication, _ name: String) {
+        guard let dir = ProcessInfo.processInfo.environment["SHOT_DIR"] else { return }
+        try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
     }
 
     private func timePill(_ app: XCUIApplication) -> XCUIElement {
@@ -455,6 +463,54 @@ final class WeatherSmokeTests: XCTestCase {
             add(screenshot)
             // Setting is remembered: switch off again so later runs start clean.
             forest.switches.firstMatch.tap()
+        }
+    }
+
+    /// The numeric scale legend stays inside its glass panel and between the header and the time pill / source line
+    /// (build 43 fix: the panel used to run out at the bottom on iPhone 6.3"/6.9"). Screenshots go to `SHOT_DIR` if set.
+    func testScaleLegendStaysWithinPanelAboveTimePill() throws {
+        let shotDir = ProcessInfo.processInfo.environment["SHOT_DIR"]
+        for large in [false, true] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UITestLayers", "d2rh"]
+                + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+            app.launch()
+            let menu = app.buttons["radar-layer-menu"]
+            XCTAssertTrue(menu.waitForExistence(timeout: 15))
+            let dew = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (Taupunkt)")).firstMatch
+            var opened = false
+            for _ in 0..<6 where !opened {
+                menu.tap()
+                opened = dew.waitForExistence(timeout: 3)
+                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
+            }
+            XCTAssertTrue(opened)
+            dew.tap()
+            app.buttons["radar-legend-toggle"].tap()
+            let panel = app.descendants(matching: .any)["radar-legend"]
+            XCTAssertTrue(panel.waitForExistence(timeout: 5))
+            sleep(1)
+            let window = app.windows.firstMatch.frame
+            let pill = app.descendants(matching: .any)["radar-frame-label"]
+            let attribution = app.staticTexts["radar-attribution"]
+            let pillTop = [pill, attribution].filter { $0.exists }.map { $0.frame.minY }.min() ?? window.maxY
+            XCTAssertLessThanOrEqual(panel.frame.maxY, pillTop + 1, "Legende endet über Zeit-Pille und Quellzeile (large=\(large))")
+            XCTAssertLessThanOrEqual(panel.frame.maxY, window.maxY)
+            let scale = app.descendants(matching: .any)["temperature-scale"]
+            XCTAssertTrue(scale.exists)
+            if !large {
+                for row in scale.staticTexts.allElementsBoundByIndex where row.isHittable {
+                    XCTAssertTrue(panel.frame.insetBy(dx: -1, dy: -1).contains(row.frame), "Skalenzeile \(row.label) im Panel")
+                }
+            }
+            if let shotDir {
+                try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: shotDir).appendingPathComponent("legend-\(large ? "xxxl" : "normal").png"))
+            }
+            let shot = XCTAttachment(screenshot: app.screenshot())
+            shot.name = large ? "legend-bounded-xxxl" : "legend-bounded-normal"
+            shot.lifetime = .keepAlways
+            add(shot)
+            app.terminate()
         }
     }
 
