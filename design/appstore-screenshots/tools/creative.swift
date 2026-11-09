@@ -45,16 +45,18 @@ rounded(shot2, rect: CGRect(x: frontX - pw * 0.62, y: -h * 0.16, width: pw, heig
 rounded(shot1, rect: CGRect(x: frontX, y: -h * 0.05, width: pw, height: ph), radius: pw * 0.11, shadow: true)
 
 // Icon + Text links in der Zone
+// Leere Zeile 1 ("") entfaellt; Block wird dann nach unten zentriert nachgefuehrt.
+let dy = a[8].isEmpty ? -h * 0.07 : 0
 let ic = h * 0.20, tx = x0 + zoneW * 0.06
-rounded(icon, rect: CGRect(x: tx, y: h * 0.62, width: ic, height: ic), radius: ic * 0.2237, shadow: true, masked: true)
+rounded(icon, rect: CGRect(x: tx, y: h * 0.62 + dy, width: ic, height: ic), radius: ic * 0.2237, shadow: true, masked: true)
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
 func text(_ s: String, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat, y: CGFloat) {
     NSAttributedString(string: s, attributes: [.font: NSFont.systemFont(ofSize: size, weight: weight), .foregroundColor: NSColor(white: 1, alpha: alpha)]).draw(at: NSPoint(x: tx, y: y))
 }
-text(a[7], size: h * 0.085, weight: .bold, alpha: 1, y: h * 0.47)
-text(a[8], size: h * 0.045, weight: .semibold, alpha: 1, y: h * 0.37)
-text(a[9], size: h * 0.045, weight: .regular, alpha: 0.85, y: h * 0.30)
+text(a[7], size: h * 0.085, weight: .bold, alpha: 1, y: h * 0.47 + dy)
+if !a[8].isEmpty { text(a[8], size: h * 0.045, weight: .semibold, alpha: 1, y: h * 0.37) }
+text(a[9], size: h * 0.045, weight: .regular, alpha: a[8].isEmpty ? 1 : 0.85, y: h * 0.30 + dy + (a[8].isEmpty ? h * 0.07 : 0))
 NSGraphicsContext.restoreGraphicsState()
 
 let out = CGImageDestinationCreateWithURL(URL(fileURLWithPath: a[4]) as CFURL, UTType.png.identifier as CFString, 1, nil)!

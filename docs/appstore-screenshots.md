@@ -88,13 +88,13 @@ Aufnahmen: iPhone 17 Pro (1206x2622) und 17 Pro Max (1320x2868), iOS 27.0 Simula
 
 Kurze Überschrift plus Untertitel über dem unverzerrten Screenshot (Apple: "short phrase that enhances your visual rather than describes it"). Skript `tools/headline.swift` (CoreGraphics/AppKit, Systemschrift SF, lokal, Ausgabe exakt in Zielmaß, RGB ohne Alpha). Texte nur zu dem, was das Bild zeigt:
 
-| Datei | Kopfzeile / Untertitel |
+| Datei | Kopfzeile (seit 9.11.2026 ohne zweite Zeile) |
 |---|---|
-| 01-regenradar | Regen im Blick / Radar mit Zeitleiste |
-| 02-orte | Deine Orte / Orte und Regionen speichern |
-| 03-wolken | Wolken im Blick / Satellitenbild als Ebene |
-| 04-regenradar-dunkel | Dunkelmodus / Regenradar bei Nacht |
-| 05-orte-dunkel | Deine Orte / Im Dunkelmodus |
+| 01-regenradar | Regen im Blick |
+| 02-orte | Deine Orte |
+| 03-wolken | Wolken im Blick |
+| 04-regenradar-dunkel | Dunkelmodus |
+| 05-orte-dunkel | Deine Orte |
 
 Reproduktion: `swiftc -O design/appstore-screenshots/tools/headline.swift -o headline; ./headline <roh.png> <aus.png> <breite> <hoehe> "Kopfzeile" "Untertitel" [light|dark]`. Watch: keine Kopfzeilen (422x514 zu klein, Text würde unleserlich). Nicht erstellt: Kopfzeilen zu Widgets/Live Activity/Watch (Bilder fehlen).
 
@@ -231,3 +231,7 @@ Store-Icon der App-Seite in Connect (1024): kommt aus dem hochgeladenen Build, n
 ## Icon-Aktualisierung 2 (6.11.2026, neues Standard-Icon V4B Sektor 90° mit Verlauf)
 
 Standard-Icon ist jetzt `Weather/Resources/Icon/AppIcon.icon` (Radar-Ringe mit Sektor und Wolke, Nutzerfassung). `tools/assets/AppIcon-1024.png` neu per ictool aus diesem Paket gerendert (Rendition Default, 1024 px, Alpha-Rundung; Befehl wie oben). Neu erzeugt mit unveränderten Skripten (`creative.swift`, `mockup.swift`; Texte "Showers" / "Regenradar mit Zeitleiste" / "Regen im Blick, für deine Orte"): `creative/header-21x9` (3840x1646), `suche-3x2` (3000x2000), `universal-16x9` (5244x2950), `preview/mockup-suche-und-header` (2400x1500); alle RGB ohne Alpha (`sips`), Stichproben (Suche, Mockup, universal) angesehen. Unverändert: alle Screenshots (iphone/ipad/watch: Karte, Orte, Wolken, Prognose zeigen das Icon nicht; Wiedererkennung per Sicht, keine Texterkennung), `poster-frame-5s.png` und App-Vorschau-Video (nur Kartenansicht, nicht erneut gesehen). Hinweis: Die Quellenzeile der Karte in den Creatives zeigt weiter "Showers-Cache" (Build-17-Aufnahme). Nicht geprüft: Upload in Connect; Creatives dort ersetzen. PNGs weiter nicht committet.
+
+## 9.11.2026: zweite Überschrift entfernt (Nutzerwunsch)
+
+In allen Kopfzeilen-Bildern (`de-kopfzeile`: iPhone 1206x2622 x5, 1320x2868 x5, iPad 2064x2752 x4) entfällt die zweite, kleinere Zeile (z. B. "Radar mit Zeitleiste"); neu erzeugt mit `tools/headline.swift` und leerem Untertitel (`"" `), aus den vorhandenen `de`-Rohbildern, Maße exakt, RGB ohne Alpha (`sips`); Stichproben angesehen (iPhone 01, 05, iPad 04). Store-Creatives (`creative/header-21x9`, `suche-3x2`, `universal-16x9`) und `preview/mockup-suche-und-header` ohne die Zeile "Regenradar mit Zeitleiste" neu erzeugt (`tools/creative.swift`: leere Zeile 1 entfällt, Textblock nach unten nachzentriert; Mockup-Untertitelzeile jetzt "Regen im Blick, für deine Orte"); Header und Suche angesehen. Die graue Unterzeile "Regenradar" im Ortsknopf der App-UI bleibt unverändert. Store-Beschreibungstexte (Untertitel/Werbetext) unverändert. Englische Kopfzeilen-Bilder existieren nicht. Die lokalen PNGs (`de-kopfzeile`, `creative`, `preview`) sind weiter nicht eingecheckt. Poster-Frame/App-Vorschau-Video enthalten keine Textzeile und blieben unverändert.
