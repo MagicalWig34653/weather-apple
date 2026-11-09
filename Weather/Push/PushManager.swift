@@ -246,8 +246,8 @@ final class PushManager {
 
     /// "Mitteilungen: aus/an" for the info sheet.
     var summary: String {
-        guard isAnyEnabled else { return "Mitteilungen: aus" }
-        return authorization == .denied ? "Mitteilungen: an (im System ausgeschaltet)" : "Mitteilungen: an"
+        guard isAnyEnabled else { return NSLocalizedString("PUSH_SUMMARY_OFF", value: "Mitteilungen: aus", comment: "Push") }
+        return authorization == .denied ? NSLocalizedString("PUSH_SUMMARY_ON_BLOCKED", value: "Mitteilungen: an (im System ausgeschaltet)", comment: "Push") : NSLocalizedString("PUSH_SUMMARY_ON", value: "Mitteilungen: an", comment: "Push")
     }
 
     // MARK: Lifecycle
@@ -285,7 +285,7 @@ final class PushManager {
     }
 
     func didFailToRegister() {
-        for id in Array(state.places.keys) + Array(state.regions.keys) { messages[id] = "Das Gerät konnte keinen Mitteilungs-Token abrufen. Es wird später erneut versucht." }
+        for id in Array(state.places.keys) + Array(state.regions.keys) { messages[id] = NSLocalizedString("PUSH_MSG_NO_TOKEN", value: "Das Gerät konnte keinen Mitteilungs-Token abrufen. Es wird später erneut versucht.", comment: "Push") }
     }
 
     // MARK: Changes
@@ -295,15 +295,15 @@ final class PushManager {
     func enable(placeID: UUID, latitude: Double, longitude: Double) async -> Bool {
         messages[placeID] = nil
         guard let cell = PushGrid.cell(latitude: latitude, longitude: longitude) else {
-            messages[placeID] = "Dieser Ort liegt außerhalb des Radargebiets; Regenhinweise sind hier nicht möglich."
+            messages[placeID] = NSLocalizedString("PUSH_MSG_OUT_OF_COVERAGE", value: "Dieser Ort liegt außerhalb des Radargebiets; Regenhinweise sind hier nicht möglich.", comment: "Push")
             return false
         }
         guard state.places[placeID] != nil || canAddSubscription else {
-            messages[placeID] = "Höchstens \(Self.maxSubscriptions) Orte können Hinweise senden."
+            messages[placeID] = String(format: NSLocalizedString("PUSH_MSG_PLACE_LIMIT", value: "Höchstens %lld Orte können Hinweise senden.", comment: "L3"), Self.maxSubscriptions)
             return false
         }
         guard await ensureAuthorized() else {
-            messages[placeID] = "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet."
+            messages[placeID] = NSLocalizedString("PUSH_MSG_DENIED", value: "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.", comment: "Push")
             return false
         }
         if state.places[placeID] == nil { state.places[placeID] = PlacePushSettings(cell: cell) }
@@ -334,19 +334,19 @@ final class PushManager {
         regionNotice = nil
         if regionSupport != .supported { await refreshRegionSupport() }
         guard regionSupport == .supported else {
-            return .failed(regionSupport == .unsupported ? "Der Server unterstützt noch keine Regionen."
-                           : "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Bitte später erneut versuchen.")
+            return .failed(regionSupport == .unsupported ? NSLocalizedString("PUSH_MSG_REGIONS_UNSUPPORTED", value: "Der Server unterstützt noch keine Regionen.", comment: "Push")
+                           : NSLocalizedString("PUSH_MSG_REGIONS_UNKNOWN", value: "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Bitte später erneut versuchen.", comment: "Push"))
         }
         guard let cell = PushGrid.cell(latitude: latitude, longitude: longitude) else {
-            return .failed("Dieser Mittelpunkt liegt außerhalb des Radargebiets.")
+            return .failed(NSLocalizedString("REGION_OUTSIDE", value: "Dieser Mittelpunkt liegt außerhalb des Radargebiets.", comment: "Region"))
         }
-        guard regionCount < PushGrid.maxRegions else { return .failed("Höchstens \(PushGrid.maxRegions) Regionen sind möglich.") }
-        guard enabledCount < Self.maxSubscriptions else { return .failed("Höchstens \(Self.maxSubscriptions) Hinweise (Orte und Regionen) sind möglich.") }
+        guard regionCount < PushGrid.maxRegions else { return .failed(String(format: NSLocalizedString("PUSH_MSG_REGION_MAX", value: "Höchstens %lld Regionen sind möglich.", comment: "L3"), PushGrid.maxRegions)) }
+        guard enabledCount < Self.maxSubscriptions else { return .failed(String(format: NSLocalizedString("PUSH_MSG_SUBS_MAX", value: "Höchstens %lld Hinweise (Orte und Regionen) sind möglich.", comment: "L3"), Self.maxSubscriptions)) }
         guard PushGrid.regionRadiusPresetsKm.contains(radiusKm), PushGrid.regionSharePercents.contains(sharePercent) else {
-            return .failed("Ungültiger Radius oder Auslöseanteil.")
+            return .failed(NSLocalizedString("PUSH_MSG_REGION_INVALID", value: "Ungültiger Radius oder Auslöseanteil.", comment: "Push"))
         }
         guard await ensureAuthorized() else {
-            return .failed("Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.")
+            return .failed(NSLocalizedString("PUSH_MSG_DENIED", value: "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.", comment: "Push"))
         }
         let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
         let id = UUID()
@@ -357,7 +357,7 @@ final class PushManager {
         registrar.register()
         await sync()
         // The server may refuse right away (limit): then the region is gone and the notice explains why.
-        if state.regions[id] == nil { return .failed(regionNotice ?? "Die Region konnte nicht eingerichtet werden.") }
+        if state.regions[id] == nil { return .failed(regionNotice ?? NSLocalizedString("PUSH_MSG_REGION_FAILED", value: "Die Region konnte nicht eingerichtet werden.", comment: "Push")) }
         return .added(id)
     }
 
@@ -417,7 +417,7 @@ final class PushManager {
     func sendTest() async {
         guard testState != .sending else { return }
         guard canSendTest, let identity = secrets.load() else {
-            testState = .failed("Mitteilungen sind noch nicht eingerichtet. Bitte kurz warten oder die App neu öffnen.")
+            testState = .failed(NSLocalizedString("PUSH_MSG_NOT_READY", value: "Mitteilungen sind noch nicht eingerichtet. Bitte kurz warten oder die App neu öffnen.", comment: "Push"))
             return
         }
         testState = .sending
@@ -436,30 +436,30 @@ final class PushManager {
     }
 
     static func testMessage(for error: Error) -> String {
-        guard let error = error as? PushGatewayError else { return "Die Testmeldung konnte nicht gesendet werden." }
+        guard let error = error as? PushGatewayError else { return NSLocalizedString("PUSH_TEST_FAILED", value: "Die Testmeldung konnte nicht gesendet werden.", comment: "Push") }
         switch error {
-        case .offline: return "Keine Internetverbindung."
-        case .transport, .server: return "Der Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen."
-        case .unauthorized: return "Dieses Gerät ist beim Server nicht (mehr) registriert. Beim nächsten Start wird es neu eingerichtet."
-        case .notFound: return "Der Mitteilungsdienst ist auf dem Server derzeit nicht aktiv."
+        case .offline: return NSLocalizedString("PUSH_TEST_OFFLINE", value: "Keine Internetverbindung.", comment: "Push")
+        case .transport, .server: return NSLocalizedString("PUSH_TEST_SERVICE_UNREACHABLE", value: "Der Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen.", comment: "Push")
+        case .unauthorized: return NSLocalizedString("PUSH_TEST_UNAUTHORIZED", value: "Dieses Gerät ist beim Server nicht (mehr) registriert. Beim nächsten Start wird es neu eingerichtet.", comment: "Push")
+        case .notFound: return NSLocalizedString("PUSH_MSG_SERVICE_INACTIVE", value: "Der Mitteilungsdienst ist auf dem Server derzeit nicht aktiv.", comment: "Push")
         case .test(let failure):
             switch failure {
-            case .environmentNotAllowed: return "Der Server nimmt diese App-Variante (Entwicklung oder Store) nicht an."
-            case .apnsUnavailable503: return "Der Server kann Mitteilungen derzeit nicht senden (Apple-Zugang nicht eingerichtet)."
-            case .badDeviceToken: return "Apple lehnt das Gerätetoken ab. Es passt nicht zur Umgebung dieser App-Variante."
-            case .keyRejected: return "Apple lehnt den Zugangsschlüssel des Servers ab. Das muss der Betreiber beheben."
-            case .apnsUnavailable: return "Apples Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen."
-            case .apnsRejected: return "Apple hat die Testmeldung abgelehnt."
-            case .tokenUnregistered: return "Das Gerätetoken ist nicht mehr gültig. Das Gerät wird neu registriert; danach erneut versuchen."
+            case .environmentNotAllowed: return NSLocalizedString("PUSH_TEST_ENVIRONMENT", value: "Der Server nimmt diese App-Variante (Entwicklung oder Store) nicht an.", comment: "Push")
+            case .apnsUnavailable503: return NSLocalizedString("PUSH_TEST_APNS_503", value: "Der Server kann Mitteilungen derzeit nicht senden (Apple-Zugang nicht eingerichtet).", comment: "Push")
+            case .badDeviceToken: return NSLocalizedString("PUSH_TEST_BAD_TOKEN", value: "Apple lehnt das Gerätetoken ab. Es passt nicht zur Umgebung dieser App-Variante.", comment: "Push")
+            case .keyRejected: return NSLocalizedString("PUSH_TEST_KEY_REJECTED", value: "Apple lehnt den Zugangsschlüssel des Servers ab. Das muss der Betreiber beheben.", comment: "Push")
+            case .apnsUnavailable: return NSLocalizedString("PUSH_TEST_APNS_DOWN", value: "Apples Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen.", comment: "Push")
+            case .apnsRejected: return NSLocalizedString("PUSH_TEST_APNS_REJECTED", value: "Apple hat die Testmeldung abgelehnt.", comment: "Push")
+            case .tokenUnregistered: return NSLocalizedString("PUSH_TEST_TOKEN_UNREGISTERED", value: "Das Gerätetoken ist nicht mehr gültig. Das Gerät wird neu registriert; danach erneut versuchen.", comment: "Push")
             case .rateLimited(let after):
                 if let after, after > 0 {
                     let minutes = max(1, Int((Double(after) / 60).rounded(.up)))
-                    return "Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte in etwa \(minutes) Minuten erneut versuchen."
+                    return String(format: minutes == 1 ? NSLocalizedString("PUSH_TEST_RATE_LIMITED_MINUTE", value: "Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte in etwa %lld Minute erneut versuchen.", comment: "L3") : NSLocalizedString("PUSH_TEST_RATE_LIMITED_MINUTES", value: "Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte in etwa %lld Minuten erneut versuchen.", comment: "L3"), minutes)
                 }
-                return "Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte später erneut versuchen."
-            case .other: return "Die Testmeldung konnte nicht gesendet werden."
+                return NSLocalizedString("PUSH_TEST_RATE_LIMITED", value: "Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte später erneut versuchen.", comment: "Push")
+            case .other: return NSLocalizedString("PUSH_TEST_FAILED", value: "Die Testmeldung konnte nicht gesendet werden.", comment: "Push")
             }
-        default: return "Die Testmeldung konnte nicht gesendet werden."
+        default: return NSLocalizedString("PUSH_TEST_FAILED", value: "Die Testmeldung konnte nicht gesendet werden.", comment: "Push")
         }
     }
 
@@ -740,12 +740,12 @@ final class PushManager {
             return
         }
         guard !(state.places.isEmpty && state.regions.isEmpty && !external), let token = deviceToken, authorization != .denied else { return }
-        guard var identity = secrets.load() ?? createIdentity() else { return fail("Die Kennung konnte nicht sicher gespeichert werden.") }
+        guard var identity = secrets.load() ?? createIdentity() else { return fail(NSLocalizedString("PUSH_MSG_KEYCHAIN", value: "Die Kennung konnte nicht sicher gespeichert werden.", comment: "Push")) }
 
         do { try await gateway.putInstallation(identity, token: token, environment: environment, locale: locale) }
         catch PushGatewayError.unauthorized {
             // Installation ID taken with an unknown secret (e.g. restored keychain): start over with a new identity.
-            guard let fresh = createIdentity() else { return fail("Die Kennung konnte nicht sicher gespeichert werden.") }
+            guard let fresh = createIdentity() else { return fail(NSLocalizedString("PUSH_MSG_KEYCHAIN", value: "Die Kennung konnte nicht sicher gespeichert werden.", comment: "Push")) }
             identity = fresh
             await resetSubscriptionIDs()
             state.pendingSubscriptionDeletes = []
@@ -815,7 +815,7 @@ final class PushManager {
                 }
             } catch PushGatewayError.subscriptionLimit {
                 state.places[placeID] = nil
-                messages[placeID] = "Der Server nimmt höchstens \(Self.maxSubscriptions) Orte an."
+                messages[placeID] = String(format: NSLocalizedString("PUSH_MSG_SERVER_PLACE_MAX", value: "Der Server nimmt höchstens %lld Orte an.", comment: "L3"), Self.maxSubscriptions)
             } catch {
                 messages[placeID] = Self.message(for: error)
             }
@@ -887,7 +887,7 @@ final class PushManager {
         if regionSupport != .supported { await refreshRegionSupport() }
         guard regionSupport == .supported else {
             // Never send region fields to a server without the capability (it could answer 400).
-            let text = regionSupport == .unsupported ? "Der Server unterstützt noch keine Regionen." : "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Es wird später erneut versucht."
+            let text = regionSupport == .unsupported ? NSLocalizedString("PUSH_MSG_REGIONS_UNSUPPORTED", value: "Der Server unterstützt noch keine Regionen.", comment: "Push") : NSLocalizedString("PUSH_MSG_REGIONS_UNKNOWN_AUTO", value: "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Es wird später erneut versucht.", comment: "Push")
             for (id, _) in open { messages[id] = text }
             return
         }
@@ -941,7 +941,7 @@ final class PushManager {
                 } else { messages[regionID] = Self.regionLimitMessage }
             } catch PushGatewayError.subscriptionLimit {
                 state.regions[regionID] = nil
-                regionNotice = "Der Server nimmt höchstens \(Self.maxSubscriptions) Hinweise an."
+                regionNotice = String(format: NSLocalizedString("PUSH_MSG_SERVER_SUBS_MAX", value: "Der Server nimmt höchstens %lld Hinweise an.", comment: "L3"), Self.maxSubscriptions)
             } catch {
                 messages[regionID] = Self.message(for: error)
             }
@@ -949,8 +949,8 @@ final class PushManager {
         }
     }
 
-    static let regionLimitMessage = "Der Server nimmt höchstens \(PushGrid.maxRegions) Regionen je Gerät an, deren Gesamtfläche begrenzt ist. Wähle einen kleineren Radius oder lösche eine Region."
-    static let regionCapacityMessage = "Der Server hat gerade keine Kapazität für weitere Regionen. Wähle einen kleineren Radius oder versuche es später erneut."
+    static var regionLimitMessage: String { String(format: NSLocalizedString("PUSH_MSG_SERVER_REGION_MAX", value: "Der Server nimmt höchstens %lld Regionen je Gerät an, deren Gesamtfläche begrenzt ist. Wähle einen kleineren Radius oder lösche eine Region.", comment: "L3"), PushGrid.maxRegions) }
+    static let regionCapacityMessage = NSLocalizedString("PUSH_MSG_SERVER_REGION_CAPACITY", value: "Der Server hat gerade keine Kapazität für weitere Regionen. Wähle einen kleineren Radius oder versuche es später erneut.", comment: "Push")
 
     private func resetSubscriptionIDs() async {
         // Tokens belong to the old server subscriptions, never attach them to replacement IDs.
@@ -996,11 +996,11 @@ final class PushManager {
 
     static func message(for error: Error) -> String {
         switch error as? PushGatewayError {
-        case .offline: "Keine Internetverbindung. Der Hinweis wird beim nächsten Start oder Öffnen der App eingerichtet."
-        case .rateLimited: "Der Server ist gerade ausgelastet. Bitte später erneut versuchen."
-        case .notFound: "Der Mitteilungsdienst ist auf dem Server derzeit nicht aktiv."
-        case .server, .transport: "Der Mitteilungsdienst ist gerade nicht erreichbar. Es wird später erneut versucht."
-        case .some, .none: "Der Hinweis konnte nicht eingerichtet werden."
+        case .offline: NSLocalizedString("PUSH_MSG_OFFLINE", value: "Keine Internetverbindung. Der Hinweis wird beim nächsten Start oder Öffnen der App eingerichtet.", comment: "Push")
+        case .rateLimited: NSLocalizedString("PUSH_MSG_RATE_LIMITED", value: "Der Server ist gerade ausgelastet. Bitte später erneut versuchen.", comment: "Push")
+        case .notFound: NSLocalizedString("PUSH_MSG_SERVICE_INACTIVE", value: "Der Mitteilungsdienst ist auf dem Server derzeit nicht aktiv.", comment: "Push")
+        case .server, .transport: NSLocalizedString("PUSH_MSG_SERVICE_UNREACHABLE_AUTO", value: "Der Mitteilungsdienst ist gerade nicht erreichbar. Es wird später erneut versucht.", comment: "Push")
+        case .some, .none: NSLocalizedString("PUSH_MSG_SETUP_FAILED", value: "Der Hinweis konnte nicht eingerichtet werden.", comment: "Push")
         }
     }
 

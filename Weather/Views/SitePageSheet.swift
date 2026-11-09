@@ -17,9 +17,9 @@ enum SitePage: String, Identifiable, CaseIterable {
 
     var title: String {
         switch self {
-        case .privacy: "Datenschutzerklärung"
-        case .support: "Support"
-        case .about: "Über Showers"
+        case .privacy: NSLocalizedString("SITE_PRIVACY_TITLE", value: "Datenschutzerklärung", comment: "Site")
+        case .support: NSLocalizedString("SITE_SUPPORT_TITLE", value: "Support", comment: "Site")
+        case .about: NSLocalizedString("INFO_TITLE", value: "Über Showers", comment: "Site")
         }
     }
 
@@ -63,7 +63,7 @@ struct SitePageSheet: View {
                     .accessibilityHidden(state != .loaded)
                 switch state {
                 case .loading:
-                    ProgressView("Seite wird geladen …")
+                    ProgressView(NSLocalizedString("SITE_LOADING", value: "Seite wird geladen …", comment: "Site"))
                 case .failed:
                     errorView
                 case .loaded:
@@ -74,11 +74,11 @@ struct SitePageSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Im Browser öffnen") { openURL(page.url) }
+                    Button(NSLocalizedString("SITE_OPEN_BROWSER", value: "Im Browser öffnen", comment: "Site")) { openURL(page.url) }
                         .accessibilityIdentifier("site-open-browser")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") { dismiss() }.accessibilityIdentifier("site-close")
+                    Button(NSLocalizedString("COMMON_DONE", value: "Fertig", comment: "Common")) { dismiss() }.accessibilityIdentifier("site-close")
                 }
             }
         }
@@ -89,13 +89,13 @@ struct SitePageSheet: View {
 
     private var errorView: some View {
         ContentUnavailableView {
-            Label("Seite nicht erreichbar", systemImage: "wifi.slash")
+            Label(NSLocalizedString("SITE_UNREACHABLE", value: "Seite nicht erreichbar", comment: "Site"), systemImage: "wifi.slash")
         } description: {
-            Text("Die Seite „\(page.title)“ liegt auf dem Showers-Server und konnte gerade nicht geladen werden. Prüfe deine Internetverbindung oder öffne sie im Browser.")
+            Text(String(format: NSLocalizedString("SITE_UNREACHABLE_DESCRIPTION", value: "Die Seite „%@“ liegt auf dem Showers-Server und konnte gerade nicht geladen werden. Prüfe deine Internetverbindung oder öffne sie im Browser.", comment: "Site"), page.title))
         } actions: {
-            Button("Erneut versuchen") { state = .loading; reload += 1 }
+            Button(NSLocalizedString("COMMON_RETRY", value: "Erneut versuchen", comment: "Common")) { state = .loading; reload += 1 }
                 .accessibilityIdentifier("site-retry")
-            Button("Im Browser öffnen") { openURL(page.url) }
+            Button(NSLocalizedString("SITE_OPEN_BROWSER", value: "Im Browser öffnen", comment: "Site")) { openURL(page.url) }
         }
         .accessibilityIdentifier("site-error")
     }
@@ -194,7 +194,7 @@ struct SitePageButton: View {
                 Image(systemName: "chevron.up").font(.footnote).foregroundStyle(.tertiary).accessibilityHidden(true)
             }
         }
-        .accessibilityHint("Öffnet die Seite unten in der App")
+        .accessibilityHint(NSLocalizedString("SITE_OPENS_HINT", value: "Öffnet die Seite unten in der App", comment: "Site"))
         .accessibilityAddTraits(.isLink)
         .accessibilityIdentifier("site-link-\(page.rawValue)")
     }

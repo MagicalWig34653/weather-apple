@@ -15,7 +15,7 @@ struct PlacePushSettingsView: View {
     var body: some View {
         List {
             Section {
-                Toggle("Regenhinweis", isOn: Binding(
+                Toggle(NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Push"), isOn: Binding(
                     get: { settings != nil },
                     set: { on in
                         if on { confirmEnable = true } else { Task { await push.disable(placeID: place.id) } }
@@ -26,29 +26,29 @@ struct PlacePushSettingsView: View {
             } header: {
                 Text(place.name)
             } footer: {
-                Text("Du bekommst eine Mitteilung, wenn es hier bald zu regnen beginnt. Der Showers-Server wertet dafür alle paar Minuten das Radar für diesen Ort aus.")
+                Text(NSLocalizedString("PUSH_PLACE_FOOTER", value: "Du bekommst eine Mitteilung, wenn es hier bald zu regnen beginnt. Der Showers-Server wertet dafür alle paar Minuten das Radar für diesen Ort aus.", comment: "Push"))
             }
 
             if let settings {
                 Section {
-                    Picker("Vorlaufzeit", selection: Binding(
+                    Picker(NSLocalizedString("PUSH_LEAD_TIME", value: "Vorlaufzeit", comment: "Push"), selection: Binding(
                         get: { settings.leadMinutes },
                         set: { value in Task { await push.update(placeID: place.id, leadMinutes: value) } })) {
-                        ForEach(PushLead.options, id: \.self) { Text("\($0) Minuten").tag($0) }
+                        ForEach(PushLead.options, id: \.self) { Text(String(format: NSLocalizedString("PUSH_LEAD_MINUTES", value: "%lld Minuten", comment: "Push"), $0)).tag($0) }
                     }
-                    Picker("Empfindlichkeit", selection: Binding(
+                    Picker(NSLocalizedString("PUSH_SENSITIVITY", value: "Empfindlichkeit", comment: "Push"), selection: Binding(
                         get: { settings.sensitivity },
                         set: { value in Task { await push.update(placeID: place.id, sensitivity: value) } })) {
-                        ForEach(PushSensitivity.allCases) { Text("\($0.title) (\($0.detail))").tag($0) }
+                        ForEach(PushSensitivity.allCases) { Text(String(format: NSLocalizedString("PUSH_SENSITIVITY_ROW", value: "%1$@ (%2$@)", comment: "Push"), $0.title, $0.detail)).tag($0) }
                     }
-                    Toggle("Zeitkritisch", isOn: Binding(
+                    Toggle(NSLocalizedString("PUSH_TIME_SENSITIVE", value: "Zeitkritisch", comment: "Push"), isOn: Binding(
                         get: { settings.timeSensitive },
                         set: { value in Task { await push.update(placeID: place.id, timeSensitive: value) } }))
                     .accessibilityIdentifier("push-time-sensitive")
                 } header: {
-                    Text("Einstellungen")
+                    Text(NSLocalizedString("PUSH_SETTINGS_HEADER", value: "Einstellungen", comment: "Push"))
                 } footer: {
-                    Text("Hinweis, wenn es innerhalb der Vorlaufzeit mindestens so stark regnen soll (Stufen der Radar-Legende). Danach höchstens eine Meldung pro Stunde und Ort. Zeitkritisch: Die Meldung durchbricht Fokus und Mitteilungszusammenfassung. Den Stummschalter umgeht sie nicht. In den Systemeinstellungen kannst du das für Showers abschalten.")
+                    Text(NSLocalizedString("PUSH_PLACE_SETTINGS_FOOTER", value: "Hinweis, wenn es innerhalb der Vorlaufzeit mindestens so stark regnen soll (Stufen der Radar-Legende). Danach höchstens eine Meldung pro Stunde und Ort. Zeitkritisch: Die Meldung durchbricht Fokus und Mitteilungszusammenfassung. Den Stummschalter umgeht sie nicht. In den Systemeinstellungen kannst du das für Showers abschalten.", comment: "Push"))
                 }
             }
 
@@ -74,48 +74,48 @@ struct PlacePushSettingsView: View {
 
             if push.authorization == .denied {
                 Section {
-                    Button("Systemeinstellungen öffnen") {
+                    Button(NSLocalizedString("PUSH_OPEN_SYSTEM_SETTINGS", value: "Systemeinstellungen öffnen", comment: "Push")) {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
                     }
                     .accessibilityIdentifier("push-open-settings")
                 } footer: {
-                    Text("Mitteilungen sind für Showers im System ausgeschaltet. Dort kannst du sie wieder erlauben.")
+                    Text(NSLocalizedString("PUSH_DENIED_FOOTER", value: "Mitteilungen sind für Showers im System ausgeschaltet. Dort kannst du sie wieder erlauben.", comment: "Push"))
                 }
             }
 
-            Section("Zustellung") {
-                Label("Zeitkritisch (oben, standardmäßig aus): Meldungen können einen Fokus oder die Mitteilungszusammenfassung durchbrechen, den Stummschalter aber nicht.", systemImage: "bell.badge")
-                Label("Apple Watch: Ist dein iPhone gesperrt (etwa beim Sport), erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen Showers spiegeln lassen.", systemImage: "applewatch")
-                Label("Sport: Beim Radfahren, Laufen oder anderem Training trage Showers in dem Fokus, den du dafür nutzt, als erlaubte App ein, sonst bleibt die Meldung dort stumm.", systemImage: "figure.run")
+            Section(NSLocalizedString("PUSH_DELIVERY_HEADER", value: "Zustellung", comment: "Push")) {
+                Label(NSLocalizedString("PUSH_DELIVERY_TIME_SENSITIVE", value: "Zeitkritisch (oben, standardmäßig aus): Meldungen können einen Fokus oder die Mitteilungszusammenfassung durchbrechen, den Stummschalter aber nicht.", comment: "Push"), systemImage: "bell.badge")
+                Label(NSLocalizedString("PUSH_DELIVERY_WATCH", value: "Apple Watch: Ist dein iPhone gesperrt (etwa beim Sport), erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen Showers spiegeln lassen.", comment: "Push"), systemImage: "applewatch")
+                Label(NSLocalizedString("PUSH_DELIVERY_SPORT", value: "Sport: Beim Radfahren, Laufen oder anderem Training trage Showers in dem Fokus, den du dafür nutzt, als erlaubte App ein, sonst bleibt die Meldung dort stumm.", comment: "Push"), systemImage: "figure.run")
             }
             .font(.footnote)
             .labelStyle(PushHintLabelStyle())
 
             Section {
-                Text("An den Server gehen: das Gerätetoken deines iPhones, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km Kantenlänge um diesen Ort sowie Schwelle und Vorlaufzeit. Keine Koordinaten, kein Ortsname, kein Konto.")
+                Text(NSLocalizedString("PUSH_PLACE_PRIVACY", value: "An den Server gehen: das Gerätetoken deines iPhones, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km Kantenlänge um diesen Ort sowie Schwelle und Vorlaufzeit. Keine Koordinaten, kein Ortsname, kein Konto.", comment: "Push"))
                 SitePageButton(page: .privacy, selection: $sitePage)
             }
             .font(.footnote).foregroundStyle(.secondary)
         }
-        .navigationTitle("Regenhinweis")
+        .navigationTitle(NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Push"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await push.refreshAuthorization()
             await push.refreshLiveActivitySupport()
         }
         .sitePageSheet($sitePage)
-        .alert("Regenhinweis aktivieren?", isPresented: $confirmEnable) {
-            Button("Weiter") {
+        .alert(NSLocalizedString("PUSH_PLACE_CONFIRM_TITLE", value: "Regenhinweis aktivieren?", comment: "Push"), isPresented: $confirmEnable) {
+            Button(NSLocalizedString("PUSH_CONTINUE", value: "Weiter", comment: "Push")) {
                 working = true
                 Task {
                     await push.enable(placeID: place.id, latitude: place.coordinate.latitude, longitude: place.coordinate.longitude)
                     working = false
                 }
             }
-            Button("Datenschutzerklärung lesen") { sitePage = .privacy }
-            Button("Abbrechen", role: .cancel) {}
+            Button(NSLocalizedString("PUSH_READ_PRIVACY", value: "Datenschutzerklärung lesen", comment: "Push")) { sitePage = .privacy }
+            Button(NSLocalizedString("COMMON_CANCEL", value: "Abbrechen", comment: "Common"), role: .cancel) {}
         } message: {
-            Text("Showers meldet dir per Mitteilung, wenn es bei \(place.name) bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine Rasterzelle von etwa 1 km (keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.")
+            Text(String(format: NSLocalizedString("PUSH_PLACE_CONFIRM_MESSAGE", value: "Showers meldet dir per Mitteilung, wenn es bei %@ bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine Rasterzelle von etwa 1 km (keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.", comment: "Push"), place.name))
         }
     }
 
@@ -124,11 +124,11 @@ struct PlacePushSettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Label(message, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange)
                 if settings != nil {
-                    Button("Jetzt erneut versuchen") { Task { await push.start() } }.font(.footnote)
+                    Button(NSLocalizedString("PUSH_RETRY_NOW", value: "Jetzt erneut versuchen", comment: "Push")) { Task { await push.start() } }.font(.footnote)
                 }
             }
         } else if settings != nil {
-            Label(push.status(for: place.id) == .active ? "Aktiv" : "Wird eingerichtet …",
+            Label(push.status(for: place.id) == .active ? NSLocalizedString("PUSH_STATUS_ACTIVE", value: "Aktiv", comment: "Push") : NSLocalizedString("PUSH_STATUS_SETTING_UP", value: "Wird eingerichtet …", comment: "Push"),
                   systemImage: push.status(for: place.id) == .active ? "checkmark.circle" : "clock")
                 .font(.footnote).foregroundStyle(.secondary)
         }

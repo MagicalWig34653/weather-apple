@@ -24,7 +24,7 @@ struct PlacesSheet: View {
                     Section { Label(message, systemImage: "exclamationmark.triangle") }
                 }
                 if !store.places.isEmpty {
-                    Section("Gespeicherte Orte") {
+                    Section(NSLocalizedString("PLACES_SAVED_SECTION", value: "Gespeicherte Orte", comment: "Places")) {
                         ForEach(store.places) { place in
                             HStack {
                                 Button {
@@ -44,19 +44,19 @@ struct PlacesSheet: View {
                                     Image(systemName: push.settings(for: place.id) != nil ? "bell.fill" : "bell")
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityLabel("Regenhinweis")
-                                .accessibilityValue(push.settings(for: place.id) != nil ? "An" : "Aus")
+                                .accessibilityLabel(NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Places"))
+                                .accessibilityValue(push.settings(for: place.id) != nil ? NSLocalizedString("PLACES_ALERT_ON", value: "An", comment: "Places") : NSLocalizedString("PLACES_ALERT_OFF", value: "Aus", comment: "Places"))
                                 .accessibilityIdentifier("place-push")
                             }
                             .swipeActions(edge: .leading) {
-                                Button("Umbenennen") { newName = place.name; renamePlace = place }.tint(.blue)
+                                Button(NSLocalizedString("PLACES_RENAME", value: "Umbenennen", comment: "Places")) { newName = place.name; renamePlace = place }.tint(.blue)
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     guard let index = store.places.firstIndex(where: { $0.id == place.id }) else { return }
                                     store.deletePlaces(at: IndexSet(integer: index))
                                 } label: {
-                                    Label("Löschen", systemImage: "trash")
+                                    Label(NSLocalizedString("COMMON_DELETE", value: "Löschen", comment: "Common"), systemImage: "trash")
                                 }
                                 .accessibilityIdentifier("delete-place")
                             }
@@ -68,25 +68,25 @@ struct PlacesSheet: View {
                     Button {
                         store.requestLocation()
                         dismiss()
-                    } label: { Label("Aktuellen Standort verwenden", systemImage: "location") }
+                    } label: { Label(NSLocalizedString("RADAR_USE_LOCATION", value: "Aktuellen Standort verwenden", comment: "Radar"), systemImage: "location") }
                 }
                 if isSearching {
-                    Section { HStack { ProgressView(); Text("Orte werden gesucht …") } }
+                    Section { HStack { ProgressView(); Text(NSLocalizedString("PLACES_SEARCHING", value: "Orte werden gesucht …", comment: "Places")) } }
                 }
                 if let searchMessage {
                     Section { Text(searchMessage).foregroundStyle(.secondary) }
                 }
                 if !results.isEmpty {
-                    Section("Suchergebnisse") {
+                    Section(NSLocalizedString("PLACES_RESULTS_SECTION", value: "Suchergebnisse", comment: "Places")) {
                         ForEach(Array(results.enumerated()), id: \.offset) { _, item in
                             Button {
                                 let coordinate = item.location.coordinate
-                                store.select(SavedPlace(name: item.name ?? "Ausgewählter Ort", coordinate: WeatherCoordinate(
+                                store.select(SavedPlace(name: item.name ?? NSLocalizedString("PLACES_SELECTED_FALLBACK", value: "Ausgewählter Ort", comment: "Places"), coordinate: WeatherCoordinate(
                                     latitude: coordinate.latitude, longitude: coordinate.longitude)))
                                 dismiss()
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.name ?? "Ort").foregroundStyle(.primary)
+                                    Text(item.name ?? NSLocalizedString("PLACES_ITEM_FALLBACK", value: "Ort", comment: "Places")).foregroundStyle(.primary)
                                     if let address = item.address?.shortAddress {
                                         Text(address).font(.caption).foregroundStyle(.secondary)
                                     }
@@ -96,11 +96,11 @@ struct PlacesSheet: View {
                     }
                 }
                 Section {
-                    Text("Orte und eigene Namen bleiben auf diesem Gerät. Die Suche verwendet Apple-Kartendienste. Zum Speichern eines ausgewählten Orts auf das Lesezeichen in der Karte tippen.")
+                    Text(NSLocalizedString("PLACES_FOOTNOTE", value: "Orte und eigene Namen bleiben auf diesem Gerät. Die Suche verwendet Apple-Kartendienste. Zum Speichern eines ausgewählten Orts auf das Lesezeichen in der Karte tippen.", comment: "Places"))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Deine Orte")
+            .navigationTitle(NSLocalizedString("PLACES_TITLE", value: "Deine Orte", comment: "Places"))
             .navigationDestination(item: $pushPlaceID) { id in
                 if let place = store.places.first(where: { $0.id == id }) { PlacePushSettingsView(place: place) }
             }
@@ -111,7 +111,7 @@ struct PlacesSheet: View {
                 }
             }
             .task { await push.refreshRegionSupport() }
-            .searchable(text: $query, prompt: "Stadt, Adresse oder Ort")
+            .searchable(text: $query, prompt: NSLocalizedString("PLACES_SEARCH_PROMPT", value: "Stadt, Adresse oder Ort", comment: "Places"))
             .onSubmit(of: .search) { Task { await search() } }
             .onChange(of: query) { _, value in
                 if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -121,14 +121,14 @@ struct PlacesSheet: View {
                     searchMessage = nil
                 }
             }
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
-            .alert("Ort umbenennen", isPresented: Binding(get: { renamePlace != nil }, set: { if !$0 { renamePlace = nil } })) {
-                TextField("Name", text: $newName)
-                Button("Speichern") {
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(NSLocalizedString("COMMON_DONE", value: "Fertig", comment: "Common")) { dismiss() } } }
+            .alert(NSLocalizedString("PLACES_RENAME_TITLE", value: "Ort umbenennen", comment: "Places"), isPresented: Binding(get: { renamePlace != nil }, set: { if !$0 { renamePlace = nil } })) {
+                TextField(NSLocalizedString("COMMON_NAME", value: "Name", comment: "Text field"), text: $newName)
+                Button(NSLocalizedString("COMMON_SAVE", value: "Speichern", comment: "Common")) {
                     if let place = renamePlace { store.rename(place, name: newName) }
                     renamePlace = nil
                 }
-                Button("Abbrechen", role: .cancel) { renamePlace = nil }
+                Button(NSLocalizedString("COMMON_CANCEL", value: "Abbrechen", comment: "Common"), role: .cancel) { renamePlace = nil }
             }
         }
     }
@@ -148,20 +148,20 @@ struct PlacesSheet: View {
                 }
                 .accessibilityIdentifier("region-row")
                 .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) { Task { await push.removeRegion(id: entry.id) } } label: { Label("Löschen", systemImage: "trash") }
+                    Button(role: .destructive) { Task { await push.removeRegion(id: entry.id) } } label: { Label(NSLocalizedString("COMMON_DELETE", value: "Löschen", comment: "Common"), systemImage: "trash") }
                 }
             }
-            Button { regionRoute = .new } label: { Label("Region hinzufügen", systemImage: "plus.circle") }
+            Button { regionRoute = .new } label: { Label(NSLocalizedString("REGION_ADD", value: "Region hinzufügen", comment: "Places"), systemImage: "plus.circle") }
                 .disabled(push.regionSupport != .supported || !push.canAddRegion)
                 .accessibilityIdentifier("region-new")
             if push.regionSupport != .supported { RegionSupportNote(support: push.regionSupport).font(.footnote) }
             else if !push.canAddRegion {
-                Label("Höchstens \(PushGrid.maxRegions) Regionen (insgesamt höchstens \(PushManager.maxSubscriptions) Hinweise).", systemImage: "info.circle")
+                Label(String(format: NSLocalizedString("PLACES_REGION_LIMIT", value: "Höchstens %1$lld Regionen (insgesamt höchstens %2$lld Hinweise).", comment: "Places"), PushGrid.maxRegions, PushManager.maxSubscriptions), systemImage: "info.circle")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if let notice = push.regionNotice { Label(notice, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange) }
-        } header: { Text("Regionen") }
-        footer: { Text("Regenhinweis für einen Umkreis (5, 10 oder 25 km) statt für einen einzelnen Ort. Name und Mittelpunkt bleiben auf diesem Gerät; der Server erhält nur einen groben Bereich.") }
+        } header: { Text(NSLocalizedString("PLACES_REGIONS_HEADER", value: "Regionen", comment: "Places")) }
+        footer: { Text(NSLocalizedString("PLACES_REGIONS_FOOTER", value: "Regenhinweis für einen Umkreis (5, 10 oder 25 km) statt für einen einzelnen Ort. Name und Mittelpunkt bleiben auf diesem Gerät; der Server erhält nur einen groben Bereich.", comment: "Places")) }
     }
 
     @MainActor private func search() async {
@@ -179,11 +179,11 @@ struct PlacesSheet: View {
             let response = try await MKLocalSearch(request: request).start()
             guard searchGeneration == requestID else { return }
             results = response.mapItems
-            if results.isEmpty { searchMessage = "Keine passenden Orte gefunden." }
+            if results.isEmpty { searchMessage = NSLocalizedString("PLACES_NO_RESULTS", value: "Keine passenden Orte gefunden.", comment: "Places") }
         } catch {
             guard searchGeneration == requestID else { return }
             results = []
-            searchMessage = "Die Ortssuche ist gerade nicht verfügbar. Du kannst einen Punkt auf der Karte auswählen."
+            searchMessage = NSLocalizedString("PLACES_SEARCH_UNAVAILABLE", value: "Die Ortssuche ist gerade nicht verfügbar. Du kannst einen Punkt auf der Karte auswählen.", comment: "Places")
         }
         isSearching = false
     }

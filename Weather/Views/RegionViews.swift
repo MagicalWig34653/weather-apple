@@ -3,22 +3,22 @@ import SwiftUI
 import UIKit
 
 enum RegionText {
-    static let explanation = "Showers meldet dir per Mitteilung, wenn Regen diese Region erreicht. Dafür gehen an den Showers-Server: das Gerätetoken, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km, keine Koordinaten), der Radius, Schwelle, Auslöseanteil und Vorlaufzeit; kein Konto, kein Name. Danach fragt iOS, ob Mitteilungen erlaubt sind."
-    static let privacyFootnote = "An den Server gehen: das Gerätetoken, eine zufällige Installations-Kennung, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), der Radius sowie Schwelle, Auslöseanteil und Vorlaufzeit. Keine Koordinaten, kein Name, kein Konto. Der Name der Region bleibt auf diesem Gerät."
-    static let unsupported = "Server unterstützt noch keine Regionen."
-    static let unknown = "Ob der Server Regionen unterstützt, konnte nicht geprüft werden."
+    static let explanation = NSLocalizedString("REGION_EXPLANATION", value: "Showers meldet dir per Mitteilung, wenn Regen diese Region erreicht. Dafür gehen an den Showers-Server: das Gerätetoken, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km, keine Koordinaten), der Radius, Schwelle, Auslöseanteil und Vorlaufzeit; kein Konto, kein Name. Danach fragt iOS, ob Mitteilungen erlaubt sind.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
+    static let privacyFootnote = NSLocalizedString("REGION_PRIVACY_FOOTNOTE", value: "An den Server gehen: das Gerätetoken, eine zufällige Installations-Kennung, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), der Radius sowie Schwelle, Auslöseanteil und Vorlaufzeit. Keine Koordinaten, kein Name, kein Konto. Der Name der Region bleibt auf diesem Gerät.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
+    static let unsupported = NSLocalizedString("REGION_UNSUPPORTED", value: "Server unterstützt noch keine Regionen.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
+    static let unknown = NSLocalizedString("REGION_SUPPORT_UNKNOWN", value: "Ob der Server Regionen unterstützt, konnte nicht geprüft werden.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
 
     static func shareTitle(_ percent: Int) -> String {
         switch percent {
-        case 1: "Vereinzelt (ab 1 %)"
-        case 25: "Flächig (ab 25 %)"
-        default: "Verbreitet (ab 10 %)"
+        case 1: NSLocalizedString("REGION_SHARE_1", value: "Vereinzelt (ab 1 %)", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
+        case 25: NSLocalizedString("REGION_SHARE_25", value: "Flächig (ab 25 %)", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
+        default: NSLocalizedString("REGION_SHARE_10", value: "Verbreitet (ab 10 %)", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
         }
     }
 
-    static func title(_ region: RegionPushSettings) -> String { region.name ?? "Umkreis \(region.radiusKm) km" }
+    static func title(_ region: RegionPushSettings) -> String { region.name ?? String(format: NSLocalizedString("REGION_TITLE_RADIUS", value: "Umkreis %lld km", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), region.radiusKm) }
     static func detail(_ region: RegionPushSettings) -> String {
-        "Umkreis \(region.radiusKm) km · ab \(region.sharePercent) % der Fläche"
+        String(format: NSLocalizedString("REGION_DETAIL", value: "Umkreis %1$lld km · ab %2$lld %% der Fläche", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), region.radiusKm, region.sharePercent)
     }
 }
 
@@ -45,7 +45,7 @@ struct RegionPreviewMap: View {
         .onChange(of: latitude) { fit() }
         .onChange(of: longitude) { fit() }
         .accessibilityElement()
-        .accessibilityLabel("Kartenvorschau: Umkreis \(radiusKm) Kilometer")
+        .accessibilityLabel(String(format: NSLocalizedString("REGION_PREVIEW_LABEL", value: "Kartenvorschau: Umkreis %lld Kilometer", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), radiusKm))
         .accessibilityIdentifier("region-preview")
     }
 
@@ -102,26 +102,26 @@ struct RegionCreateView: View {
                     RegionPreviewMap(latitude: coarse.latitude, longitude: coarse.longitude, radiusKm: radiusKm)
                         .listRowInsets(EdgeInsets())
                 } else {
-                    Label("Dieser Mittelpunkt liegt außerhalb des Radargebiets.", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    Label(NSLocalizedString("REGION_OUTSIDE", value: "Dieser Mittelpunkt liegt außerhalb des Radargebiets.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
-            } footer: { Text("Der Kreis zeigt den überwachten Bereich. Der Mittelpunkt wird vor dem Senden auf etwa 2 km gerundet.") }
+            } footer: { Text(NSLocalizedString("REGION_PREVIEW_FOOTER", value: "Der Kreis zeigt den überwachten Bereich. Der Mittelpunkt wird vor dem Senden auf etwa 2 km gerundet.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))) }
 
-            Section("Mittelpunkt") {
-                Picker("Mittelpunkt", selection: Binding(get: { center.id }, set: { centerID = $0 })) {
+            Section(NSLocalizedString("REGION_CENTER", value: "Mittelpunkt", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))) {
+                Picker(NSLocalizedString("REGION_CENTER", value: "Mittelpunkt", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), selection: Binding(get: { center.id }, set: { centerID = $0 })) {
                     ForEach(candidates) { place in
-                        Text(place.id == store.selectedPlace.id && !store.places.contains(place) ? "Kartenpunkt: \(place.name)" : place.name).tag(place.id)
+                        Text(place.id == store.selectedPlace.id && !store.places.contains(place) ? String(format: NSLocalizedString("REGION_CENTER_MAP_POINT", value: "Kartenpunkt: %@", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), place.name) : place.name).tag(place.id)
                     }
                 }
                 .accessibilityIdentifier("region-center")
-                Picker("Radius", selection: $radiusKm) {
-                    ForEach(PushGrid.regionRadiusPresetsKm, id: \.self) { Text("\($0) km").tag($0) }
+                Picker(NSLocalizedString("REGION_RADIUS", value: "Radius", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), selection: $radiusKm) {
+                    ForEach(PushGrid.regionRadiusPresetsKm, id: \.self) { Text(String(format: NSLocalizedString("REGION_RADIUS_KM", value: "%lld km", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), $0)).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("region-radius")
-                Picker("Auslöser", selection: $share) {
+                Picker(NSLocalizedString("REGION_TRIGGER", value: "Auslöser", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), selection: $share) {
                     ForEach(PushGrid.regionSharePercents, id: \.self) { Text(RegionText.shareTitle($0)).tag($0) }
                 }
-                TextField("Name (optional, nur auf diesem Gerät)", text: $name)
+                TextField(NSLocalizedString("REGION_NAME_FIELD", value: "Name (optional, nur auf diesem Gerät)", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), text: $name)
                     .accessibilityIdentifier("region-name")
             }
 
@@ -129,16 +129,16 @@ struct RegionCreateView: View {
                 RegionSupportNote(support: push.regionSupport)
                 if let failure { Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
                 if !push.canAddRegion {
-                    Label("Es sind höchstens \(PushGrid.maxRegions) Regionen möglich.", systemImage: "info.circle").foregroundStyle(.secondary)
+                    Label(String(format: NSLocalizedString("REGION_MAX_REACHED", value: "Es sind höchstens %lld Regionen möglich.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), PushGrid.maxRegions), systemImage: "info.circle").foregroundStyle(.secondary)
                 }
                 Button {
                     confirm = true
                 } label: {
-                    HStack { Text("Region hinzufügen"); if working { Spacer(); ProgressView() } }
+                    HStack { Text(NSLocalizedString("REGION_ADD", value: "Region hinzufügen", comment: "Places")); if working { Spacer(); ProgressView() } }
                 }
                 .disabled(working || coarse == nil || push.regionSupport != .supported || !push.canAddRegion)
                 .accessibilityIdentifier("region-add")
-            } footer: { Text("Du bekommst eine Mitteilung, wenn Regen diese Region erreicht, sobald der gewählte Anteil der Fläche betroffen ist.") }
+            } footer: { Text(NSLocalizedString("REGION_ADD_FOOTER", value: "Du bekommst eine Mitteilung, wenn Regen diese Region erreicht, sobald der gewählte Anteil der Fläche betroffen ist.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))) }
             .font(.footnote)
 
             Section {
@@ -147,14 +147,14 @@ struct RegionCreateView: View {
             }
             .font(.footnote).foregroundStyle(.secondary)
         }
-        .navigationTitle("Neue Region")
+        .navigationTitle(NSLocalizedString("REGION_NEW_TITLE", value: "Neue Region", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")))
         .navigationBarTitleDisplayMode(.inline)
         .task { await push.refreshRegionSupport() }
         .sitePageSheet($sitePage)
-        .alert("Regenhinweis für Region aktivieren?", isPresented: $confirm) {
-            Button("Weiter") { Task { await add() } }
-            Button("Datenschutzerklärung lesen") { sitePage = .privacy }
-            Button("Abbrechen", role: .cancel) {}
+        .alert(NSLocalizedString("REGION_CONFIRM_TITLE", value: "Regenhinweis für Region aktivieren?", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), isPresented: $confirm) {
+            Button(NSLocalizedString("PUSH_CONTINUE", value: "Weiter", comment: "Push")) { Task { await add() } }
+            Button(NSLocalizedString("PUSH_READ_PRIVACY", value: "Datenschutzerklärung lesen", comment: "Push")) { sitePage = .privacy }
+            Button(NSLocalizedString("COMMON_CANCEL", value: "Abbrechen", comment: "Common"), role: .cancel) {}
         } message: { Text(RegionText.explanation) }
     }
 
@@ -187,35 +187,35 @@ struct RegionSettingsView: View {
                     let coordinate = PushGrid.coordinate(of: region.center)
                     RegionPreviewMap(latitude: coordinate.latitude, longitude: coordinate.longitude, radiusKm: region.radiusKm)
                         .listRowInsets(EdgeInsets())
-                    Toggle("Regenhinweis", isOn: Binding(get: { true }, set: { if !$0 { confirmDelete = true } }))
+                    Toggle(NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Push"), isOn: Binding(get: { true }, set: { if !$0 { confirmDelete = true } }))
                         .accessibilityIdentifier("region-toggle")
                     status(region)
                 } header: { Text(RegionText.title(region)) }
-                footer: { Text("Du bekommst eine Mitteilung, wenn Regen diese Region erreicht. Ausschalten löscht die Region und ihre Registrierung auf dem Server.") }
+                footer: { Text(NSLocalizedString("REGION_TOGGLE_FOOTER", value: "Du bekommst eine Mitteilung, wenn Regen diese Region erreicht. Ausschalten löscht die Region und ihre Registrierung auf dem Server.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))) }
 
                 Section {
-                    TextField("Name (optional, nur auf diesem Gerät)", text: $name)
+                    TextField(NSLocalizedString("REGION_NAME_FIELD", value: "Name (optional, nur auf diesem Gerät)", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), text: $name)
                         .onSubmit { Task { await push.updateRegion(id: regionID, name: name) } }
-                    Picker("Radius", selection: Binding(get: { region.radiusKm },
+                    Picker(NSLocalizedString("REGION_RADIUS", value: "Radius", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), selection: Binding(get: { region.radiusKm },
                                                         set: { v in Task { await push.updateRegion(id: regionID, radiusKm: v) } })) {
-                        ForEach(PushGrid.regionRadiusPresetsKm, id: \.self) { Text("\($0) km").tag($0) }
+                        ForEach(PushGrid.regionRadiusPresetsKm, id: \.self) { Text(String(format: NSLocalizedString("REGION_RADIUS_KM", value: "%lld km", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), $0)).tag($0) }
                     }
-                    Picker("Auslöser", selection: Binding(get: { region.sharePercent },
+                    Picker(NSLocalizedString("REGION_TRIGGER", value: "Auslöser", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), selection: Binding(get: { region.sharePercent },
                                                           set: { v in Task { await push.updateRegion(id: regionID, sharePercent: v) } })) {
                         ForEach(PushGrid.regionSharePercents, id: \.self) { Text(RegionText.shareTitle($0)).tag($0) }
                     }
-                    Picker("Vorlaufzeit", selection: Binding(get: { region.leadMinutes },
+                    Picker(NSLocalizedString("PUSH_LEAD_TIME", value: "Vorlaufzeit", comment: "Push"), selection: Binding(get: { region.leadMinutes },
                                                              set: { v in Task { await push.updateRegion(id: regionID, leadMinutes: v) } })) {
-                        ForEach(PushLead.options, id: \.self) { Text("\($0) Minuten").tag($0) }
+                        ForEach(PushLead.options, id: \.self) { Text(String(format: NSLocalizedString("PUSH_LEAD_MINUTES", value: "%lld Minuten", comment: "Push"), $0)).tag($0) }
                     }
-                    Picker("Empfindlichkeit", selection: Binding(get: { region.sensitivity },
+                    Picker(NSLocalizedString("PUSH_SENSITIVITY", value: "Empfindlichkeit", comment: "Push"), selection: Binding(get: { region.sensitivity },
                                                                  set: { v in Task { await push.updateRegion(id: regionID, sensitivity: v) } })) {
-                        ForEach(PushSensitivity.allCases) { Text("\($0.title) (\($0.detail))").tag($0) }
+                        ForEach(PushSensitivity.allCases) { Text(String(format: NSLocalizedString("PUSH_SENSITIVITY_ROW", value: "%1$@ (%2$@)", comment: "Push"), $0.title, $0.detail)).tag($0) }
                     }
-                    Toggle("Zeitkritisch", isOn: Binding(get: { region.timeSensitive },
+                    Toggle(NSLocalizedString("PUSH_TIME_SENSITIVE", value: "Zeitkritisch", comment: "Push"), isOn: Binding(get: { region.timeSensitive },
                                                          set: { v in Task { await push.updateRegion(id: regionID, timeSensitive: v) } }))
-                } header: { Text("Einstellungen") } footer: {
-                    Text("Meldung, sobald der gewählte Anteil der Fläche innerhalb der Vorlaufzeit mindestens so stark Regen bekommt. Danach höchstens eine Meldung pro Stunde und Region. Zeitkritisch durchbricht Fokus und Mitteilungszusammenfassung, nicht den Stummschalter.")
+                } header: { Text(NSLocalizedString("PUSH_SETTINGS_HEADER", value: "Einstellungen", comment: "Push")) } footer: {
+                    Text(NSLocalizedString("REGION_SETTINGS_FOOTER", value: "Meldung, sobald der gewählte Anteil der Fläche innerhalb der Vorlaufzeit mindestens so stark Regen bekommt. Danach höchstens eine Meldung pro Stunde und Region. Zeitkritisch durchbricht Fokus und Mitteilungszusammenfassung, nicht den Stummschalter.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")))
                 }
 
                 // Only offered when the server announces `live_activity_regions`; an already enabled one stays switchable.
@@ -241,10 +241,10 @@ struct RegionSettingsView: View {
 
                 if push.authorization == .denied {
                     Section {
-                        Button("Systemeinstellungen öffnen") {
+                        Button(NSLocalizedString("PUSH_OPEN_SYSTEM_SETTINGS", value: "Systemeinstellungen öffnen", comment: "Push")) {
                             if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
                         }
-                    } footer: { Text("Mitteilungen sind für Showers im System ausgeschaltet.") }
+                    } footer: { Text(NSLocalizedString("PUSH_DENIED_FOOTER_SHORT", value: "Mitteilungen sind für Showers im System ausgeschaltet.", comment: "Push")) }
                 }
 
                 Section {
@@ -254,34 +254,34 @@ struct RegionSettingsView: View {
                 .font(.footnote).foregroundStyle(.secondary)
 
                 Section {
-                    Button("Region löschen", role: .destructive) { confirmDelete = true }
+                    Button(NSLocalizedString("REGION_DELETE_BUTTON", value: "Region löschen", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region")), role: .destructive) { confirmDelete = true }
                         .accessibilityIdentifier("region-delete")
                 }
             }
         }
-        .navigationTitle("Region")
+        .navigationTitle(NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await push.refreshRegionSupport() }
         .onAppear { name = push.region(for: regionID)?.name ?? "" }
         .onDisappear { Task { await push.updateRegion(id: regionID, name: name) } }
         .sitePageSheet($sitePage)
-        .confirmationDialog("Region löschen?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) {
+        .confirmationDialog(NSLocalizedString("REGION_DELETE_TITLE", value: "Region löschen?", comment: "Region"), isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button(NSLocalizedString("COMMON_DELETE", value: "Löschen", comment: "Common"), role: .destructive) {
                 Task { await push.removeRegion(id: regionID); dismiss() }
             }
-            Button("Abbrechen", role: .cancel) {}
-        } message: { Text("Der Regenhinweis wird ausgeschaltet und auf dem Server gelöscht.") }
+            Button(NSLocalizedString("COMMON_CANCEL", value: "Abbrechen", comment: "Common"), role: .cancel) {}
+        } message: { Text(NSLocalizedString("REGION_DELETE_MESSAGE", value: "Der Regenhinweis wird ausgeschaltet und auf dem Server gelöscht.", comment: "Region")) }
     }
 
     @ViewBuilder private func status(_ region: RegionPushSettings) -> some View {
         if let message = push.messages[regionID] {
             VStack(alignment: .leading, spacing: 6) {
                 Label(message, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange)
-                Button("Jetzt erneut versuchen") { Task { await push.start() } }.font(.footnote)
+                Button(NSLocalizedString("PUSH_RETRY_NOW", value: "Jetzt erneut versuchen", comment: "Push")) { Task { await push.start() } }.font(.footnote)
             }
         } else {
             let active = push.regionStatus(for: regionID) == .active
-            Label(active ? "Aktiv" : "Wird eingerichtet …", systemImage: active ? "checkmark.circle" : "clock")
+            Label(active ? NSLocalizedString("PUSH_STATUS_ACTIVE", value: "Aktiv", comment: "Push") : NSLocalizedString("PUSH_STATUS_SETTING_UP", value: "Wird eingerichtet …", comment: "Push"), systemImage: active ? "checkmark.circle" : "clock")
                 .font(.footnote).foregroundStyle(.secondary)
         }
     }

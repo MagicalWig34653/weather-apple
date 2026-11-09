@@ -1,34 +1,32 @@
 import Foundation
 
-/// Kept within P8's writable scope; German/English chosen like the existing push payload locale.
+/// Texts of the rain Live Activity settings and messages. German or English follows `locale` (default: app language);
+/// the strings live in `Localizable.strings` (`RAIN_ACTIVITY_*`).
 enum RainActivityText {
     case title, explanation, unavailable, privacy, limit, notEligible, retry, waitingForToken, full
     case regionExplanation, regionPrivacy
 
+    /// Bundle of the requested language (falls back to the main bundle), so tests can check both languages.
+    private static func bundle(for locale: String) -> Bundle {
+        let code = locale.lowercased().hasPrefix("de") ? "de" : "en"
+        if let path = Bundle.main.path(forResource: code, ofType: "lproj"), let bundle = Bundle(path: path) { return bundle }
+        return .main
+    }
+
     func text(locale: String = AppLanguage.code) -> String {
-        let german = locale.lowercased().hasPrefix("de")
+        let b = Self.bundle(for: locale)
         switch self {
-        case .title: return german ? "Live Activity" : "Live Activity"
-        case .explanation: return german
-            ? "Zeigt bevorstehenden Regen auf dem Sperrbildschirm und in der Dynamic Island. Standardmäßig aus; höchstens eine Live Activity gleichzeitig. Du kannst sie auch in den Systemeinstellungen abschalten."
-            : "Shows upcoming rain on the Lock Screen and in the Dynamic Island. Off by default; at most one Live Activity at a time. You can also disable it in system settings."
-        case .unavailable: return german
-            ? "Live Activities sind derzeit nicht verfügbar. Der Server muss sie unterstützen und sie müssen im System erlaubt sein."
-            : "Live Activities are currently unavailable. The server must support them and they must be allowed in system settings."
-        case .privacy: return german
-            ? "Bei Aktivierung erhält der Server zusätzliche Gerätekennungen für Start und Aktualisierung, verknüpft mit diesem Ortsabo. Der Ortsname bleibt auf dem Gerät und kann auf dem Sperrbildschirm erscheinen. Kein Standortverlauf. Beim Abschalten werden laufende Activities beendet."
-            : "When enabled, the server receives additional device identifiers for starting and updating activities, linked to this place subscription. The place name stays on the device and may appear on the Lock Screen. No location history. Turning this off ends running activities."
-        case .regionExplanation: return german
-            ? "Zeigt Regen im Umkreis auf dem Sperrbildschirm und in der Dynamic Island: wie viel Prozent der Fläche nass sind und die stärkste Stufe. Startet beim gleichen Auslöseanteil wie die Mitteilung. Standardmäßig aus; höchstens eine Live Activity gleichzeitig, ein Ort hat dabei Vorrang vor einem Umkreis."
-            : "Shows rain in the area on the Lock Screen and in the Dynamic Island: the percentage of the area that is wet and the strongest level. Starts at the same trigger share as the notification. Off by default; at most one Live Activity at a time, and a place takes priority over an area."
-        case .regionPrivacy: return german
-            ? "Bei Aktivierung erhält der Server zusätzliche Gerätekennungen für Start und Aktualisierung, verknüpft mit diesem Umkreis-Abo. Der Name des Umkreises bleibt auf dem Gerät und kann auf dem Sperrbildschirm erscheinen. Keine zusätzlichen Standortdaten, kein Standortverlauf. Beim Abschalten werden laufende Activities beendet."
-            : "When enabled, the server receives additional device identifiers for starting and updating activities, linked to this area subscription. The area name stays on the device and may appear on the Lock Screen. No additional location data, no location history. Turning this off ends running activities."
-        case .limit: return german ? "Es kann nur eine Live Activity gleichzeitig laufen." : "Only one Live Activity can run at a time."
-        case .notEligible: return german ? "Diese Live Activity ist abgelaufen oder für das Abo nicht mehr verfügbar." : "This Live Activity has expired or is no longer available for this subscription."
-        case .waitingForToken: return german ? "Wird vorbereitet. Bitte warte einen Moment." : "Getting ready. Please wait a moment."
-        case .full: return german ? "Zurzeit können keine weiteren Live Activities aktiviert werden. Bitte versuche es später erneut." : "Live Activities are temporarily unavailable. Please try turning this on again later."
-        case .retry: return german ? "Die Live Activity konnte nicht synchronisiert werden. Beim nächsten Öffnen wird es erneut versucht." : "The Live Activity could not be synced. It will be retried when you next open the app."
+        case .title: return NSLocalizedString("RAIN_ACTIVITY_TITLE", bundle: b, value: "Live Activity", comment: "Live Activity")
+        case .explanation: return NSLocalizedString("RAIN_ACTIVITY_EXPLANATION", bundle: b, value: "Zeigt bevorstehenden Regen auf dem Sperrbildschirm und in der Dynamic Island. Standardmäßig aus; höchstens eine Live Activity gleichzeitig. Du kannst sie auch in den Systemeinstellungen abschalten.", comment: "Live Activity")
+        case .unavailable: return NSLocalizedString("RAIN_ACTIVITY_UNAVAILABLE", bundle: b, value: "Live Activities sind derzeit nicht verfügbar. Der Server muss sie unterstützen und sie müssen im System erlaubt sein.", comment: "Live Activity")
+        case .privacy: return NSLocalizedString("RAIN_ACTIVITY_PRIVACY", bundle: b, value: "Bei Aktivierung erhält der Server zusätzliche Gerätekennungen für Start und Aktualisierung, verknüpft mit diesem Ortsabo. Der Ortsname bleibt auf dem Gerät und kann auf dem Sperrbildschirm erscheinen. Kein Standortverlauf. Beim Abschalten werden laufende Activities beendet.", comment: "Live Activity")
+        case .regionExplanation: return NSLocalizedString("RAIN_ACTIVITY_REGION_EXPLANATION", bundle: b, value: "Zeigt Regen im Umkreis auf dem Sperrbildschirm und in der Dynamic Island: wie viel Prozent der Fläche nass sind und die stärkste Stufe. Startet beim gleichen Auslöseanteil wie die Mitteilung. Standardmäßig aus; höchstens eine Live Activity gleichzeitig, ein Ort hat dabei Vorrang vor einem Umkreis.", comment: "Live Activity")
+        case .regionPrivacy: return NSLocalizedString("RAIN_ACTIVITY_REGION_PRIVACY", bundle: b, value: "Bei Aktivierung erhält der Server zusätzliche Gerätekennungen für Start und Aktualisierung, verknüpft mit diesem Umkreis-Abo. Der Name des Umkreises bleibt auf dem Gerät und kann auf dem Sperrbildschirm erscheinen. Keine zusätzlichen Standortdaten, kein Standortverlauf. Beim Abschalten werden laufende Activities beendet.", comment: "Live Activity")
+        case .limit: return NSLocalizedString("RAIN_ACTIVITY_LIMIT", bundle: b, value: "Es kann nur eine Live Activity gleichzeitig laufen.", comment: "Live Activity")
+        case .notEligible: return NSLocalizedString("RAIN_ACTIVITY_NOT_ELIGIBLE", bundle: b, value: "Diese Live Activity ist abgelaufen oder für das Abo nicht mehr verfügbar.", comment: "Live Activity")
+        case .waitingForToken: return NSLocalizedString("RAIN_ACTIVITY_WAITING", bundle: b, value: "Wird vorbereitet. Bitte warte einen Moment.", comment: "Live Activity")
+        case .full: return NSLocalizedString("RAIN_ACTIVITY_FULL", bundle: b, value: "Zurzeit können keine weiteren Live Activities aktiviert werden. Bitte versuche es später erneut.", comment: "Live Activity")
+        case .retry: return NSLocalizedString("RAIN_ACTIVITY_RETRY", bundle: b, value: "Die Live Activity konnte nicht synchronisiert werden. Beim nächsten Öffnen wird es erneut versucht.", comment: "Live Activity")
         }
     }
 }

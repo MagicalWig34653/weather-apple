@@ -81,18 +81,18 @@ enum PushSensitivity: String, Codable, CaseIterable, Identifiable, Sendable {
     }
     var title: String {
         switch self {
-        case .veryLight: "Sehr leicht"
-        case .light: "Leicht"
-        case .moderate: "Mäßig"
-        case .heavy: "Stark"
+        case .veryLight: NSLocalizedString("PUSH_SENSITIVITY_VERY_LIGHT", value: "Sehr leicht", comment: "Push")
+        case .light: NSLocalizedString("PUSH_SENSITIVITY_LIGHT", value: "Leicht", comment: "Push")
+        case .moderate: NSLocalizedString("PUSH_SENSITIVITY_MODERATE", value: "Mäßig", comment: "Push")
+        case .heavy: NSLocalizedString("PUSH_SENSITIVITY_HEAVY", value: "Stark", comment: "Push")
         }
     }
     var detail: String {
         switch self {
-        case .veryLight: "ab ca. 0,1 mm/h, löst auch bei Nieselregen aus"
-        case .light: "ab 0,4 mm/h"
-        case .moderate: "ab 2 mm/h"
-        case .heavy: "ab 7,5 mm/h"
+        case .veryLight: NSLocalizedString("PUSH_SENSITIVITY_VERY_LIGHT_DETAIL", value: "ab ca. 0,1 mm/h, löst auch bei Nieselregen aus", comment: "Push")
+        case .light: NSLocalizedString("PUSH_SENSITIVITY_LIGHT_DETAIL", value: "ab 0,4 mm/h", comment: "Push")
+        case .moderate: NSLocalizedString("PUSH_SENSITIVITY_MODERATE_DETAIL", value: "ab 2 mm/h", comment: "Push")
+        case .heavy: NSLocalizedString("PUSH_SENSITIVITY_HEAVY_DETAIL", value: "ab 7,5 mm/h", comment: "Push")
         }
     }
 }
