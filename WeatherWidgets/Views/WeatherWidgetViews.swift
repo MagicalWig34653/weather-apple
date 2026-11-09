@@ -41,7 +41,7 @@ struct WeatherWidgetView: View {
     private var ageLabel: some View {
         Group {
             if let ref = entry.referenceTime {
-                Text("WIDGET_AS_OF \(ref, style: .time)")
+                Text(WidgetAsOfText.string(for: ref))
             } else {
                 Text("WIDGET_NO_TIMESTAMP")
             }

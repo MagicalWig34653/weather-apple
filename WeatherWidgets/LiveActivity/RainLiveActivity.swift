@@ -128,7 +128,7 @@ struct RainLockScreenView: View {
                     }
                     if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
                 }
-                Text("WIDGET_AS_OF \(p.referenceTime, format: .dateTime.hour().minute())")
+                Text(WidgetAsOfText.string(for: p.referenceTime))
                     .font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)

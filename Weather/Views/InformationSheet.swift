@@ -87,6 +87,24 @@ struct InformationSheet: View {
                     Text(NSLocalizedString("INFO_WIDGETS_1", value: "Widgets verwenden deine gespeicherten Orte. Den Ort wählst du beim Bearbeiten des Widgets; Antippen öffnet ihn in der App. Die Aktualisierung im Hintergrund bestimmt das System. Achte auf das angezeigte Datenalter.", comment: "Info"))
                     Text(NSLocalizedString("INFO_WIDGETS_2", value: "Deine gespeicherten Orte werden mit Name, Koordinate und Kennung an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist. Die Übertragung kann verzögert erfolgen. Ein aktueller, nicht gespeicherter Standort wird nicht übertragen.", comment: "Info"))
                 }
+                if let d = WidgetDiagnostics.load() {
+                    Section(NSLocalizedString("INFO_WIDGET_DIAG_TITLE", value: "Widget-Diagnose", comment: "Info")) {
+                        Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_RUN", value: "Letzter Widget-Lauf: %@ (%@)", comment: "Info"),
+                                    d.lastRun.formatted(date: .abbreviated, time: .shortened), Self.diagOutcomeText(d.outcome)))
+                        if let ref = d.dataReference {
+                            Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_DATA", value: "Datenstand im Widget: %@", comment: "Info"), LocaleFormat.time(ref)))
+                        }
+                        Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_NEXT", value: "Angeforderter nächster Lauf: %@", comment: "Info"), LocaleFormat.time(d.nextReload)))
+                    }
+                }
+    }
+
+    private static func diagOutcomeText(_ outcome: WidgetDiagnostics.Outcome) -> String {
+        switch outcome {
+        case .live: NSLocalizedString("INFO_WIDGET_DIAG_LIVE", value: "Live abgerufen", comment: "Info")
+        case .cache: NSLocalizedString("INFO_WIDGET_DIAG_CACHE", value: "Aus dem Speicher", comment: "Info")
+        case .unavailable: NSLocalizedString("INFO_WIDGET_DIAG_UNAVAILABLE", value: "Nicht verfügbar", comment: "Info")
+        }
     }
 
     @ViewBuilder private var alertsContent: some View {

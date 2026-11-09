@@ -30,7 +30,11 @@ struct WeatherWidgetProvider: AppIntentTimelineProvider {
     func timeline(for configuration: Intent, in context: Context) async -> Timeline<Entry> {
         let result = await loader.result(for: configuration.place?.id)
         // Start after IO completes, not at the potentially much earlier request time.
-        let plan = WidgetTimelineBuilder.build(for: result, at: clock())
+        let now = clock()
+        let plan = WidgetTimelineBuilder.build(for: result, at: now)
+        let outcome: WidgetDiagnostics.Outcome = result.source == .live ? .live : (result.source == .cache ? .cache : .unavailable)
+        WidgetDiagnostics.record(WidgetDiagnostics(lastRun: now, outcome: outcome, dataReference: result.forecast?.referenceTime,
+                                                   nextReload: plan.reloadDate))
         return Timeline(entries: plan.entries, policy: .after(plan.reloadDate))
     }
 }

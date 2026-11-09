@@ -525,3 +525,10 @@
 "STORE_ATTRIBUTION" = "Quelle: Deutscher Wetterdienst";
 "STORE_MODIFICATION_NOTICE" = "Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben";
 /* L5: Widgets, Live Activity, Watch, Mitteilungstexte */
+"INFO_WIDGET_DIAG_TITLE" = "Widget-Diagnose";
+"INFO_WIDGET_DIAG_RUN" = "Letzter Widget-Lauf: %@ (%@)";
+"INFO_WIDGET_DIAG_DATA" = "Datenstand im Widget: %@";
+"INFO_WIDGET_DIAG_NEXT" = "Angeforderter nächster Lauf: %@";
+"INFO_WIDGET_DIAG_LIVE" = "Live abgerufen";
+"INFO_WIDGET_DIAG_CACHE" = "Aus dem Speicher";
+"INFO_WIDGET_DIAG_UNAVAILABLE" = "Nicht verfügbar";

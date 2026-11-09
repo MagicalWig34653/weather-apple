@@ -37,7 +37,11 @@ struct WeatherWidgetEntry: Sendable {
 enum WidgetTimelineBuilder {
     static let entryInterval: TimeInterval = 5 * 60
     static let horizon: TimeInterval = 60 * 60
-    static let reloadInterval: TimeInterval = 15 * 60
+    /// Reload request after a successful live fetch. The DWD run is already a few minutes old on arrival and
+    /// counts as stale after 20 minutes, so a fresh fetch stays fresh only for roughly 10 to 15 minutes.
+    static let reloadInterval: TimeInterval = 10 * 60
+    /// Reload request when the data is only cached/stale or the fetch failed (offline, DWD error).
+    static let retryInterval: TimeInterval = 5 * 60
 
     struct Plan: Sendable {
         let entries: [WeatherWidgetEntry]
@@ -64,6 +68,6 @@ enum WidgetTimelineBuilder {
             }
         }
         return Plan(entries: dates.sorted().map { entry(for: result, at: $0) },
-                    reloadDate: now.addingTimeInterval(reloadInterval))
+                    reloadDate: now.addingTimeInterval(result.source == .live ? reloadInterval : retryInterval))
     }
 }

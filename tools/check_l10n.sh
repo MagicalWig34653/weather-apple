@@ -171,6 +171,12 @@ for d in CODE_DIRS:
             for off, line, text, kind in tokenize(src):
                 before = src[max(0, off - 90):off]
                 tail = before.rstrip()
+                if (KEY_CALLS.search(tail) or UI_CALL.search(tail)) and re.match(r"[A-Z][A-Z0-9_]+\b.*\\\(", text, re.S):
+                    # Schluessel mit Interpolation: LocalizedStringKey wird zu "KEY %@" und findet keinen Eintrag (Rohschluessel im UI, Build 44)
+                    errors.append(("interpolated-key", "%s:%d" % (r, line), text[:70]))
+                    continue
+                if UI_CALL.search(tail) and re.fullmatch(r"[A-Z][A-Z0-9_]+", text):
+                    code_keys.append((r, line, text)); continue
                 if KEY_CALLS.search(tail):
                     # Schluesselargument: symbolische Schluessel pruefen; deutscher Klartext als Schluessel ist ein UI-Treffer
                     if re.fullmatch(r"[A-Z][A-Z0-9_]+", text): code_keys.append((r, line, text))
@@ -185,6 +191,46 @@ for d in CODE_DIRS:
 for r, line, k in code_keys:
     if k not in all_keys:
         findings.append(("missing-key", r, line, k))
+
+# Je Ziel-Bundle: jeder Schluessel im Code des Ziels (inkl. Shared) braucht einen Eintrag in Localizable.strings
+# des Ziels oder in SharedTexts.strings (de und en; Paritaet ist oben schon Pflicht). Schluessel in Shared/ (OUTLOOK_*,
+# DATA_*) werden zur Laufzeit nur von der App angezeigt (Widgets/Watch nutzen nur die Auswertung) und sind daher nur fuer Weather Pflicht.
+TARGETS = {"Weather": (["Weather/", "Shared/"], "Weather/Resources"),
+           "WeatherWidgets": (["WeatherWidgets/"], "WeatherWidgets/Resources"),
+           "WeatherWatch": (["WeatherWatch/"], "WeatherWatch"),
+           "WeatherWatchWidgets": (["WeatherWatchWidgets/", "WeatherWidgets/Logic/PlaceEntity.swift", "WeatherWidgets/Logic/WidgetForecastLoader.swift", "WeatherWidgets/Logic/WidgetTimelineBuilder.swift"], "WeatherWatchWidgets")}
+def keys_of(base, table):
+    p = os.path.join(root, base, "de.lproj", table)
+    return set(parse_strings(p)[0]) if os.path.exists(p) else set()
+shared_keys = keys_of("Shared/Resources", "SharedTexts.strings")
+for tname, (prefixes, base) in TARGETS.items():
+    have = keys_of(base, "Localizable.strings") | shared_keys
+    for r, line, k in code_keys:
+        if any(r.startswith(pf) for pf in prefixes) and k not in have and k in all_keys:
+            errors.append(("target-missing-key", "%s:%d" % (r, line), "%s fehlt im Bundle %s" % (k, tname)))
+
+# Weitere Pruefungen: leere Werte, Wert == Schluessel (Rohschluessel), unbekannte Tabellen im Code, tote Schluessel (nur Hinweis),
+# Stringsdict-Dateien (werden nicht benutzt; falls vorhanden, Plural-Parameter pruefen).
+used_literals = set()
+for d in CODE_DIRS:
+    for dirpath, dirs, files in os.walk(os.path.join(root, d)):
+        for f in files:
+            if f.endswith(".swift"):
+                used_literals |= set(re.findall(r'"([A-Z][A-Z0-9_]{3,})"', open(os.path.join(dirpath, f), encoding="utf-8").read()))
+                src_all = open(os.path.join(dirpath, f), encoding="utf-8").read()
+                for t in re.findall(r'table(?:Name)?:\s*"([^"]+)"', src_all):
+                    if t != "SharedTexts": errors.append(("unknown-table", rel(os.path.join(dirpath, f)), t))
+            if f.endswith(".stringsdict"): warnings.append(("stringsdict", rel(os.path.join(dirpath, f)), "vorhanden, Plural-Varianten manuell pruefen"))
+dead = []
+for name, (base, table) in BUNDLES.items():
+    for lang in ("de", "en"):
+        p = os.path.join(root, base, lang + ".lproj", table)
+        if not os.path.exists(p): continue
+        for k, v in parse_strings(p)[0].items():
+            if v.strip() == "": errors.append(("empty-value", "%s/%s" % (name, lang), k))
+            if v == k and re.fullmatch(r"[A-Z][A-Z0-9_]{3,}", k): errors.append(("value-equals-key", "%s/%s" % (name, lang), k))
+            if lang == "de" and re.fullmatch(r"[A-Z][A-Z0-9_]{3,}", k) and k not in used_literals: dead.append("%s:%s" % (name, k))
+for dk in sorted(dead): warnings.append(("unused-key", "Hinweis", dk))
 
 # ---------- Baseline ----------
 def ident(f): return "%s\t%s\t%s" % (f[0], f[1], f[3].replace("\t", " ").replace("\n", "\\n"))

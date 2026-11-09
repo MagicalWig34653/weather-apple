@@ -19,7 +19,7 @@ final class WidgetLogicTests: XCTestCase {
         let value = forecast(rainIndex: 2)
         let result = WidgetForecastResult(place: place, forecast: value, source: .live, issue: nil)
         let plan = WidgetTimelineBuilder.build(for: result, at: now)
-        XCTAssertEqual(plan.reloadDate, now.addingTimeInterval(900))
+        XCTAssertEqual(plan.reloadDate, now.addingTimeInterval(600))
         XCTAssertEqual(plan.entries.first?.date, now)
         XCTAssertEqual(plan.entries.last?.date, now.addingTimeInterval(3600))
         let grid = (0...12).map { now.addingTimeInterval(Double($0 * 300)) }

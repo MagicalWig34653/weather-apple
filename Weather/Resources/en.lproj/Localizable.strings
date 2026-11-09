@@ -182,7 +182,7 @@
 "LAYER_CAPTION_LOOKBACK" = "Look-back";
 "LAYER_CAPTION_FORECAST" = "Forecast";
 "LAYER_CAPTION_MEASUREMENT" = "Measurement";
-"LAYER_STATE_UNAVAILABLE" = "unavailable";
+"LAYER_STATE_UNAVAILABLE" = "Unavailable";
 "LAYER_STATE_UNREACHABLE" = "unreachable";
 "LAYER_STATE_UNREADABLE" = "unreadable";
 "LAYER_STATE_STALE" = "out of date";
@@ -525,3 +525,10 @@
 "STORE_ATTRIBUTION" = "Source: Deutscher Wetterdienst";
 "STORE_MODIFICATION_NOTICE" = "Data basis: Deutscher Wetterdienst, raster data shown as images";
 /* L5: Widgets, Live Activity, Watch, Mitteilungstexte */
+"INFO_WIDGET_DIAG_TITLE" = "Widget diagnostics";
+"INFO_WIDGET_DIAG_RUN" = "Last widget run: %@ (%@)";
+"INFO_WIDGET_DIAG_DATA" = "Data as of in widget: %@";
+"INFO_WIDGET_DIAG_NEXT" = "Requested next run: %@";
+"INFO_WIDGET_DIAG_LIVE" = "Fetched live";
+"INFO_WIDGET_DIAG_CACHE" = "From cache";
+"INFO_WIDGET_DIAG_UNAVAILABLE" = "Unavailable";
