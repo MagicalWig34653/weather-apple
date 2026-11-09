@@ -16,8 +16,8 @@ struct RadarAttribution: Equatable, Sendable {
     let attribution: String
     let modificationNotice: String
     static let `default` = RadarAttribution(
-        attribution: "Quelle: Deutscher Wetterdienst",
-        modificationNotice: "Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben")
+        attribution: NSLocalizedString("STORE_ATTRIBUTION", value: "Quelle: Deutscher Wetterdienst", comment: "Weather store message"),
+        modificationNotice: NSLocalizedString("STORE_MODIFICATION_NOTICE", value: "Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben", comment: "Weather store message"))
     init(attribution: String, modificationNotice: String) {
         self.attribution = attribution; self.modificationNotice = modificationNotice
     }
@@ -116,7 +116,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
                 forecast = try self.forecastCache?.load(for: selected.id)
             }
             try self.forecastCache?.retain(placeIDs: Set(places.map(\.id)))
-        } catch { storageMessage = "Gespeicherte Orte oder Prognosen konnten nicht geladen werden." }
+        } catch { storageMessage = NSLocalizedString("STORE_ERR_LOAD_PLACES", value: "Gespeicherte Orte oder Prognosen konnten nicht geladen werden.", comment: "Weather store message") }
     }
 
     var needsRefresh: Bool {
@@ -195,7 +195,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         lastValidForecasts.removeAll { removed.contains($0.placeID) }
         persistPlaces()
         do { try forecastCache?.retain(placeIDs: Set(places.map(\.id))) }
-        catch { storageMessage = "Gespeicherte Prognosen konnten nicht entfernt werden." }
+        catch { storageMessage = NSLocalizedString("STORE_ERR_REMOVE_FORECASTS", value: "Gespeicherte Prognosen konnten nicht entfernt werden.", comment: "Weather store message") }
         reloadWidgets()
     }
 
@@ -295,7 +295,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func backendImagesUnavailable() {
         guard radarSource == .cache, timeline?.backend != nil, !isRadarLoading else { return }
         backendBlockedUntil = Date().addingTimeInterval(RadarBackendConfig.imageFailureBlockInterval)
-        Task { await switchToDirectRadar(notice: "Radar-Cache nicht erreichbar. Radar kommt direkt vom DWD.") }
+        Task { await switchToDirectRadar(notice: NSLocalizedString("STORE_RADAR_CACHE_DOWN", value: "Radar-Cache nicht erreichbar. Radar kommt direkt vom DWD.", comment: "Weather store message")) }
     }
 
     private func switchToDirectRadar(notice: String?) async {
@@ -328,7 +328,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         guard places.contains(where: { $0.id == placeID }) else { return nil }
         do { return try forecastCache?.load(for: placeID) }
         catch {
-            storageMessage = "Gespeicherte Prognose konnte nicht geladen werden."
+            storageMessage = NSLocalizedString("STORE_ERR_LOAD_FORECAST", value: "Gespeicherte Prognose konnte nicht geladen werden.", comment: "Weather store message")
             return nil
         }
     }
@@ -336,7 +336,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func rememberForecast(_ forecast: RainForecast, for placeID: UUID) {
         if places.contains(where: { $0.id == placeID }) {
             do { try forecastCache?.save(forecast, for: placeID) }
-            catch { storageMessage = "Prognose konnte nicht auf dem Gerät gespeichert werden." }
+            catch { storageMessage = NSLocalizedString("STORE_ERR_SAVE_FORECAST", value: "Prognose konnte nicht auf dem Gerät gespeichert werden.", comment: "Weather store message") }
         }
         lastValidForecasts.removeAll { $0.placeID == placeID }
         lastValidForecasts.append((placeID, forecast))
@@ -366,11 +366,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
                       timeline?.referenceTime == unavailableReference, !Task.isCancelled else { return }
                 timeline = fallback
                 selectedFrame = fallback.dates.firstIndex(of: fallback.referenceTime) ?? 0
-                radarNotice = "Neuster Radarlauf noch nicht verfügbar. Radar zeigt den vorherigen Lauf von "
-                    + fallback.referenceTime.formatted(date: .omitted, time: .shortened) + " Uhr."
+                radarNotice = String(format: NSLocalizedString("STORE_RADAR_FALLBACK_RUN", value: "Neuster Radarlauf noch nicht verfügbar. Radar zeigt den vorherigen Lauf von %@ Uhr.", comment: "Weather store message"),
+                                         LocaleFormat.time(fallback.referenceTime))
             } catch {
                 guard generation == requestID else { return }
-                radarNotice = "Radarlauf derzeit nicht verfügbar. Bitte erneut laden."
+                radarNotice = NSLocalizedString("STORE_RADAR_RUN_UNAVAILABLE", value: "Radarlauf derzeit nicht verfügbar. Bitte erneut laden.", comment: "Weather store message")
             }
         }
     }
@@ -449,10 +449,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         case .authorizedWhenInUse, .authorizedAlways: manager.requestLocation()
         case .denied, .restricted:
             waitingForLocation = false
-            locationMessage = "Standortzugriff ist deaktiviert. Du kannst einen Ort suchen oder den Zugriff in den iOS-Einstellungen erlauben."
+            locationMessage = NSLocalizedString("STORE_LOCATION_DENIED", value: "Standortzugriff ist deaktiviert. Du kannst einen Ort suchen oder den Zugriff in den iOS-Einstellungen erlauben.", comment: "Weather store message")
         @unknown default:
             waitingForLocation = false
-            locationMessage = "Der Standort ist derzeit nicht verfügbar."
+            locationMessage = NSLocalizedString("STORE_LOCATION_UNAVAILABLE", value: "Der Standort ist derzeit nicht verfügbar.", comment: "Weather store message")
         }
     }
 
@@ -462,23 +462,23 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             manager.requestLocation()
         } else if manager.authorizationStatus == .denied || manager.authorizationStatus == .restricted {
             waitingForLocation = false
-            locationMessage = "Ohne Standortzugriff kannst du Orte weiterhin suchen und auf der Karte auswählen."
+            locationMessage = NSLocalizedString("STORE_LOCATION_DENIED_SEARCH", value: "Ohne Standortzugriff kannst du Orte weiterhin suchen und auf der Karte auswählen.", comment: "Weather store message")
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         waitingForLocation = false
         guard let location = locations.last, abs(location.timestamp.timeIntervalSinceNow) < 120 else {
-            locationMessage = "Es konnte kein aktueller Standort bestimmt werden."
+            locationMessage = NSLocalizedString("STORE_LOCATION_NO_FIX", value: "Es konnte kein aktueller Standort bestimmt werden.", comment: "Weather store message")
             return
         }
-        select(SavedPlace(name: "Aktueller Standort", coordinate: WeatherCoordinate(
+        select(SavedPlace(name: NSLocalizedString("STORE_CURRENT_LOCATION", value: "Aktueller Standort", comment: "Weather store message"), coordinate: WeatherCoordinate(
             latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)))
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         waitingForLocation = false
-        locationMessage = "Der Standort konnte nicht bestimmt werden. Bitte erneut versuchen oder einen Ort suchen."
+        locationMessage = NSLocalizedString("STORE_LOCATION_FAILED", value: "Der Standort konnte nicht bestimmt werden. Bitte erneut versuchen oder einen Ort suchen.", comment: "Weather store message")
     }
 
     private func persistPlaces() {
@@ -488,7 +488,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             let selectedID = places.contains(where: { $0.id == selectedPlace.id }) ? selectedPlace.id : previousSelection
             try placeStore.save(.init(places: places, selectedPlaceID: selectedID))
             storageMessage = nil
-        } catch { storageMessage = "Die Änderung konnte nicht auf dem Gerät gespeichert werden." }
+        } catch { storageMessage = NSLocalizedString("STORE_ERR_SAVE_CHANGE", value: "Die Änderung konnte nicht auf dem Gerät gespeichert werden.", comment: "Weather store message") }
     }
 }
 

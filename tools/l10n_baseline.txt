@@ -1,20 +1,5 @@
 # Ausgangslage tools/check_l10n.sh (Kategorie<TAB>Datei<TAB>Text); zeilenunabhaengig, mit Anzahl bei Wiederholung.
 # Neu erzeugen: tools/check_l10n.sh --baseline. Ziel (L6): leer.
-hardcoded-literal	Shared/Data/RainForecast.swift	Der DWD liefert für diesen Ort keine vollständige Prognose.
-hardcoded-literal	Shared/Data/RainForecast.swift	Der DWD stellt momentan keinen ausreichend aktuellen Datenlauf bereit.
-hardcoded-literal	Shared/Data/RainForecast.swift	Der Ort liegt außerhalb des unterstützten Radargebiets.
-hardcoded-literal	Shared/Data/RainForecast.swift	Der angekündigte DWD-Datenlauf ist am Radardienst noch nicht verfügbar. Bitte erneut versuchen.
-hardcoded-literal	Shared/Data/RainForecast.swift	Die DWD-Wetterdaten sind momentan nicht erreichbar.
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten gehören zu einem anderen Datenlauf. Bitte erneut laden.
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (Antwort zu groß).
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (Fehlermeldung des DWD-Dienstes).
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (Zeitangaben ungültig).
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (kein gültiges Datenformat).
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (leere Antwort).
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (unerwarteter Inhalt).
-hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden.
-hardcoded-literal	Shared/Data/RainForecast.swift	Stand vor \(minutes / 60) Std. \(minutes % 60) Min.
-hardcoded-literal	Shared/Data/RainForecast.swift	Stand vor \(minutes) Min.
 hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Daten veraltet
 hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Es regnet im Umkreis
 hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Im Umkreis trocken
@@ -25,44 +10,6 @@ hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Umkreis \(radiusKm
 hardcoded-literal	Shared/RainActivityRegionPresentation.swift	\(share.percent) % der Fläche nass
 hardcoded-literal	Shared/RainActivityRegionPresentation.swift	bis zu \(share.percent) % der Fläche nass
 hardcoded-literal	Shared/RainActivityRegionPresentation.swift	mäßig
-hardcoded-literal	Shared/RainOutlook.swift	Keine aktuelle Prognose verfügbar
-hardcoded-literal	Shared/RainOutlook.swift	Keine verlässliche Regenaussage verfügbar
-hardcoded-literal	Shared/RainOutlook.swift	Prognosedaten sind veraltet
-hardcoded-literal	Shared/RainOutlook.swift	Regen am ausgewählten Ort
-hardcoded-literal	Shared/RainOutlook.swift	Regen möglich · Daten teilweise unvollständig
-hardcoded-literal	Shared/RainOutlook.swift	Regen voraussichtlich in etwa \(minutes ?? 0) Min.
-hardcoded-literal	Shared/RainOutlook.swift	Vorerst kein messbarer Regen erwartet
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Apple Intelligence ist auf diesem Gerät nicht aktiviert.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Apple Intelligence ist auf diesem Gerät nicht verfügbar.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Apple Intelligence ist momentan nicht verfügbar.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Das lokale Apple-Modell ist noch nicht bereit.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die Prognose ist nicht aktuell bestätigt.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die Regenintensität unterscheidet sich im Verlauf deutlich.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die lokale Einordnung ist gerade nicht verfügbar.	2
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die lokale Einordnung unterstützt Deutsch hier noch nicht.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die verbleibenden Radardaten enthalten Regen.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die verbleibenden Radardaten zeigen keinen messbaren Regen.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die vorhandenen Daten sind bereits knapp zusammengefasst.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Du ordnest vorhandene Radardaten auf Deutsch ein. Wähle die ein oder zwei wichtigsten unterschiedlichen Fakten ausschließlich aus der erlaubten Liste. Ergänze keine Wetterdaten, Zahlen, Sicherheit oder Warnungen. Bevorzuge aussagekräftige Verlaufsmerkmale gegenüber einer allgemeinen Regenaussage.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Ein oder zwei unterschiedliche IDs aus den vorgegebenen zulässigen Fakten.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Regen und Intervalle ohne messbaren Regen wechseln sich im Verlauf ab.
-hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Zulässige belegte Fakten:\n\(prompt)
-hardcoded-literal	Weather/Models/WeatherStore.swift	Aktueller Standort
-hardcoded-literal	Weather/Models/WeatherStore.swift	Der Standort ist derzeit nicht verfügbar.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Der Standort konnte nicht bestimmt werden. Bitte erneut versuchen oder einen Ort suchen.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Die Änderung konnte nicht auf dem Gerät gespeichert werden.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Es konnte kein aktueller Standort bestimmt werden.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Gespeicherte Orte oder Prognosen konnten nicht geladen werden.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Gespeicherte Prognose konnte nicht geladen werden.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Gespeicherte Prognosen konnten nicht entfernt werden.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Neuster Radarlauf noch nicht verfügbar. Radar zeigt den vorherigen Lauf von 
-hardcoded-literal	Weather/Models/WeatherStore.swift	Ohne Standortzugriff kannst du Orte weiterhin suchen und auf der Karte auswählen.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Prognose konnte nicht auf dem Gerät gespeichert werden.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Quelle: Deutscher Wetterdienst
-hardcoded-literal	Weather/Models/WeatherStore.swift	Radar-Cache nicht erreichbar. Radar kommt direkt vom DWD.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Radarlauf derzeit nicht verfügbar. Bitte erneut laden.
-hardcoded-literal	Weather/Models/WeatherStore.swift	Standortzugriff ist deaktiviert. Du kannst einen Ort suchen oder den Zugriff in den iOS-Einstellungen erlauben.
-hardcoded-literal	Weather/Views/ForecastInterpretationSection.swift	Wird lokal eingeordnet …
 hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Daten veraltet
 hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Ende nicht absehbar
 hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Keine verlässliche Aussage
@@ -88,10 +35,6 @@ hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Regen möglich
 hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Regen?
 hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Veraltet
 hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Vorerst kein Regen erwartet
-hardcoded-ui	Weather/Views/ForecastInterpretationSection.swift	Apple Intelligence gewichtet vorhandene Wetterfakten auf diesem Gerät
-hardcoded-ui	Weather/Views/ForecastInterpretationSection.swift	Einordnung vorhandener Radardaten; keine zusätzliche Vorhersage oder amtliche Warnung.
-hardcoded-ui	Weather/Views/ForecastInterpretationSection.swift	Lokal mit Apple Intelligence
 hardcoded-ui	WeatherWidgets/Views/WeatherWidgetViews.swift	Jetzt
 hardcoded-ui	WeatherWidgets/Views/WeatherWidgetViews.swift	Kein Stand
 hardcoded-ui	WeatherWidgets/Views/WeatherWidgetViews.swift	Kein Verlauf verfügbar
-missing-key	Weather/Push/PushManager.swift	PUSH_MSG_KEYCHAIN	2

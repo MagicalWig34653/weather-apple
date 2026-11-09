@@ -34,14 +34,17 @@ struct RainForecast: Codable, Sendable {
     }
 
     /// Age of the DWD run, e.g. "Stand vor 7 Min." (the run time, not the fetch time).
-    func ageDescription(at now: Date) -> String {
+    func ageDescription(at now: Date, bundle: Bundle = .main) -> String {
         let minutes = max(0, Int(now.timeIntervalSince(referenceTime) / 60))
-        if minutes < 60 { return "Stand vor \(minutes) Min." }
-        return "Stand vor \(minutes / 60) Std. \(minutes % 60) Min."
+        if minutes < 60 {
+            return String(format: NSLocalizedString("DATA_AGE_MINUTES", bundle: bundle, value: "Stand vor %d Min.", comment: "Age of the DWD run, minutes"), minutes)
+        }
+        return String(format: NSLocalizedString("DATA_AGE_HOURS_MINUTES", bundle: bundle, value: "Stand vor %1$d Std. %2$d Min.", comment: "Age of the DWD run, hours and minutes"),
+                      minutes / 60, minutes % 60)
     }
 
-    func summary(at now: Date) -> String {
-        RainOutlook.evaluate(self, at: now).summary
+    func summary(at now: Date, bundle: Bundle = .main) -> String {
+        RainOutlook.evaluate(self, at: now).summary(bundle: bundle)
     }
 }
 
@@ -65,21 +68,23 @@ enum DWDDataError: LocalizedError, Equatable {
     case incompleteForecast
     case mismatchedRun
 
-    var errorDescription: String? {
+    var errorDescription: String? { message(bundle: .main) }
+
+    func message(bundle: Bundle) -> String {
         switch self {
-        case .unsupportedLocation: "Der Ort liegt außerhalb des unterstützten Radargebiets."
-        case .invalidResponse: "Die Wetterdaten konnten nicht gelesen werden."
-        case .emptyBody: "Die Wetterdaten konnten nicht gelesen werden (leere Antwort)."
-        case .oversizedBody: "Die Wetterdaten konnten nicht gelesen werden (Antwort zu groß)."
-        case .malformedPayload: "Die Wetterdaten konnten nicht gelesen werden (kein gültiges Datenformat)."
-        case .unexpectedPayload: "Die Wetterdaten konnten nicht gelesen werden (unerwarteter Inhalt)."
-        case .invalidTimeFormat: "Die Wetterdaten konnten nicht gelesen werden (Zeitangaben ungültig)."
-        case .serviceFailure: "Die Wetterdaten konnten nicht gelesen werden (Fehlermeldung des DWD-Dienstes)."
-        case .runUnavailable: "Der angekündigte DWD-Datenlauf ist am Radardienst noch nicht verfügbar. Bitte erneut versuchen."
-        case .unavailable: "Die DWD-Wetterdaten sind momentan nicht erreichbar."
-        case .staleData: "Der DWD stellt momentan keinen ausreichend aktuellen Datenlauf bereit."
-        case .incompleteForecast: "Der DWD liefert für diesen Ort keine vollständige Prognose."
-        case .mismatchedRun: "Die Wetterdaten gehören zu einem anderen Datenlauf. Bitte erneut laden."
+        case .unsupportedLocation: NSLocalizedString("DATA_ERR_UNSUPPORTED_LOCATION", bundle: bundle, value: "Der Ort liegt außerhalb des unterstützten Radargebiets.", comment: "Data error")
+        case .invalidResponse: NSLocalizedString("DATA_ERR_INVALID_RESPONSE", bundle: bundle, value: "Die Wetterdaten konnten nicht gelesen werden.", comment: "Data error")
+        case .emptyBody: NSLocalizedString("DATA_ERR_EMPTY_BODY", bundle: bundle, value: "Die Wetterdaten konnten nicht gelesen werden (leere Antwort).", comment: "Data error")
+        case .oversizedBody: NSLocalizedString("DATA_ERR_OVERSIZED_BODY", bundle: bundle, value: "Die Wetterdaten konnten nicht gelesen werden (Antwort zu groß).", comment: "Data error")
+        case .malformedPayload: NSLocalizedString("DATA_ERR_MALFORMED_PAYLOAD", bundle: bundle, value: "Die Wetterdaten konnten nicht gelesen werden (kein gültiges Datenformat).", comment: "Data error")
+        case .unexpectedPayload: NSLocalizedString("DATA_ERR_UNEXPECTED_PAYLOAD", bundle: bundle, value: "Die Wetterdaten konnten nicht gelesen werden (unerwarteter Inhalt).", comment: "Data error")
+        case .invalidTimeFormat: NSLocalizedString("DATA_ERR_INVALID_TIME", bundle: bundle, value: "Die Wetterdaten konnten nicht gelesen werden (Zeitangaben ungültig).", comment: "Data error")
+        case .serviceFailure: NSLocalizedString("DATA_ERR_SERVICE_FAILURE", bundle: bundle, value: "Die Wetterdaten konnten nicht gelesen werden (Fehlermeldung des DWD-Dienstes).", comment: "Data error")
+        case .runUnavailable: NSLocalizedString("DATA_ERR_RUN_UNAVAILABLE", bundle: bundle, value: "Der angekündigte DWD-Datenlauf ist am Radardienst noch nicht verfügbar. Bitte erneut versuchen.", comment: "Data error")
+        case .unavailable: NSLocalizedString("DATA_ERR_UNAVAILABLE", bundle: bundle, value: "Die DWD-Wetterdaten sind momentan nicht erreichbar.", comment: "Data error")
+        case .staleData: NSLocalizedString("DATA_ERR_STALE", bundle: bundle, value: "Der DWD stellt momentan keinen ausreichend aktuellen Datenlauf bereit.", comment: "Data error")
+        case .incompleteForecast: NSLocalizedString("DATA_ERR_INCOMPLETE", bundle: bundle, value: "Der DWD liefert für diesen Ort keine vollständige Prognose.", comment: "Data error")
+        case .mismatchedRun: NSLocalizedString("DATA_ERR_MISMATCHED_RUN", bundle: bundle, value: "Die Wetterdaten gehören zu einem anderen Datenlauf. Bitte erneut laden.", comment: "Data error")
         }
     }
 }

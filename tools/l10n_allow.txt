@@ -16,3 +16,5 @@ identical:REGION_RADIUS
 identical:REGION_RADIUS_KM
 identical:REGION_SETTINGS_TITLE
 identical:SITE_SUPPORT_TITLE
+# L4: @Guide-Beschreibung ist ein Makro-Literal fuer das Apple-Modell (zur Laufzeit nicht lokalisierbar), kein UI-Text.
+Weather/Intelligence/ForecastInterpretation.swift::Ein oder zwei unterschiedliche IDs aus den vorgegebenen zulässigen Fakten.

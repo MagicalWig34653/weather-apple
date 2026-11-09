@@ -6,12 +6,14 @@ import Observation
 enum ForecastFact: String, CaseIterable, Hashable, Sendable {
     case dry, rain, mixed, changingIntensity
 
-    var text: String {
+    var text: String { text(bundle: .main) }
+
+    func text(bundle: Bundle) -> String {
         switch self {
-        case .dry: "Die verbleibenden Radardaten zeigen keinen messbaren Regen."
-        case .rain: "Die verbleibenden Radardaten enthalten Regen."
-        case .mixed: "Regen und Intervalle ohne messbaren Regen wechseln sich im Verlauf ab."
-        case .changingIntensity: "Die Regenintensität unterscheidet sich im Verlauf deutlich."
+        case .dry: NSLocalizedString("INTERP_FACT_DRY", bundle: bundle, value: "Die verbleibenden Radardaten zeigen keinen messbaren Regen.", comment: "Interpretation")
+        case .rain: NSLocalizedString("INTERP_FACT_RAIN", bundle: bundle, value: "Die verbleibenden Radardaten enthalten Regen.", comment: "Interpretation")
+        case .mixed: NSLocalizedString("INTERP_FACT_MIXED", bundle: bundle, value: "Regen und Intervalle ohne messbaren Regen wechseln sich im Verlauf ab.", comment: "Interpretation")
+        case .changingIntensity: NSLocalizedString("INTERP_FACT_INTENSITY", bundle: bundle, value: "Die Regenintensität unterscheidet sich im Verlauf deutlich.", comment: "Interpretation")
         }
     }
 }
@@ -33,7 +35,7 @@ struct InterpretationSnapshot: Hashable, Sendable {
     let facts: [ForecastFact]
     let fallback: String
 
-    init(forecast: RainForecast, hasCurrentError: Bool, now: Date) {
+    init(forecast: RainForecast, hasCurrentError: Bool, now: Date, bundle: Bundle = .main) {
         reference = forecast.referenceTime
         samples = forecast.samples.map { Sample(date: $0.date, amount: $0.amountMM) }
         let remaining = forecast.samples.filter { $0.date >= now }
@@ -54,14 +56,14 @@ struct InterpretationSnapshot: Hashable, Sendable {
         }
         facts = valid
         fallback = valid.isEmpty
-            ? (hasCurrentError ? "Die Prognose ist nicht aktuell bestätigt." : forecast.summary(at: now))
-            : valid.prefix(2).map(\.text).joined(separator: " ")
+            ? (hasCurrentError ? NSLocalizedString("INTERP_NOT_CONFIRMED", bundle: bundle, value: "Die Prognose ist nicht aktuell bestätigt.", comment: "Interpretation") : forecast.summary(at: now, bundle: bundle))
+            : valid.prefix(2).map { $0.text(bundle: bundle) }.joined(separator: " ")
     }
 
-    func render(_ selection: [ForecastFact]) -> String? {
+    func render(_ selection: [ForecastFact], bundle: Bundle = .main) -> String? {
         guard (1...2).contains(selection.count), Set(selection).count == selection.count,
               selection.allSatisfy({ facts.contains($0) }) else { return nil }
-        return selection.map(\.text).joined(separator: " ")
+        return selection.map { $0.text(bundle: bundle) }.joined(separator: " ")
     }
 }
 
@@ -98,7 +100,7 @@ final class ForecastInterpretation {
         usedModel = false
         notice = nil
         guard snapshot.facts.count > 1 else {
-            notice = "Die vorhandenen Daten sind bereits knapp zusammengefasst."
+            notice = NSLocalizedString("INTERP_ALREADY_BRIEF", value: "Die vorhandenen Daten sind bereits knapp zusammengefasst.", comment: "Interpretation")
             return
         }
         guard let unavailable = availability() else {
@@ -110,7 +112,7 @@ final class ForecastInterpretation {
                 let selection = try await generate(snapshot)
                 guard !Task.isCancelled, identity == request else { return }
                 guard let result = snapshot.render(selection) else {
-                    notice = "Die lokale Einordnung ist gerade nicht verfügbar."
+                    notice = NSLocalizedString("INTERP_NOT_AVAILABLE", value: "Die lokale Einordnung ist gerade nicht verfügbar.", comment: "Interpretation")
                     return
                 }
                 if cache.count >= 8 { cache.removeAll(keepingCapacity: true) }
@@ -120,32 +122,50 @@ final class ForecastInterpretation {
                 usedModel = true
             } catch {
                 guard !Task.isCancelled, identity == request else { return }
-                notice = "Die lokale Einordnung ist gerade nicht verfügbar."
+                notice = NSLocalizedString("INTERP_NOT_AVAILABLE", value: "Die lokale Einordnung ist gerade nicht verfügbar.", comment: "Interpretation")
             }
             return
         }
         notice = unavailable
     }
 
-    static func unavailableMessage() -> String? {
+    /// Locale for the model support check: follows the app language (not the region format).
+    static func modelLocale(language: String = AppLanguage.code) -> Locale {
+        Locale(identifier: language == "de" ? "de_DE" : "en_US")
+    }
+
+    static func unavailableMessage() -> String? { unavailableMessage(bundle: .main) }
+
+    static func unavailableMessage(bundle: Bundle, language: String = AppLanguage.code) -> String? {
         let model = SystemLanguageModel.default
         switch model.availability {
         case .available:
-            return model.supportsLocale(Locale(identifier: "de_DE")) ? nil : "Die lokale Einordnung unterstützt Deutsch hier noch nicht."
+            return model.supportsLocale(modelLocale(language: language)) ? nil
+                : NSLocalizedString("INTERP_LANGUAGE_UNSUPPORTED", bundle: bundle, value: "Die lokale Einordnung unterstützt Deutsch hier noch nicht.", comment: "Interpretation")
         case .unavailable(let reason):
             switch reason {
-            case .deviceNotEligible: return "Apple Intelligence ist auf diesem Gerät nicht verfügbar."
-            case .appleIntelligenceNotEnabled: return "Apple Intelligence ist auf diesem Gerät nicht aktiviert."
-            case .modelNotReady: return "Das lokale Apple-Modell ist noch nicht bereit."
-            @unknown default: return "Apple Intelligence ist momentan nicht verfügbar."
+            case .deviceNotEligible: return NSLocalizedString("INTERP_DEVICE_NOT_ELIGIBLE", bundle: bundle, value: "Apple Intelligence ist auf diesem Gerät nicht verfügbar.", comment: "Interpretation")
+            case .appleIntelligenceNotEnabled: return NSLocalizedString("INTERP_AI_NOT_ENABLED", bundle: bundle, value: "Apple Intelligence ist auf diesem Gerät nicht aktiviert.", comment: "Interpretation")
+            case .modelNotReady: return NSLocalizedString("INTERP_MODEL_NOT_READY", bundle: bundle, value: "Das lokale Apple-Modell ist noch nicht bereit.", comment: "Interpretation")
+            @unknown default: return NSLocalizedString("INTERP_AI_UNAVAILABLE", bundle: bundle, value: "Apple Intelligence ist momentan nicht verfügbar.", comment: "Interpretation")
             }
         }
     }
 
+    /// Instructions for the on-device model; the language of the instructions follows the app language.
+    static func instructions(bundle: Bundle = .main) -> String {
+        NSLocalizedString("INTERP_PROMPT_INSTRUCTIONS", bundle: bundle, value: "Du ordnest vorhandene Radardaten auf Deutsch ein. Wähle die ein oder zwei wichtigsten unterschiedlichen Fakten ausschließlich aus der erlaubten Liste. Ergänze keine Wetterdaten, Zahlen, Sicherheit oder Warnungen. Bevorzuge aussagekräftige Verlaufsmerkmale gegenüber einer allgemeinen Regenaussage.", comment: "Prompt for the on-device model")
+    }
+
+    /// User prompt: the allowed facts as `id: text` lines in the app language.
+    static func prompt(for snapshot: InterpretationSnapshot, bundle: Bundle = .main) -> String {
+        let lines = snapshot.facts.map { "\($0.rawValue): \($0.text(bundle: bundle))" }.joined(separator: "\n")
+        return String(format: NSLocalizedString("INTERP_PROMPT_FACTS", bundle: bundle, value: "Zulässige belegte Fakten:\n%@", comment: "Prompt for the on-device model"), lines)
+    }
+
     private static func generateFacts(_ snapshot: InterpretationSnapshot) async throws -> [ForecastFact] {
-        let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: "Du ordnest vorhandene Radardaten auf Deutsch ein. Wähle die ein oder zwei wichtigsten unterschiedlichen Fakten ausschließlich aus der erlaubten Liste. Ergänze keine Wetterdaten, Zahlen, Sicherheit oder Warnungen. Bevorzuge aussagekräftige Verlaufsmerkmale gegenüber einer allgemeinen Regenaussage.")
-        let prompt = snapshot.facts.map { "\($0.rawValue): \($0.text)" }.joined(separator: "\n")
-        let response = try await session.respond(to: "Zulässige belegte Fakten:\n\(prompt)", generating: ForecastFactSelection.self,
+        let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: instructions())
+        let response = try await session.respond(to: prompt(for: snapshot), generating: ForecastFactSelection.self,
                                                  options: GenerationOptions(samplingMode: .greedy, maximumResponseTokens: 128))
         return response.content.facts
     }

@@ -67,17 +67,21 @@ struct RainOutlook: Equatable, Sendable {
     }
 
     /// Existing app wording is retained, including its cautious handling of unknown values.
-    var summary: String {
+    var summary: String { summary(bundle: .main) }
+
+    func summary(bundle: Bundle) -> String {
         switch state {
-        case .stale: "Prognosedaten sind veraltet"
-        case .rainingNow, .endsIn: "Regen am ausgewählten Ort"
-        case .startsIn: "Regen voraussichtlich in etwa \(minutes ?? 0) Min."
-        case .dry: "Vorerst kein messbarer Regen erwartet"
+        case .stale: return NSLocalizedString("OUTLOOK_STALE", bundle: bundle, value: "Prognosedaten sind veraltet", comment: "Rain outlook summary")
+        case .rainingNow, .endsIn: return NSLocalizedString("OUTLOOK_RAIN_AT_PLACE", bundle: bundle, value: "Regen am ausgewählten Ort", comment: "Rain outlook summary")
+        case .startsIn:
+            return String(format: NSLocalizedString("OUTLOOK_RAIN_IN_MINUTES", bundle: bundle, value: "Regen voraussichtlich in etwa %d Min.", comment: "Rain outlook summary"),
+                          minutes ?? 0)
+        case .dry: return NSLocalizedString("OUTLOOK_DRY", bundle: bundle, value: "Vorerst kein messbarer Regen erwartet", comment: "Rain outlook summary")
         case .noData:
             switch missingDataReason {
-            case .possibleRain: "Regen möglich · Daten teilweise unvollständig"
-            case .incomplete: "Keine verlässliche Regenaussage verfügbar"
-            default: "Keine aktuelle Prognose verfügbar"
+            case .possibleRain: return NSLocalizedString("OUTLOOK_POSSIBLE_RAIN", bundle: bundle, value: "Regen möglich · Daten teilweise unvollständig", comment: "Rain outlook summary")
+            case .incomplete: return NSLocalizedString("OUTLOOK_UNRELIABLE", bundle: bundle, value: "Keine verlässliche Regenaussage verfügbar", comment: "Rain outlook summary")
+            default: return NSLocalizedString("OUTLOOK_NO_FORECAST", bundle: bundle, value: "Keine aktuelle Prognose verfügbar", comment: "Rain outlook summary")
             }
         }
     }

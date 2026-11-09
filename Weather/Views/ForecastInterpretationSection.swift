@@ -10,7 +10,7 @@ struct ForecastInterpretationSection: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let snapshot = InterpretationSnapshot(forecast: forecast, hasCurrentError: hasCurrentError, now: context.date)
             VStack(alignment: .leading, spacing: 10) {
-                Text("Einordnung").font(.headline)
+                Text(LocalizedStringKey("INTERP_TITLE")).font(.headline)
                 Text(interpretation.renderedSnapshot == snapshot ? (interpretation.text ?? snapshot.fallback) : snapshot.fallback)
                 if snapshot.facts.count > 1 {
                     Button {
@@ -18,20 +18,20 @@ struct ForecastInterpretationSection: View {
                     } label: {
                         HStack {
                             if interpretation.isGenerating { ProgressView() }
-                            Text(interpretation.isGenerating ? "Wird lokal eingeordnet …" : "Lokal einordnen")
+                            Text(LocalizedStringKey(interpretation.isGenerating ? "INTERP_BUTTON_BUSY" : "INTERP_BUTTON"))
                         }
                         .frame(minHeight: 44)
                     }
                     .disabled(interpretation.isGenerating)
-                    .accessibilityHint("Apple Intelligence gewichtet vorhandene Wetterfakten auf diesem Gerät")
+                    .accessibilityHint(Text("INTERP_BUTTON_HINT"))
                 }
                 if interpretation.usedModel && interpretation.renderedSnapshot == snapshot {
-                    Text("Lokal mit Apple Intelligence").font(.caption).foregroundStyle(.secondary)
+                    Text("INTERP_BADGE").font(.caption).foregroundStyle(.secondary)
                 }
                 if let notice = interpretation.notice {
                     Text(notice).font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Einordnung vorhandener Radardaten; keine zusätzliche Vorhersage oder amtliche Warnung.")
+                Text("INTERP_DISCLAIMER")
                     .font(.caption).foregroundStyle(.secondary)
             }
             .onChange(of: snapshot) { _, _ in
