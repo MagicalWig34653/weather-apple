@@ -1,5 +1,7 @@
 # Fortsetzbarer Arbeitsstand
 
+**9.11.2026, Englische Webseiten (Entwurf, Backend-Repo, Todolino 335E4E1A):** Backend-Commit `03cceda` liefert `/en/privacy`, `/en/support`, `/en/imprint`, `/en/marketing` hinter `SITE_EN_ENABLED` (Standard aus, dann 404; deutsche URLs unveraendert). Datenschutztext = Teil A-EN unverkuerzt, offene Punkte als sichtbare Klammern; Backend-Tests gruen (682, ohne DB). NICHT live, nicht deployt; Freigabe des Nutzers fuer Datenschutz und Warn-Aussagen steht aus; Warn-Baustein (Teil E) nur deutsch. Details: Backend `docs-site/content/seiten.md`, `betrieb.md`.
+
 **9.11.2026, Build 44 hochgeladen** (Commit `8a39159`, EN-Lokalisierung L1-L6): Upload angenommen ("Uploaded package is processing"), Verarbeitung/Installierbarkeit nicht geprueft; IPA-Pruefungen siehe `testflight-upload.md`.
 
 **9.11.2026, Screenshots:** Zweite Ueberschrift ("Radar mit Zeitleiste" u. a.) aus allen Kopfzeilen-Bildern (iPhone 1206/1320, iPad, de) und aus den Store-Creatives/Mockup entfernt, neu erzeugt und angesehen; Details in `appstore-screenshots.md`. `tools/creative.swift` unterstuetzt leere Zeile 1. App-UI unveraendert; Bilder lokal, nicht eingecheckt.

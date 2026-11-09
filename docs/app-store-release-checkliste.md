@@ -26,7 +26,7 @@ Status: erledigt / offen / unklar. Wer: Agent oder Nutzer.
 | Marketing-URL | erledigt | `/marketing` HTTP 200 | Nutzer |
 | Datenschutz-URL | erledigt (URL), Inhalt offen | `/datenschutz` HTTP 200; in App verlinkt (`RadarBackendConfig`) | siehe Blocker |
 | Copyright | offen | Nicht festgelegt | Nutzer |
-| Lokalisierung de/en | App erledigt (L1 bis L6, 9.11.), Store-Texte offen | App-UI, Widgets, Live Activity, Watch, Push de/en (`check_l10n.sh --strict` Exit 0, 643 Unit + 40 UI gruen); OFFEN: englische Store-Texte (Titel, Untertitel, Beschreibung, Keywords, Werbetext) und englische Webseiten Datenschutz/Support/Impressum (Backend-Repo, E4); Muttersprachlerpruefung der Wortlautfragen | Nutzer/Agent |
+| Lokalisierung de/en | App erledigt (L1 bis L6, 9.11.), Store-Texte offen | App-UI, Widgets, Live Activity, Watch, Push de/en (`check_l10n.sh --strict` Exit 0, 643 Unit + 40 UI gruen); OFFEN: englische Store-Texte (Titel, Untertitel, Beschreibung, Keywords, Werbetext) und englische Webseiten Datenschutz/Support/Impressum (Backend-Repo, E4: ENTWURF fertig und gepusht 9.11., Backend-Commit `03cceda`, Pfade `/en/privacy`, `/en/support`, `/en/imprint`, `/en/marketing`, hinter `SITE_EN_ENABLED`, Standard aus = 404; Einschalten erst nach ausdruecklicher Nutzerfreigabe des Datenschutztexts, Deploy durch den Nutzer; Entwurf weicht inhaltlich von der live-deutschen Seite ab, DE und EN gemeinsam freigeben; Warn-Baustein nicht enthalten); Muttersprachlerpruefung der Wortlautfragen | Nutzer/Agent |
 | Version/Plattform | erledigt | 0.1.1 (32), iOS 27.0, iPhone+iPad, watchOS 27.0 | - |
 | Preis, Verfuegbarkeit, Laender | offen | nicht dokumentiert | Nutzer |
 
