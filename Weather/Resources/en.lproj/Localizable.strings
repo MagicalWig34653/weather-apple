@@ -154,6 +154,15 @@
 
 /* Konvention (E1): symbolische Schluessel UPPER_SNAKE, Code: NSLocalizedString("KEY", value: "<deutsch>", comment:) oder Text(LocalizedStringKey("KEY")). de und en haben identische Schluessel und Platzhalter; tools/check_l10n.sh prueft das. Jedes Paket haengt nur an seinem Abschnitt an und sortiert nichts um. */
 /* L2: Radar-Screen, Legende, Zeitleiste, COMMON_* */
+/* COMMON: shared by all packages (L2 defines, L3 to L5 reuse) */
+"COMMON_DONE" = "Done";
+"COMMON_CANCEL" = "Cancel";
+"COMMON_DELETE" = "Delete";
+"COMMON_SAVE" = "Save";
+"COMMON_CLOSE" = "Close";
+"COMMON_RETRY" = "Try Again";
+"COMMON_OPEN_SETTINGS" = "Open Settings";
+"COMMON_OK" = "OK";
 /* L3: Orte, Info, Mitteilungen, Regionen */
 /* L4: Warnungen, Einordnung, Daten-Fehlertexte */
 /* L5: Widgets, Live Activity, Watch, Mitteilungstexte */

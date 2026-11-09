@@ -4,3 +4,4 @@ identical:WARN_TYPE_FROST
 identical:Radar
 identical:Pause
 identical:In %dm
+identical:COMMON_OK
