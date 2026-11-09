@@ -570,3 +570,10 @@ Quellencheckpoint: Commit "fix: Zeit-Pille im Hellmodus, Legendenpanel begrenzt;
 Lokaler Export und IPA-Pruefung: CFBundleVersion 43 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle.
 
 **Genau ein Upload, 9. November 2026 von 07:53 bis 07:55 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
+
+## Showers Build 44 (0.1.1): Upload (Xcode 27.1)
+
+Quellencheckpoint: Commit `8a39159` "chore: Buildnummer 44" (`CURRENT_PROJECT_VERSION = 44`; Inhalt gegenueber Build 43: englische Lokalisierung L1-L6 in App, Widgets, Watch, Live Activity, Push-Titel mit `%@`; Store-Screenshots/Kopfzeilen sind kein Build-Inhalt). Verfahren wie Build 43 (`git archive`-Kopie `/private/tmp/showers-b44`). Vorab: `tools/check_l10n.sh` Exit 0 (0 Treffer); Tests nicht neu ausgefuehrt (Stand L6: 643 Unit + 40 UI gruen, kein Code seit damals geaendert ausser Buildnummer).
+Lokaler Export und IPA-Pruefung: CFBundleVersion 44 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` sowie de/en `lproj` inkl. `SharedTexts.strings` (App, Widgets, Watch) im Bundle.
+
+**Genau ein Upload, 9. November 2026 von 19:18 bis 19:20 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
