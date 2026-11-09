@@ -20,9 +20,11 @@ enum WarningNotificationText {
     }
 
     /// Title such as "Frosthinweis, Stufe 1"; nil if the text cannot be resolved.
+    /// The format uses `%@` (not `%d`): the server sends the level as a string in `title-loc-args`, so the system
+    /// localization (without this extension) and the extension produce the same text.
     static func title(kind: String, severity: Int, localized: (String) -> String?) -> String? {
         guard let key = kinds[kind], let format = localized(key), format != key else { return nil }
-        return String(format: format, severity)
+        return String(format: format, String(severity))
     }
 
     static func body(localized: (String) -> String?) -> String? {

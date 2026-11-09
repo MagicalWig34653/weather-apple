@@ -105,9 +105,9 @@
 "WARN_DETAIL_TITLE" = "Warnung";
 
 /* Warn-Push (W6, Notification Service Extension, eigene Kurzmeldung) */
-"WARN_PUSH_TITLE_SEVERE" = "Unwetterhinweis, Stufe %d";
-"WARN_PUSH_TITLE_FROST" = "Frosthinweis, Stufe %d";
-"WARN_PUSH_TITLE_ICE" = "Glättehinweis, Stufe %d";
+"WARN_PUSH_TITLE_SEVERE" = "Unwetterhinweis, Stufe %@";
+"WARN_PUSH_TITLE_FROST" = "Frosthinweis, Stufe %@";
+"WARN_PUSH_TITLE_ICE" = "Glättehinweis, Stufe %@";
 "WARN_PUSH_BODY" = "Tippen für Details.";
 
 /* Temperatur-/Feuchteebenen (Modellwerte) */

@@ -1,0 +1,17 @@
+/* Shared texts for the app, widgets and Live Activity (table SharedTexts, source Shared/Resources). Symbolic keys; de is identical to the former text. */
+
+/* L5: area Live Activity (RainActivityRegionPresentation) */
+"REGION_ACTIVITY_RADIUS" = "%d km radius";
+"REGION_ACTIVITY_SHARE_NOW" = "%d%% of the area wet";
+"REGION_ACTIVITY_SHARE_PEAK" = "up to %d%% of the area wet";
+"REGION_ACTIVITY_SHARE_COMPACT" = "%d%%";
+"REGION_ACTIVITY_INTENSITY" = "Strongest level %1$d (%2$@)";
+"REGION_ACTIVITY_WORD_VERY_LIGHT" = "very light";
+"REGION_ACTIVITY_WORD_LIGHT" = "light";
+"REGION_ACTIVITY_WORD_MODERATE" = "moderate";
+"REGION_ACTIVITY_WORD_HEAVY" = "heavy";
+"REGION_ACTIVITY_HEADLINE_STALE" = "Data outdated";
+"REGION_ACTIVITY_HEADLINE_STARTS_IN" = "Rain in the area in";
+"REGION_ACTIVITY_HEADLINE_IMMINENT" = "Rain in the area imminent";
+"REGION_ACTIVITY_HEADLINE_RAINING" = "Raining in the area";
+"REGION_ACTIVITY_HEADLINE_DRY" = "Dry in the area";

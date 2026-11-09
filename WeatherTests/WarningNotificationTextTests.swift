@@ -2,8 +2,8 @@ import XCTest
 @testable import Weather
 
 final class WarningNotificationTextTests: XCTestCase {
-    private let strings = ["WARN_PUSH_TITLE_FROST": "Frosthinweis, Stufe %d", "WARN_PUSH_TITLE_SEVERE": "Unwetterhinweis, Stufe %d",
-                           "WARN_PUSH_TITLE_ICE": "Glättehinweis, Stufe %d", "WARN_PUSH_BODY": "Tippen für Details."]
+    private let strings = ["WARN_PUSH_TITLE_FROST": "Frosthinweis, Stufe %@", "WARN_PUSH_TITLE_SEVERE": "Unwetterhinweis, Stufe %@",
+                           "WARN_PUSH_TITLE_ICE": "Glättehinweis, Stufe %@", "WARN_PUSH_BODY": "Tippen für Details."]
     private func localized(_ key: String) -> String? { strings[key] }
 
     func testParseAcceptsWarningPayload() {

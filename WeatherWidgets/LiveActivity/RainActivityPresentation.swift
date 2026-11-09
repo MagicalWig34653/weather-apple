@@ -32,41 +32,49 @@ struct RainActivityPresentation: Equatable {
         }
     }
 
-    var headline: LocalizedStringKey {
+    var headline: String {
         if let region {
-            return LocalizedStringKey(region.headline(phase: phase, isStale: isStale, hasCountdown: countdownTarget != nil))
+            return region.headline(phase: phase, isStale: isStale, hasCountdown: countdownTarget != nil)
         }
-        if isStale { return "Daten veraltet" }
+        if isStale { return NSLocalizedString("WIDGET_STALE", value: "Daten veraltet", comment: "Live Activity") }
         switch phase {
-        case .startsIn: return countdownTarget == nil ? "Regen gleich" : "Regen in"
-        case .raining: return "Es regnet"
-        case .endsIn: return "Es regnet"
-        case .dry: return "Trocken"
+        case .startsIn:
+            return countdownTarget == nil
+                ? NSLocalizedString("ACTIVITY_RAIN_IMMINENT", value: "Regen gleich", comment: "Live Activity")
+                : NSLocalizedString("ACTIVITY_RAIN_IN", value: "Regen in", comment: "Live Activity, followed by a countdown")
+        case .raining, .endsIn: return NSLocalizedString("WIDGET_RAINING", value: "Es regnet", comment: "Live Activity")
+        case .dry: return NSLocalizedString("WIDGET_DRY", value: "Trocken", comment: "Live Activity")
         }
     }
 
     /// Text next to/below the headline when there is no countdown.
-    var detail: LocalizedStringKey? {
-        if isStale { return "Keine verlässliche Aussage" }
+    var detail: String? {
+        if isStale { return NSLocalizedString("WIDGET_NO_RELIABLE", value: "Keine verlässliche Aussage", comment: "Live Activity") }
         switch phase {
         case .startsIn: return nil
-        case .raining: return "Ende nicht absehbar"
-        case .endsIn: return countdownTarget == nil ? "Endet gleich" : "Endet in"
-        case .dry: return "Vorerst kein Regen erwartet"
+        case .raining: return NSLocalizedString("WIDGET_NO_END", value: "Ende nicht absehbar", comment: "Live Activity")
+        case .endsIn:
+            return countdownTarget == nil
+                ? NSLocalizedString("ACTIVITY_ENDS_IMMINENT", value: "Endet gleich", comment: "Live Activity")
+                : Self.endsInLabel
+        case .dry: return NSLocalizedString("WIDGET_NO_RAIN_EXPECTED", value: "Vorerst kein Regen erwartet", comment: "Live Activity")
         }
     }
+
+    /// "Endet in", shown next to a countdown.
+    static var endsInLabel: String { NSLocalizedString("ACTIVITY_ENDS_IN", value: "Endet in", comment: "Live Activity, followed by a countdown") }
 
     var color: Color {
         if isStale { return .orange }
         return phase == .dry ? .green : .cyan
     }
 
-    var compactLabel: LocalizedStringKey {
-        if isStale { return "Veraltet" }
-        if let region, phase != .dry, let short = region.compactShareText { return LocalizedStringKey(short) }
+    var compactLabel: String {
+        if isStale { return NSLocalizedString("WIDGET_STALE_SHORT", value: "Veraltet", comment: "Live Activity") }
+        if let region, phase != .dry, let short = region.compactShareText { return short }
         switch phase {
-        case .startsIn, .raining, .endsIn: return "Regen"
-        case .dry: return "Trocken"
+        case .startsIn, .raining, .endsIn: return NSLocalizedString("WIDGET_RAIN", value: "Regen", comment: "Live Activity")
+        case .dry: return NSLocalizedString("WIDGET_DRY", value: "Trocken", comment: "Live Activity")
         }
     }
 }

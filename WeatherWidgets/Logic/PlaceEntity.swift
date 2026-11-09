@@ -6,7 +6,7 @@ import Foundation
 
 /// Only an ID and a display name enter the configuration; coordinates are resolved from PlaceStore.
 struct PlaceEntity: AppEntity {
-    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Gespeicherter Ort")
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: LocalizedStringResource("WIDGET_ENTITY_TYPE", defaultValue: "Gespeicherter Ort"))
     static let defaultQuery = PlaceEntityQuery()
 
     let id: UUID
@@ -50,10 +50,10 @@ struct PlaceEntityQuery: EntityQuery {
 }
 
 struct WeatherWidgetIntent: WidgetConfigurationIntent {
-    static let title: LocalizedStringResource = "Regenprognose"
-    static let description = IntentDescription("Zeigt die Prognose für einen in Showers gespeicherten Ort.")
+    static let title = LocalizedStringResource("WIDGET_INTENT_TITLE", defaultValue: "Regenprognose")
+    static let description = IntentDescription(LocalizedStringResource("WIDGET_INTENT_DESCRIPTION", defaultValue: "Zeigt die Prognose für einen in Showers gespeicherten Ort."))
 
-    @Parameter(title: "Ort")
+    @Parameter(title: LocalizedStringResource("WIDGET_INTENT_PLACE", defaultValue: "Ort"))
     var place: PlaceEntity?
 
     init() {}

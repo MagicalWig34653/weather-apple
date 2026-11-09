@@ -119,7 +119,7 @@ struct RainLockScreenView: View {
                 if p.countdownTarget == nil, let d = p.detail {
                     Text(d).font(.subheadline).foregroundStyle(.secondary)
                 } else if p.phase == .endsIn, !p.isStale {
-                    Text("Endet in").font(.subheadline).foregroundStyle(.secondary)
+                    Text(RainActivityPresentation.endsInLabel).font(.subheadline).foregroundStyle(.secondary)
                 }
                 if let region = p.region {
                     if let share = region.shareText { Text(share).font(.subheadline.weight(.semibold)) }
@@ -128,7 +128,7 @@ struct RainLockScreenView: View {
                     }
                     if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
                 }
-                Text("Stand \(p.referenceTime, format: .dateTime.hour().minute())")
+                Text("WIDGET_AS_OF \(p.referenceTime, format: .dateTime.hour().minute())")
                     .font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)

@@ -1,0 +1,17 @@
+/* Gemeinsame Texte fuer App, Widgets und Live Activity (Tabelle SharedTexts, Quelle Shared/Resources). Schluessel symbolisch, de wortgleich zum bisherigen Text. */
+
+/* L5: Umkreis-Live-Activity (RainActivityRegionPresentation) */
+"REGION_ACTIVITY_RADIUS" = "Umkreis %d km";
+"REGION_ACTIVITY_SHARE_NOW" = "%d %% der Fläche nass";
+"REGION_ACTIVITY_SHARE_PEAK" = "bis zu %d %% der Fläche nass";
+"REGION_ACTIVITY_SHARE_COMPACT" = "%d %%";
+"REGION_ACTIVITY_INTENSITY" = "Stärkste Stufe %1$d (%2$@)";
+"REGION_ACTIVITY_WORD_VERY_LIGHT" = "sehr leicht";
+"REGION_ACTIVITY_WORD_LIGHT" = "leicht";
+"REGION_ACTIVITY_WORD_MODERATE" = "mäßig";
+"REGION_ACTIVITY_WORD_HEAVY" = "stark";
+"REGION_ACTIVITY_HEADLINE_STALE" = "Daten veraltet";
+"REGION_ACTIVITY_HEADLINE_STARTS_IN" = "Regen im Umkreis in";
+"REGION_ACTIVITY_HEADLINE_IMMINENT" = "Regen im Umkreis gleich";
+"REGION_ACTIVITY_HEADLINE_RAINING" = "Es regnet im Umkreis";
+"REGION_ACTIVITY_HEADLINE_DRY" = "Im Umkreis trocken";

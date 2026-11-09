@@ -25,8 +25,10 @@ root = sys.argv[1]
 args = set(sys.argv[2:])
 BASELINE = os.path.join(root, "tools", "l10n_baseline.txt")
 ALLOW = os.path.join(root, "tools", "l10n_allow.txt")
-BUNDLES = {"Weather": "Weather/Resources", "WeatherWidgets": "WeatherWidgets/Resources",
-           "WeatherWatch": "WeatherWatch", "WeatherWatchWidgets": "WeatherWatchWidgets"}
+# Name -> (Verzeichnis, Tabelle). "Shared" ist die gemeinsame Tabelle SharedTexts.strings (Quelle Shared/, in jedem Target mit Shared-Code).
+BUNDLES = {"Weather": ("Weather/Resources", "Localizable.strings"), "WeatherWidgets": ("WeatherWidgets/Resources", "Localizable.strings"),
+           "WeatherWatch": ("WeatherWatch", "Localizable.strings"), "WeatherWatchWidgets": ("WeatherWatchWidgets", "Localizable.strings"),
+           "Shared": ("Shared/Resources", "SharedTexts.strings")}
 CODE_DIRS = ["Weather", "Shared", "WeatherWidgets", "WeatherWatch", "WeatherWatchWidgets", "WeatherNotificationService"]
 SKIP_PARTS = ("Fixtures", "UITestStub", "Preview")
 
@@ -64,10 +66,10 @@ def placeholders(v):
 errors, warnings = [], []
 all_keys = set()
 counts = Counter()
-for name, base in BUNDLES.items():
+for name, (base, table) in BUNDLES.items():
     d = {}
     for lang in ("de", "en"):
-        p = os.path.join(root, base, lang + ".lproj", "Localizable.strings")
+        p = os.path.join(root, base, lang + ".lproj", table)
         if not os.path.exists(p):
             errors.append(("missing-file", rel(p), "Datei fehlt")); continue
         entries, leftover = parse_strings(p)
@@ -100,9 +102,9 @@ for lang in ("de", "en"):
     p = os.path.join(root, "Weather/Resources", lang + ".lproj", "InfoPlist.strings")
     if os.path.exists(p) and subprocess.run(["plutil", "-lint", p], capture_output=True).returncode not in (0,) and os.path.exists("/usr/bin/plutil"):
         errors.append(("syntax", rel(p), "plutil -lint fehlgeschlagen"))
-for name in BUNDLES.values():
+for name, table in BUNDLES.values():
     for lang in ("de", "en"):
-        p = os.path.join(root, name, lang + ".lproj", "Localizable.strings")
+        p = os.path.join(root, name, lang + ".lproj", table)
         if os.path.exists(p) and os.path.exists("/usr/bin/plutil") and subprocess.run(["plutil", "-lint", p], capture_output=True).returncode != 0:
             errors.append(("syntax", rel(p), "plutil -lint fehlgeschlagen"))
 

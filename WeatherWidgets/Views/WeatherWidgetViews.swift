@@ -41,9 +41,9 @@ struct WeatherWidgetView: View {
     private var ageLabel: some View {
         Group {
             if let ref = entry.referenceTime {
-                Text("Stand \(ref, style: .time)")
+                Text("WIDGET_AS_OF \(ref, style: .time)")
             } else {
-                Text("Kein Stand")
+                Text("WIDGET_NO_TIMESTAMP")
             }
         }
         .font(.caption2).foregroundStyle(entry.outlook.state == .stale ? .orange : .secondary)
@@ -85,12 +85,12 @@ struct WeatherWidgetView: View {
                 if presentation.showsChart {
                     RainBarChart(samples: upcoming).frame(maxHeight: .infinity)
                     HStack {
-                        Text("Jetzt"); Spacer(); Text("+1 Std."); Spacer(); Text("+2 Std.")
+                        Text("WIDGET_NOW"); Spacer(); Text("WIDGET_PLUS_1H"); Spacer(); Text("WIDGET_PLUS_2H")
                     }
                     .font(.caption2).foregroundStyle(.secondary)
                 } else {
                     Spacer()
-                    Text("Kein Verlauf verfügbar").font(.caption).foregroundStyle(.secondary)
+                    Text("WIDGET_NO_TREND").font(.caption).foregroundStyle(.secondary)
                     Spacer()
                 }
             }
@@ -105,7 +105,7 @@ struct WeatherWidgetView: View {
                 Image(systemName: presentation.symbol).font(.system(size: 14)).widgetAccentable()
                 if let m = presentation.minutes, entry.outlook.state != .stale {
                     Text("\(m)").font(.system(size: 18, weight: .semibold, design: .rounded)).minimumScaleFactor(0.6)
-                    Text("Min.").font(.system(size: 9))
+                    Text("WIDGET_MIN_UNIT").font(.system(size: 9))
                 } else {
                     Text(presentation.short).font(.system(size: 10, weight: .medium))
                         .lineLimit(2).minimumScaleFactor(0.6).multilineTextAlignment(.center)
@@ -143,8 +143,8 @@ struct WeatherWidget: Widget {
                                provider: WeatherWidgetProvider()) { entry in
             WeatherWidgetView(entry: entry)
         }
-        .configurationDisplayName("Regenstatus")
-        .description("Zeigt, ob und wann es an einem gespeicherten Ort regnet.")
+        .configurationDisplayName("WIDGET_NAME")
+        .description("WIDGET_DESCRIPTION")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }

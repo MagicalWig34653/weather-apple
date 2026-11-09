@@ -23,7 +23,7 @@
 "DWD · Saved" = "DWD · Gesichert";
 "DWD · Run" = "DWD · Stand";
 "Saved forecast" = "Gespeicherte Prognose";
-"Gespeicherter Ort" = "Gespeicherter Ort";
-"Regenprognose" = "Regenprognose";
-"Zeigt die Prognose für einen in Showers gespeicherten Ort." = "Zeigt die Prognose für einen in Showers gespeicherten Ort.";
-"Ort" = "Ort";
+"WIDGET_ENTITY_TYPE" = "Gespeicherter Ort";
+"WIDGET_INTENT_TITLE" = "Regenprognose";
+"WIDGET_INTENT_DESCRIPTION" = "Zeigt die Prognose für einen in Showers gespeicherten Ort.";
+"WIDGET_INTENT_PLACE" = "Ort";

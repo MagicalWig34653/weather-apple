@@ -105,9 +105,9 @@
 "WARN_DETAIL_TITLE" = "Warning";
 
 /* Warning push (W6, notification service extension, own short notice) */
-"WARN_PUSH_TITLE_SEVERE" = "Severe weather notice, level %d";
-"WARN_PUSH_TITLE_FROST" = "Frost notice, level %d";
-"WARN_PUSH_TITLE_ICE" = "Ice and slippery roads notice, level %d";
+"WARN_PUSH_TITLE_SEVERE" = "Severe weather notice, level %@";
+"WARN_PUSH_TITLE_FROST" = "Frost notice, level %@";
+"WARN_PUSH_TITLE_ICE" = "Ice and slippery roads notice, level %@";
 "WARN_PUSH_BODY" = "Tap for details.";
 
 /* Temperature / humidity layers (model values) */

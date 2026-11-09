@@ -18,3 +18,7 @@ identical:REGION_SETTINGS_TITLE
 identical:SITE_SUPPORT_TITLE
 # L4: @Guide-Beschreibung ist ein Makro-Literal fuer das Apple-Modell (zur Laufzeit nicht lokalisierbar), kein UI-Text.
 Weather/Intelligence/ForecastInterpretation.swift::Ein oder zwei unterschiedliche IDs aus den vorgegebenen zulässigen Fakten.
+# L5: Namen der #Preview-Makros (nur Xcode-Canvas, nicht nutzersichtbar).
+WeatherWidgets/LiveActivity/RainLiveActivity.swift::Lock Screen Umkreis
+WeatherWidgets/LiveActivity/RainLiveActivity.swift::Island expanded Umkreis
+WeatherWidgets/LiveActivity/RainLiveActivity.swift::Island compact Umkreis
