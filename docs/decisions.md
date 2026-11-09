@@ -344,3 +344,7 @@ Das Info-Sheet nennt DWD ICON-D2/ICON-EU und, bei vorhandener Waldebene, ESA Wor
 ## 9.11.2026: Englische Lokalisierung, Konvention (E1 bis E3 bestätigt)
 
 Nutzerentscheidung: Die App wird vollständig auf Englisch lokalisiert (Plan `docs/superpowers/plans/2026-11-09-lokalisierung-en-plan.md`). Bestätigt: **E1** klassische `.strings` mit symbolischen Schlüsseln bleiben (kein String Catalog); **E2** Englisch ist Rückfall für alle anderen Systemsprachen (`CFBundleLocalizations = [de, en]`, `CFBundleDevelopmentRegion = en` in allen fünf Plists; deutsche Texte bleiben Entwicklungs-/`value:`-Text im Code); **E3** das Glossar der Bestandsaufnahme (`docs/research/lokalisierung-en.md`, Abschnitt 6) ist Startpunkt, Wortlautfragen (Look-back, Summary) klärt die Abnahme. E4 (englische Webseiten) bleibt getrennt offen. Die aktive Sprache bestimmt allein `AppLanguage.code` (`Shared/AppLanguage.swift`, `Bundle.main.preferredLocalizations`); Push-Locale, `Accept-Language` und Live-Activity-Texte nutzen sie. Prüfung: `tools/check_l10n.sh` (Aufruf im README).
+
+## 9.11.2026: Englische Lokalisierung abgeschlossen (L6)
+
+App-Oberflaeche, Widgets, Live Activity, Watch und Push-Texte liegen in de/en vor (`tools/check_l10n.sh --strict` Exit 0, kein Build-Phasen-Check, sondern Aufruf vor Commits). Englische Store-Screenshots (iPhone 6,3", iPad, Watch teilweise) erzeugt. Offen und vor der englischen Store-Lokalisierung noetig: englische Store-Texte und englische Webseiten (E4, Backend-Repo). Details `docs/status.md`.

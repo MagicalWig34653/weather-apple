@@ -61,7 +61,7 @@ Umfang: ca. 50 Texte (Widget-Präsentation 20, Live Activity 10, Place-Entity 3,
 Abhängigkeit: L1 (Sprachhelfer), L4 für `Shared/RainOutlook.swift` (Texte sind dort bereits mit L4 geklärt; L5 wartet nicht, sondern übernimmt die Schlüssel nach L4-Merge).
 Tests: bestehende Widget-/Präsentationstests mit englischem Locale; Timeline-Vorschauen manuell. Aufwand: 2 bis 2,5 Tage.
 
-### L6 Tests, Screenshots auf Englisch, Doku, Abnahme (Dateibesitz: `WeatherUITests/**`, `WeatherTests/Localization*` (neu), `tools/screenshots.sh`, `docs/status.md`, `docs/appstore-screenshots.md`, `docs/app-store-release-checkliste.md`, `docs/decisions.md`, `README.md`)
+### L6 Tests, Screenshots auf Englisch, Doku, Abnahme (erledigt 9.11.2026, Status in `docs/status.md`; offen nur E4 Webseiten und englische Store-Texte) (Dateibesitz: `WeatherUITests/**`, `WeatherTests/Localization*` (neu), `tools/screenshots.sh`, `docs/status.md`, `docs/appstore-screenshots.md`, `docs/app-store-release-checkliste.md`, `docs/decisions.md`, `README.md`)
 
 1. Unit-Test `LocalizationParityTests`: lädt `en.lproj`/`de.lproj` der Test-Host-App und prüft, dass jeder Schlüssel in beiden Sprachen existiert und die Platzhalter übereinstimmen (ergänzt das Shell-Lint im Xcode-Lauf).
 2. Pseudolokalisierung: Test-/Debug-Lauf mit `-NSDoubleLocalizedStrings YES` und `-AppleTextDirection YES -NSForceRightToLeftWritingDirection YES` (Layout-Test, Texte um 100 % länger und RTL; kein Release-Inhalt). Das ist eine Prüfung, keine Auslieferung.

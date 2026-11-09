@@ -13,6 +13,21 @@ Ablage: `design/appstore-screenshots/<gerät>/<maße>/de/NN-<motiv>.png`. Alle P
 
 iPhone-Motive: 01 Regenradar mit Regenband, Zeit-Pille (Vergangenheit, blau) und Farblinie; 02 Ortsdetails (Prognosekarte, Stand "vorerst kein messbarer Regen", siehe Einschränkungen); 03 Temperatur 2 m (Modell) mit Wertabfrage "Etwa 8 bis 9 °C (Modell)", Zeit-Pille in der Zukunft orange; 04 Amtliche Warnungen (Fixture, Ort Berlin, Stufe 3 und 1); 05 Relative Feuchte mit Waldebene und Wertabfrage; 06 Neue Region (Radius, Auslöser, Kartenvorschau); 07 Deine Orte mit Regionen; 08 Regenradar dunkel (einziges Dark-Motiv). Orte: Hamburg, München, Berlin (öffentliche Beispielorte, kein Standort).
 
+## Englische Screenshots (9.11.2026, Paket L6)
+
+Aufruf: `tools/screenshots.sh build`, dann `tools/screenshots.sh iphone-pro|iphone-max|ipad en` (Standard bleibt `de`). Das Skript startet die App mit `-AppleLanguages (en) -AppleLocale en_US` (12-h-Zeit), legt Hamburg, Munich (statt München) und Berlin an und schreibt nach `<geraet>/<maße>/en/`. Das UI-Test-Bundle `ShotsUITests` wählt die Beschriftungen per `SHOT_LANG`.
+
+| Ordner | Motive | Stand |
+|---|---|---|
+| `iphone/1206x2622/en/` | 01 Regenradar, 02 Ortsdetails, 03 Temperatur, 04 Warnungen, 05 Feuchte+Wald, 06 Region, 07 Orte/Regionen, 08 Regenradar dunkel | eingecheckt (11 MB), ohne Alpha |
+| `ipad/2064x2752/en/` | 01 Regenradar, 03 Temperatur, 04 Warnungen, 05 Feuchte+Wald, 08 Regenradar dunkel (Auswahl wie de) | eingecheckt (14 MB) |
+| `watch/422x514/en/` | 02-ortsprognose | eingecheckt; Ortsliste en nicht aufgenommen (App öffnet zuletzt gewählten Ort) |
+| `iphone/1320x2868/en/` | gleiche 8 Motive | aufgenommen und geprüft, nicht eingecheckt (12 MB, Repo-Größe); per Skript neu erzeugbar |
+
+Watch: `WatchShotsUITests` nimmt `SHOT_LANG=en`; Orte (Hamburg, Munich, Berlin) per `places.json` in den Watch-Container, Aufnahme per `simctl io`, Alpha mit `strip-alpha.swift` entfernt. Duo-Bilder: nicht erzeugt (Simulator nicht verfügbar).
+
+Einschränkungen: Das Regenband des Archivs (`SHOT_RAIN_POS` 0.84) liegt wetterabhängig nicht mehr im Bild, das Radarmotiv zeigt aktuell keinen Regen (bei echtem Regen oder passender Position neu aufnehmen). Die Warnungen-Fixture zeigt den DWD-Text deutsch, Oberfläche und Quellenvermerk englisch. Die iPad-Statusleiste zeigt Datum/Wochentag in der Simulator-Systemsprache ("Montag 9. Nov."). Zeit-Pille und Wertabfrage nutzen Locale-Formate (4:32 PM, "About 2 to 3 °C (model)").
+
 ## Reproduktion
 
 ```sh
@@ -155,7 +170,7 @@ Bekannte Einschränkungen der Motive:
 - **Regen aus dem Archiv:** Am 3.11.2026 abends war in Deutschland kein Regen. Radarbilder zeigen deshalb die gemessene Lage vom 2.11. (ca. 10-11 Uhr, über `history.json`, Einstellung "Maximale Vergangenheit" 48 Stunden). Die Zeitleiste zeigt das Datum "Mo. 2. Nov."; der Banner oben ("Vorerst kein messbarer Regen") bezieht sich auf jetzt und widerspricht dem Bild optisch. Vor Veröffentlichung besser bei echtem aktuellem Regen neu aufnehmen (gleiche Befehle) oder bewusst so lassen.
 - **Ebene Sonne, Blitze, Luftdruck nicht aufgenommen:** abends bzw. Winterhalbjahr ist die Sonnenebene dunkel, keine Blitze, Luftdruck war "nicht aktuell" (Backend). Tagsüber und bei Gewitter neu aufnehmen (`testLayer`, `SHOT_LAYER=Sonne|Blitze`).
 - **Info-Sheet** nicht verwendet: Der Text beginnt mit "Showers · frühe Testversion" (Produktentscheidung vor Store-Einsatz).
-- **Englisch nicht erzeugt:** Die iOS-Oberfläche ist (noch) nur deutsch, `Localizable.strings` gibt es nur für Push-Texte und die Watch. Englische Screenshots wären identisch deutsch.
+- **Englisch (9.11.2026, Paket L6):** erzeugt, siehe Abschnitt "Englische Screenshots".
 - **Widgets/Komplikationen nicht aufgenommen:** Hinzufügen zu Home-/Zifferblatt im Simulator ist nicht sinnvoll automatisierbar.
 - **Watch:** Die WCSession-Zustellung funktioniert im Simulator nicht (Watch-App per `simctl install` statt Companion-Installation, `isWatchAppInstalled` unwahr). Die Ortsliste wurde deshalb durch Kopieren der `places.json` der iPhone-App in den Watch-Container (Debug-Fallback `SharedFallback`) eingespielt; dasselbe Ortsformat wie von der Übertragung. Das Bild ist trotzdem echte App-Oberfläche.
 

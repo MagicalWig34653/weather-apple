@@ -1,7 +1,7 @@
 #!/bin/zsh
-# App-Store-Screenshots "Showers" (nur Deutsch) neu erzeugen. Siehe docs/app-store-screenshots.md.
+# App-Store-Screenshots "Showers" (de oder en) neu erzeugen. Siehe docs/appstore-screenshots.md.
 # Nutzung:  tools/screenshots.sh build                 App fuer den Simulator bauen (Debug, ohne Signing)
-#           tools/screenshots.sh iphone-pro|iphone-max|ipad   Geraet zuruecksetzen, Orte anlegen, alle Motive aufnehmen
+#           tools/screenshots.sh iphone-pro|iphone-max|ipad [de|en]   Geraet zuruecksetzen, Orte anlegen, alle Motive aufnehmen (Standard de; Ausgabe .../de bzw. .../en)
 # Umgebung: DEVELOPER_DIR (Xcode), SHOTS_WORK (Scratch, Standard /private/tmp/showers-shots-work)
 set -u
 REPO=${0:A:h:h}
@@ -20,11 +20,13 @@ if [[ ${1:-} == build ]]; then
   exit
 fi
 
+LANGC=${2:-de}
+case $LANGC in de) LOCALE=de_DE; CITIES=(Hamburg München Berlin) ;; en) LOCALE=en_US; CITIES=(Hamburg Munich Berlin) ;; *) echo "Sprache de|en"; exit 1 ;; esac
 case ${1:-} in
-  iphone-pro) NAME="SN Shots iPhone Pro"; OUT=$REPO/design/appstore-screenshots/iphone/1206x2622/de ;;
-  iphone-max) NAME="SN Shots iPhone Max"; OUT=$REPO/design/appstore-screenshots/iphone/1320x2868/de ;;
-  ipad)       NAME="SN Shots iPad 13";    OUT=$REPO/design/appstore-screenshots/ipad/2064x2752/de ;;
-  *) echo "Nutzung: $0 build|iphone-pro|iphone-max|ipad"; exit 1 ;;
+  iphone-pro) NAME="SN Shots iPhone Pro"; OUT=$REPO/design/appstore-screenshots/iphone/1206x2622/$LANGC ;;
+  iphone-max) NAME="SN Shots iPhone Max"; OUT=$REPO/design/appstore-screenshots/iphone/1320x2868/$LANGC ;;
+  ipad)       NAME="SN Shots iPad 13";    OUT=$REPO/design/appstore-screenshots/ipad/2064x2752/$LANGC ;;
+  *) echo "Nutzung: $0 build|iphone-pro|iphone-max|ipad [de|en]"; exit 1 ;;
 esac
 U=$(udid $NAME); RAW=$WORK/raw/$1; rm -rf $RAW; mkdir -p $RAW $OUT
 
@@ -34,7 +36,8 @@ cp $TOOLS/project.yml $TOOLS/ShotsUITests.swift $TOOLS/run-test.sh $WORK/ui/
 
 run() { # run <test> [VAR=val ...]
   local t=$1; shift
-  ( for kv in "$@"; do export TEST_RUNNER_$kv; done
+  ( export TEST_RUNNER_SHOT_LANG=$LANGC TEST_RUNNER_SHOT_LOCALE=$LOCALE
+    for kv in "$@"; do export TEST_RUNNER_$kv; done
     export TEST_RUNNER_SHOT_DIR=$RAW SHOTS_PROJECT_DIR=$WORK/ui
     zsh $WORK/ui/run-test.sh $U $t $WORK/ui-dd $WORK/log-$1.txt )
 }
@@ -46,7 +49,7 @@ xcrun simctl install $U $APP
 xcrun simctl privacy $U grant location $BID
 xcrun simctl status_bar $U override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
 xcrun simctl launch $U $BID >/dev/null; sleep 20; xcrun simctl terminate $U $BID
-for c in Hamburg München Berlin; do run testAddPlace SHOT_CITY=$c; done
+for c in $CITIES; do run testAddPlace SHOT_CITY=$c; done
 
 # Radar mit Archivregen: 48 h Rueckblick, Position 0.84 = Messung mit Regenband bei Hamburg (haengt vom Zeitpunkt ab, vorher pruefen)
 scene radar    01-regenradar        SHOT_ARGS="-radarPastHours 48" SHOT_POS=${SHOT_RAIN_POS:-0.84}

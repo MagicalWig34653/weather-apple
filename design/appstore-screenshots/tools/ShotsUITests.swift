@@ -8,6 +8,11 @@ final class ShotsUITests: XCTestCase {
     var dir: String { env["SHOT_DIR"] ?? "/tmp/shots" }
     var prefix: String { env["SHOT_PREFIX"] ?? "" }
 
+    var isEN: Bool { (env["SHOT_LANG"] ?? "de") == "en" }
+    /// Sichtbare Texte je Sprache (de, en).
+    func t(_ de: String, _ en: String) -> String { isEN ? en : de }
+    var placePrefix: String { t("Ort auswählen:", "Choose place:") }
+
     func snap(_ name: String) {
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         let data = XCUIScreen.main.screenshot().pngRepresentation
@@ -24,7 +29,7 @@ final class ShotsUITests: XCTestCase {
 
     func testSweep() throws {
         let app = launch()
-        let slider = app.sliders["Radarzeitpunkt"]
+        let slider = app.sliders[t("Radarzeitpunkt", "Radar time")]
         XCTAssertTrue(slider.waitForExistence(timeout: 40))
         sleep(8)
         let ps = (env["SHOT_POS"] ?? "0,0.15,0.3,0.45,0.6,0.75,0.9,1").split(separator: ",").compactMap { Double($0) }
@@ -40,7 +45,7 @@ final class ShotsUITests: XCTestCase {
     func testAddPlace() throws {
         let city = env["SHOT_CITY"] ?? "Stadt"
         let app = launch()
-        let header = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ort auswählen:'")).firstMatch
+        let header = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", placePrefix)).firstMatch
         XCTAssertTrue(header.waitForExistence(timeout: 30))
         header.tap()
         let field = app.searchFields.firstMatch
@@ -52,7 +57,7 @@ final class ShotsUITests: XCTestCase {
         snap("search-\(city)")
         result.tap()
         sleep(3)
-        let save = app.buttons["Ausgewählten Ort speichern oder umbenennen"]
+        let save = app.buttons[t("Ausgewählten Ort speichern oder umbenennen", "Save or rename the selected place")]
         XCTAssertTrue(save.waitForExistence(timeout: 10))
         save.tap()
         let alert = app.alerts.firstMatch
@@ -61,8 +66,8 @@ final class ShotsUITests: XCTestCase {
         tf.tap()
         let existing = tf.value as? String ?? ""
         tf.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count) + city)
-        alert.buttons["Speichern"].tap()
-        if !alert.waitForNonExistence(timeout: 2) { alert.buttons["Speichern"].tap() }
+        alert.buttons[t("Speichern", "Save")].tap()
+        if !alert.waitForNonExistence(timeout: 2) { alert.buttons[t("Speichern", "Save")].tap() }
         sleep(2)
         snap("added-\(city)")
     }
@@ -70,7 +75,7 @@ final class ShotsUITests: XCTestCase {
     // MARK: Motive
 
     func select(_ app: XCUIApplication, _ city: String) {
-        let header = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ort auswählen:'")).firstMatch
+        let header = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", placePrefix)).firstMatch
         XCTAssertTrue(header.waitForExistence(timeout: 40))
         if header.label.hasSuffix(city) { return }
         header.tap()
@@ -82,7 +87,7 @@ final class ShotsUITests: XCTestCase {
 
     /// Zieht den Zeitregler auf die Position SHOT_POS (0...1); mit radarPastHours=48 liegt 0.30 bei Mo 2.11. 09:15 (Regenband ueber Niedersachsen).
     func seek(_ app: XCUIApplication, pos: Double) {
-        let slider = app.sliders["Radarzeitpunkt"]
+        let slider = app.sliders[t("Radarzeitpunkt", "Radar time")]
         XCTAssertTrue(slider.waitForExistence(timeout: 40))
         sleep(10)
         slider.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)).press(forDuration: 0.1, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: pos, dy: 0.5)))
@@ -96,7 +101,7 @@ final class ShotsUITests: XCTestCase {
         let from = Double(env["SHOT_POS"] ?? "0.22") ?? 0.22, to = Double(env["SHOT_TO"] ?? "0.42") ?? 0.42
         seek(app, pos: from)
         sleep(4)
-        let slider = app.sliders["Radarzeitpunkt"]
+        let slider = app.sliders[t("Radarzeitpunkt", "Radar time")]
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         try? "\(Date().timeIntervalSince1970)".write(toFile: "\(dir)/tour-start.txt", atomically: true, encoding: .utf8)
         let v = Double(env["SHOT_VELOCITY"] ?? "8") ?? 8
@@ -142,14 +147,14 @@ final class ShotsUITests: XCTestCase {
         app.buttons["forecast-details"].tap()
         sleep(5)
         snap("forecast")
-        app.buttons["Fertig"].tap()
+        app.buttons[t("Fertig", "Done")].tap()
         sleep(2)
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ort auswählen:'")).firstMatch.tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", placePrefix)).firstMatch.tap()
         sleep(3)
         snap("places")
         app.swipeDown()
         sleep(2)
-        app.buttons["Datenquellen und Datenschutz"].tap()
+        app.buttons[t("Datenquellen und Datenschutz", "Data sources and privacy")].tap()
         sleep(4)
         snap("info")
     }
@@ -158,8 +163,8 @@ final class ShotsUITests: XCTestCase {
         let app = launch()
         select(app, env["SHOT_PLACE"] ?? "Hannover")
         sleep(6)
-        app.buttons["Datenquellen und Datenschutz"].tap()
-        XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 10))
+        app.buttons[t("Datenquellen und Datenschutz", "Data sources and privacy")].tap()
+        XCTAssertTrue(app.navigationBars[t("Über Showers", "About Showers")].waitForExistence(timeout: 10))
         sleep(3)
         snap(env["SHOT_NAME"] ?? "info")
     }
@@ -169,8 +174,8 @@ final class ShotsUITests: XCTestCase {
         let app = launch()
         select(app, env["SHOT_PLACE"] ?? "Hannover")
         sleep(6)
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ort auswählen:'")).firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Deine Orte"].waitForExistence(timeout: 10))
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", placePrefix)).firstMatch.tap()
+        XCTAssertTrue(app.navigationBars[t("Deine Orte", "Your Places")].waitForExistence(timeout: 10))
         sleep(2)
         snap(env["SHOT_NAME"] ?? "places")
     }
@@ -181,7 +186,7 @@ final class ShotsUITests: XCTestCase {
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 20))
         menu.tap()
-        let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
+        let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@ OR label CONTAINS[c] %@", prefix, prefix)).firstMatch
         XCTAssertTrue(item.waitForExistence(timeout: 8), "Ebene \(prefix) fehlt im Menue")
         item.tap()
     }
@@ -211,7 +216,7 @@ final class ShotsUITests: XCTestCase {
             sleep(5)
         case "temp", "humidity":
             sleep(4)
-            openLayer(app, prefix: scene == "temp" ? "Temperatur" : "Feuchte (relativ)")
+            openLayer(app, prefix: scene == "temp" ? t("Temperatur", "Temperature") : t("Feuchte (relativ)", "Humidity (relative)"))
             sleep(14)
             if let pos { dragSlider(app, pos); sleep(12) }
             let legend = app.buttons["radar-legend-toggle"]
@@ -225,7 +230,9 @@ final class ShotsUITests: XCTestCase {
             }
             if env["SHOT_LEGEND"] == "1" { legend.tap(); sleep(2) }
             if env["SHOT_READ"] == "1" {
-                app.buttons["radar-read-center"].tap()
+                let read = app.buttons["radar-read-center"]
+                XCTAssertTrue(read.waitForExistence(timeout: 20), "Wertabfrage-Knopf fehlt")
+                read.tap()
                 sleep(4)
             }
         case "warnings":
@@ -233,11 +240,11 @@ final class ShotsUITests: XCTestCase {
             XCTAssertTrue(b.waitForExistence(timeout: 20))
             sleep(3)
             b.tap()
-            XCTAssertTrue(app.navigationBars["Amtliche Warnungen"].waitForExistence(timeout: 8))
+            XCTAssertTrue(app.navigationBars[t("Amtliche Warnungen", "Official warnings")].waitForExistence(timeout: 8))
             sleep(3)
         case "regionnew":
-            app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ort auswählen:'")).firstMatch.tap()
-            XCTAssertTrue(app.navigationBars["Deine Orte"].waitForExistence(timeout: 10))
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", placePrefix)).firstMatch.tap()
+            XCTAssertTrue(app.navigationBars[t("Deine Orte", "Your Places")].waitForExistence(timeout: 10))
             sleep(3)
             snap(name + "-places")
             let add = app.buttons["region-new"]
@@ -250,7 +257,7 @@ final class ShotsUITests: XCTestCase {
             app.buttons["radar-layer-menu"].tap()
             sleep(2)
         case "alerts":
-            app.buttons["Datenquellen und Datenschutz"].tap()
+            app.buttons[t("Datenquellen und Datenschutz", "Data sources and privacy")].tap()
             let row = app.buttons["info-row-alerts"]
             XCTAssertTrue(row.waitForExistence(timeout: 8))
             row.tap()
