@@ -567,3 +567,6 @@ Lokaler Export und IPA-Pruefung: CFBundleVersion 42 und `PrivacyInfo.xcprivacy` 
 ## Showers Build 43 (0.1.1): Upload (Xcode 27.1)
 
 Quellencheckpoint: Commit "fix: Zeit-Pille im Hellmodus, Legendenpanel begrenzt; Buildnummer 43" (`CURRENT_PROJECT_VERSION = 43`; Inhalt gegenueber Build 42: Zeit-Pille hell/dunkel, Legendenpanel innerhalb Glas und ueber der Zeit-Pille). Verfahren wie Build 42 (`git archive`-Kopie `/private/tmp/showers-b43`). Vorab: `Weather`-Schema (Simulator B15 iPhone 18 Pro, `CODE_SIGNING_ALLOWED=NO`) Unit + UI gruen (UI 27 Tests inkl. neuem Legendentest).
+Lokaler Export und IPA-Pruefung: CFBundleVersion 43 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle.
+
+**Genau ein Upload, 9. November 2026 von 07:53 bis 07:55 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
