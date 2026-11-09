@@ -1,6 +1,6 @@
 # App-Store-Texte Englisch (Großbritannien), Entwurf
 
-**ENTWURF, NICHT FREIGEGEBEN.** Nichts in App Store Connect eingetragen. Die Texte zu Datenschutz und Warnungen gehen erst nach ausdrücklicher Nutzerfreigabe live (Warn-Push ist serverseitig aus; Datenschutztext siehe `datenschutz-entwurf-release.md`, Entwurf, nicht live). Deutsche Gegenstücke: `appstore-screenshots.md` (Abschnitt "Textvorschläge", Stand 4.11.). Stand 9.11.2026. Vorlage für die Locale "English (U.K.)"; britische Schreibung ("centre", "labelled"). Muttersprachlerprüfung offen. Verlinkt aus `app-store-release-checkliste.md`.
+**ENTWURF, NICHT FREIGEGEBEN.** Nichts in App Store Connect eingetragen. Die Texte zu Datenschutz und Warnungen gehen erst nach ausdrücklicher Nutzerfreigabe live (Warn-Push ist serverseitig aus; Datenschutztext siehe `datenschutz-entwurf-release.md`, Entwurf, nicht live). Deutsches Gegenstück: [appstore-texte-de.md](appstore-texte-de.md). Stand 9.11.2026. Vorlage für die Locale "English (U.K.)"; britische Schreibung ("centre", "labelled"). Muttersprachlerprüfung offen. Verlinkt aus `app-store-release-checkliste.md`.
 
 Zeichenzahlen mit `python3` gezählt (Zeichen und UTF-8-Bytes; alle Texte reines ASCII, daher gleich). Grenzen: Name 30, Untertitel 30, Werbetext 170, Keywords 100 Bytes, Beschreibung 4000.
 
@@ -18,7 +18,7 @@ Zeichenzahlen mit `python3` gezählt (Zeichen und UTF-8-Bytes; alle Texte reines
 
 Ohne "Showers", "rain", "radar", "timeline" (Name/Untertitel). "dew point" enthält ein Leerzeichen innerhalb eines Begriffs; bei Bedarf durch "dewpoint" ersetzen. Suchwirkung ungeprüft.
 
-## Beschreibung (2092 Zeichen, 2092 Bytes, max. 4000)
+## Beschreibung (2199 Zeichen, 2199 Bytes, max. 4000)
 ```
 Showers shows you when and where it rains in Germany.
 
@@ -42,7 +42,7 @@ Keep an eye on the rain with widgets and a Live Activity, and check compact plac
 
 DESIGNED FOR PRIVACY
 - No user account, no advertising, no tracking, no analytics SDKs.
-- Radar requests contain no location, no cookies and no identifier.
+- Radar requests contain no location, no cookies and no identifier. Technically, the reverse proxy in front of the service sees the IP address and logs it for a limited time.
 - Saved places with their names and your settings stay on your device.
 
 DESIGN
@@ -74,13 +74,13 @@ First release of Showers.
 ## Belege und Grenzen der Aussagen
 - Funktionsumfang laut `status.md`/`decisions.md`: Radar mit Zeitleiste, Temperatur/Taupunkt/Feuchte (Modellwerte; relative Feuchte nur, wenn der Server die Ebene liefert, daher "where available"), Wertabfrage per Tippen/VoiceOver, Warnungen-Seite (Unwetter, Frost, Glätte; nach Ort gruppiert; Quelle je Warnung), Orte und Regionen (Umkreis), Regen-Push (Opt-in), Widgets, Live Activity, Watch.
 - Absichtlich NICHT behauptet: Warn-Push (serverseitig aus, wartet auf DWD-Antwort und Datenschutzfreigabe), "amtliche Warn-App", Gefühlstemperatur, Feuchte-Wörter, Watch-Radarkarte, Mac, Abdeckung außerhalb Deutschlands.
-- Datenschutzzeilen aus `datenschutz-entwurf-release.md` Teil A-EN, Abschnitt 2 "Overview": "No user account, no advertising, no tracking, no analytics SDKs." und "Saved places with their names and your settings stay on your device." wortgleich; "Radar requests contain no location, no cookies and no identifier." ist ein Teilsatz des zweiten Aufzählungspunkts (der dort zusätzlich die IP-Protokollierung des Reverse Proxy nennt, siehe Abschnitt 3). "voluntary and can be revoked in the app at any time" ist dem dritten Punkt entnommen. Nichts Neues behauptet; Freigabe des Datenschutztextes steht aus, Teilsatz-Kürzung ggf. vor Freigabe prüfen.
+- Datenschutzzeilen aus `datenschutz-entwurf-release.md` Teil A-EN, Abschnitt 2 "Overview": "No user account, no advertising, no tracking, no analytics SDKs." und "Saved places with their names and your settings stay on your device." wortgleich; "Radar requests contain no location, no cookies and no identifier. Technically, the reverse proxy in front of the service sees the IP address and logs it for a limited time." ist der zweite Aufzählungspunkt ohne den einleitenden Bedingungssatz. Korrektur 9.11.: der frühere Text kürzte ihn auf den ersten Teilsatz und ließ die IP-Protokollierung des Reverse Proxy weg; das war unvollständig und ist behoben. "voluntary and can be revoked in the app at any time" ist dem dritten Punkt entnommen. Nichts Neues behauptet; Freigabe des Datenschutztextes steht aus.
 - Live Activity und Regen-Push hängen am Backend-Rollout (Checkliste "APNs-Key/Backend-Push live: unklar"); vor Einreichung gegen den tatsächlichen Stand prüfen. Dynamic Type wird bewusst nicht beworben (nur indirekt belegt).
 
-## Abweichungen der deutschen Texte (nur Hinweis, nicht geändert)
+## Abweichungen der alten deutschen Texte (erledigt: neu in appstore-texte-de.md)
 Die deutschen Vorschläge (Stand 4.11., Build 17) sind veraltet:
 - Werbetext und Beschreibung nennen weder Temperatur-/Feuchtekarte (ab Build 37) noch die Warnungen-Seite (Unwetter/Frost/Glätte) noch Live Activity (der Vorschlag schloss sie ausdrücklich aus).
 - Die Beschreibung nennt Wolken/Satellit als Ebene und "Regenhinweis per Push" ohne Opt-in-Hinweis; "Watch (Radarkarte als Vorschau)" ist nicht mehr belegt.
 - Keywords (99 Bytes) enthalten weder Temperatur noch Taupunkt/Frost; "Satellit"/"Wolken" passen nicht mehr zum Schwerpunkt.
 - Der Untertitel "Regen im Blick, für deine Orte" liegt mit 30 Zeichen exakt am Limit.
-Vorschlag: deutsche Fassung parallel zu dieser neu fassen (separater Auftrag).
+Erledigt am 9.11.2026: deutsche Fassung parallel neu gefasst in [appstore-texte-de.md](appstore-texte-de.md).

@@ -127,11 +127,7 @@ Quellen (abgerufen 3.11.2026): [Asset best practices](https://developer.apple.co
 
 **Reihenfolge der ersten Screenshots (Suche, Hochformat):** 01 Regenradar, 02 Orte, 03 Wolken (Dunkelvarianten danach), unverändert.
 
-**Textvorschläge (Stand 4.11.2026, Name "Showers", Build 17; nur Vorschlag, Nutzer trägt selbst ein; keine Live Activity, da Backend-Rollout aussteht; Längen mit `wc -m`/`wc -c`):**
-- Untertitel (max. 30 Zeichen): `Regenradar mit Zeitleiste` (25 Zeichen) oder `Regen im Blick, für deine Orte` (30 Zeichen, 31 Bytes).
-- Werbetext (max. 170 Zeichen): `Sieh im Regenradar, wann es regnet: Zeitleiste, Prognose für deine Orte und Regionen, Regenhinweis per Push, Widgets und Apple Watch. Daten vom DWD.` (148 Zeichen). Hinweis: Push hängt vom Backend ab, Watch-Radarkarte ist Vorschau; Wortlaut bei Bedarf entschärfen.
-- Schlüsselwörter (max. 100 Bytes, kein Leerzeichen nach Komma, ohne "Showers"): `Niederschlag,Prognose,Wetter,Schauer,Regenhinweis,Regenvorhersage,Widget,Wolken,Satellit,Radarkarte` (99 Zeichen = 99 Bytes). Untertitelwörter (Regenradar, Zeitleiste) nicht wiederholt.
-- Beschreibung, Kopf: `Showers zeigt dir, wann und wo es regnet. Das Regenradar mit Zeitleiste zeigt Messung und kurzfristige Entwicklung auf der Karte; Wolken sind als Satellitenebene zuschaltbar. Speichere Orte und Regionen für die Ortsprognose, lass dir per Push einen Regenhinweis senden und behalte den Regen mit Widgets und der Apple Watch (Radarkarte als Vorschau) im Blick. Datenquelle ist der Deutsche Wetterdienst.`
+**Textvorschläge: überholt (Stand 4.11.2026, Build 17).** Die alten Vorschläge (Untertitel, Werbetext, Schlüsselwörter, Beschreibung) sind ersetzt durch den neuen Entwurf [appstore-texte-de.md](appstore-texte-de.md) (englisch: [appstore-texte-en.md](appstore-texte-en.md)); nicht freigegeben, nichts in Connect eingetragen.
 
 **Nicht geprüft:** Upload der Creative-Assets/des Videos in Connect, Preview-Tool, Safe Area gegen Apple-Vorlage, Review-Annahme; ob Creative-Assets in Connect für diese App schon sichtbar sind (iOS-27-Mindestversion, Build-Zuordnung unklar); Videoqualität auf dem Gerät; Mockup ist nicht Apples Darstellung. Hinweis: PNG/MP4 (zus. ca. 60 MB) nicht committen ohne Entscheidung.
 

@@ -20,7 +20,7 @@ Status: erledigt / offen / unklar. Wer: Agent oder Nutzer.
 | Punkt | Status | Beleg | Wer |
 |---|---|---|---|
 | App-Name | unklar | Anzeigename `Showers` (`Base.xcconfig`); Nutzer nennt ShowerNow; Verfuegbarkeit des Namens in Connect ungeprueft, Ausweichname vorgeschlagen (`status.md` Build 17) | Nutzer |
-| Untertitel, Werbetext, Keywords, Beschreibung | offen | Englischer Entwurf (nicht freigegeben): [appstore-texte-en.md](appstore-texte-en.md). Nur Vorschlaege in `appstore-screenshots.md`/`apple-externe-tests.md`, teils mit altem Namen; nichts eingetragen belegt | Agent (Text final), Nutzer (Eintrag) |
+| Untertitel, Werbetext, Keywords, Beschreibung | offen | Entwuerfe (nicht freigegeben): [appstore-texte-de.md](appstore-texte-de.md), [appstore-texte-en.md](appstore-texte-en.md). Nur Vorschlaege in `appstore-screenshots.md`/`apple-externe-tests.md`, teils mit altem Namen; nichts eingetragen belegt | Agent (Text final), Nutzer (Eintrag) |
 | Kategorie Wetter, Altersfreigabe-Fragebogen | offen | Nur Annahme `apple-externe-tests.md` 6; kein freier Web-Zugang, keine Inhalte | Nutzer |
 | Support-URL | erledigt | `/support` HTTP 200, E-Mail mail@linolaske.de | Nutzer (Eintrag in Connect) |
 | Marketing-URL | erledigt | `/marketing` HTTP 200 | Nutzer |
