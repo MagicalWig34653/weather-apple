@@ -35,6 +35,8 @@ xcodebuild -project Weather.xcodeproj -scheme Weather \
 
 Bei anderem Simulator dessen vorhandenen Namen einsetzen. UI-Tests legen nur eigene zufällig benannte Testorte an und entfernen diese gezielt. Signierte Gerätebuilds und Bundle-ID-Registrierung sind im [Signing-Status](docs/signing.md) getrennt dokumentiert. Keine Signing-Dateien oder lokalen Pfade committen.
 
+Lokalisierung (de/en): `tools/check_l10n.sh` prueft Schluessel- und Platzhalterparitaet je Bundle und meldet hartcodierte deutsche Texte in Swift-Quellen. Ohne Argument verbietet es nur Treffer ueber `tools/l10n_baseline.txt` hinaus; `--baseline` schreibt die Ausgangslage neu, `--strict` ignoriert sie (Ziel am Ende der Lokalisierung), `--list` zeigt alle Treffer. Ausnahmen: `tools/l10n_allow.txt`. Braucht nur Bash und Python 3.
+
 ## Dokumentation
 
 - [Arbeitsstand und nächste Schritte](docs/status.md)

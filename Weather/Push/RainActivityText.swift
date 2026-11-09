@@ -5,7 +5,7 @@ enum RainActivityText {
     case title, explanation, unavailable, privacy, limit, notEligible, retry, waitingForToken, full
     case regionExplanation, regionPrivacy
 
-    func text(locale: String = Locale.preferredLanguages.first ?? "de") -> String {
+    func text(locale: String = AppLanguage.code) -> String {
         let german = locale.lowercased().hasPrefix("de")
         switch self {
         case .title: return german ? "Live Activity" : "Live Activity"

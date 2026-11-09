@@ -1,0 +1,329 @@
+# Ausgangslage tools/check_l10n.sh (Kategorie<TAB>Datei<TAB>Text); zeilenunabhaengig, mit Anzahl bei Wiederholung.
+# Neu erzeugen: tools/check_l10n.sh --baseline. Ziel (L6): leer.
+hardcoded-literal	Shared/Data/RainForecast.swift	Der DWD liefert für diesen Ort keine vollständige Prognose.
+hardcoded-literal	Shared/Data/RainForecast.swift	Der DWD stellt momentan keinen ausreichend aktuellen Datenlauf bereit.
+hardcoded-literal	Shared/Data/RainForecast.swift	Der Ort liegt außerhalb des unterstützten Radargebiets.
+hardcoded-literal	Shared/Data/RainForecast.swift	Der angekündigte DWD-Datenlauf ist am Radardienst noch nicht verfügbar. Bitte erneut versuchen.
+hardcoded-literal	Shared/Data/RainForecast.swift	Die DWD-Wetterdaten sind momentan nicht erreichbar.
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten gehören zu einem anderen Datenlauf. Bitte erneut laden.
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (Antwort zu groß).
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (Fehlermeldung des DWD-Dienstes).
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (Zeitangaben ungültig).
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (kein gültiges Datenformat).
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (leere Antwort).
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden (unerwarteter Inhalt).
+hardcoded-literal	Shared/Data/RainForecast.swift	Die Wetterdaten konnten nicht gelesen werden.
+hardcoded-literal	Shared/Data/RainForecast.swift	Stand vor \(minutes / 60) Std. \(minutes % 60) Min.
+hardcoded-literal	Shared/Data/RainForecast.swift	Stand vor \(minutes) Min.
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Daten veraltet
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Es regnet im Umkreis
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Im Umkreis trocken
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Regen im Umkreis gleich
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Regen im Umkreis in
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Stärkste Stufe \(maxClass) (\(word))
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	Umkreis \(radiusKm) km
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	\(share.percent) % der Fläche nass
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	bis zu \(share.percent) % der Fläche nass
+hardcoded-literal	Shared/RainActivityRegionPresentation.swift	mäßig
+hardcoded-literal	Shared/RainOutlook.swift	Keine aktuelle Prognose verfügbar
+hardcoded-literal	Shared/RainOutlook.swift	Keine verlässliche Regenaussage verfügbar
+hardcoded-literal	Shared/RainOutlook.swift	Prognosedaten sind veraltet
+hardcoded-literal	Shared/RainOutlook.swift	Regen am ausgewählten Ort
+hardcoded-literal	Shared/RainOutlook.swift	Regen möglich · Daten teilweise unvollständig
+hardcoded-literal	Shared/RainOutlook.swift	Regen voraussichtlich in etwa \(minutes ?? 0) Min.
+hardcoded-literal	Shared/RainOutlook.swift	Vorerst kein messbarer Regen erwartet
+hardcoded-literal	Weather/Data/RadarHistory.swift	\(hours) Stunden
+hardcoded-literal	Weather/Data/RadarLayer.swift	 · Historie nicht verfügbar
+hardcoded-literal	Weather/Data/RadarLayer.swift	Feuchte als Taupunkt 2 Meter über Grund, Modellwert
+hardcoded-literal	Weather/Data/RadarLayer.swift	Messung
+hardcoded-literal	Weather/Data/RadarLayer.swift	Modell	2
+hardcoded-literal	Weather/Data/RadarLayer.swift	Relative Feuchte 2 Meter über Grund, Modellwert
+hardcoded-literal	Weather/Data/RadarLayer.swift	Rückblick	2
+hardcoded-literal	Weather/Data/RadarLayer.swift	Sonne
+hardcoded-literal	Weather/Data/RadarLayer.swift	Sonne, Rückblick aus Satellit und Sonnenstand
+hardcoded-literal	Weather/Data/RadarLayer.swift	Temperatur 2 Meter über Grund, Modellwert
+hardcoded-literal	Weather/Data/RadarLayer.swift	Vorhersage	2
+hardcoded-literal	Weather/Data/RadarLayer.swift	nicht aktuell
+hardcoded-literal	Weather/Data/RadarLayer.swift	nicht erreichbar
+hardcoded-literal	Weather/Data/RadarLayer.swift	nicht lesbar
+hardcoded-literal	Weather/Data/RadarLayer.swift	nicht verfügbar
+hardcoded-literal	Weather/Data/SolarPosition.swift	Sonne geht nicht auf
+hardcoded-literal	Weather/Data/SunMask.swift	Aktuell \(cloudClass.isClear ? "klar" : "bewölkt") (Satellit, vor \(minutes) min)
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Apple Intelligence ist auf diesem Gerät nicht aktiviert.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Apple Intelligence ist auf diesem Gerät nicht verfügbar.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Apple Intelligence ist momentan nicht verfügbar.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Das lokale Apple-Modell ist noch nicht bereit.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die Prognose ist nicht aktuell bestätigt.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die Regenintensität unterscheidet sich im Verlauf deutlich.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die lokale Einordnung ist gerade nicht verfügbar.	2
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die lokale Einordnung unterstützt Deutsch hier noch nicht.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die verbleibenden Radardaten enthalten Regen.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die verbleibenden Radardaten zeigen keinen messbaren Regen.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Die vorhandenen Daten sind bereits knapp zusammengefasst.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Du ordnest vorhandene Radardaten auf Deutsch ein. Wähle die ein oder zwei wichtigsten unterschiedlichen Fakten ausschließlich aus der erlaubten Liste. Ergänze keine Wetterdaten, Zahlen, Sicherheit oder Warnungen. Bevorzuge aussagekräftige Verlaufsmerkmale gegenüber einer allgemeinen Regenaussage.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Ein oder zwei unterschiedliche IDs aus den vorgegebenen zulässigen Fakten.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Regen und Intervalle ohne messbaren Regen wechseln sich im Verlauf ab.
+hardcoded-literal	Weather/Intelligence/ForecastInterpretation.swift	Zulässige belegte Fakten:\n\(prompt)
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Bewölkt (Tag)
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Bewölkt: Sonne über dem Horizont, laut Satellit bedeckt
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Blitzdichte der letzten 15 Minuten (NowCastMIX des DWD). Je kräftiger die Farbe, desto mehr Blitze in dem Gebiet.
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Dämmerung
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Dämmerung: Sonne bis 18 Grad unter dem Horizont, zunehmend dunkler
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Dünne helle Linie: Grenze zwischen Tag und Nacht
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage\(layer == .pressureEU ? ", Ausschnitt Europa" : ""). Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind.
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Rückblick, keine Vorhersage: Wolkenmaske von Meteosat (Satellit, 25 bis 40 Minuten alt) kombiniert mit dem berechneten Sonnenstand. Die Maske kennt nur klar oder bewölkt, keine Wolkendicke: dünne Wolken zählen als bewölkt. Tagsüber verfeinert, wenn der Server ihn liefert, der sichtbare Kanal die Bewölkung weich; bei tiefem Sonnenstand und nachts gilt nur die Maske. Kein Schattenwurf, Nebel kann als klar erscheinen.
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Satellitenbild von Meteosat: Wolken erscheinen weiß bis grau. Es gibt keine Farbskala, und das Bild zeigt Bewölkung, keinen Niederschlag.
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Sonne
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Sonnig: Sonne über dem Horizont und laut Satellit klar
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Zeigt oder verbirgt den Hinweis zu den Isobaren
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Zeigt oder verbirgt den Hinweis zum Satellitenbild
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Zeigt oder verbirgt die Legende der Blitzdichte
+hardcoded-literal	Weather/Map/RadarLayerLegend.swift	Zeigt oder verbirgt die Legende der Sonnenebene
+hardcoded-literal	Weather/Map/RadarLegend.swift	Keine Daten	2
+hardcoded-literal	Weather/Models/WeatherStore.swift	Aktueller Standort
+hardcoded-literal	Weather/Models/WeatherStore.swift	Der Standort ist derzeit nicht verfügbar.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Der Standort konnte nicht bestimmt werden. Bitte erneut versuchen oder einen Ort suchen.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Die Änderung konnte nicht auf dem Gerät gespeichert werden.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Es konnte kein aktueller Standort bestimmt werden.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Gespeicherte Orte oder Prognosen konnten nicht geladen werden.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Gespeicherte Prognose konnte nicht geladen werden.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Gespeicherte Prognosen konnten nicht entfernt werden.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Neuster Radarlauf noch nicht verfügbar. Radar zeigt den vorherigen Lauf von 
+hardcoded-literal	Weather/Models/WeatherStore.swift	Ohne Standortzugriff kannst du Orte weiterhin suchen und auf der Karte auswählen.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Prognose konnte nicht auf dem Gerät gespeichert werden.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Quelle: Deutscher Wetterdienst
+hardcoded-literal	Weather/Models/WeatherStore.swift	Radar-Cache nicht erreichbar. Radar kommt direkt vom DWD.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Radarlauf derzeit nicht verfügbar. Bitte erneut laden.
+hardcoded-literal	Weather/Models/WeatherStore.swift	Standortzugriff ist deaktiviert. Du kannst einen Ort suchen oder den Zugriff in den iOS-Einstellungen erlauben.
+hardcoded-literal	Weather/Push/PushGrid.swift	Mäßig
+hardcoded-literal	Weather/Push/PushGrid.swift	ab ca. 0,1 mm/h, löst auch bei Nieselregen aus
+hardcoded-literal	Weather/Push/PushManager.swift	Apple hat die Testmeldung abgelehnt.
+hardcoded-literal	Weather/Push/PushManager.swift	Apple lehnt das Gerätetoken ab. Es passt nicht zur Umgebung dieser App-Variante.
+hardcoded-literal	Weather/Push/PushManager.swift	Apple lehnt den Zugangsschlüssel des Servers ab. Das muss der Betreiber beheben.
+hardcoded-literal	Weather/Push/PushManager.swift	Apples Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen.
+hardcoded-literal	Weather/Push/PushManager.swift	Das Gerät konnte keinen Mitteilungs-Token abrufen. Es wird später erneut versucht.
+hardcoded-literal	Weather/Push/PushManager.swift	Das Gerätetoken ist nicht mehr gültig. Das Gerät wird neu registriert; danach erneut versuchen.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Hinweis konnte nicht eingerichtet werden.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Mitteilungsdienst ist auf dem Server derzeit nicht aktiv.	2
+hardcoded-literal	Weather/Push/PushManager.swift	Der Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Mitteilungsdienst ist gerade nicht erreichbar. Es wird später erneut versucht.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server hat gerade keine Kapazität für weitere Regionen. Wähle einen kleineren Radius oder versuche es später erneut.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server ist gerade ausgelastet. Bitte später erneut versuchen.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server kann Mitteilungen derzeit nicht senden (Apple-Zugang nicht eingerichtet).
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server nimmt diese App-Variante (Entwicklung oder Store) nicht an.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server nimmt höchstens \(PushGrid.maxRegions) Regionen je Gerät an, deren Gesamtfläche begrenzt ist. Wähle einen kleineren Radius oder lösche eine Region.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server nimmt höchstens \(Self.maxSubscriptions) Hinweise an.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server nimmt höchstens \(Self.maxSubscriptions) Orte an.
+hardcoded-literal	Weather/Push/PushManager.swift	Der Server unterstützt noch keine Regionen.	2
+hardcoded-literal	Weather/Push/PushManager.swift	Die Kennung konnte nicht sicher gespeichert werden.	2
+hardcoded-literal	Weather/Push/PushManager.swift	Die Region konnte nicht eingerichtet werden.
+hardcoded-literal	Weather/Push/PushManager.swift	Die Testmeldung konnte nicht gesendet werden.	3
+hardcoded-literal	Weather/Push/PushManager.swift	Dieser Mittelpunkt liegt außerhalb des Radargebiets.
+hardcoded-literal	Weather/Push/PushManager.swift	Dieser Ort liegt außerhalb des Radargebiets; Regenhinweise sind hier nicht möglich.
+hardcoded-literal	Weather/Push/PushManager.swift	Dieses Gerät ist beim Server nicht (mehr) registriert. Beim nächsten Start wird es neu eingerichtet.
+hardcoded-literal	Weather/Push/PushManager.swift	Höchstens \(PushGrid.maxRegions) Regionen sind möglich.
+hardcoded-literal	Weather/Push/PushManager.swift	Höchstens \(Self.maxSubscriptions) Hinweise (Orte und Regionen) sind möglich.
+hardcoded-literal	Weather/Push/PushManager.swift	Höchstens \(Self.maxSubscriptions) Orte können Hinweise senden.
+hardcoded-literal	Weather/Push/PushManager.swift	Keine Internetverbindung.
+hardcoded-literal	Weather/Push/PushManager.swift	Keine Internetverbindung. Der Hinweis wird beim nächsten Start oder Öffnen der App eingerichtet.
+hardcoded-literal	Weather/Push/PushManager.swift	Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.	2
+hardcoded-literal	Weather/Push/PushManager.swift	Mitteilungen sind noch nicht eingerichtet. Bitte kurz warten oder die App neu öffnen.
+hardcoded-literal	Weather/Push/PushManager.swift	Mitteilungen: an
+hardcoded-literal	Weather/Push/PushManager.swift	Mitteilungen: an (im System ausgeschaltet)
+hardcoded-literal	Weather/Push/PushManager.swift	Mitteilungen: aus
+hardcoded-literal	Weather/Push/PushManager.swift	Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Bitte später erneut versuchen.
+hardcoded-literal	Weather/Push/PushManager.swift	Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Es wird später erneut versucht.
+hardcoded-literal	Weather/Push/PushManager.swift	Ungültiger Radius oder Auslöseanteil.
+hardcoded-literal	Weather/Push/PushManager.swift	Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte in etwa \(minutes) Minuten erneut versuchen.
+hardcoded-literal	Weather/Push/PushManager.swift	Zu viele Testmeldungen (höchstens 3 pro Stunde). Bitte später erneut versuchen.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Bei Aktivierung erhält der Server zusätzliche Gerätekennungen für Start und Aktualisierung, verknüpft mit diesem Ortsabo. Der Ortsname bleibt auf dem Gerät und kann auf dem Sperrbildschirm erscheinen. Kein Standortverlauf. Beim Abschalten werden laufende Activities beendet.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Bei Aktivierung erhält der Server zusätzliche Gerätekennungen für Start und Aktualisierung, verknüpft mit diesem Umkreis-Abo. Der Name des Umkreises bleibt auf dem Gerät und kann auf dem Sperrbildschirm erscheinen. Keine zusätzlichen Standortdaten, kein Standortverlauf. Beim Abschalten werden laufende Activities beendet.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Die Live Activity konnte nicht synchronisiert werden. Beim nächsten Öffnen wird es erneut versucht.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Diese Live Activity ist abgelaufen oder für das Abo nicht mehr verfügbar.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Es kann nur eine Live Activity gleichzeitig laufen.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Live Activities sind derzeit nicht verfügbar. Der Server muss sie unterstützen und sie müssen im System erlaubt sein.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Wird vorbereitet. Bitte warte einen Moment.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Zeigt Regen im Umkreis auf dem Sperrbildschirm und in der Dynamic Island: wie viel Prozent der Fläche nass sind und die stärkste Stufe. Startet beim gleichen Auslöseanteil wie die Mitteilung. Standardmäßig aus; höchstens eine Live Activity gleichzeitig, ein Ort hat dabei Vorrang vor einem Umkreis.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Zeigt bevorstehenden Regen auf dem Sperrbildschirm und in der Dynamic Island. Standardmäßig aus; höchstens eine Live Activity gleichzeitig. Du kannst sie auch in den Systemeinstellungen abschalten.
+hardcoded-literal	Weather/Push/RainActivityText.swift	Zurzeit können keine weiteren Live Activities aktiviert werden. Bitte versuche es später erneut.
+hardcoded-literal	Weather/Views/ForecastInterpretationSection.swift	Wird lokal eingeordnet …
+hardcoded-literal	Weather/Views/InformationSheet.swift	 Beim Abruf direkt vom DWD ist nur 1 Stunde Vergangenheit verfügbar.
+hardcoded-literal	Weather/Views/InformationSheet.swift	 Der Server liefert derzeit höchstens \(RadarPastWindow.label(hours)).
+hardcoded-literal	Weather/Views/InformationSheet.swift	 Historie nicht verfügbar: Die Zeitleiste zeigt vorerst nur etwa die letzte Stunde.
+hardcoded-literal	Weather/Views/InformationSheet.swift	Derzeit nicht verfügbar
+hardcoded-literal	Weather/Views/InformationSheet.swift	Optionale Waldfläche: \(forest.attribution) (CC BY 4.0); \(forest.modificationNotice).
+hardcoded-literal	Weather/Views/InformationSheet.swift	Temperatur-, Taupunkt- und Feuchtekarten: DWD ICON-D2/ICON-EU Modelldaten (CC BY 4.0, Quelle: Deutscher Wetterdienst), bildlich wiedergegeben und aufbereitet (verändert). Modellprognosen, keine Messwerte.
+hardcoded-literal	Weather/Views/InformationSheet.swift	Wie weit die Zeitleiste in die Vergangenheit reicht. Mehr Vergangenheit lädt mehr Bilder (Datenvolumen).
+hardcoded-literal	Weather/Views/PlacePushSettingsView.swift	Aktiv
+hardcoded-literal	Weather/Views/PlacePushSettingsView.swift	Wird eingerichtet …
+hardcoded-literal	Weather/Views/PlacesSheet.swift	Ausgewählter Ort
+hardcoded-literal	Weather/Views/PlacesSheet.swift	Die Ortssuche ist gerade nicht verfügbar. Du kannst einen Punkt auf der Karte auswählen.
+hardcoded-literal	Weather/Views/PlacesSheet.swift	Keine passenden Orte gefunden.
+hardcoded-literal	Weather/Views/PlacesSheet.swift	Ort
+hardcoded-literal	Weather/Views/PlacesSheet.swift	Stadt, Adresse oder Ort
+hardcoded-literal	Weather/Views/RadarScreen.swift	, ausgewählt
+hardcoded-literal	Weather/Views/RadarScreen.swift	Aktualisierung fehlgeschlagen. Letzte gültige Prognose, \(forecast.ageDescription(at: context.date)). Sie ist nicht aktuell bestätigt.
+hardcoded-literal	Weather/Views/RadarScreen.swift	Bitte Wetterdaten aktualisieren.
+hardcoded-literal	Weather/Views/RadarScreen.swift	Das Bild der Ebene \(store.activeLayer.title) für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.
+hardcoded-literal	Weather/Views/RadarScreen.swift	Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.
+hardcoded-literal	Weather/Views/RadarScreen.swift	Die Prognose ist nicht aktuell bestätigt.
+hardcoded-literal	Weather/Views/RadarScreen.swift	Einige Radarkacheln fehlen. Bitte erneut aktualisieren.
+hardcoded-literal	Weather/Views/RadarScreen.swift	Jetzt
+hardcoded-literal	Weather/Views/RadarScreen.swift	Keine Radarzeiten
+hardcoded-literal	Weather/Views/RadarScreen.swift	Keine Zeiten für \(store.activeLayer.title)
+hardcoded-literal	Weather/Views/RadarScreen.swift	Prognose nicht verfügbar
+hardcoded-literal	Weather/Views/RadarScreen.swift	Radar lädt …
+hardcoded-literal	Weather/Views/RadarScreen.swift	Regenprognose wird geladen …
+hardcoded-literal	Weather/Views/RadarScreen.swift	Zur aktuellen Zeit springen
+hardcoded-literal	Weather/Views/RadarScreen.swift	\(layer.title) derzeit nicht verfügbar
+hardcoded-literal	Weather/Views/RadarScreen.swift	\(layer.title) lädt …
+hardcoded-literal	Weather/Views/RadarScreen.swift	\(name) für \(time) lädt …
+hardcoded-literal	Weather/Views/RadarScreen.swift	\(name) für \(time) nicht geladen
+hardcoded-literal	Weather/Views/RadarScreen.swift	\(store.activeLayer.title) lädt …
+hardcoded-literal	Weather/Views/RadarScreen.swift	Ältere Prognose (\(forecast.ageDescription(at: displayNow))) · bitte aktualisieren
+hardcoded-literal	Weather/Views/RegionViews.swift	Aktiv
+hardcoded-literal	Weather/Views/RegionViews.swift	An den Server gehen: das Gerätetoken, eine zufällige Installations-Kennung, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), der Radius sowie Schwelle, Auslöseanteil und Vorlaufzeit. Keine Koordinaten, kein Name, kein Konto. Der Name der Region bleibt auf diesem Gerät.
+hardcoded-literal	Weather/Views/RegionViews.swift	Flächig (ab 25 %)
+hardcoded-literal	Weather/Views/RegionViews.swift	Ob der Server Regionen unterstützt, konnte nicht geprüft werden.
+hardcoded-literal	Weather/Views/RegionViews.swift	Server unterstützt noch keine Regionen.
+hardcoded-literal	Weather/Views/RegionViews.swift	Showers meldet dir per Mitteilung, wenn Regen diese Region erreicht. Dafür gehen an den Showers-Server: das Gerätetoken, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km, keine Koordinaten), der Radius, Schwelle, Auslöseanteil und Vorlaufzeit; kein Konto, kein Name. Danach fragt iOS, ob Mitteilungen erlaubt sind.
+hardcoded-literal	Weather/Views/RegionViews.swift	Umkreis \(region.radiusKm) km
+hardcoded-literal	Weather/Views/RegionViews.swift	Umkreis \(region.radiusKm) km · ab \(region.sharePercent) % der Fläche
+hardcoded-literal	Weather/Views/RegionViews.swift	Wird eingerichtet …
+hardcoded-literal	Weather/Views/SitePageSheet.swift	Datenschutzerklärung
+hardcoded-literal	Weather/Views/SitePageSheet.swift	Seite wird geladen …
+hardcoded-literal	Weather/Views/SitePageSheet.swift	Über Showers
+hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Daten veraltet
+hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Ende nicht absehbar
+hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Keine verlässliche Aussage
+hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Regen
+hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Veraltet
+hardcoded-literal	WeatherWidgets/LiveActivity/RainActivityPresentation.swift	Vorerst kein Regen erwartet
+hardcoded-literal	WeatherWidgets/LiveActivity/RainLiveActivity.swift	Island compact Umkreis
+hardcoded-literal	WeatherWidgets/LiveActivity/RainLiveActivity.swift	Island expanded Umkreis
+hardcoded-literal	WeatherWidgets/LiveActivity/RainLiveActivity.swift	Lock Screen Umkreis
+hardcoded-literal	WeatherWidgets/Logic/PlaceEntity.swift	Ort
+hardcoded-literal	WeatherWidgets/Logic/PlaceEntity.swift	Zeigt die Prognose für einen in Showers gespeicherten Ort.
+hardcoded-literal	WeatherWidgets/Views/WeatherWidgetViews.swift	Zeigt, ob und wann es an einem gespeicherten Ort regnet.
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Daten unvollständig
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Daten veraltet
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Ende nicht absehbar
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Kein Ort	3
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Keine Daten	2
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Keine aktuelle Prognose
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Keine verlässliche Aussage
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Regen	2
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Regen in \(m) Min.	2
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Regen möglich
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Regen?
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Veraltet
+hardcoded-literal	WeatherWidgets/Views/WidgetPresentation.swift	Vorerst kein Regen erwartet
+hardcoded-ui	Weather/Views/ForecastInterpretationSection.swift	Apple Intelligence gewichtet vorhandene Wetterfakten auf diesem Gerät
+hardcoded-ui	Weather/Views/ForecastInterpretationSection.swift	Einordnung vorhandener Radardaten; keine zusätzliche Vorhersage oder amtliche Warnung.
+hardcoded-ui	Weather/Views/ForecastInterpretationSection.swift	Lokal mit Apple Intelligence
+hardcoded-ui	Weather/Views/InformationSheet.swift	Alle Mitteilungen ausschalten
+hardcoded-ui	Weather/Views/InformationSheet.swift	Deine gespeicherten Orte werden mit Name, Koordinate und Kennung an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist. Die Übertragung kann verzögert erfolgen. Ein aktueller, nicht gespeicherter Standort wird nicht übertragen.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Die App ist eine frühe Testversion. Prognosen können abweichen; bei fehlenden oder veralteten Daten wird keine aktuelle Aussage zugesichert.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Die Karte auf der Apple Watch wird über Apple Karten geladen; dabei geht die Koordinate des Ortes an Apple. Die Radarbilder kommen ohne Ortsangabe vom Server.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Einstellen kannst du Regenhinweise je Ort (Glockensymbol) oder für Regionen unter „Deine Orte“. Ausschalten löscht die Registrierung auf dem Server.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Fertig
+hardcoded-ui	Weather/Views/InformationSheet.swift	Für eine Ortsprognose erhält der DWD weiterhin direkt einen Kartenausschnitt um die ausgewählte Position. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Karte und Ortssuche: Apple MapKit. Quellenhinweise der Karte bleiben eingeblendet.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben auf deinem iPhone und deiner gekoppelten Apple Watch; sie werden nicht an den Showers-Server übertragen.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Mitteilungen
+hardcoded-ui	Weather/Views/InformationSheet.swift	Nur wenn du Regenhinweise für einen Ort einschaltest: Der Showers-Server erhält dein Gerätetoken, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km um den Ort (keine Koordinaten, kein Ortsname) sowie Schwelle und Vorlaufzeit; kein Konto. Bei einer Region speichert der Server stattdessen einen groben Bereich: den Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), den Radius und den Auslöseanteil; der Name der Region bleibt auf dem Gerät. Beim Ausschalten, Löschen des Orts oder der Region oder Zurücksetzen werden diese Daten gelöscht.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Radarbilder aktuell: \(store.radarSource.label). Normalerweise liefert der Showers-Radar-Server die Bilder; bei Fehlern oder veralteten Daten lädt die App sie selbstständig direkt vom DWD-Kartendienst.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Radarbilder lädt die App vom Showers-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab. Bilder der Zusatzebenen kommen nur vom Showers-Server. Blendest du die Legende der Blitze ein, lädt die App das Legendenbild direkt vom DWD (bei Wolken ggf. von EUMETSAT); dabei sieht der Anbieter technisch bedingt deine IP-Adresse, aber keinen Ort.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Showers · frühe Testversion
+hardcoded-ui	Weather/Views/InformationSheet.swift	Standortzugriff ist optional und wird nur bei Nutzung angefordert. Keine Hintergrundortung. Punktanfragen werden nicht in einem Festplatten-Netzwerkcache gespeichert.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Testmeldung gesendet. Sie sollte gleich ankommen (höchstens 3 pro Stunde).
+hardcoded-ui	Weather/Views/InformationSheet.swift	Warngebiete (Landkreise und kreisfreie Städte): Quelle: Deutscher Wetterdienst, © GeoBasis-DE / BKG 2021 (Daten modifiziert).
+hardcoded-ui	Weather/Views/InformationSheet.swift	Widgets und Apple Watch
+hardcoded-ui	Weather/Views/InformationSheet.swift	Widgets und Apple Watch verwenden ausschließlich gespeicherte Orte und rufen deren Prognosen direkt beim DWD ab. Die Kopplung überträgt nur die aktuelle Ortsliste, keinen Standortverlauf. Die zuletzt gültige Prognose je Ort wird lokal für Widgets gespeichert.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Widgets verwenden deine gespeicherten Orte. Den Ort wählst du beim Bearbeiten des Widgets; Antippen öffnet ihn in der App. Die Aktualisierung im Hintergrund bestimmt das System. Achte auf das angezeigte Datenalter.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Zusatzebenen (Luftdruck, Blitze, Wolken, Temperatur, Feuchte) liefert der Showers-Server nur, wenn sie dort aktiviert sind; sonst sind sie ausgegraut. Einen Ersatzweg direkt beim DWD gibt es für sie nicht.
+hardcoded-ui	Weather/Views/InformationSheet.swift	\(store.radarAttribution.attribution). \(store.radarAttribution.modificationNotice). Niederschlagswerte für die Ortsprognose umgerechnet und aufbereitet.
+hardcoded-ui	Weather/Views/InformationSheet.swift	Über Showers
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Abbrechen
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	An den Server gehen: das Gerätetoken deines iPhones, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km Kantenlänge um diesen Ort sowie Schwelle und Vorlaufzeit. Keine Koordinaten, kein Ortsname, kein Konto.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Apple Watch: Ist dein iPhone gesperrt (etwa beim Sport), erscheinen Mitteilungen auf der Uhr, meist mit Vibration. In der Watch-App unter Mitteilungen Showers spiegeln lassen.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Datenschutzerklärung lesen
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Du bekommst eine Mitteilung, wenn es hier bald zu regnen beginnt. Der Showers-Server wertet dafür alle paar Minuten das Radar für diesen Ort aus.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Einstellungen
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Hinweis, wenn es innerhalb der Vorlaufzeit mindestens so stark regnen soll (Stufen der Radar-Legende). Danach höchstens eine Meldung pro Stunde und Ort. Zeitkritisch: Die Meldung durchbricht Fokus und Mitteilungszusammenfassung. Den Stummschalter umgeht sie nicht. In den Systemeinstellungen kannst du das für Showers abschalten.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Jetzt erneut versuchen
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Mitteilungen sind für Showers im System ausgeschaltet. Dort kannst du sie wieder erlauben.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Showers meldet dir per Mitteilung, wenn es bei \(place.name) bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine Rasterzelle von etwa 1 km (keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Sport: Beim Radfahren, Laufen oder anderem Training trage Showers in dem Fokus, den du dafür nutzt, als erlaubte App ein, sonst bleibt die Meldung dort stumm.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Systemeinstellungen öffnen
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	Zeitkritisch (oben, standardmäßig aus): Meldungen können einen Fokus oder die Mitteilungszusammenfassung durchbrechen, den Stummschalter aber nicht.
+hardcoded-ui	Weather/Views/PlacePushSettingsView.swift	\($0) Minuten
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Abbrechen
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Aktuellen Standort verwenden
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Deine Orte
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Fertig
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Gespeicherte Orte
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Höchstens \(PushGrid.maxRegions) Regionen (insgesamt höchstens \(PushManager.maxSubscriptions) Hinweise).
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Löschen	2
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Ort umbenennen
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Orte und eigene Namen bleiben auf diesem Gerät. Die Suche verwendet Apple-Kartendienste. Zum Speichern eines ausgewählten Orts auf das Lesezeichen in der Karte tippen.
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Orte werden gesucht …
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Regenhinweis für einen Umkreis (5, 10 oder 25 km) statt für einen einzelnen Ort. Name und Mittelpunkt bleiben auf diesem Gerät; der Server erhält nur einen groben Bereich.
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Region hinzufügen
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Speichern
+hardcoded-ui	Weather/Views/PlacesSheet.swift	Umbenennen
+hardcoded-ui	Weather/Views/RadarScreen.swift	Abbrechen
+hardcoded-ui	Weather/Views/RadarScreen.swift	Aktuellen Standort verwenden
+hardcoded-ui	Weather/Views/RadarScreen.swift	Ausgewählten Ort speichern oder umbenennen
+hardcoded-ui	Weather/Views/RadarScreen.swift	Daten neu laden
+hardcoded-ui	Weather/Views/RadarScreen.swift	Datenquellen und Datenschutz
+hardcoded-ui	Weather/Views/RadarScreen.swift	Durchschnittliche Intensität in mm/h für Fünf-Minuten-Intervalle. Gestrichelte Markierungen zeigen fehlende Werte.
+hardcoded-ui	Weather/Views/RadarScreen.swift	Fertig
+hardcoded-ui	Weather/Views/RadarScreen.swift	Kartenebene wählen
+hardcoded-ui	Weather/Views/RadarScreen.swift	Keine Daten um \(sample.date.formatted(date: .omitted, time: .shortened))
+hardcoded-ui	Weather/Views/RadarScreen.swift	Keine Ortsprognose
+hardcoded-ui	Weather/Views/RadarScreen.swift	Lange auf die Karte drücken, um einen Ort zu wählen
+hardcoded-ui	Weather/Views/RadarScreen.swift	Lange auf die Karte drücken, um einen Ort zu wählen.
+hardcoded-ui	Weather/Views/RadarScreen.swift	Lädt den aktuellen Datenstand der Karte neu
+hardcoded-ui	Weather/Views/RadarScreen.swift	Name und Koordinaten bleiben auf deinem iPhone und werden auch an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist.
+hardcoded-ui	Weather/Views/RadarScreen.swift	Ort auswählen: \(store.selectedPlace.name)
+hardcoded-ui	Weather/Views/RadarScreen.swift	Ort speichern
+hardcoded-ui	Weather/Views/RadarScreen.swift	Radarprognosen beschreiben die erwartete Entwicklung. Gerade bei entstehenden oder sich auflösenden Schauern können Beginn, Ende und Intensität abweichen.
+hardcoded-ui	Weather/Views/RadarScreen.swift	Speichern
+hardcoded-ui	Weather/Views/RadarScreen.swift	Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen
+hardcoded-ui	Weather/Views/RadarScreen.swift	Von \(timeline.dates.first!.formatted(date: .abbreviated, time: .shortened)) bis \(timeline.dates.last!.formatted(date: .omitted, time: .shortened)). Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.
+hardcoded-ui	Weather/Views/RadarScreen.swift	Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.
+hardcoded-ui	Weather/Views/RadarScreen.swift	\(store.activeLayer.spokenName) für \(store.selectedPlace.name)
+hardcoded-ui	Weather/Views/RadarScreen.swift	\(store.radarAttribution.modificationNotice). Niederschlagswerte der Ortsprognose umgerechnet und aufbereitet.
+hardcoded-ui	Weather/Views/RadarScreen.swift	Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise
+hardcoded-ui	Weather/Views/RegionViews.swift	Abbrechen	2
+hardcoded-ui	Weather/Views/RegionViews.swift	Auslöser	2
+hardcoded-ui	Weather/Views/RegionViews.swift	Datenschutzerklärung lesen
+hardcoded-ui	Weather/Views/RegionViews.swift	Der Kreis zeigt den überwachten Bereich. Der Mittelpunkt wird vor dem Senden auf etwa 2 km gerundet.
+hardcoded-ui	Weather/Views/RegionViews.swift	Der Regenhinweis wird ausgeschaltet und auf dem Server gelöscht.
+hardcoded-ui	Weather/Views/RegionViews.swift	Dieser Mittelpunkt liegt außerhalb des Radargebiets.
+hardcoded-ui	Weather/Views/RegionViews.swift	Du bekommst eine Mitteilung, wenn Regen diese Region erreicht, sobald der gewählte Anteil der Fläche betroffen ist.
+hardcoded-ui	Weather/Views/RegionViews.swift	Du bekommst eine Mitteilung, wenn Regen diese Region erreicht. Ausschalten löscht die Region und ihre Registrierung auf dem Server.
+hardcoded-ui	Weather/Views/RegionViews.swift	Einstellungen
+hardcoded-ui	Weather/Views/RegionViews.swift	Es sind höchstens \(PushGrid.maxRegions) Regionen möglich.
+hardcoded-ui	Weather/Views/RegionViews.swift	Jetzt erneut versuchen
+hardcoded-ui	Weather/Views/RegionViews.swift	Kartenvorschau: Umkreis \(radiusKm) Kilometer
+hardcoded-ui	Weather/Views/RegionViews.swift	Löschen
+hardcoded-ui	Weather/Views/RegionViews.swift	Meldung, sobald der gewählte Anteil der Fläche innerhalb der Vorlaufzeit mindestens so stark Regen bekommt. Danach höchstens eine Meldung pro Stunde und Region. Zeitkritisch durchbricht Fokus und Mitteilungszusammenfassung, nicht den Stummschalter.
+hardcoded-ui	Weather/Views/RegionViews.swift	Mitteilungen sind für Showers im System ausgeschaltet.
+hardcoded-ui	Weather/Views/RegionViews.swift	Name (optional, nur auf diesem Gerät)	2
+hardcoded-ui	Weather/Views/RegionViews.swift	Regenhinweis für Region aktivieren?
+hardcoded-ui	Weather/Views/RegionViews.swift	Region hinzufügen
+hardcoded-ui	Weather/Views/RegionViews.swift	Region löschen
+hardcoded-ui	Weather/Views/RegionViews.swift	Region löschen?
+hardcoded-ui	Weather/Views/RegionViews.swift	Systemeinstellungen öffnen
+hardcoded-ui	Weather/Views/RegionViews.swift	\($0) Minuten
+hardcoded-ui	Weather/Views/SitePageSheet.swift	Die Seite „\(page.title)“ liegt auf dem Showers-Server und konnte gerade nicht geladen werden. Prüfe deine Internetverbindung oder öffne sie im Browser.
+hardcoded-ui	Weather/Views/SitePageSheet.swift	Fertig
+hardcoded-ui	Weather/Views/SitePageSheet.swift	Im Browser öffnen	2
+hardcoded-ui	Weather/Views/SitePageSheet.swift	Seite nicht erreichbar
+hardcoded-ui	Weather/Views/SitePageSheet.swift	Öffnet die Seite unten in der App
+hardcoded-ui	WeatherWidgets/Views/WeatherWidgetViews.swift	Jetzt
+hardcoded-ui	WeatherWidgets/Views/WeatherWidgetViews.swift	Kein Stand
+hardcoded-ui	WeatherWidgets/Views/WeatherWidgetViews.swift	Kein Verlauf verfügbar

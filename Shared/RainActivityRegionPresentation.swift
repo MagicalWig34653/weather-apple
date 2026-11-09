@@ -13,7 +13,7 @@ struct RainActivityRegionPresentation: Equatable, Sendable {
     let maxClass: Int?
     let locale: String
 
-    init(state: RainActivityAttributes.ContentState, isStale: Bool, localRadiusKm: Int?, locale: String = Locale.preferredLanguages.first ?? "de") {
+    init(state: RainActivityAttributes.ContentState, isStale: Bool, localRadiusKm: Int?, locale: String = AppLanguage.code) {
         self.locale = locale
         radiusKm = Self.valid(radius: state.regionRadiusKm) ?? Self.valid(radius: localRadiusKm)
         if isStale || state.phase == .dry {

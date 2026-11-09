@@ -1,0 +1,6 @@
+# Allow-Liste fuer tools/check_l10n.sh (siehe Kopf des Skripts). Eine Zeile = exakter Literaltext, optional "glob::text".
+# Eintraege "identical:SCHLUESSEL" nehmen identische de/en-Texte von der Warnung aus.
+identical:WARN_TYPE_FROST
+identical:Radar
+identical:Pause
+identical:In %dm

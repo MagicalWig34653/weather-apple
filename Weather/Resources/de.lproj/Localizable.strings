@@ -151,3 +151,9 @@
 "TEMP_SWITCH_HUMIDITY" = "Rel. Feuchte";
 "FOREST_TOGGLE" = "Wald";
 "FOREST_CAPTION" = "Waldfläche zur Orientierung, ohne Einfluss auf die Werte";
+
+/* Konvention (E1): symbolische Schluessel UPPER_SNAKE, Code: NSLocalizedString("KEY", value: "<deutsch>", comment:) oder Text(LocalizedStringKey("KEY")). de und en haben identische Schluessel und Platzhalter; tools/check_l10n.sh prueft das. Jedes Paket haengt nur an seinem Abschnitt an und sortiert nichts um. */
+/* L2: Radar-Screen, Legende, Zeitleiste, COMMON_* */
+/* L3: Orte, Info, Mitteilungen, Regionen */
+/* L4: Warnungen, Einordnung, Daten-Fehlertexte */
+/* L5: Widgets, Live Activity, Watch, Mitteilungstexte */

@@ -210,7 +210,7 @@ final class PushManager {
     }
 
     static func currentLocale() -> String {
-        (Locale.preferredLanguages.first ?? "de").lowercased().hasPrefix("de") ? "de" : "en"
+        AppLanguage.code
     }
 
     // MARK: Queries

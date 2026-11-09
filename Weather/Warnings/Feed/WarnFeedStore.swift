@@ -48,7 +48,7 @@ final class WarnFeedStore {
 
     /// "en" when the app runs in English, otherwise "de" (the only languages the server knows).
     nonisolated static func appLanguage() -> String {
-        Bundle.main.preferredLocalizations.first == "en" ? "en" : "de"
+        AppLanguage.code
     }
 
     nonisolated static func defaultCacheURL() -> URL? {

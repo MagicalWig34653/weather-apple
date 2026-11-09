@@ -1,0 +1,2 @@
+/* Location permission dialog. */
+"NSLocationWhenInUseUsageDescription" = "Your location centers the map and loads the rain forecast directly from the German Weather Service (DWD). There is no background location tracking.";

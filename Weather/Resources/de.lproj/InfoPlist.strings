@@ -1,0 +1,2 @@
+/* Systemdialog Standortfreigabe. Wortlaut wie bisher in Configuration/Info.plist. */
+"NSLocationWhenInUseUsageDescription" = "Dein Standort zentriert die Karte und lädt die Regenprognose direkt beim Deutschen Wetterdienst. Es gibt keine Hintergrundortung.";
