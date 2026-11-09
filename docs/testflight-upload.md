@@ -577,3 +577,10 @@ Quellencheckpoint: Commit `8a39159` "chore: Buildnummer 44" (`CURRENT_PROJECT_VE
 Lokaler Export und IPA-Pruefung: CFBundleVersion 44 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` sowie de/en `lproj` inkl. `SharedTexts.strings` (App, Widgets, Watch) im Bundle.
 
 **Genau ein Upload, 9. November 2026 von 19:18 bis 19:20 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
+
+## Showers Build 45 (0.1.1): Upload (Xcode 27.1)
+
+Quellencheckpoint: Commit `9e17e5b` "chore: Buildnummer 45" (`CURRENT_PROJECT_VERSION = 45`; Inhalt gegenueber Build 44: Widget-Stand ohne Rohschluessel (`WidgetAsOfText`), Widget-Reload 10 min live / 5 min Retry, Widget-Diagnose in Info, erweiterte l10n-Pruefung). Verfahren wie Build 43/44 (`git archive`-Kopie `/private/tmp/showers-b45`). Vorab: `tools/check_l10n.sh` Exit 0, WeatherTests 649 gruen, Schemes Weather/Widgets/NSE/Watch/Watch-Widgets gebaut.
+Lokaler Export und IPA-Pruefung: CFBundleVersion 45 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` = production, `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle, de/en `lproj` (Localizable + SharedTexts) in WeatherWidgets.appex und WeatherWatchWidgets.appex; `WIDGET_AS_OF` im IPA: de "Stand %@", en "As of %@".
+
+**Genau ein Upload, 9. November 2026 von 22:01 bis 22:04 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
