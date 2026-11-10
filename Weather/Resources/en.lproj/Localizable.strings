@@ -25,7 +25,7 @@
 
 /* Info sheet structure */
 "INFO_INTRO_1" = "Rain radar and short-term place forecast for Germany, rain alerts optional.";
-"INFO_INTRO_2" = "Early test version: forecasts may deviate, please mind the data age.";
+"INFO_INTRO_2" = "Forecasts may deviate, please mind the data age.";
 "INFO_ROW_SOURCES" = "Data sources";
 "INFO_ROW_PRIVACY" = "Privacy";
 "INFO_ROW_WIDGETS" = "Widgets and Apple Watch";
@@ -126,7 +126,7 @@
 "LAYER_DEWPOINT_HINT" = "Dew point 2 m above ground in degrees Celsius, hourly up to 48 hours ahead. The higher the dew point, the more water vapour the air holds. Model forecast by the DWD, not a measurement.";
 "LAYER_HUMIDITY_HINT" = "Relative humidity 2 m above ground in percent, hourly up to 48 hours ahead. It varies strongly with the time of day. Model forecast by the DWD, not a measurement.";
 "LAYER_FIELD_TOGGLE_HINT" = "Shows or hides the legend and the note on the model value";
-"LAYER_SCALE_UNKNOWN" = "This app version does not know the colour scale of this data source yet, so there is no legend, only this note. The map shows model values.";
+"LAYER_SCALE_UNKNOWN" = "This data source has no colour scale, so there is no legend, only this note. The map shows model values.";
 
 /* Temperature/humidity map P5: legend, value readout, forest */
 "TEMP_UNIT_PERCENT_SPOKEN" = "percent";
@@ -186,7 +186,7 @@
 "LAYER_STATE_UNREACHABLE" = "unreachable";
 "LAYER_STATE_UNREADABLE" = "unreadable";
 "LAYER_STATE_STALE" = "out of date";
-"RADAR_SOURCE_CACHE" = "Showers cache";
+"RADAR_SOURCE_CACHE" = "via Showers";
 "RADAR_SOURCE_DIRECT" = "directly from the DWD";
 "RADAR_HISTORY_UNAVAILABLE_SUFFIX" = " · history unavailable";
 "RADAR_PAST_WINDOW_ONE" = "1 hour";
@@ -322,7 +322,7 @@
 "REGION_ADD" = "Add Region";
 "REGION_EXPLANATION" = "Showers notifies you when rain reaches this region. The following is sent to the Showers server: the device token, the centre at a coarser resolution than a grid cell (about 2 km, no coordinates), the radius, threshold, trigger share and lead time; no account, no name. iOS then asks whether notifications are allowed.";
 "REGION_PRIVACY_FOOTNOTE" = "Sent to the server: the device token, a random installation ID, the centre at a coarser resolution than a grid cell (about 2 km), the radius, and the threshold, trigger share and lead time. No coordinates, no name, no account. The name of the region stays on this device.";
-"REGION_UNSUPPORTED" = "The server does not support regions yet.";
+"REGION_UNSUPPORTED" = "Regions are currently unavailable.";
 "REGION_SUPPORT_UNKNOWN" = "Could not check whether the server supports regions.";
 "REGION_SHARE_1" = "Isolated (from 1%)";
 "REGION_SHARE_25" = "Widespread (from 25%)";
@@ -368,9 +368,9 @@
 "PUSH_DELIVERY_TIME_SENSITIVE" = "Time Sensitive (above, off by default): notifications can break through a Focus or Notification Summary, but not the silent switch.";
 "PUSH_DELIVERY_WATCH" = "Apple Watch: If your iPhone is locked (for example while exercising), notifications appear on your watch, usually with a vibration. In the Watch app, under Notifications, set Showers to mirror your iPhone.";
 "PUSH_DELIVERY_SPORT" = "Exercise: When cycling, running or doing other workouts, add Showers as an allowed app in the Focus you use for it; otherwise the notification stays silent there.";
-"PUSH_PLACE_PRIVACY" = "Sent to the server: the device token of your iPhone, a random installation ID, a grid cell about 1 km on each side around this place, and the threshold and lead time. No coordinates, no place name, no account.";
+"PUSH_PLACE_PRIVACY" = "Sent to the server: the device token of your iPhone, a random installation ID, the radar grid cell around this place (edge length about 0.7 km), and the threshold and lead time. No coordinates, no place name, no account.";
 "PUSH_PLACE_CONFIRM_TITLE" = "Enable Rain Alert?";
-"PUSH_PLACE_CONFIRM_MESSAGE" = "Showers notifies you when it is about to start raining at %@. The following is sent to the Showers server: the device token, a grid cell of about 1 km (no coordinates), threshold and lead time; no account. iOS then asks whether notifications are allowed.";
+"PUSH_PLACE_CONFIRM_MESSAGE" = "Showers notifies you when it is about to start raining at %@. The following is sent to the Showers server: the device token, the radar grid cell (edge length about 0.7 km, no coordinates), threshold and lead time; no account. iOS then asks whether notifications are allowed.";
 "PUSH_SENSITIVITY_VERY_LIGHT" = "Very light";
 "PUSH_SENSITIVITY_LIGHT" = "Light";
 "PUSH_SENSITIVITY_MODERATE" = "Moderate";
@@ -381,7 +381,7 @@
 "PUSH_SENSITIVITY_HEAVY_DETAIL" = "from 7.5 mm/h";
 "RAIN_ACTIVITY_TITLE" = "Live Activity";
 "RAIN_ACTIVITY_EXPLANATION" = "Shows upcoming rain on the Lock Screen and in the Dynamic Island. Off by default; at most one Live Activity at a time. You can also disable it in system settings.";
-"RAIN_ACTIVITY_UNAVAILABLE" = "Live Activities are currently unavailable. The server must support them and they must be allowed in system settings.";
+"RAIN_ACTIVITY_UNAVAILABLE" = "Live Activities are currently unavailable. Check that they are allowed in system settings.";
 "RAIN_ACTIVITY_PRIVACY" = "When enabled, the server receives additional device identifiers for starting and updating activities, linked to this place subscription. The place name stays on the device and may appear on the Lock Screen. No location history. Turning this off ends running activities.";
 "RAIN_ACTIVITY_REGION_EXPLANATION" = "Shows rain in the area on the Lock Screen and in the Dynamic Island: the percentage of the area that is wet and the strongest level. Starts at the same trigger share as the notification. Off by default; at most one Live Activity at a time, and a place takes priority over an area.";
 "RAIN_ACTIVITY_REGION_PRIVACY" = "When enabled, the server receives additional device identifiers for starting and updating activities, linked to this area subscription. The area name stays on the device and may appear on the Lock Screen. No additional location data, no location history. Turning this off ends running activities.";
@@ -397,7 +397,7 @@
 "PUSH_MSG_OUT_OF_COVERAGE" = "This place is outside the radar coverage area; rain alerts are not possible here.";
 "PUSH_MSG_PLACE_LIMIT" = "At most %lld places can send alerts.";
 "PUSH_MSG_DENIED" = "Notifications are turned off for Showers in system settings.";
-"PUSH_MSG_REGIONS_UNSUPPORTED" = "The server does not support regions yet.";
+"PUSH_MSG_REGIONS_UNSUPPORTED" = "Regions are currently unavailable.";
 "PUSH_MSG_REGIONS_UNKNOWN" = "Could not check whether the server supports regions. Please try again later.";
 "PUSH_MSG_REGIONS_UNKNOWN_AUTO" = "Could not check whether the server supports regions. It will be retried later.";
 "PUSH_MSG_REGION_MAX" = "At most %lld regions are possible.";
@@ -419,12 +419,12 @@
 "PUSH_TEST_OFFLINE" = "No internet connection.";
 "PUSH_TEST_SERVICE_UNREACHABLE" = "The notification service is currently unreachable. Please try again later.";
 "PUSH_TEST_UNAUTHORIZED" = "This device is not (or no longer) registered with the server. It will be set up again at the next launch.";
-"PUSH_TEST_ENVIRONMENT" = "The server does not accept this app variant (development or store).";
-"PUSH_TEST_APNS_503" = "The server cannot send notifications at the moment (Apple access not set up).";
-"PUSH_TEST_BAD_TOKEN" = "Apple rejects the device token. It does not match the environment of this app variant.";
-"PUSH_TEST_KEY_REJECTED" = "Apple rejects the server's access key. The operator has to fix this.";
+"PUSH_TEST_ENVIRONMENT" = "The test notification could not be delivered. Please try again later.";
+"PUSH_TEST_APNS_503" = "The notification service cannot send notifications at the moment. Please try again later.";
+"PUSH_TEST_BAD_TOKEN" = "The test notification could not be delivered. The device will be registered again; then try again.";
+"PUSH_TEST_KEY_REJECTED" = "The test notification could not be delivered. Please try again later.";
 "PUSH_TEST_APNS_DOWN" = "Apple's notification service is currently unreachable. Please try again later.";
-"PUSH_TEST_APNS_REJECTED" = "Apple rejected the test notification.";
+"PUSH_TEST_APNS_REJECTED" = "The test notification could not be delivered.";
 "PUSH_TEST_TOKEN_UNREGISTERED" = "The device token is no longer valid. The device will be registered again; then try again.";
 "PUSH_TEST_RATE_LIMITED_MINUTES" = "Too many test notifications (at most 3 per hour). Please try again in about %lld minutes.";
 "PUSH_TEST_RATE_LIMITED_MINUTE" = "Too many test notifications (at most 3 per hour). Please try again in about %lld minute.";
@@ -441,20 +441,20 @@
 "INFO_LINK_DWD_TERMS" = "DWD · Terms of Use";
 "INFO_SOURCES_MAPKIT" = "Map and place search: Apple MapKit. The map's attribution notices stay visible.";
 "INFO_SOURCES_WARN_AREAS" = "Warning areas (districts and independent cities): Source: Deutscher Wetterdienst, © GeoBasis-DE / BKG 2021 (data modified).";
-"INFO_PRIVACY_1" = "No account and no analytics or advertising SDKs. Saved places and custom names stay on your iPhone and your paired Apple Watch; they are not sent to the Showers server.";
+"INFO_PRIVACY_1" = "No account and no analytics or advertising SDKs. Saved places, their names and your settings stay on your device and your paired Apple Watch. Only if you turn on rain alerts is a coarser location sent to the radar service (see below).";
 "INFO_PRIVACY_2" = "Widgets and Apple Watch use saved places only and fetch their forecasts directly from the DWD. Pairing only transfers the current list of places, no location history. The most recent valid forecast for each place is stored locally for widgets.";
-"INFO_PRIVACY_3" = "The app loads radar images from the Showers radar server. The radar service itself keeps no access logs and stores no IP addresses or request details. As with any internet connection, the upstream server technically sees the IP address of your request; radar requests contain no location, no cookies and no identifier. In case of errors or outdated data, the app fetches the radar images directly from the DWD. Images of the additional layers come only from the Showers server. If you show the lightning legend, the app loads the legend image directly from the DWD (for clouds, possibly from EUMETSAT); the provider technically sees your IP address but no location.";
-"INFO_PRIVACY_4" = "For a place forecast, the DWD continues to receive a map section around the selected position directly. Maps and search requests are processed by Apple: for place search, the search text and a fixed search area (Germany, not your location) go to Apple, never to the radar service or the DWD; Apple technically sees the IP address. Apple's privacy policy applies.";
+"INFO_PRIVACY_3" = "The app loads radar images from the Showers radar service. The radar service itself keeps no access logs and stores no IP addresses or request details. A reverse proxy sits in front of it; it technically sees the IP address of every request and logs it for a limited time. Radar requests contain no location, no cookies and no identifier. In case of errors or outdated data, the app fetches the radar images directly from the DWD. Images of the additional layers come only from the radar service. If you show the lightning legend, the app loads the legend image directly from the DWD (for clouds, possibly from EUMETSAT); the respective provider technically sees your IP address but no location.";
+"INFO_PRIVACY_4" = "The app requests the forecast for a place directly from the DWD; the requested point and, as with any internet connection, your IP address are visible to the DWD. Maps and search requests are processed by Apple: for place search, the search text and a fixed search area (Germany, not your location) go to Apple, never to the radar service or the DWD; Apple technically sees the IP address. Apple's privacy policy applies.";
 "INFO_PRIVACY_5" = "The map on the Apple Watch is loaded through Apple Maps; the coordinate of the place is sent to Apple. The radar images come from the server without any location information.";
-"INFO_PRIVACY_6" = "Only if you turn on rain alerts for a place: the Showers server receives your device token, a random installation ID, a grid cell of about 1 km around the place (no coordinates, no place name), and the threshold and lead time; no account. For a region, the server stores a rough area instead: the centre at a coarser resolution than a grid cell (about 2 km), the radius and the trigger share; the name of the region stays on the device. When you turn it off, delete the place or the region, or reset, this data is deleted.";
+"INFO_PRIVACY_6" = "Only if you turn on rain alerts for a place: the radar service receives your device token, a random installation ID, the grid cell of the radar image around the place (edge length about 0.7 km; no coordinates, no place name), and the threshold and lead time; no account. For a region, the server stores a rough area instead: the centre at a coarser resolution than a grid cell (about 2 km), the radius and the trigger share; the name of the region stays on the device. When you turn it off, delete the place or the region, or reset, this data is deleted.";
 "INFO_PRIVACY_LOCATION" = "Location access is optional and is only requested when you use it. No background location tracking. Point requests are not stored in an on-disk network cache.";
-"INFO_PRIVACY_BETA" = "The app is an early test version. Forecasts may deviate; if data is missing or outdated, no up-to-date statement is guaranteed.";
-"INFO_SUPPORT_FOOTER" = "Showers · early test version";
-"INFO_LAYER_SOURCES_NOTE" = "The Showers server only provides additional layers (pressure, lightning, clouds, temperature, humidity) if they are enabled there; otherwise they are greyed out. There is no fallback directly from the DWD for them.";
+"INFO_PRIVACY_BETA" = "Forecasts may deviate. If data is missing or outdated, the app makes no up-to-date statement.";
+"INFO_SUPPORT_FOOTER" = "Showers";
+"INFO_LAYER_SOURCES_NOTE" = "The Showers radar service provides the additional layers (pressure, lightning, clouds, temperature, humidity). If they are not available there, they are greyed out. There is no direct retrieval from the DWD for them.";
 "INFO_PAST_UNAVAILABLE_HINT" = "Currently unavailable";
 "INFO_PAST_FOOTER_BASE" = "How far back the timeline reaches. More history loads more images (data usage).";
 "INFO_PAST_FOOTER_DIRECT" = "When fetching directly from the DWD, only 1 hour of history is available.";
-"INFO_PAST_FOOTER_UNAVAILABLE" = "History unavailable: for now, the timeline only shows about the last hour.";
+"INFO_PAST_FOOTER_UNAVAILABLE" = "History unavailable: the timeline currently only shows about the last hour.";
 "INFO_PAST_FOOTER_SERVER_MAX" = "The server currently provides at most %@.";
 "INFO_MODEL_ICON" = "Temperature, dew point and humidity maps: DWD ICON-D2/ICON-EU model data (CC BY 4.0, Source: Deutscher Wetterdienst), rendered as images and processed (modified). Model forecasts, not measurements.";
 "INFO_MODEL_FOREST" = "Optional forest cover: %1$@ (CC BY 4.0); %2$@.";
@@ -501,10 +501,10 @@
 "INTERP_NOT_CONFIRMED" = "The forecast has not been confirmed recently.";
 "INTERP_ALREADY_BRIEF" = "The available data is already summarised briefly.";
 "INTERP_NOT_AVAILABLE" = "The on-device summary is not available right now.";
-"INTERP_LANGUAGE_UNSUPPORTED" = "The on-device summary does not support English here yet.";
+"INTERP_LANGUAGE_UNSUPPORTED" = "The on-device summary is not available in this language.";
 "INTERP_DEVICE_NOT_ELIGIBLE" = "Apple Intelligence is not available on this device.";
 "INTERP_AI_NOT_ENABLED" = "Apple Intelligence is not turned on for this device.";
-"INTERP_MODEL_NOT_READY" = "The on-device Apple model is not ready yet.";
+"INTERP_MODEL_NOT_READY" = "The on-device Apple model is still being prepared. Please try again later.";
 "INTERP_AI_UNAVAILABLE" = "Apple Intelligence is not available at the moment.";
 "INTERP_PROMPT_INSTRUCTIONS" = "You summarise existing radar data in English. Choose the one or two most important, distinct facts exclusively from the allowed list. Do not add weather data, numbers, certainty or warnings. Prefer meaningful features of the progression over a general statement about rain.";
 "INTERP_PROMPT_FACTS" = "Allowed supported facts:\n%@";
@@ -513,7 +513,7 @@
 "STORE_ERR_LOAD_FORECAST" = "The saved forecast could not be loaded.";
 "STORE_ERR_SAVE_FORECAST" = "The forecast could not be saved on this device.";
 "STORE_ERR_SAVE_CHANGE" = "The change could not be saved on this device.";
-"STORE_RADAR_CACHE_DOWN" = "Radar cache unavailable. Radar is now coming directly from the DWD.";
+"STORE_RADAR_CACHE_DOWN" = "The Showers radar service is currently unreachable. Radar images are now coming directly from the DWD.";
 "STORE_RADAR_RUN_UNAVAILABLE" = "Radar run currently unavailable. Please reload.";
 "STORE_RADAR_FALLBACK_RUN" = "Latest radar run not yet available. Radar shows the previous run from %@.";
 "STORE_LOCATION_DENIED" = "Location access is turned off. You can search for a place or allow access in iOS Settings.";
@@ -525,10 +525,10 @@
 "STORE_ATTRIBUTION" = "Source: Deutscher Wetterdienst";
 "STORE_MODIFICATION_NOTICE" = "Data basis: Deutscher Wetterdienst, raster data shown as images";
 /* L5: Widgets, Live Activity, Watch, Mitteilungstexte */
-"INFO_WIDGET_DIAG_TITLE" = "Widget diagnostics";
-"INFO_WIDGET_DIAG_RUN" = "Last widget run: %@ (%@)";
-"INFO_WIDGET_DIAG_DATA" = "Data as of in widget: %@";
-"INFO_WIDGET_DIAG_NEXT" = "Requested next run: %@";
-"INFO_WIDGET_DIAG_LIVE" = "Fetched live";
-"INFO_WIDGET_DIAG_CACHE" = "From cache";
-"INFO_WIDGET_DIAG_UNAVAILABLE" = "Unavailable";
+"INFO_WIDGET_DIAG_TITLE" = "Diagnostics";
+"INFO_WIDGET_DIAG_RUN" = "Widget last refreshed: %@ (%@)";
+"INFO_WIDGET_DIAG_DATA" = "Data as of: %@";
+"INFO_WIDGET_DIAG_NEXT" = "Next refresh requested: %@";
+"INFO_WIDGET_DIAG_LIVE" = "freshly loaded";
+"INFO_WIDGET_DIAG_CACHE" = "saved forecast";
+"INFO_WIDGET_DIAG_UNAVAILABLE" = "unavailable";

@@ -111,7 +111,7 @@ final class PushRegionManagerTests: XCTestCase {
         let (manager, gateway, _) = make(regions: false)
         await token(manager)
         let result = await manager.addRegion(latitude: berlin.lat, longitude: berlin.lon, radiusKm: 5, sharePercent: 10, name: nil)
-        XCTAssertEqual(result, .failed("Der Server unterstützt noch keine Regionen."))
+        XCTAssertEqual(result, .failed("Regionen sind derzeit nicht verfügbar."))
         XCTAssertEqual(manager.regionSupport, .unsupported)
         XCTAssertEqual(manager.regionCount, 0)
         XCTAssertFalse(gateway.calls.contains("createSubscription"))
@@ -139,7 +139,7 @@ final class PushRegionManagerTests: XCTestCase {
         XCTAssertEqual(manager.regionSupport, .unsupported)
         await manager.updateRegion(id: id, radiusKm: 25)
         XCTAssertEqual(gateway.calls.filter { $0 == "updateSubscription" }.count, 0)
-        XCTAssertEqual(manager.messages[id], "Der Server unterstützt noch keine Regionen.")
+        XCTAssertEqual(manager.messages[id], "Regionen sind derzeit nicht verfügbar.")
         XCTAssertEqual(manager.regionStatus(for: id), .pending)
     }
 

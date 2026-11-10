@@ -30,7 +30,7 @@ enum RadarLayerLegendText {
         case ("wms", nil), (nil, nil): return nil
         default:
             // A scale (or source) without a native table yet: only the notes, no legend raster.
-            return NSLocalizedString("LAYER_SCALE_UNKNOWN", value: "Die Farbskala dieser Datenquelle ist in dieser App-Version noch nicht hinterlegt. Deshalb gibt es hier keine Legende, nur diesen Hinweis. Die Karte zeigt Modellwerte.", comment: "Legend note")
+            return NSLocalizedString("LAYER_SCALE_UNKNOWN", value: "Für diese Datenquelle gibt es keine Farbskala, daher keine Legende, nur diesen Hinweis. Die Karte zeigt Modellwerte.", comment: "Legend note")
         }
     }
 

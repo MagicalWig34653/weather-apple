@@ -1,5 +1,7 @@
 # Fortsetzbarer Arbeitsstand
 
+**10.11.2026, Textbereinigung (Todolino 335E4E1A):** Nutzersichtbare Texte (de/en) von Projektjargon, Zwischenstand-Formulierungen und Betreiberinterna bereinigt, Info-Datenschutztexte auf `datenschutz-entwurf-release.md` Teil A angeglichen, Widget-Diagnose als Abschnitt "Diagnose" knapper beschriftet, User-Agent auf "Showers". Fundliste: `docs/research/texte-bereinigung.md`. Backend-Hinweis dort: Manifest-Quellenvermerk/Webseiten ggf. noch "Showers-Cache"/"ShowerNow".
+
 **9.11.2026, Build 45 hochgeladen** (Commit `9e17e5b`, Widget-Fixes siehe unten): Upload angenommen ("Uploaded package is processing"), Verarbeitung/Installierbarkeit nicht geprueft; IPA-Pruefungen siehe `testflight-upload.md`. Widget am Geraet noch nicht geprueft.
 
 **9.11.2026, Widget-Fehler aus Build 44 (Rohschluessel und veraltete Anzeige; Todolino 335E4E1A-7FA4-419A-B942-D84D41C74F22):**

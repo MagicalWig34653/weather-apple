@@ -183,12 +183,12 @@ final class PushManagerTests: XCTestCase {
     func testSendTestShowsGermanMessagePerCode() async {
         let failures: [(PushGatewayError, String)] = [
             (.test(.rateLimited(retryAfter: 3600)), "60 Minuten"),
-            (.test(.environmentNotAllowed), "App-Variante"),
-            (.test(.apnsUnavailable503), "nicht eingerichtet"),
-            (.test(.badDeviceToken), "Gerätetoken"),
-            (.test(.keyRejected), "Zugangsschlüssel"),
+            (.test(.environmentNotAllowed), "nicht zugestellt"),
+            (.test(.apnsUnavailable503), "Mitteilungsdienst"),
+            (.test(.badDeviceToken), "neu registriert"),
+            (.test(.keyRejected), "später erneut"),
             (.test(.apnsUnavailable), "Apples Mitteilungsdienst"),
-            (.test(.apnsRejected), "abgelehnt"),
+            (.test(.apnsRejected), "nicht zugestellt"),
             (.notFound, "nicht aktiv"), (.offline, "Internetverbindung"),
         ]
         for (error, fragment) in failures {

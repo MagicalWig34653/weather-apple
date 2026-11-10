@@ -92,7 +92,7 @@ struct PlacePushSettingsView: View {
             .labelStyle(PushHintLabelStyle())
 
             Section {
-                Text(NSLocalizedString("PUSH_PLACE_PRIVACY", value: "An den Server gehen: das Gerätetoken deines iPhones, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km Kantenlänge um diesen Ort sowie Schwelle und Vorlaufzeit. Keine Koordinaten, kein Ortsname, kein Konto.", comment: "Push"))
+                Text(NSLocalizedString("PUSH_PLACE_PRIVACY", value: "An den Server gehen: das Gerätetoken deines iPhones, eine zufällige Installationskennung, die Rasterzelle des Radarbildes um diesen Ort (Kantenlänge etwa 0,7 km) sowie Schwelle und Vorlaufzeit. Keine Koordinaten, kein Ortsname, kein Konto.", comment: "Push"))
                 SitePageButton(page: .privacy, selection: $sitePage)
             }
             .font(.footnote).foregroundStyle(.secondary)
@@ -115,7 +115,7 @@ struct PlacePushSettingsView: View {
             Button(NSLocalizedString("PUSH_READ_PRIVACY", value: "Datenschutzerklärung lesen", comment: "Push")) { sitePage = .privacy }
             Button(NSLocalizedString("COMMON_CANCEL", value: "Abbrechen", comment: "Common"), role: .cancel) {}
         } message: {
-            Text(String(format: NSLocalizedString("PUSH_PLACE_CONFIRM_MESSAGE", value: "Showers meldet dir per Mitteilung, wenn es bei %@ bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine Rasterzelle von etwa 1 km (keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.", comment: "Push"), place.name))
+            Text(String(format: NSLocalizedString("PUSH_PLACE_CONFIRM_MESSAGE", value: "Showers meldet dir per Mitteilung, wenn es bei %@ bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, die Rasterzelle des Radarbildes (Kantenlänge etwa 0,7 km, keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Danach fragt iOS, ob Mitteilungen erlaubt sind.", comment: "Push"), place.name))
         }
     }
 

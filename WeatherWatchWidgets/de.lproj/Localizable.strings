@@ -20,7 +20,7 @@
 "Dry for now" = "Vorerst trocken";
 "No run time" = "Kein Datenzeitpunkt";
 "DWD run · %d min ago" = "DWD-Lauf · vor %d Min.";
-"DWD · Saved" = "DWD · Gesichert";
+"DWD · Saved" = "DWD · Gespeichert";
 "DWD · Run" = "DWD · Stand";
 "Saved forecast" = "Gespeicherte Prognose";
 "WIDGET_ENTITY_TYPE" = "Gespeicherter Ort";

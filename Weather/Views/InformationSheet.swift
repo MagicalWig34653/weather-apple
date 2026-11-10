@@ -88,22 +88,22 @@ struct InformationSheet: View {
                     Text(NSLocalizedString("INFO_WIDGETS_2", value: "Deine gespeicherten Orte werden mit Name, Koordinate und Kennung an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist. Die Übertragung kann verzögert erfolgen. Ein aktueller, nicht gespeicherter Standort wird nicht übertragen.", comment: "Info"))
                 }
                 if let d = WidgetDiagnostics.load() {
-                    Section(NSLocalizedString("INFO_WIDGET_DIAG_TITLE", value: "Widget-Diagnose", comment: "Info")) {
-                        Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_RUN", value: "Letzter Widget-Lauf: %@ (%@)", comment: "Info"),
+                    Section(NSLocalizedString("INFO_WIDGET_DIAG_TITLE", value: "Diagnose", comment: "Info")) {
+                        Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_RUN", value: "Widget zuletzt aktualisiert: %@ (%@)", comment: "Info"),
                                     d.lastRun.formatted(date: .abbreviated, time: .shortened), Self.diagOutcomeText(d.outcome)))
                         if let ref = d.dataReference {
-                            Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_DATA", value: "Datenstand im Widget: %@", comment: "Info"), LocaleFormat.time(ref)))
+                            Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_DATA", value: "Datenstand: %@", comment: "Info"), LocaleFormat.time(ref)))
                         }
-                        Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_NEXT", value: "Angeforderter nächster Lauf: %@", comment: "Info"), LocaleFormat.time(d.nextReload)))
+                        Text(String(format: NSLocalizedString("INFO_WIDGET_DIAG_NEXT", value: "Nächste Aktualisierung angefordert: %@", comment: "Info"), LocaleFormat.time(d.nextReload)))
                     }
                 }
     }
 
     private static func diagOutcomeText(_ outcome: WidgetDiagnostics.Outcome) -> String {
         switch outcome {
-        case .live: NSLocalizedString("INFO_WIDGET_DIAG_LIVE", value: "Live abgerufen", comment: "Info")
-        case .cache: NSLocalizedString("INFO_WIDGET_DIAG_CACHE", value: "Aus dem Speicher", comment: "Info")
-        case .unavailable: NSLocalizedString("INFO_WIDGET_DIAG_UNAVAILABLE", value: "Nicht verfügbar", comment: "Info")
+        case .live: NSLocalizedString("INFO_WIDGET_DIAG_LIVE", value: "neu geladen", comment: "Info")
+        case .cache: NSLocalizedString("INFO_WIDGET_DIAG_CACHE", value: "gespeicherte Prognose", comment: "Info")
+        case .unavailable: NSLocalizedString("INFO_WIDGET_DIAG_UNAVAILABLE", value: "nicht verfügbar", comment: "Info")
         }
     }
 
@@ -142,18 +142,18 @@ struct InformationSheet: View {
 
     @ViewBuilder private var privacyContent: some View {
                 Section(NSLocalizedString("INFO_ROW_PRIVACY", value: "Datenschutz", comment: "Info")) {
-                    Text(NSLocalizedString("INFO_PRIVACY_1", value: "Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte und eigene Namen bleiben auf deinem iPhone und deiner gekoppelten Apple Watch; sie werden nicht an den Showers-Server übertragen.", comment: "Info"))
+                    Text(NSLocalizedString("INFO_PRIVACY_1", value: "Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte, ihre Namen und deine Einstellungen bleiben auf deinem Gerät und deiner gekoppelten Apple Watch. Nur wenn du Regenhinweise einschaltest, geht eine gröbere Ortsangabe an den Radar-Dienst (siehe unten).", comment: "Info"))
                     Text(NSLocalizedString("INFO_PRIVACY_2", value: "Widgets und Apple Watch verwenden ausschließlich gespeicherte Orte und rufen deren Prognosen direkt beim DWD ab. Die Kopplung überträgt nur die aktuelle Ortsliste, keinen Standortverlauf. Die zuletzt gültige Prognose je Ort wird lokal für Widgets gespeichert.", comment: "Info"))
-                    Text(NSLocalizedString("INFO_PRIVACY_3", value: "Radarbilder lädt die App vom Showers-Radar-Server. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Wie bei jeder Internetverbindung sieht der vorgeschaltete Server technisch bedingt die IP-Adresse deines Abrufs; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab. Bilder der Zusatzebenen kommen nur vom Showers-Server. Blendest du die Legende der Blitze ein, lädt die App das Legendenbild direkt vom DWD (bei Wolken ggf. von EUMETSAT); dabei sieht der Anbieter technisch bedingt deine IP-Adresse, aber keinen Ort.", comment: "Info"))
-                    Text(NSLocalizedString("INFO_PRIVACY_4", value: "Für eine Ortsprognose erhält der DWD weiterhin direkt einen Kartenausschnitt um die ausgewählte Position. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.", comment: "Info"))
+                    Text(NSLocalizedString("INFO_PRIVACY_3", value: "Radarbilder lädt die App vom Showers-Radar-Dienst. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Ihm ist ein Reverse Proxy vorgeschaltet, der technisch bedingt die IP-Adresse jedes Abrufs sieht und sie befristet protokolliert; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab. Bilder der Zusatzebenen kommen nur vom Radar-Dienst. Blendest du die Legende der Blitze ein, lädt die App das Legendenbild direkt vom DWD (bei Wolken ggf. von EUMETSAT); dabei sieht die jeweilige Stelle technisch bedingt deine IP-Adresse, aber keinen Ort.", comment: "Info"))
+                    Text(NSLocalizedString("INFO_PRIVACY_4", value: "Die Prognose für einen Ort fragt die App direkt beim DWD ab; dabei sind der abgefragte Punkt und, wie bei jeder Internetverbindung, deine IP-Adresse für den DWD sichtbar. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.", comment: "Info"))
                     Text(NSLocalizedString("INFO_PRIVACY_5", value: "Die Karte auf der Apple Watch wird über Apple Karten geladen; dabei geht die Koordinate des Ortes an Apple. Die Radarbilder kommen ohne Ortsangabe vom Server.", comment: "Info"))
-                    Text(NSLocalizedString("INFO_PRIVACY_6", value: "Nur wenn du Regenhinweise für einen Ort einschaltest: Der Showers-Server erhält dein Gerätetoken, eine zufällige Installations-Kennung, eine Rasterzelle von etwa 1 km um den Ort (keine Koordinaten, kein Ortsname) sowie Schwelle und Vorlaufzeit; kein Konto. Bei einer Region speichert der Server stattdessen einen groben Bereich: den Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), den Radius und den Auslöseanteil; der Name der Region bleibt auf dem Gerät. Beim Ausschalten, Löschen des Orts oder der Region oder Zurücksetzen werden diese Daten gelöscht.", comment: "Info"))
+                    Text(NSLocalizedString("INFO_PRIVACY_6", value: "Nur wenn du Regenhinweise für einen Ort einschaltest: Der Radar-Dienst erhält dein Gerätetoken, eine zufällige Installationskennung, die Rasterzelle des Radarbildes um den Ort (Kantenlänge etwa 0,7 km; keine Koordinaten, kein Ortsname) sowie Schwelle und Vorlaufzeit; kein Konto. Bei einer Region speichert der Server stattdessen einen groben Bereich: den Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), den Radius und den Auslöseanteil; der Name der Region bleibt auf dem Gerät. Beim Ausschalten, Löschen des Orts oder der Region oder Zurücksetzen werden diese Daten gelöscht.", comment: "Info"))
                     Text("DEVICE_LINK_PRIVACY")
                     Text(NSLocalizedString("INFO_PRIVACY_LOCATION", value: "Standortzugriff ist optional und wird nur bei Nutzung angefordert. Keine Hintergrundortung. Punktanfragen werden nicht in einem Festplatten-Netzwerkcache gespeichert.", comment: "Info"))
                     SitePageButton(page: .privacy, selection: $sitePage)
                     SitePageButton(page: .support, selection: $sitePage)
                     SitePageButton(page: .about, selection: $sitePage)
-                    Text(NSLocalizedString("INFO_PRIVACY_BETA", value: "Die App ist eine frühe Testversion. Prognosen können abweichen; bei fehlenden oder veralteten Daten wird keine aktuelle Aussage zugesichert.", comment: "Info"))
+                    Text(NSLocalizedString("INFO_PRIVACY_BETA", value: "Prognosen können abweichen. Bei fehlenden oder veralteten Daten gibt die App keine aktuelle Aussage.", comment: "Info"))
                 }
     }
 
@@ -163,7 +163,7 @@ struct InformationSheet: View {
             SitePageButton(page: .support, selection: $sitePage)
             SitePageButton(page: .about, selection: $sitePage)
         }
-        Section { Text(NSLocalizedString("INFO_SUPPORT_FOOTER", value: "Showers · frühe Testversion", comment: "Info")).font(.footnote).foregroundStyle(.secondary) }
+        Section { Text(NSLocalizedString("INFO_SUPPORT_FOOTER", value: "Showers", comment: "Info")).font(.footnote).foregroundStyle(.secondary) }
     }
 
     // MARK: Layer sources
@@ -187,7 +187,7 @@ struct InformationSheet: View {
         if store.layers.snapshot(.clouds).manifest != nil {
             Link("EUMETSAT · EUMETView", destination: URL(string: "https://view.eumetsat.int")!)
         }
-        Text(NSLocalizedString("INFO_LAYER_SOURCES_NOTE", value: "Zusatzebenen (Luftdruck, Blitze, Wolken, Temperatur, Feuchte) liefert der Showers-Server nur, wenn sie dort aktiviert sind; sonst sind sie ausgegraut. Einen Ersatzweg direkt beim DWD gibt es für sie nicht.", comment: "Info"))
+        Text(NSLocalizedString("INFO_LAYER_SOURCES_NOTE", value: "Zusatzebenen (Luftdruck, Blitze, Wolken, Temperatur, Feuchte) liefert der Showers-Radar-Dienst. Sind sie dort nicht verfügbar, sind sie ausgegraut. Ein Direktabruf beim DWD ist dafür nicht vorgesehen.", comment: "Info"))
             .font(.footnote).foregroundStyle(.secondary)
     }
 
@@ -234,7 +234,7 @@ struct InformationSheet: View {
         }
         switch store.historyStatus {
         case .unavailable:
-            return base + " " + NSLocalizedString("INFO_PAST_FOOTER_UNAVAILABLE", value: "Historie nicht verfügbar: Die Zeitleiste zeigt vorerst nur etwa die letzte Stunde.", comment: "Info")
+            return base + " " + NSLocalizedString("INFO_PAST_FOOTER_UNAVAILABLE", value: "Historie nicht verfügbar: Die Zeitleiste zeigt derzeit nur etwa die letzte Stunde.", comment: "Info")
         case .loaded(let hours) where hours < RadarPastWindow.options.last!:
             return base + " " + String(format: NSLocalizedString("INFO_PAST_FOOTER_SERVER_MAX", value: "Der Server liefert derzeit höchstens %@.", comment: "Info"), RadarPastWindow.label(hours))
         default:

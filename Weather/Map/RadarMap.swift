@@ -759,7 +759,7 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
 
     private func makeTask(url: URL, id: UUID, attempt: Int) -> URLSessionDataTask {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
-        request.setValue("ShowerNow/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Showers (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
         let revision = progress.snapshot.reloadRevision
         return session.dataTask(with: request) { [self] data, response, error in
             guard requests.contains(url: url, id: id) else { return }

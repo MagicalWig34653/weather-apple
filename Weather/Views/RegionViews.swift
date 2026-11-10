@@ -5,7 +5,7 @@ import UIKit
 enum RegionText {
     static let explanation = NSLocalizedString("REGION_EXPLANATION", value: "Showers meldet dir per Mitteilung, wenn Regen diese Region erreicht. Dafür gehen an den Showers-Server: das Gerätetoken, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km, keine Koordinaten), der Radius, Schwelle, Auslöseanteil und Vorlaufzeit; kein Konto, kein Name. Danach fragt iOS, ob Mitteilungen erlaubt sind.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
     static let privacyFootnote = NSLocalizedString("REGION_PRIVACY_FOOTNOTE", value: "An den Server gehen: das Gerätetoken, eine zufällige Installations-Kennung, der Mittelpunkt gröber als eine Rasterzelle (etwa 2 km), der Radius sowie Schwelle, Auslöseanteil und Vorlaufzeit. Keine Koordinaten, kein Name, kein Konto. Der Name der Region bleibt auf diesem Gerät.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
-    static let unsupported = NSLocalizedString("REGION_UNSUPPORTED", value: "Server unterstützt noch keine Regionen.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
+    static let unsupported = NSLocalizedString("REGION_UNSUPPORTED", value: "Regionen sind derzeit nicht verfügbar.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
     static let unknown = NSLocalizedString("REGION_SUPPORT_UNKNOWN", value: "Ob der Server Regionen unterstützt, konnte nicht geprüft werden.", comment: NSLocalizedString("REGION_SETTINGS_TITLE", value: "Region", comment: "Region"))
 
     static func shareTitle(_ percent: Int) -> String {

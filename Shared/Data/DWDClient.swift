@@ -116,7 +116,7 @@ actor DWDClient {
     private func fetch(_ url: URL, attempt: Int = 1) async throws -> Data {
         try Task.checkCancellation()
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
-        request.setValue("Weather/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Showers (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
         let canRetry = attempt < DWDRetryPolicy.maxAttempts
         let (data, response): (Data, HTTPURLResponse)
         do { (data, response) = try await transport(request) }

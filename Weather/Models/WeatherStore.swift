@@ -7,7 +7,7 @@ import WidgetKit
 enum RadarSource: Equatable, Sendable {
     case cache, direct
     var label: String {
-        self == .cache ? NSLocalizedString("RADAR_SOURCE_CACHE", value: "Showers-Cache", comment: "Radar source")
+        self == .cache ? NSLocalizedString("RADAR_SOURCE_CACHE", value: "über Showers", comment: "Radar source")
             : NSLocalizedString("RADAR_SOURCE_DIRECT", value: "direkt vom DWD", comment: "Radar source")
     }
 }
@@ -295,7 +295,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func backendImagesUnavailable() {
         guard radarSource == .cache, timeline?.backend != nil, !isRadarLoading else { return }
         backendBlockedUntil = Date().addingTimeInterval(RadarBackendConfig.imageFailureBlockInterval)
-        Task { await switchToDirectRadar(notice: NSLocalizedString("STORE_RADAR_CACHE_DOWN", value: "Radar-Cache nicht erreichbar. Radar kommt direkt vom DWD.", comment: "Weather store message")) }
+        Task { await switchToDirectRadar(notice: NSLocalizedString("STORE_RADAR_CACHE_DOWN", value: "Der Showers-Radar-Dienst ist gerade nicht erreichbar. Die Radarbilder kommen direkt vom DWD.", comment: "Weather store message")) }
     }
 
     private func switchToDirectRadar(notice: String?) async {

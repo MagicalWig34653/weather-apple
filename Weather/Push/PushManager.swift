@@ -334,7 +334,7 @@ final class PushManager {
         regionNotice = nil
         if regionSupport != .supported { await refreshRegionSupport() }
         guard regionSupport == .supported else {
-            return .failed(regionSupport == .unsupported ? NSLocalizedString("PUSH_MSG_REGIONS_UNSUPPORTED", value: "Der Server unterstützt noch keine Regionen.", comment: "Push")
+            return .failed(regionSupport == .unsupported ? NSLocalizedString("PUSH_MSG_REGIONS_UNSUPPORTED", value: "Regionen sind derzeit nicht verfügbar.", comment: "Push")
                            : NSLocalizedString("PUSH_MSG_REGIONS_UNKNOWN", value: "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Bitte später erneut versuchen.", comment: "Push"))
         }
         guard let cell = PushGrid.cell(latitude: latitude, longitude: longitude) else {
@@ -444,12 +444,12 @@ final class PushManager {
         case .notFound: return NSLocalizedString("PUSH_MSG_SERVICE_INACTIVE", value: "Der Mitteilungsdienst ist auf dem Server derzeit nicht aktiv.", comment: "Push")
         case .test(let failure):
             switch failure {
-            case .environmentNotAllowed: return NSLocalizedString("PUSH_TEST_ENVIRONMENT", value: "Der Server nimmt diese App-Variante (Entwicklung oder Store) nicht an.", comment: "Push")
-            case .apnsUnavailable503: return NSLocalizedString("PUSH_TEST_APNS_503", value: "Der Server kann Mitteilungen derzeit nicht senden (Apple-Zugang nicht eingerichtet).", comment: "Push")
-            case .badDeviceToken: return NSLocalizedString("PUSH_TEST_BAD_TOKEN", value: "Apple lehnt das Gerätetoken ab. Es passt nicht zur Umgebung dieser App-Variante.", comment: "Push")
-            case .keyRejected: return NSLocalizedString("PUSH_TEST_KEY_REJECTED", value: "Apple lehnt den Zugangsschlüssel des Servers ab. Das muss der Betreiber beheben.", comment: "Push")
+            case .environmentNotAllowed: return NSLocalizedString("PUSH_TEST_ENVIRONMENT", value: "Die Testmeldung konnte nicht zugestellt werden. Bitte später erneut versuchen.", comment: "Push")
+            case .apnsUnavailable503: return NSLocalizedString("PUSH_TEST_APNS_503", value: "Der Mitteilungsdienst kann derzeit keine Meldungen senden. Bitte später erneut versuchen.", comment: "Push")
+            case .badDeviceToken: return NSLocalizedString("PUSH_TEST_BAD_TOKEN", value: "Die Testmeldung konnte nicht zugestellt werden. Das Gerät wird neu registriert; danach erneut versuchen.", comment: "Push")
+            case .keyRejected: return NSLocalizedString("PUSH_TEST_KEY_REJECTED", value: "Die Testmeldung konnte nicht zugestellt werden. Bitte später erneut versuchen.", comment: "Push")
             case .apnsUnavailable: return NSLocalizedString("PUSH_TEST_APNS_DOWN", value: "Apples Mitteilungsdienst ist gerade nicht erreichbar. Bitte später erneut versuchen.", comment: "Push")
-            case .apnsRejected: return NSLocalizedString("PUSH_TEST_APNS_REJECTED", value: "Apple hat die Testmeldung abgelehnt.", comment: "Push")
+            case .apnsRejected: return NSLocalizedString("PUSH_TEST_APNS_REJECTED", value: "Die Testmeldung konnte nicht zugestellt werden.", comment: "Push")
             case .tokenUnregistered: return NSLocalizedString("PUSH_TEST_TOKEN_UNREGISTERED", value: "Das Gerätetoken ist nicht mehr gültig. Das Gerät wird neu registriert; danach erneut versuchen.", comment: "Push")
             case .rateLimited(let after):
                 if let after, after > 0 {
@@ -887,7 +887,7 @@ final class PushManager {
         if regionSupport != .supported { await refreshRegionSupport() }
         guard regionSupport == .supported else {
             // Never send region fields to a server without the capability (it could answer 400).
-            let text = regionSupport == .unsupported ? NSLocalizedString("PUSH_MSG_REGIONS_UNSUPPORTED", value: "Der Server unterstützt noch keine Regionen.", comment: "Push") : NSLocalizedString("PUSH_MSG_REGIONS_UNKNOWN_AUTO", value: "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Es wird später erneut versucht.", comment: "Push")
+            let text = regionSupport == .unsupported ? NSLocalizedString("PUSH_MSG_REGIONS_UNSUPPORTED", value: "Regionen sind derzeit nicht verfügbar.", comment: "Push") : NSLocalizedString("PUSH_MSG_REGIONS_UNKNOWN_AUTO", value: "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Es wird später erneut versucht.", comment: "Push")
             for (id, _) in open { messages[id] = text }
             return
         }

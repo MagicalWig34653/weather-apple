@@ -218,7 +218,7 @@ final class RadarPrefetchFlight: @unchecked Sendable {
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
-                request.setValue("ShowerNow/0.1 (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
+                request.setValue("Showers (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
                 let task = session.dataTask(with: request) { [self] data, response, error in
                     // Publish a valid completed image before the slot disappears, so
                     // a new demand cannot fall into a response/cache handoff gap.
