@@ -1,5 +1,7 @@
 # Fortsetzbarer Arbeitsstand
 
+**10.11.2026, Build 46 hochgeladen** (Commit `e9a089c` bzw. rebasiert auf `origin/main`; Inhalt: Textbereinigung): Upload angenommen ("Uploaded package is processing"), Verarbeitung/Installierbarkeit nicht geprueft. Vorab: `tools/check_l10n.sh` Exit 0, WeatherTests 649 gruen, UI-Suite 40 gruen (de/en-Tests enthalten), alle 5 Schemes gebaut. Info-Datenschutztexte entsprechen inhaltlich der gekuerzten Teil A (Stand 10.11.); englische Info-Fassung ist wortnahe Uebersetzung, kein eigener Rechtstext. Hinweis: `docs/appstore-texte-en.md` ist auf origin/main vorhanden (nicht entfernt). Weitere Backend-Hinweise: `docs/research/texte-bereinigung.md`.
+
 **10.11.2026, Textbereinigung (Todolino 335E4E1A):** Nutzersichtbare Texte (de/en) von Projektjargon, Zwischenstand-Formulierungen und Betreiberinterna bereinigt, Info-Datenschutztexte auf `datenschutz-entwurf-release.md` Teil A angeglichen, Widget-Diagnose als Abschnitt "Diagnose" knapper beschriftet, User-Agent auf "Showers". Fundliste: `docs/research/texte-bereinigung.md`. Backend-Hinweis dort: Manifest-Quellenvermerk/Webseiten ggf. noch "Showers-Cache"/"ShowerNow".
 
 **9.11.2026, Build 45 hochgeladen** (Commit `9e17e5b`, Widget-Fixes siehe unten): Upload angenommen ("Uploaded package is processing"), Verarbeitung/Installierbarkeit nicht geprueft; IPA-Pruefungen siehe `testflight-upload.md`. Widget am Geraet noch nicht geprueft.
