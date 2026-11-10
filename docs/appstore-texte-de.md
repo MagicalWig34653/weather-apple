@@ -7,25 +7,25 @@ Zeichen und UTF-8-Bytes mit `python3` gezählt. Grenzen: Name 30, Untertitel 30,
 ## App-Name
 `Showers` (7 Zeichen)
 
-## Untertitel (25 Zeichen, 25 Bytes, max. 30)
-`Regenradar mit Zeitleiste`
+## Untertitel (25 Zeichen, 26 Bytes, max. 30)
+`Regenradar für deine Orte`
 
-## Werbetext (156 Zeichen, 157 Bytes, max. 170)
-`Sieh, wann und wo es regnet: Radar mit Zeitleiste, Prognosen für deine Orte, Temperatur- und Feuchtekarten, DWD-Warnungen, Widgets, Apple Watch. Daten: DWD.`
+## Werbetext (148 Zeichen, 149 Bytes, max. 170)
+`Sieh, wann und wo es regnet: Radar, Prognosen für gespeicherte Orte, Temperatur- und Feuchtekarten, DWD-Warnungen, Widgets, Apple Watch. Daten: DWD.`
 
 (Das "ü" in "für" ergibt 1 Byte Differenz; für den Werbetext zählt die Zeichenzahl.)
 
 ## Keywords (100 Zeichen, 100 Bytes, max. 100 Bytes, kommagetrennt, ohne Leerzeichen nach Komma)
 `Niederschlag,Prognose,Wetter,Widget,Watch,Temperatur,Feuchte,Taupunkt,Frost,DWD,Deutschland,Unwetter`
 
-Ohne "Showers", "Regenradar", "Zeitleiste" (Name/Untertitel). Alle Begriffe ASCII, daher Zeichen = Bytes; die Grenze ist exakt ausgereizt, jede Änderung mit Umlaut (z. B. "Glätte") kostet 2 Bytes und erfordert ein Streichen. Suchwirkung ungeprüft. Englische Keywords der EN-Locale ("precipitation", "forecast" usw.) zählen in Deutschland ebenfalls mit; Doppelungen zwischen Locales sind unnötig.
+Ohne "Showers", "Regenradar" (Name/Untertitel); "Orte" steht im Untertitel und fehlt deshalb hier. Keyword-Feld 10.11.2026 neu gezählt (100 Zeichen, 100 Bytes), unverändert. Alle Begriffe ASCII, daher Zeichen = Bytes; die Grenze ist exakt ausgereizt, jede Änderung mit Umlaut (z. B. "Glätte") kostet 2 Bytes und erfordert ein Streichen. Suchwirkung ungeprüft. Englische Keywords der EN-Locale ("precipitation", "forecast" usw.) zählen in Deutschland ebenfalls mit; Doppelungen zwischen Locales sind unnötig.
 
-## Beschreibung (2362 Zeichen, 2374 Bytes, max. 4000)
+## Beschreibung (2337 Zeichen, 2348 Bytes, max. 4000)
 ```
 Showers zeigt dir, wann und wo es in Deutschland regnet.
 
-REGENRADAR MIT ZEITLEISTE
-Wische über die Zeitleiste und sieh auf der Karte den Regen der jüngsten Vergangenheit und die kurzfristige Entwicklung. Die App zeigt, wann die Daten zuletzt aktualisiert wurden und ob du eine Messung oder eine Vorhersage siehst.
+REGENRADAR
+Ziehe den Regler und sieh auf der Karte den Regen der jüngsten Vergangenheit und die kurzfristige Entwicklung. Die App zeigt, wann die Daten zuletzt aktualisiert wurden und ob du eine Messung oder eine Vorhersage siehst.
 
 TEMPERATUR- UND FEUCHTEKARTEN
 Schalte die Karte auf Temperatur, Taupunkt oder, wo verfügbar, relative Feuchte um. Diese Ebenen sind Modellwerte des Deutschen Wetterdienstes (DWD) und als solche gekennzeichnet. Tippe auf die Karte, um einen Wert abzulesen, oder lass dir mit VoiceOver den Wert in der Kartenmitte vorlesen.
@@ -56,11 +56,11 @@ Wetterdaten: Deutscher Wetterdienst (DWD). Die Seite Warnungen zeigt bei jeder W
 Showers ist eine unabhängige App und steht in keiner Verbindung zum Deutschen Wetterdienst.
 ```
 
-## Was ist neu (erste Version, 346 Zeichen, 350 Bytes)
+## Was ist neu (erste Version, 334 Zeichen, 338 Bytes)
 ```
 Erste Veröffentlichung von Showers.
 
-- Regenradar für Deutschland mit animierter Zeitleiste
+- Regenradar für Deutschland mit Animation
 - Prognosen für deine gespeicherten Orte und Regionen
 - Temperatur- und Feuchtekarten (Modellwerte)
 - Amtliche DWD-Warnungen vor Unwetter, Frost und Glätte, mit Quellenangabe
@@ -74,7 +74,7 @@ Erste Veröffentlichung von Showers.
 - Quellenangabe: "Deutscher Wetterdienst (DWD)" steht im Text. ESA WorldCover (Waldebene) steht nicht im Store-Text; die Pflichtangabe liegt in der App-Quellzeile bei eingeblendetem Wald und im Info-Sheet, der Text verweist darauf ("in der App unter Information").
 
 ## Belege und Grenzen der Aussagen
-- Funktionsumfang laut `status.md`/`decisions.md`: Radar mit Zeitleiste, Temperatur/Taupunkt/Feuchte (Modellwerte; relative Feuchte nur, wenn der Server die Ebene liefert, daher "wo verfügbar"), Wertabfrage per Tippen/VoiceOver, Warnungen-Seite (Unwetter, Frost, Glätte; nach Ort gruppiert; Quelle je Warnung), Orte und Regionen (Umkreis), Regenhinweise (Opt-in), Widgets, Live Activity, Watch.
+- Funktionsumfang laut `status.md`/`decisions.md`: Radar (animiert), Temperatur/Taupunkt/Feuchte (Modellwerte; relative Feuchte nur, wenn der Server die Ebene liefert, daher "wo verfügbar"), Wertabfrage per Tippen/VoiceOver, Warnungen-Seite (Unwetter, Frost, Glätte; nach Ort gruppiert; Quelle je Warnung), Orte und Regionen (Umkreis), Regenhinweise (Opt-in), Widgets, Live Activity, Watch.
 - Absichtlich NICHT behauptet: Warn-Push (serverseitig aus), "amtliche Warn-App", Gefühlstemperatur, "schwül", Watch-Radarkarte, Mac, Abdeckung außerhalb Deutschlands.
 - Datenschutzzeilen wortgleich zu `datenschutz-entwurf-release.md` Teil A, Abschnitt 2 "Überblick": "Kein Benutzerkonto, keine Werbung, kein Tracking, keine Analyse-SDKs." und "Gespeicherte Orte mit ihren Namen und deine Einstellungen bleiben auf deinem Gerät." sowie vom zweiten Punkt der vollständige Satzteil "Die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Technisch bedingt sieht der vorgeschaltete Reverse Proxy die IP-Adresse und protokolliert sie befristet." (nur der einleitende Bedingungssatz "Wer die App nur zum Ansehen ... nutzt" entfällt). Die Aussage "keine Kennung" wird bewusst nie ohne den Proxy-Satz verwendet, weil der Reverse Proxy die IP-Adresse protokolliert. "freiwillig und jederzeit in der App widerrufbar" stammt aus dem dritten Punkt. Freigabe des Datenschutztextes steht aus.
 - Live Activity und Regenhinweise hängen am Backend-Rollout (Checkliste "APNs-Key/Backend-Push live: unklar"); vor Einreichung gegen den tatsächlichen Stand prüfen.

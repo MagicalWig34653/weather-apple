@@ -403,3 +403,8 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 - 8.11.2026: Build 41 (0.1.1) hochgeladen: Zeit-Pille ueber Quellzeile (Tippen Play/Pause, Long-Press Jetzt), Play-Knopf entfernt, kompaktere Zeitleistenkarte, Farblinie 4 pt unter der Spur; Details decisions.md und testflight-upload.md. Verarbeitung nicht geprueft; Geraetetest Long-Press-Gefuehl offen.
 
 - iPhone Duo (faltbares iPhone): Recherchestand, Screenshot-Pflicht ab April 2027, Anpassungs-Prüfpunkte in `docs/research/iphone-duo.md` (9.11.2026).
+
+## Formulierung "mit Zeitleiste" entfernt (10.11.2026)
+
+- Nutzerwunsch: "mit Zeitleiste" überall weglassen. Geändert (nur Texte): `appstore-texte-de.md`/`-en.md` (Untertitel DE "Regenradar für deine Orte" 25 Zeichen/26 Bytes, EN "Rain radar for your places" 26/26; Werbetext DE 148 Zeichen/149 Bytes, EN 149/149; Beschreibung DE 2337/2348, EN 2172/2172; Was ist neu DE 334/338, EN 310/310; Keywords unverändert 100 bzw. 98 Bytes, per `python3` gezählt), TestFlight-Beschreibung in `apple-externe-tests.md` und `docs-site/content/apple-externe-tests.md` (synchron), `README.md` Zeile 7.
+- Unverändert: historische Aussagen in `appstore-screenshots.md` (bereits erzeugte Creatives zeigten "Regenradar mit Zeitleiste", inzwischen ohne die Zeile neu erzeugt), Prüfer-/Testhinweise mit "Zeitleiste"/"timeline slider" als Bedienbegriff. App-UI: keine Zeichenkette "mit Zeitleiste"; Zeitleiste kommt nur als Bedienbegriff vor (`INFO_PAST_FOOTER_BASE`/`_UNAVAILABLE` in `Weather/Resources/{de,en}.lproj/Localizable.strings`, Zeilen 455/457). Kein Build, keine Buildnummer-Änderung.

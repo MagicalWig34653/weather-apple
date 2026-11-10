@@ -92,11 +92,11 @@ Hinweis zur Support-URL (für den App Store, BESTÄTIGT [Q6]): Sie muss echte Ko
 
 **Beta App Description (Deutsch)**
 
-> Showers zeigt in Deutschland, wann es bei dir regnet: Radarkarte mit Zeitleiste, Regenprognose für die nächsten Stunden und gespeicherte Orte. Basis sind offene Radardaten des Deutschen Wetterdienstes (DWD). Kein Konto, keine Werbung, kein Tracking. Frühe Testversion: Funktionen und Aussehen ändern sich.
+> Showers zeigt in Deutschland, wann es bei dir regnet: Radarkarte, Regenprognose für die nächsten Stunden und gespeicherte Orte. Basis sind offene Radardaten des Deutschen Wetterdienstes (DWD). Kein Konto, keine Werbung, kein Tracking. Frühe Testversion: Funktionen und Aussehen ändern sich.
 
 **Beta App Description (Englisch, falls eine englische Lokalisierung angelegt wird)**
 
-> Showers shows when it will rain where you are in Germany: radar map with timeline, short-term rain forecast and saved places. Based on open radar data from the German Weather Service (DWD). No account, no ads, no tracking. Early test version; features and design will change.
+> Showers shows when it will rain where you are in Germany: radar map, short-term rain forecast and saved places. Based on open radar data from the German Weather Service (DWD). No account, no ads, no tracking. Early test version; features and design will change.
 
 **Review-Notizen (Englisch, für Prüfer)**
 

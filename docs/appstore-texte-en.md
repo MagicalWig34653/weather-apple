@@ -8,22 +8,22 @@ Zeichenzahlen mit `python3` gezählt (Zeichen und UTF-8-Bytes; alle Texte reines
 `Showers` (7 Zeichen)
 
 ## Untertitel (26 Zeichen, 26 Bytes, max. 30)
-`Rain radar with a timeline`
+`Rain radar for your places`
 
-## Werbetext (159 Zeichen, 159 Bytes, max. 170)
-`See when and where it rains: radar with a timeline, forecasts for your places, temperature and humidity maps, DWD warnings, widgets and Apple Watch. Data: DWD.`
+## Werbetext (149 Zeichen, 149 Bytes, max. 170)
+`See when and where it rains: radar, forecasts for your saved places, temperature and humidity maps, DWD warnings, widgets and Apple Watch. Data: DWD.`
 
 ## Keywords (98 Zeichen, 98 Bytes, max. 100, kommagetrennt, ohne Leerzeichen nach Komma)
 `precipitation,forecast,weather,widget,watch,temperature,humidity,dew point,frost,DWD,Germany,storm`
 
-Ohne "Showers", "rain", "radar", "timeline" (Name/Untertitel). "dew point" enthält ein Leerzeichen innerhalb eines Begriffs; bei Bedarf durch "dewpoint" ersetzen. Suchwirkung ungeprüft.
+Ohne "Showers", "rain", "radar" (Name/Untertitel); "places" steht im Untertitel. Keyword-Feld 10.11.2026 neu gezählt (98 Bytes), unverändert. "dew point" enthält ein Leerzeichen innerhalb eines Begriffs; bei Bedarf durch "dewpoint" ersetzen. Suchwirkung ungeprüft.
 
-## Beschreibung (2199 Zeichen, 2199 Bytes, max. 4000)
+## Beschreibung (2172 Zeichen, 2172 Bytes, max. 4000)
 ```
 Showers shows you when and where it rains in Germany.
 
-RAIN RADAR WITH A TIMELINE
-Scrub through the timeline to see the recent past and the short-term development of rain on the map. The app shows when the data was last updated and whether you are looking at a measurement or a forecast.
+RAIN RADAR
+Drag the slider to see the recent past and the short-term development of rain on the map. The app shows when the data was last updated and whether you are looking at a measurement or a forecast.
 
 TEMPERATURE AND HUMIDITY MAPS
 Switch the map to temperature, dew point or, where available, relative humidity. These layers are model values from the Deutscher Wetterdienst (DWD) and are labelled as such. Tap the map to read a value, or let VoiceOver read the value at the centre of the map.
@@ -54,11 +54,11 @@ Weather data: Deutscher Wetterdienst (DWD). The Warnings page shows the DWD sour
 Showers is an independent app and is not affiliated with the Deutscher Wetterdienst.
 ```
 
-## Was ist neu (erste Version, 321 Zeichen, 321 Bytes)
+## Was ist neu (erste Version, 310 Zeichen, 310 Bytes)
 ```
 First release of Showers.
 
-- Rain radar for Germany with an animated timeline
+- Rain radar for Germany with animation
 - Forecasts for your saved places and regions
 - Temperature and humidity maps (model values)
 - Official DWD warnings for storms, frost and ice, shown with their source
@@ -72,7 +72,7 @@ First release of Showers.
 - Quellenangabe: "Deutscher Wetterdienst (DWD)" steht im Text. ESA WorldCover (Waldebene) steht nicht im Store-Text; die Pflichtangabe liegt in der App-Quellzeile bei eingeblendetem Wald und im Info-Sheet, der Text verweist darauf ("listed in the app under Information").
 
 ## Belege und Grenzen der Aussagen
-- Funktionsumfang laut `status.md`/`decisions.md`: Radar mit Zeitleiste, Temperatur/Taupunkt/Feuchte (Modellwerte; relative Feuchte nur, wenn der Server die Ebene liefert, daher "where available"), Wertabfrage per Tippen/VoiceOver, Warnungen-Seite (Unwetter, Frost, Glätte; nach Ort gruppiert; Quelle je Warnung), Orte und Regionen (Umkreis), Regen-Push (Opt-in), Widgets, Live Activity, Watch.
+- Funktionsumfang laut `status.md`/`decisions.md`: Radar (animiert), Temperatur/Taupunkt/Feuchte (Modellwerte; relative Feuchte nur, wenn der Server die Ebene liefert, daher "where available"), Wertabfrage per Tippen/VoiceOver, Warnungen-Seite (Unwetter, Frost, Glätte; nach Ort gruppiert; Quelle je Warnung), Orte und Regionen (Umkreis), Regen-Push (Opt-in), Widgets, Live Activity, Watch.
 - Absichtlich NICHT behauptet: Warn-Push (serverseitig aus, wartet auf DWD-Antwort und Datenschutzfreigabe), "amtliche Warn-App", Gefühlstemperatur, Feuchte-Wörter, Watch-Radarkarte, Mac, Abdeckung außerhalb Deutschlands.
 - Datenschutzzeilen aus `datenschutz-entwurf-release.md` Teil A-EN, Abschnitt 2 "Overview": "No user account, no advertising, no tracking, no analytics SDKs." und "Saved places with their names and your settings stay on your device." wortgleich; "Radar requests contain no location, no cookies and no identifier. Technically, the reverse proxy in front of the service sees the IP address and logs it for a limited time." ist der zweite Aufzählungspunkt ohne den einleitenden Bedingungssatz. Korrektur 9.11.: der frühere Text kürzte ihn auf den ersten Teilsatz und ließ die IP-Protokollierung des Reverse Proxy weg; das war unvollständig und ist behoben. "voluntary and can be revoked in the app at any time" ist dem dritten Punkt entnommen. Nichts Neues behauptet; Freigabe des Datenschutztextes steht aus.
 - Live Activity und Regen-Push hängen am Backend-Rollout (Checkliste "APNs-Key/Backend-Push live: unklar"); vor Einreichung gegen den tatsächlichen Stand prüfen. Dynamic Type wird bewusst nicht beworben (nur indirekt belegt).
