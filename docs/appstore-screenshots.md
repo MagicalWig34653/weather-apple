@@ -13,6 +13,18 @@ Ablage: `design/appstore-screenshots/<gerät>/<maße>/de/NN-<motiv>.png`. Alle P
 
 iPhone-Motive: 01 Regenradar mit Regenband, Zeit-Pille (Vergangenheit, blau) und Farblinie; 02 Ortsdetails (Prognosekarte, Stand "vorerst kein messbarer Regen", siehe Einschränkungen); 03 Temperatur 2 m (Modell) mit Wertabfrage "Etwa 8 bis 9 °C (Modell)", Zeit-Pille in der Zukunft orange; 04 Amtliche Warnungen (Fixture, Ort Berlin, Stufe 3 und 1); 05 Relative Feuchte mit Waldebene und Wertabfrage; 06 Neue Region (Radius, Auslöser, Kartenvorschau); 07 Deine Orte mit Regionen; 08 Regenradar dunkel (einziges Dark-Motiv). Orte: Hamburg, München, Berlin (öffentliche Beispielorte, kein Standort).
 
+## Lokal gehaltene, erzeugte Bilder (11.11.2026)
+
+Nicht im Repo (Repo-Größe, per `.gitignore` lokal gehalten): `design/appstore-screenshots/creative/` (Creatives), `preview/` (App-Vorschau-Video, Poster, Mockup), `*/*/de-kopfzeile/` (Bilder mit Kopfzeile), erzeugte Icon-Vorschauen `design/Icon/**/previews*` und `design/Icon/overview/{all-icons.png,index.html}`. Neu erzeugen:
+
+- Rohscreenshots: `tools/screenshots.sh` (siehe oben, Abschnitt "Englische Screenshots" für den Aufruf).
+- Kopfzeilen-Bilder: `design/appstore-screenshots/tools/headline.swift` (Aufruf unten im Abschnitt Kopfzeilen).
+- Creatives: `design/appstore-screenshots/tools/creative.swift` (Aufruf im Kopf der Datei), Mockup `tools/mockup.swift`.
+- App-Vorschau-Video: Aufnahme per UI-Test `testPreviewTour` (`tools/ShotsUITests.swift`) und `simctl io recordVideo`, Nachbearbeitung mit ffmpeg wie im Abschnitt "App-Vorschau".
+- Icon-Vorschauen: `design/Icon/current/render.sh` (produktives Icon) bzw. die `render.sh` im jeweiligen Vorschauordner; Übersicht `design/Icon/overview/build_overview.py`.
+
+Die 1320x2868-Bilder und Kopfzeilenvarianten sind damit nur lokal vorhanden; vor dem Upload ggf. neu erzeugen.
+
 ## Englische Screenshots (9.11.2026, Paket L6)
 
 Aufruf: `tools/screenshots.sh build`, dann `tools/screenshots.sh iphone-pro|iphone-max|ipad en` (Standard bleibt `de`). Das Skript startet die App mit `-AppleLanguages (en) -AppleLocale en_US` (12-h-Zeit), legt Hamburg, Munich (statt München) und Berlin an und schreibt nach `<geraet>/<maße>/en/`. Das UI-Test-Bundle `ShotsUITests` wählt die Beschriftungen per `SHOT_LANG`.

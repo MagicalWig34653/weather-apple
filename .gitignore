@@ -22,3 +22,19 @@ xcuserdata/
 # GitHub-Pages-Seite
 /docs-site/node_modules/
 /docs-site/dist/
+
+# Lokale Build-Ausgaben und erzeugte Bilder (reproduzierbar, siehe docs/appstore-screenshots.md)
+/build/
+/design/Icon/current/previews/
+/design/Icon/v2/previews/
+/design/Icon/v3/previews/
+/design/Icon/v4/previews/
+/design/Icon/v5/previews/
+/design/Icon/eigenentwurf/previews/
+/design/Icon/eigenentwurf-dark/previews/d?-dark-1024.png
+/design/Icon/v4/previews-v4b/v4b-*.png
+/design/Icon/overview/all-icons.png
+/design/Icon/overview/index.html
+/design/appstore-screenshots/creative/
+/design/appstore-screenshots/preview/
+/design/appstore-screenshots/*/*/de-kopfzeile/
