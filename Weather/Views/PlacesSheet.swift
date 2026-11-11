@@ -34,17 +34,20 @@ struct PlacesSheet: View {
                                     HStack {
                                         Label(place.name, systemImage: "mappin.circle.fill")
                                         Spacer()
-                                        if place.id == store.selectedPlace.id { Image(systemName: "checkmark") }
+                                        if place.id == store.selectedPlace.id { Image(systemName: "checkmark").accessibilityHidden(true) }
                                     }.foregroundStyle(.primary).contentShape(Rectangle())
                                 }
                                 .buttonStyle(.borderless)
+                                .accessibilityAddTraits(place.id == store.selectedPlace.id ? .isSelected : [])
                                 Button {
                                     pushPlaceID = place.id
                                 } label: {
                                     Image(systemName: push.settings(for: place.id) != nil ? "bell.fill" : "bell")
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityLabel(NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Places"))
+                                .accessibilityLabel(String(format: NSLocalizedString("PLACES_ALERT_FOR", value: "Regenhinweis für %@", comment: "Places"), place.name))
+                                .accessibilityInputLabels([String(format: NSLocalizedString("PLACES_ALERT_FOR", value: "Regenhinweis für %@", comment: "Places"), place.name),
+                                                           NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Places")])
                                 .accessibilityValue(push.settings(for: place.id) != nil ? NSLocalizedString("PLACES_ALERT_ON", value: "An", comment: "Places") : NSLocalizedString("PLACES_ALERT_OFF", value: "Aus", comment: "Places"))
                                 .accessibilityIdentifier("place-push")
                             }

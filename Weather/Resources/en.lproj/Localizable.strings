@@ -532,3 +532,21 @@
 "INFO_WIDGET_DIAG_LIVE" = "freshly loaded";
 "INFO_WIDGET_DIAG_CACHE" = "saved forecast";
 "INFO_WIDGET_DIAG_UNAVAILABLE" = "unavailable";
+
+/* Voice Control: Eingabenamen fuer Symbol-Knoepfe (accessibilityInputLabels) */
+"VC_LOCATION" = "Location";
+"VC_LOCATION_ALT" = "Locate me";
+"VC_LEGEND" = "Legend";
+"VC_LEGEND_ALT" = "Colour key";
+"VC_READ_VALUE" = "Read value";
+"VC_INFO" = "Info";
+"VC_INFO_ALT" = "Privacy";
+"VC_WARNINGS" = "Warnings";
+"VC_SAVE_PLACE" = "Save place";
+"VC_BOOKMARK" = "Bookmark";
+"VC_PLACE" = "Choose place";
+"VC_PLACES" = "Places";
+"VC_LAYER" = "Map layer";
+"VC_PAUSE" = "Pause";
+"VC_PLAY" = "Play";
+"PLACES_ALERT_FOR" = "Rain alert for %@";

@@ -129,6 +129,7 @@
 		7CB693EC39316EBD1CAC49A7 /* PushActivityWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D16DB25BD2EF2D3A4B69719 /* PushActivityWire.swift */; };
 		7CF402543846E8BC625CF2D7 /* SharedTexts.strings in Resources */ = {isa = PBXBuildFile; fileRef = C8BAC41F7973BABEF7E4B277 /* SharedTexts.strings */; };
 		7F241E4707A1CBEC8872304F /* NotificationNameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E008BB26D171BB1F9F2FC8 /* NotificationNameStore.swift */; };
+		81F188EB60CC0BD2FF018860 /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4821604DCC975E22F44A700E /* AccessibilityAuditTests.swift */; };
 		8294D33D75D5856E8798E5C9 /* forest-de-v1.webp in Resources */ = {isa = PBXBuildFile; fileRef = 6552ED0F0BA86E40F95403D1 /* forest-de-v1.webp */; };
 		82E04273BAD79FD568732186 /* RainActivityRegionPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B910467976CAE0D81F42B3 /* RainActivityRegionPresentation.swift */; };
 		8309AAB131E4A492FBF2903D /* DWDRetryPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B03C5634FC89FDA4A25F788 /* DWDRetryPolicy.swift */; };
@@ -413,6 +414,7 @@
 		4279A1354F9DF7477FDB8998 /* WarnManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnManager.swift; sourceTree = "<group>"; };
 		42B3B7DEDEFDD9949F13AF97 /* DWDResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDResponse.swift; sourceTree = "<group>"; };
 		45DCBDF1C32C793FA149ED73 /* WatchRadarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarStore.swift; sourceTree = "<group>"; };
+		4821604DCC975E22F44A700E /* AccessibilityAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditTests.swift; sourceTree = "<group>"; };
 		4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineScrubTests.swift; sourceTree = "<group>"; };
 		49D980972A92ED4901F80E28 /* DeviceLinkSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkSection.swift; sourceTree = "<group>"; };
 		4B03C5634FC89FDA4A25F788 /* DWDRetryPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DWDRetryPolicy.swift; sourceTree = "<group>"; };
@@ -576,6 +578,7 @@
 		300BB2229F474C45AD8DA764 /* WeatherUITests */ = {
 			isa = PBXGroup;
 			children = (
+				4821604DCC975E22F44A700E /* AccessibilityAuditTests.swift */,
 				059FF384C55ED1C200B2EC8F /* PlacesEnglishTests.swift */,
 				37D6D537707721F2AA930F4D /* PseudoLocalizationTests.swift */,
 				6C15E85470A90E23A2F92CB7 /* RadarEnglishTests.swift */,
@@ -1540,6 +1543,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				81F188EB60CC0BD2FF018860 /* AccessibilityAuditTests.swift in Sources */,
 				9963072DC7159D8962A455DA /* PlacesEnglishTests.swift in Sources */,
 				BE8347722C02D4FB43AD148B /* PseudoLocalizationTests.swift in Sources */,
 				2D2396336B5A33F83F839249 /* RadarEnglishTests.swift in Sources */,

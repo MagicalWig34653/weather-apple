@@ -90,7 +90,7 @@ Zuordnung und Auswahl: [appstore-einreichung-antworten.md](appstore-einreichung-
 | Hinweise für Prüfer (Push/Live Activity brauchen Backend und echten Regen, Warnungen) | Entwurf fertig | [appstore-einreichung-antworten.md](appstore-einreichung-antworten.md); an Warn-Push-Entscheidung anpassen | Agent (Entwurf), Nutzer (Eintrag) |
 | Guideline 4.2 | geringes Risiko (Einschätzung) | native Radar, Prognose, Widgets, Watch, Push | - |
 | Guideline 5.1.1/5.1.5 | offen | hängt an Datenschutzseite und App Privacy | siehe Blocker |
-| Bedienungshilfen / Accessibility Nutrition Labels | freiwillig, nichts ankreuzen bis geprüft | VoiceOver-Aktion Slider, Dynamic Type bis AXXXL im Simulator geprüft; Gerät, Dark/iPad/VoiceOver real nicht; jedes Label erst nach Beleg setzen | Agent (Prüfplan), Nutzer (Gerät, Eintrag) |
+| Bedienungshilfen / Accessibility Nutrition Labels | freiwillig, nur Belegtes ankreuzen | Simulator-Prüfung 11.11. (`docs/research/bedienungshilfen-pruefung.md`): Audit de/en, AXXXL, Dunkel, Kontrast gemessen. Ankreuzbar: Dunkle Oberfläche. Nach Gerätetest (Anleitung in der Datei): VoiceOver, Sprachsteuerung, Größerer Text, Bewegung reduzieren. Nicht ok: Ausreichender Kontrast, Nicht nur Farbe (Vorschläge V1 bis V3, Nutzerentscheidung). Untertitel/Audiobeschreibungen leer | Agent (Prüfplan), Nutzer (Gerät, Eintrag) |
 | Crash-/Leistungsfreiheit am Gerät | nicht geprüft | 649 Unit und 40 UI im Simulator (Stand Build 46); Akku, Glow, Watch am Gerät ungeprüft | Nutzer |
 | Watch-App | nicht geprüft | Hardware/Krone/Komplikationen | Nutzer |
 | TestFlight extern | unklar | Build 13 eingereicht 1./2.11., Ausgang unbekannt; Voraussetzung für die App-Store-Einreichung nicht belegt | Nutzer |

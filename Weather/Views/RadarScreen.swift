@@ -157,6 +157,8 @@ struct RadarScreen: View {
                             Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
                                 .glassControl(Circle())
                         }.accessibilityLabel(NSLocalizedString("RADAR_USE_LOCATION", value: "Aktuellen Standort verwenden", comment: "Radar"))
+                            .accessibilityInputLabels([NSLocalizedString("RADAR_USE_LOCATION", value: "Aktuellen Standort verwenden", comment: "Radar"),
+                                                       NSLocalizedString("VC_LOCATION", value: "Standort", comment: "Voice Control"), NSLocalizedString("VC_LOCATION_ALT", value: "Ortung", comment: "Voice Control")])
                         Button { withAnimation(reduceMotion ? nil : .bouncy(duration: 0.4)) { showLegend.toggle() } } label: {
                             Image(systemName: "paintpalette").font(.system(size: 20)).frame(width: 46, height: 46)
                                 .glassControl(Circle())
@@ -164,6 +166,8 @@ struct RadarScreen: View {
                         .accessibilityLabel(String(format: NSLocalizedString("RADAR_LEGEND_LABEL", value: "Legende %@", comment: "Radar"), store.activeLayer.title))
                         .accessibilityValue(showLegend ? NSLocalizedString("RADAR_LEGEND_SHOWN", value: "eingeblendet", comment: "Radar") : NSLocalizedString("RADAR_LEGEND_HIDDEN", value: "ausgeblendet", comment: "Radar"))
                         .accessibilityHint(RadarLayerLegendText.toggleHint(for: store.activeLayer))
+                        .accessibilityInputLabels([String(format: NSLocalizedString("RADAR_LEGEND_LABEL", value: "Legende %@", comment: "Radar"), store.activeLayer.title),
+                                                   NSLocalizedString("VC_LEGEND", value: "Legende", comment: "Voice Control"), NSLocalizedString("VC_LEGEND_ALT", value: "Farbskala", comment: "Voice Control")])
                         .accessibilityIdentifier("radar-legend-toggle")
                         if canReadValue {
                             Button { readoutRevision += 1 } label: {
@@ -171,6 +175,8 @@ struct RadarScreen: View {
                                     .glassControl(Circle())
                             }
                             .accessibilityLabel(NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"))
+                            .accessibilityInputLabels([NSLocalizedString("TEMP_READ_CENTER", value: "Wert in Kartenmitte vorlesen", comment: "VoiceOver action"),
+                                                       NSLocalizedString("VC_READ_VALUE", value: "Wert vorlesen", comment: "Voice Control")])
                             .accessibilityIdentifier("radar-read-center")
                         }
                         if warn.capabilityWarnings { warningsButton }
@@ -180,6 +186,8 @@ struct RadarScreen: View {
                         }
                         .glassSheetSource(.information, in: glassNamespace)
                         .accessibilityLabel(NSLocalizedString("RADAR_INFO_BUTTON", value: "Datenquellen und Datenschutz", comment: "Radar"))
+                        .accessibilityInputLabels([NSLocalizedString("RADAR_INFO_BUTTON", value: "Datenquellen und Datenschutz", comment: "Radar"),
+                                                   NSLocalizedString("VC_INFO", value: "Info", comment: "Voice Control"), NSLocalizedString("VC_INFO_ALT", value: "Datenschutz", comment: "Voice Control")])
                     }
                     .buttonStyle(.plain)
                     .font(.title3)
@@ -337,6 +345,8 @@ struct RadarScreen: View {
         .buttonStyle(.plain)
         .accessibilityLabel(NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"))
         .accessibilityValue(store.activeLayer.spokenName)
+        .accessibilityInputLabels([NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"), store.activeLayer.title,
+                                   NSLocalizedString("VC_LAYER", value: "Kartenebene", comment: "Voice Control")])
         .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.", comment: "Radar"))
         .accessibilityIdentifier("radar-layer-menu")
     }
@@ -364,6 +374,7 @@ struct RadarScreen: View {
         .glassSheetSource(.warnings, in: glassNamespace)
         .accessibilityLabel(WarningPresentation.buttonLabel())
         .accessibilityValue(WarningPresentation.buttonValue(summary, stale: stale))
+        .accessibilityInputLabels([WarningPresentation.buttonLabel(), NSLocalizedString("VC_WARNINGS", value: "Warnungen", comment: "Voice Control")])
         .accessibilityIdentifier("radar-warnings-button")
     }
 
@@ -388,6 +399,7 @@ struct RadarScreen: View {
             .glassSheetSource(.places, in: glassNamespace)
             .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
             .accessibilityLabel(String(format: NSLocalizedString("RADAR_PLACE_PICK", value: "Ort auswählen: %@", comment: "Radar"), store.selectedPlace.name))
+            .accessibilityInputLabels([store.selectedPlace.name, NSLocalizedString("VC_PLACE", value: "Ort auswählen", comment: "Voice Control"), NSLocalizedString("VC_PLACES", value: "Orte", comment: "Voice Control")])
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             layerMenu
         }
@@ -509,6 +521,9 @@ struct RadarScreen: View {
                                                             caption: store.activeLayer.frameCaption(isForecast: forecast)))
             .accessibilityHint(NSLocalizedString("TIMELINE_PILL_HINT", value: "Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen", comment: "Radar"))
             .accessibilityAddTraits(.isButton)
+            .accessibilityInputLabels([playing ? NSLocalizedString("TIMELINE_PAUSE", value: "Animation pausieren", comment: "Radar") : NSLocalizedString("TIMELINE_PLAY", value: "Animation abspielen", comment: "Radar"),
+                                       playing ? NSLocalizedString("VC_PAUSE", value: "Pause", comment: "Voice Control") : NSLocalizedString("VC_PLAY", value: "Abspielen", comment: "Voice Control"),
+                                       date.formatted(date: .omitted, time: .shortened)])
             .accessibilityAction(named: Text(NSLocalizedString("TIMELINE_JUMP_NOW", value: "Zur aktuellen Zeit springen", comment: "Radar"))) { jumpToNow() }
             .accessibilityAction(named: Text(playing ? NSLocalizedString("TIMELINE_PAUSE", value: "Animation pausieren", comment: "Radar") : NSLocalizedString("TIMELINE_PLAY", value: "Animation abspielen", comment: "Radar"))) { togglePlayback() }
             .accessibilityIdentifier("radar-frame-label")
@@ -630,6 +645,8 @@ struct RadarScreen: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(NSLocalizedString("RADAR_SAVE_PLACE_BUTTON", value: "Ausgewählten Ort speichern oder umbenennen", comment: "Radar"))
+                .accessibilityInputLabels([NSLocalizedString("RADAR_SAVE_PLACE_BUTTON", value: "Ausgewählten Ort speichern oder umbenennen", comment: "Radar"),
+                                           NSLocalizedString("VC_SAVE_PLACE", value: "Ort speichern", comment: "Voice Control"), NSLocalizedString("VC_BOOKMARK", value: "Lesezeichen", comment: "Voice Control")])
             }
         }
     }

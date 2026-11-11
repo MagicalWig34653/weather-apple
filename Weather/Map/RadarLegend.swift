@@ -60,6 +60,7 @@ extension MapLegend {
 
 struct RadarLegendPanel: View {
     let legend: MapLegend
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -71,7 +72,9 @@ struct RadarLegendPanel: View {
             }
         }
         .padding(10)
-        .fixedSize(horizontal: true, vertical: false)
+        // Accessibility sizes: a fixed panel width (like the layer legend) instead of the natural width, which ran off the screen
+        // at the largest sizes (title and swatches clipped); the text wraps and the rows scroll.
+        .modifier(LegendWidth(accessibility: dynamicTypeSize.isAccessibilitySize))
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(format: NSLocalizedString("RADAR_LEGEND_LABEL", value: "Legende %@", comment: "Legend"),
@@ -87,11 +90,24 @@ struct RadarLegendPanel: View {
                     RoundedRectangle(cornerRadius: 3).fill(entry.color)
                         .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(.secondary.opacity(0.5), lineWidth: 0.5) }
                         .frame(width: 20, height: 12)
-                    Text(entry.label).font(.caption2.monospacedDigit())
+                    Text(entry.label).font(.caption2.monospacedDigit()).fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(entry.spokenLabel)
             }
+        }
+    }
+}
+
+/// Natural (intrinsic) width at normal sizes, a fixed 260 pt panel at accessibility sizes.
+private struct LegendWidth: ViewModifier {
+    let accessibility: Bool
+
+    func body(content: Content) -> some View {
+        if accessibility {
+            content.frame(width: 260, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+        } else {
+            content.fixedSize(horizontal: true, vertical: false)
         }
     }
 }

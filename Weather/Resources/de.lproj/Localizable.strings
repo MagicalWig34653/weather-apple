@@ -532,3 +532,21 @@
 "INFO_WIDGET_DIAG_LIVE" = "neu geladen";
 "INFO_WIDGET_DIAG_CACHE" = "gespeicherte Prognose";
 "INFO_WIDGET_DIAG_UNAVAILABLE" = "nicht verfügbar";
+
+/* Voice Control: Eingabenamen fuer Symbol-Knoepfe (accessibilityInputLabels) */
+"VC_LOCATION" = "Standort";
+"VC_LOCATION_ALT" = "Ortung";
+"VC_LEGEND" = "Legende";
+"VC_LEGEND_ALT" = "Farbskala";
+"VC_READ_VALUE" = "Wert vorlesen";
+"VC_INFO" = "Info";
+"VC_INFO_ALT" = "Datenschutz";
+"VC_WARNINGS" = "Warnungen";
+"VC_SAVE_PLACE" = "Ort speichern";
+"VC_BOOKMARK" = "Lesezeichen";
+"VC_PLACE" = "Ort auswählen";
+"VC_PLACES" = "Orte";
+"VC_LAYER" = "Kartenebene";
+"VC_PAUSE" = "Pause";
+"VC_PLAY" = "Abspielen";
+"PLACES_ALERT_FOR" = "Regenhinweis für %@";
