@@ -32,7 +32,7 @@ Abhängigkeit: App-Privacy in Connect erst nach Livegang der Datenschutzseite; S
 | Hetzner-AVV (Art. 28 DSGVO) | offen | Teil C 4c, Nutzeraktion vor Livegang | Nutzer |
 | App-Privacy-Angaben (Variante B) | offen | Teil B liegt vor (Geräte-ID, Genauer und Grober Standort, App-Funktionalität, verknüpft, kein Tracking); in Connect nicht gesehen; Proxy-IP-Logs (Teil B 10) gegen Apple-Definition ungeprüft. Eintrag erst nach Livegang der Seite | Nutzer |
 | `PrivacyInfo.xcprivacy` in allen 5 Targets | erledigt (Build 33, `b29be64`; Build 34 `8eb9715` Standort ergänzt) | `datenschutz-entwurf-release.md` Teil B 9; Xcode-Privacybericht am finalen Archiv nicht erneut geprüft | Agent |
-| Rechtsgrundlage Proxy-Logs (E7), Rechtsprüfung | offen | Fragenliste Teil G, Briefing `research/rechtspruefung-briefing.md` (11.11.), Prüfung nicht ausgeführt | Agent (Opus), Nutzer (Abnahme) |
+| Rechtsgrundlage Proxy-Logs (E7), Rechtsprüfung | offen, Plausibilitätsprüfung liegt vor | Fragenliste Teil G, Briefing `research/rechtspruefung-briefing.md` (11.11.); Ergebnis [research/rechtspruefung-ergebnis.md](research/rechtspruefung-ergebnis.md) (12.11., keine Rechtsberatung; blockierend: Proxy-Logfrist, Diagnose-Text in der App, Hetzner-AVV, Betreiberangaben) | Agent (Opus), Nutzer (Abnahme) |
 | Impressum | offen, nach Deploy prüfen | Backend-Seite `/impressum` laut Todolino-Karte erstellt; am 7.11. live HTTP 404, seitdem nicht abgerufen; Pflicht-Einordnung (DDG) Teil der Rechtsprüfung | Deploy, Agent (Abruf) |
 | Build für Einreichung gewählt/verarbeitet | offen | Build 46 hochgeladen ("Uploaded package is processing"), Verarbeitung/Installierbarkeit nicht geprüft; Zuordnung zur Version nie erfolgt | Nutzer |
 
