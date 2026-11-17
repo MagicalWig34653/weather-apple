@@ -192,3 +192,119 @@ private final class DelayLog: @unchecked Sendable {
     var count: Int { lock.withLock { items.count } }
     var values: [TimeInterval] { lock.withLock { items } }
 }
+
+/// Responses are released explicitly so an older request always finishes last.
+final class RadarRequestGenerationTests: XCTestCase {
+    private let base = URL(string: "https://radar.example.invalid/v1/radar/")!
+
+    private func data(reference: Date) throws -> Data {
+        let stamp = DWDRequest.timestamp(reference)
+        return try JSONSerialization.data(withJSONObject: [
+            "schema": 1, "run": "20261117T1200Z", "reference_time": stamp,
+            "generated_at": stamp, "step_minutes": 5,
+            "image": ["format": "image/webp", "width": 1, "height": 1,
+                      "projection": "EPSG:3857", "bbox": [0, 0, 1, 1]],
+            "slots": [["time": stamp, "kind": "analysis", "path": "20261117T1200Z/a.webp"]],
+            "attribution": "DWD", "modification_notice": "Raster"])
+    }
+
+    func testOlderClientResponseCannotReplaceManifestOrETag() async throws {
+        let now = Date(), gate = RadarGenerationGate()
+        let old = try data(reference: now.addingTimeInterval(-300)), new = try data(reference: now)
+        let client = RadarBackendClient(baseURL: base, transport: { try await gate.respond($0) }, clock: { now })
+        let first = Task { await client.latest() }
+        await gate.waitForFirst()
+        await gate.setNew(new)
+        _ = await client.latest()
+        await gate.releaseFirst(old)
+        _ = await first.value
+        let cached = await client.latest()
+        XCTAssertEqual(cached, .fresh(try RadarManifest.parse(new, baseURL: base), changed: false))
+        let etag = await gate.lastETag
+        XCTAssertEqual(etag, "new")
+    }
+
+    func testOlderNotFoundResponseCannotClearNewClientCache() async throws {
+        let now = Date(), gate = RadarGenerationGate()
+        let new = try data(reference: now)
+        await gate.setNew(new)
+        let client = RadarBackendClient(baseURL: base, transport: { try await gate.respond($0) }, clock: { now })
+        let first = Task { await client.latest() }
+        await gate.waitForFirst()
+        _ = await client.latest()
+        await gate.releaseFirst(Data(), status: 404)
+        _ = await first.value
+        let cached = await client.latest()
+        XCTAssertEqual(cached, .fresh(try RadarManifest.parse(new, baseURL: base), changed: false))
+    }
+
+    @MainActor
+    func testOldPollCannotReplaceCompletedManualRefresh() async throws {
+        let now = Date(), gate = RadarGenerationGate()
+        let old = try data(reference: now.addingTimeInterval(-300)), new = try data(reference: now)
+        await gate.setNew(new)
+        let backend = RadarBackendClient(baseURL: base, transport: { try await gate.respond($0) }, clock: { now })
+        let suite = "radar-generation-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
+                                 backend: backend, defaults: defaults, reloadWidgets: {})
+        let poll = Task { await store.pollRadar() }
+        await gate.waitForFirst()
+        await store.refresh()
+        XCTAssertEqual(store.timeline?.referenceTime, try RadarManifest.parse(new, baseURL: base).referenceTime)
+        await gate.releaseFirst(old)
+        let outcome = await poll.value
+        XCTAssertEqual(outcome, .skipped)
+        XCTAssertEqual(store.timeline?.referenceTime, try RadarManifest.parse(new, baseURL: base).referenceTime)
+        XCTAssertNil(store.radarError)
+    }
+
+    func testCancelledClientResponseCannotPopulateCache() async throws {
+        let now = Date(), gate = RadarGenerationGate()
+        let client = RadarBackendClient(baseURL: base, transport: { try await gate.respond($0) }, clock: { now })
+        let task = Task { await client.latest() }
+        await gate.waitForFirst()
+        task.cancel()
+        await gate.releaseFirst(try data(reference: now))
+        let outcome = await task.value
+        XCTAssertEqual(outcome, .fallback(.unreachable))
+        // A 304 must not find a cache populated by the cancelled request.
+        await gate.use304()
+        let cached = await client.latest()
+        XCTAssertEqual(cached, .fallback(.invalid))
+    }
+}
+
+private actor RadarGenerationGate {
+    private var count = 0
+    private var first: CheckedContinuation<(Data, HTTPURLResponse), any Error>?
+    private var observer: CheckedContinuation<Void, Never>?
+    private var newData = Data()
+    private var force304 = false
+    private(set) var lastETag: String?
+    func setNew(_ data: Data) { newData = data }
+    func use304() { force304 = true }
+    func waitForFirst() async {
+        if first != nil { return }
+        await withCheckedContinuation { observer = $0 }
+    }
+    func releaseFirst(_ data: Data, status: Int = 200) {
+        first?.resume(returning: (data, HTTPURLResponse(url: URL(string: "https://radar.example.invalid")!,
+            statusCode: status, httpVersion: nil, headerFields: ["ETag": "old"])!))
+        first = nil
+    }
+    func respond(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        count += 1
+        if count == 1 {
+            return try await withCheckedThrowingContinuation { continuation in
+                first = continuation
+                observer?.resume(); observer = nil
+            }
+        }
+        lastETag = request.value(forHTTPHeaderField: "If-None-Match")
+        let status = force304 || count > 2 ? 304 : 200
+        return (newData, HTTPURLResponse(url: request.url!, statusCode: status,
+            httpVersion: nil, headerFields: ["ETag": "new"])!)
+    }
+}
