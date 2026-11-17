@@ -12,6 +12,7 @@ final class WarnManagerTests: XCTestCase {
         var deleted: [String] = []
         var failCreate: WarnGatewayError?
         var failUpdate: WarnGatewayError?
+        var failDelete: WarnGatewayError?
         var counter = 0
         func create(_ identity: PushIdentity, _ settings: WarnSubscriptionSettings) async throws -> String {
             calls.append("create")
@@ -24,7 +25,11 @@ final class WarnManagerTests: XCTestCase {
             if let failUpdate { throw failUpdate }
             updated.append((id, settings))
         }
-        func delete(_ identity: PushIdentity, id: String) async throws { calls.append("delete"); deleted.append(id) }
+        func delete(_ identity: PushIdentity, id: String) async throws {
+            calls.append("delete")
+            if let failDelete { throw failDelete }
+            deleted.append(id)
+        }
         func list(_ identity: PushIdentity) async throws -> [(id: String, settings: WarnSubscriptionSettings)] { calls.append("list"); return [] }
     }
 
@@ -160,6 +165,56 @@ final class WarnManagerTests: XCTestCase {
         XCTAssertEqual(env.gateway.deleted.count, 1)
         XCTAssertEqual(env.host.synced, 1)
         XCTAssertFalse(env.manager.isActive)
+    }
+
+    func testDisableWithoutIdentityKeepsPendingDeletionAcrossRestart() async throws {
+        let env = try await make(targets: [place("A", 51.5, 10.5)])
+        let saved = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        let subscriptionID = try XCTUnwrap(JSONDecoder().decode(WarnManager.State.self, from: saved).subs.values.first?.id)
+        env.host.identity = nil
+
+        await env.manager.setEnabled(false)
+
+        XCTAssertFalse(env.manager.settings.enabled)
+        XCTAssertEqual(env.manager.subscriptionCount, 1)
+        XCTAssertEqual(env.gateway.deleted, [])
+        let pending = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        XCTAssertEqual(try JSONDecoder().decode(WarnManager.State.self, from: pending).subs.values.first?.id,
+                       subscriptionID)
+
+        let restarted = WarnManager(gateway: env.gateway, host: env.host,
+                                    capabilities: { ["warnings", "warnings_push"] }, matcher: { nil },
+                                    defaults: env.defaults, nameDefaults: env.names)
+        await restarted.refreshCapabilities()
+        await restarted.reconcile()
+        XCTAssertEqual(restarted.subscriptionCount, 1)
+        XCTAssertFalse(restarted.settings.enabled)
+
+        env.host.identity = identity
+        env.gateway.failDelete = .unavailable
+        await restarted.reconcile()
+        XCTAssertEqual(restarted.subscriptionCount, 1)
+        XCTAssertEqual(env.gateway.deleted, [])
+
+        env.gateway.failDelete = nil
+        await restarted.reconcile()
+        XCTAssertEqual(env.gateway.deleted, [subscriptionID])
+        XCTAssertEqual(restarted.subscriptionCount, 0)
+        let completed = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        XCTAssertTrue(try JSONDecoder().decode(WarnManager.State.self, from: completed).subs.isEmpty)
+    }
+
+    func testPendingDeletionCompletesWhenServerAlreadyRemovedSubscription() async throws {
+        let env = try await make(targets: [place("A", 51.5, 10.5)])
+        env.host.identity = nil
+        await env.manager.setEnabled(false)
+        XCTAssertEqual(env.manager.subscriptionCount, 1)
+
+        env.host.identity = identity
+        env.gateway.failDelete = .notFound
+        await env.manager.reconcile()
+        XCTAssertEqual(env.gateway.calls, ["create", "delete"])
+        XCTAssertEqual(env.manager.subscriptionCount, 0)
     }
 
     func testDeniedPermissionKeepsSwitchOff() async throws {

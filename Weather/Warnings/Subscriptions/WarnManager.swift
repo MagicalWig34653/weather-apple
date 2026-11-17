@@ -183,8 +183,8 @@ final class WarnManager {
 
     private func run() async {
         if !settings.enabled, host.warningIdentity() == nil {
-            // No acknowledged installation: nothing to delete remotely (an installation delete cascades).
-            state = State(); persistState(); writeNames([:])
+            // Registration may only be delayed. Retain IDs until DELETE succeeds or confirms absence.
+            writeNames([:])
             return
         }
         guard capabilityWarningsPush else { return }
