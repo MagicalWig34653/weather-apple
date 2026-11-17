@@ -11,6 +11,7 @@ struct SetupWizardView: View {
     @Environment(PushManager.self) private var push
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
+    @Environment(\.colorScheme) private var scheme
     @State private var index = 0
     @State private var working = false
     @State private var locationState = SetupLocationState(CLLocationManager().authorizationStatus)
@@ -27,7 +28,8 @@ struct SetupWizardView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(red: 0.03, green: 0.10, blue: 0.22), Color(red: 0.02, green: 0.04, blue: 0.10)],
+            LinearGradient(colors: scheme == .dark ? [Color(red: 0.03, green: 0.10, blue: 0.22), Color(red: 0.02, green: 0.04, blue: 0.10)]
+                                               : [Color(red: 0.84, green: 0.92, blue: 1.0), Color(red: 0.93, green: 0.96, blue: 1.0)],
                            startPoint: .top, endPoint: .bottom).ignoresSafeArea()
             VStack(spacing: 0) {
                 header
@@ -44,7 +46,6 @@ struct SetupWizardView: View {
                 footer
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { push.updatePlaceNames(store.places) }
     }
 
@@ -54,7 +55,7 @@ struct SetupWizardView: View {
         HStack {
             HStack(spacing: 6) {
                 ForEach(steps.indices, id: \.self) { i in
-                    Capsule().fill(i == index ? Color.cyan : Color.white.opacity(0.3)).frame(width: i == index ? 22 : 8, height: 8)
+                    Capsule().fill(i == index ? Color.cyan : Color.secondary.opacity(0.35)).frame(width: i == index ? 22 : 8, height: 8)
                 }
             }
             .accessibilityElement(children: .ignore)
@@ -121,7 +122,7 @@ struct SetupWizardView: View {
         }
     }
 
-    private func body(_ text: String) -> some View { Text(text).font(.body).foregroundStyle(.white.opacity(0.85)).fixedSize(horizontal: false, vertical: true) }
+    private func body(_ text: String) -> some View { Text(text).font(.body).foregroundStyle(.primary.opacity(0.8)).fixedSize(horizontal: false, vertical: true) }
 
     private var welcomeCard: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -157,7 +158,8 @@ struct SetupWizardView: View {
             }
             if store.places.count < maxAlertPlaces {
                 TextField(NSLocalizedString("PLACES_SEARCH_PROMPT", value: "Stadt, Adresse oder Ort", comment: "Places"), text: $query)
-                    .textFieldStyle(.roundedBorder).submitLabel(.search)
+                    .textFieldStyle(.plain).padding(12).frame(minHeight: 44)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 12)).submitLabel(.search)
                     .onSubmit { Task { await search() } }
                     .accessibilityIdentifier("setup-search")
                 if let searchMessage { Text(searchMessage).font(.footnote).foregroundStyle(.secondary) }
@@ -168,6 +170,8 @@ struct SetupWizardView: View {
                             if let address = item.address?.shortAddress { Text(address).font(.caption).foregroundStyle(.secondary) }
                         }.frame(maxWidth: .infinity, alignment: .leading).frame(minHeight: 44).contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("setup-result")
                 }
             }
             Text(NSLocalizedString("SETUP_PLACES_PRIVACY", value: "Orte bleiben auf diesem Gerät. Die Suche nutzt Apple-Kartendienste.", comment: "Setup"))
