@@ -212,6 +212,13 @@ final class WatchRadarStore: ObservableObject {
 
     func image(at index: Int) -> CGImage? { cache.image(at: index) }
 
+    /// Refresh status and footer from the same local instant, without fetching data.
+    func localClockTick() -> Date {
+        let date = clock()
+        updateFreshness(at: date)
+        return date
+    }
+
     /// Invoke on the UI's local clock tick; this does not cause a network request.
     func updateFreshness(at date: Date? = nil) {
         isStale = manifest.map { WatchRadarSlots.isStale($0, at: date ?? clock()) } ?? true

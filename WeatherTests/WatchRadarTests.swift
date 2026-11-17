@@ -11,6 +11,13 @@ import ImageIO
 private let radarTestTime = Date(timeIntervalSince1970: 1_800_000_000)
 private let radarTestBounds = RadarBounds(minX: 612257, minY: 5942074, maxX: 1736584, maxY: 7381298)
 
+private final class RadarDisplayClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var date = radarTestTime
+    func now() -> Date { lock.withLock { date } }
+    func set(_ date: Date) { lock.withLock { self.date = date } }
+}
+
 private func radarTestImage(edge: Int = 160) -> CGImage {
     CGContext(data: nil, width: edge, height: edge, bitsPerComponent: 8, bytesPerRow: edge * 4,
               space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!.makeImage()!
@@ -157,6 +164,46 @@ final class WatchRadarTests: XCTestCase {
         XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [15], failed: [13]), .wait)
         XCTAssertEqual(WatchRadarSlots.playbackStep(after: 34, loaded: [], failed: [35, 36]), .stop)
         XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [], failed: []), .wait)
+    }
+
+    func testLocalClockTickMarksLoadedRadarStaleWithoutRequests() async throws {
+        let fixture = RadarFixture(payload: try payload())
+        let clock = RadarDisplayClock()
+        let store = WatchRadarStore(baseURL: URL(string: "https://example.invalid/v1/radar/")!,
+                                    transport: { try await fixture.fetch($0) },
+                                    decode: { _, _, _, _ in radarTestImage() }, clock: { clock.now() })
+        store.load(place: place(), lowPower: false)
+        await store.waitUntilFinished()
+        let count = await fixture.recorded().count
+        XCTAssertEqual(store.state, .ready)
+        clock.set(radarTestTime.addingTimeInterval(1199))
+        XCTAssertEqual(store.localClockTick(), clock.now())
+        XCTAssertFalse(store.isStale)
+        XCTAssertEqual(store.state, .ready)
+        clock.set(radarTestTime.addingTimeInterval(1200))
+        XCTAssertEqual(store.localClockTick(), clock.now())
+        XCTAssertTrue(store.isStale)
+        XCTAssertEqual(store.state, .failed(.backend(.stale)))
+        let after = await fixture.recorded().count
+        XCTAssertEqual(after, count)
+    }
+
+    func testLocalClockTickOnReactivationUsesCurrentClockWithoutRequests() async throws {
+        let fixture = RadarFixture(payload: try payload())
+        let clock = RadarDisplayClock()
+        let store = WatchRadarStore(baseURL: URL(string: "https://example.invalid/v1/radar/")!,
+                                    transport: { try await fixture.fetch($0) },
+                                    decode: { _, _, _, _ in radarTestImage() }, clock: { clock.now() })
+        store.load(place: place(), lowPower: false)
+        await store.waitUntilFinished()
+        store.stop()
+        let count = await fixture.recorded().count
+        clock.set(radarTestTime.addingTimeInterval(1260))
+        XCTAssertEqual(store.localClockTick(), radarTestTime.addingTimeInterval(1260))
+        XCTAssertTrue(store.isStale)
+        XCTAssertEqual(store.state, .idle)
+        let after = await fixture.recorded().count
+        XCTAssertEqual(after, count)
     }
 
     func testIdleLoadingReadyAllSlotsPrivacyAndRAMBudget() async throws {

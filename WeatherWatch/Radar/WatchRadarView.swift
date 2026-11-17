@@ -16,6 +16,7 @@ struct WatchRadarView: View {
     @State private var backdrop: WatchMapBackdropResult?
     @State private var backdropFailed = false
     @State private var playing = false
+    @State private var displayTime = Date()
     @State private var mapSize: CGSize = .zero
     @State private var provider = WatchMapBackdrop()
     @FocusState private var crownFocused: Bool
@@ -49,7 +50,10 @@ struct WatchRadarView: View {
             if Int(crown.rounded()) != index { crown = Double(index) }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { if store.state == .idle { open() } } else if phase == .background { close() }
+            if phase == .active {
+                displayTime = store.localClockTick()
+                if store.state == .idle { open() }
+            } else if phase == .background { close() }
         }
         .onChange(of: zoom) { _, _ in open() }
         .onChange(of: store.state) { _, state in
@@ -57,6 +61,7 @@ struct WatchRadarView: View {
         }
         .task(id: BackdropKey(size: mapSize, zoom: zoom, dark: colorScheme == .dark)) { await loadBackdrop() }
         .task(id: playing) { await play() }
+        .task(id: scenePhase) { await updateClock() }
         .onAppear { crownFocused = true; if store.state == .idle { open() } }
         .onDisappear { close(); provider.clear() }
     }
@@ -196,7 +201,7 @@ struct WatchRadarView: View {
 
     private var ageText: String? {
         guard let ref = store.referenceTime else { return nil }
-        let minutes = max(0, Int(Date().timeIntervalSince(ref) / 60))
+        let minutes = max(0, Int(displayTime.timeIntervalSince(ref) / 60))
         return WatchText.age(minutes)
     }
 
@@ -215,6 +220,15 @@ struct WatchRadarView: View {
     private func close() {
         playing = false
         store.stop()
+    }
+
+    private func updateClock() async {
+        guard scenePhase == .active else { return }
+        while !Task.isCancelled {
+            displayTime = store.localClockTick()
+            do { try await Task.sleep(for: .seconds(30)) }
+            catch { return }
+        }
     }
 
     private func cycleZoom() {
