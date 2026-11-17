@@ -248,9 +248,12 @@ struct WatchRadarView: View {
         while !Task.isCancelled, playing, scenePhase == .active {
             try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
-            let next = store.selectedIndex + 1
-            if next >= WatchRadarSlots.count { playing = false; return }
-            if store.loadedSlotIndices.contains(next) { store.select(index: next) }
+            switch WatchRadarSlots.playbackStep(after: store.selectedIndex, loaded: store.loadedSlotIndices,
+                                                failed: Set(store.slotFailures.keys)) {
+            case let .advance(next): store.select(index: next)
+            case .wait: continue
+            case .stop: playing = false; return
+            }
         }
     }
 }

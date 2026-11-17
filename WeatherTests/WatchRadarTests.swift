@@ -1,14 +1,11 @@
-// Portable macOS harness (no product Package.swift, no Watch UI dependencies):
-// Copy Shared/**/*.swift and these exact files into Sources/WeatherWatchRadar:
-// Weather/Data/{RadarBackend,RadarHistory,DWDRadarTimeline+App}.swift,
-// WeatherWatch/Radar/{RadarCrop,WatchRadarStore}.swift.
-// Copy this file into Tests/WeatherWatchRadarTests and define WATCH_RADAR_TESTS there.
-// SwiftPM tools 6.0; macOS >=15; .testTarget depends on WeatherWatchRadar.
-// swift test --disable-sandbox --package-path <temporary harness>
+// Portable macOS >=15 / Swift >=6.0 harness: bash tools/test_watch_radar.sh
+// The versioned script copies the shared model, backend client and Watch radar sources
+// into a temporary dependency-free SwiftPM package and defines WATCH_RADAR_TESTS.
 // The iOS WeatherTests target deliberately does not run these Watch-only tests.
 #if WATCH_RADAR_TESTS
 import XCTest
 import CoreGraphics
+import ImageIO
 @testable import WeatherWatchRadar
 
 private let radarTestTime = Date(timeIntervalSince1970: 1_800_000_000)
@@ -148,6 +145,18 @@ final class WatchRadarTests: XCTestCase {
         XCTAssertEqual(WatchRadarSlots.index(for: .distantFuture, reference: radarTestTime), 36)
         XCTAssertEqual(Array(WatchRadarSlots.priority(selected: 12, lowPower: false).prefix(5)), [12, 11, 13, 10, 14])
         XCTAssertEqual(WatchRadarSlots.priority(selected: 36, lowPower: true), [36, 35, 34])
+    }
+
+    func testPlaybackAdvancesThroughLoadedFramesAndStopsAtEnd() {
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [13], failed: []), .advance(13))
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 36, loaded: [0], failed: []), .stop)
+    }
+
+    func testPlaybackSkipsKnownGapsAndFailuresButWaitsForLoadingFrame() {
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [15], failed: [13, 14]), .advance(15))
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [15], failed: [13]), .wait)
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 34, loaded: [], failed: [35, 36]), .stop)
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [], failed: []), .wait)
     }
 
     func testIdleLoadingReadyAllSlotsPrivacyAndRAMBudget() async throws {
