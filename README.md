@@ -10,7 +10,7 @@ Der Stand ist noch keine vollständige Version 1. Der letzte hochgeladene Build 
 
 ## Projekt öffnen und prüfen
 
-Voraussetzungen: Xcode 27.1 mit iOS-Simulator und XcodeGen 2.46.0. Die Deployment-Mindestversion ist iOS 27.0. Die folgenden Befehle werden im Repository-Verzeichnis ausgeführt:
+Voraussetzungen: Xcode 27.1 mit iOS-Simulator und XcodeGen 2.46.0. Die Deployment-Mindestversion ist iOS 26.0 und watchOS 26.0 (gebaut mit dem 27er-SDK). Die folgenden Befehle werden im Repository-Verzeichnis ausgeführt:
 
 ```sh
 xcodegen generate

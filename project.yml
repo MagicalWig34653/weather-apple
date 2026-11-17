@@ -2,8 +2,8 @@ name: Weather
 options:
   minimumXcodeGenVersion: 2.46.0
   deploymentTarget:
-    iOS: '27.0'
-    watchOS: '27.0'
+    iOS: '26.0'
+    watchOS: '26.0'
   createIntermediateGroups: true
   developmentLanguage: de
   knownRegions: [de, en, Base]
