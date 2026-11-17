@@ -71,14 +71,14 @@ struct RainLiveActivity: Widget {
     }
 }
 
-/// Re-evaluates at the stale boundary so an expired state flips to "outdated" without a new update.
+/// Re-evaluates at event and stale boundaries without requiring a new remote update.
 struct RainActivityTimeline<Content: View>: View {
     let context: ActivityViewContext<RainActivityAttributes>
     @ViewBuilder let content: (RainActivityPresentation, String?) -> Content
 
     var body: some View {
         let place = RainActivityPlace.resolve(context.attributes)
-        TimelineView(.explicit([Date.now, context.state.effectiveStaleDate])) { timeline in
+        TimelineView(.explicit(RainActivityTiming.timelineDates(state: context.state, now: .now))) { timeline in
             let p = RainActivityPresentation(state: context.state, contextIsStale: context.isStale, now: timeline.date,
                                              localRadiusKm: place.radiusKm)
             content(p, p.region.map { $0.title(name: place.name) } ?? place.name)
@@ -92,7 +92,7 @@ struct RainCountdown: View {
 
     var body: some View {
         if let target = p.countdownTarget {
-            Text(timerInterval: Date.now...target, countsDown: true, showsHours: false)
+            Text(timerInterval: RainActivityTiming.countdownInterval(now: .now, target: target), countsDown: true, showsHours: false)
                 .monospacedDigit().multilineTextAlignment(.trailing)
         } else {
             EmptyView()
@@ -112,7 +112,7 @@ struct RainLockScreenView: View {
                 HStack(spacing: 6) {
                     Text(p.headline).font(.headline)
                     if let target = p.countdownTarget {
-                        Text(timerInterval: Date.now...target, countsDown: true, showsHours: false)
+                        Text(timerInterval: RainActivityTiming.countdownInterval(now: .now, target: target), countsDown: true, showsHours: false)
                             .font(.headline.monospacedDigit()).foregroundStyle(p.color)
                     }
                 }
