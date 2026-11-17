@@ -37,7 +37,11 @@ final class WarnManager {
     static let placeMaxDistanceKm = 5.0
 
     struct SubRecord: Codable, Equatable { var id: String; var fingerprint: String }
-    struct State: Codable, Equatable { var subs: [String: SubRecord] = [:] }
+    struct State: Codable, Equatable {
+        var subs: [String: SubRecord] = [:]
+        /// Optional for states saved before subscriptions were bound to their installation.
+        var installationID: String?
+    }
 
     private(set) var capabilityWarnings = false
     private(set) var capabilityWarningsPush = false
@@ -190,6 +194,18 @@ final class WarnManager {
         guard capabilityWarningsPush else { return }
         guard let identity = host.warningIdentity() else { return }
         notice = nil
+        if state.installationID != identity.installationID {
+            if state.installationID == nil {
+                // Legacy IDs may already belong to this installation: verify by UPDATE, not a duplicate CREATE.
+                // A failed UPDATE keeps the invalidated fingerprint for the next retry; 404 recreates the ID.
+                for key in Array(state.subs.keys) { state.subs[key]?.fingerprint = "" }
+            } else {
+                // IDs are scoped to their owner. The new identity cannot update or delete the old owner's IDs.
+                state.subs = [:]
+            }
+            state.installationID = identity.installationID
+            persistState()
+        }
         let wanted = desired()
         if settings.enabled, !settings.types.isEmpty, matcher() == nil { notice = .failed; return }
 
