@@ -36,6 +36,37 @@ final class SetupWizardTests: XCTestCase {
         XCTAssertFalse(app.buttons["setup-primary"].waitForExistence(timeout: 2))
     }
 
+    /// Screenshot run for review (clean simulator, appearance set with `simctl ui`): attaches one image per step.
+    func testScreenshotsAllSteps() {
+        let app = UITestLaunch.app(language: .german, extra: ["-UITestSetup"])
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Willkommen bei Showers"].waitForExistence(timeout: 30))
+        attach(app, "01-willkommen")
+        app.buttons["setup-primary"].tap()
+        let found = app.staticTexts["Dein Standort"].waitForExistence(timeout: 8)
+        attach(app, "02-standort")
+        XCTAssertTrue(found)
+        app.buttons["setup-later"].tap()
+        XCTAssertTrue(app.staticTexts["Deine Orte"].waitForExistence(timeout: 5))
+        attach(app, "03-orte")
+        let field = app.textFields["setup-search"]
+        field.tap()
+        field.typeText("Berlin\n")
+        let result = app.buttons.matching(identifier: "setup-result").firstMatch
+        if result.waitForExistence(timeout: 10) {
+            attach(app, "03b-orte-suche")
+            result.tap()
+            Thread.sleep(forTimeInterval: 1.5)
+        }
+        attach(app, "03c-orte-gespeichert")
+        app.buttons["setup-primary"].tap()
+        XCTAssertTrue(app.staticTexts["Regenwarnung"].waitForExistence(timeout: 5))
+        attach(app, "04-regenwarnung")
+        app.buttons["setup-later"].tap()
+        XCTAssertTrue(app.staticTexts["Fertig"].waitForExistence(timeout: 5))
+        attach(app, "05-fertig")
+    }
+
     func testSkipAllEndsSetup() {
         let app = UITestLaunch.app(language: .german, extra: ["-UITestSetup"])
         app.launch()
