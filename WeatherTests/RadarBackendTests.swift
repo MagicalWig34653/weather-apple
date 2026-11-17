@@ -306,6 +306,39 @@ final class RadarBackendTests: XCTestCase {
 
     // MARK: Decoder
 
+    func testDecoderValidatesMetadataBeforeAllocatingPixels() {
+        func valid(_ width: Any, _ height: Any, expectedWidth: Int = 4096, expectedHeight: Int = 4096) -> Bool {
+            RadarImageDecoder.hasValidDimensions([
+                kCGImagePropertyPixelWidth as String: width,
+                kCGImagePropertyPixelHeight as String: height
+            ], width: expectedWidth, height: expectedHeight)
+        }
+        XCTAssertTrue(valid(4096, 4096), "Existing manifest boundary remains supported")
+        XCTAssertTrue(valid(2048, 2168, expectedWidth: 2048, expectedHeight: 2168))
+        XCTAssertFalse(valid(16_384, 16_384, expectedWidth: 16_384, expectedHeight: 16_384),
+                       "Compressed images must not bypass the decoded-pixel limit")
+        XCTAssertFalse(valid(4097, 1, expectedWidth: 4097, expectedHeight: 1))
+        XCTAssertFalse(valid(1, 4097, expectedWidth: 1, expectedHeight: 4097))
+        XCTAssertFalse(valid(4096, 4095), "Actual dimensions must match the manifest")
+        let invalidValues: [Any] = [0, -1, 1.5, Double.infinity, Double.nan, UInt64.max, true, "4096", NSNull()]
+        for invalid in invalidValues {
+            XCTAssertFalse(valid(invalid, 1, expectedWidth: 1, expectedHeight: 1))
+            XCTAssertFalse(valid(1, invalid, expectedWidth: 1, expectedHeight: 1))
+        }
+        XCTAssertFalse(RadarImageDecoder.hasValidDimensions([:], width: 1, height: 1))
+        XCTAssertFalse(valid(1, 1, expectedWidth: Int.max, expectedHeight: Int.max))
+    }
+
+    func testDecoderAcceptsSmallPNGAndRejectsManifestMismatch() throws {
+        let data = NSMutableData()
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithData(data as CFMutableData, "public.png" as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, Self.pixel, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        XCTAssertNotNil(RadarImageDecoder.decode(data as Data, width: 1, height: 1))
+        XCTAssertNil(RadarImageDecoder.decode(data as Data, width: 2, height: 1))
+        XCTAssertNil(RadarImageDecoder.decode(data as Data, width: 1, height: 0))
+    }
+
     func testDecoderChecksDimensionsAndRejectsGarbage() {
         // 1x1 lossless WebP.
         let webp = Data(base64Encoded: "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==")!
