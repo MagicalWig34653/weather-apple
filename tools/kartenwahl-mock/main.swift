@@ -69,7 +69,7 @@ struct RainSub: View {
     var body: some View {
         Panel(width: 340) {
             Row(icon: "cloud.rain", title: "Deutschland (DWD)", sub: "Radar, 5-Minuten-Schritte", check: true)
-            Row(icon: "globe.europe.africa", title: "Europa (OPERA)", sub: "Radarverbund, 15 Minuten")
+            Row(icon: "globe.europe.africa", title: "Europa (OPERA)", sub: "Radarverbund, 5-Minuten-Schritte")
             if variant == 2 {
                 Row(icon: "globe", title: "Welt (NOAA)", sub: "aus Satellitendaten geschätzt, ungenauer")
             }
