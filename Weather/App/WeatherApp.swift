@@ -9,6 +9,7 @@ struct WeatherApp: App {
     @State private var deviceLink = DeviceLinkManager.live()
     @State private var warn: WarnManager
     @State private var warnFeed: WarnFeedStore
+    @State private var setup = SetupCoordinator()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -28,6 +29,12 @@ struct WeatherApp: App {
                 .environment(deviceLink)
                 .environment(warn)
                 .environment(warnFeed)
+                .environment(setup)
+                .fullScreenCover(isPresented: $setup.isPresented) {
+                    SetupWizardView(store: store, coordinator: setup)
+                        .environment(push)
+                }
+                .task { await setup.evaluate(store: store, push: push) }
                 .onOpenURL { store.openWidgetURL($0) }
                 .onChange(of: store.places, initial: true) { _, places in
                     phoneSession.update(places: places)
