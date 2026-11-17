@@ -61,7 +61,8 @@ struct SetupWizardView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(String(format: NSLocalizedString("SETUP_PROGRESS", value: "Schritt %1$lld von %2$lld", comment: "Setup"), index + 1, steps.count))
             Spacer()
-            if step != .done {
+            // One way to leave per screen: "Überspringen" (whole wizard) only on the welcome screen, "Später" on the others.
+            if step == .welcome {
                 Button(NSLocalizedString("SETUP_SKIP_ALL", value: "Überspringen", comment: "Setup")) { coordinator.finish() }
                     .accessibilityHint(NSLocalizedString("SETUP_SKIP_ALL_HINT", value: "Beendet die Einrichtung und öffnet das Radar", comment: "Setup"))
                     .accessibilityIdentifier("setup-skip-all")
