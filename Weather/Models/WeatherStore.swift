@@ -63,6 +63,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
+    /// Shared by polls, manual reloads and timeline composition across suspension points.
+    @ObservationIgnored private var radarGeneration = UUID()
     /// Refresh started by the last `select`; tests await it to order requests deterministically.
     @ObservationIgnored private(set) var selectionRefresh: Task<Void, Never>?
     @ObservationIgnored private var waitingForLocation = false
@@ -150,6 +152,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func select(_ place: SavedPlace) {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
+        radarGeneration = UUID()
         selectedPlace = place
         if places.contains(where: { $0.id == place.id }) { persistPlaces() }
         forecast = lastValidForecast(for: place.id)
@@ -202,6 +205,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func refresh() async {
         let requestID = UUID()
         generation = requestID
+        radarGeneration = requestID
         let place = selectedPlace
         isRadarLoading = true
         isForecastLoading = true
@@ -226,8 +230,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     }
 
     private func refreshTimeline(requestID: UUID, placeID: UUID) async {
-        let result = await loadTimeline()
-        guard generation == requestID, selectedPlace.id == placeID, !Task.isCancelled else { return }
+        let result = await loadTimeline(requestID: requestID)
+        guard generation == requestID, radarGeneration == requestID, selectedPlace.id == placeID, !Task.isCancelled else { return }
         isRadarLoading = false
         switch result {
         case .success(let value):
@@ -256,20 +260,22 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @discardableResult
     func pollRadar() async -> RadarPollOutcome {
         guard !isRadarLoading, Date() >= backendBlockedUntil else { return .skipped }
+        let requestID = UUID()
+        radarGeneration = requestID
         let outcome = await backend.latest()
-        guard !isRadarLoading, !Task.isCancelled, Date() >= backendBlockedUntil else { return .skipped }
+        guard radarGeneration == requestID, !isRadarLoading, !Task.isCancelled, Date() >= backendBlockedUntil else { return .skipped }
         switch outcome {
         case .fresh(let manifest, _):
             if radarSource == .cache, latestManifest == manifest { return .succeeded }
-            let merged = await resolveBackendTimeline(manifest, retryHistory: false)
-            guard !isRadarLoading, !Task.isCancelled else { return .skipped }
+            guard let merged = await resolveBackendTimeline(manifest, retryHistory: false, requestID: requestID) else { return .skipped }
+            guard radarGeneration == requestID, !isRadarLoading, !Task.isCancelled else { return .skipped }
             apply(merged.timeline, source: .cache, attribution: RadarAttribution(manifest), keepSelection: true)
             radarNotice = nil
             return .succeeded
         case .fallback:
             if radarSource == .cache, let timeline,
                Date().timeIntervalSince(timeline.referenceTime) > RadarBackendConfig.maximumDataAge {
-                await switchToDirectRadar(notice: nil)
+                await switchToDirectRadar(notice: nil, requestID: requestID)
             }
             return .failed
         }
@@ -295,13 +301,16 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func backendImagesUnavailable() {
         guard radarSource == .cache, timeline?.backend != nil, !isRadarLoading else { return }
         backendBlockedUntil = Date().addingTimeInterval(RadarBackendConfig.imageFailureBlockInterval)
-        Task { await switchToDirectRadar(notice: NSLocalizedString("STORE_RADAR_CACHE_DOWN", value: "Der Showers-Radar-Dienst ist gerade nicht erreichbar. Die Radarbilder kommen direkt vom DWD.", comment: "Weather store message")) }
+        let requestID = UUID()
+        radarGeneration = requestID
+        Task { await switchToDirectRadar(notice: NSLocalizedString("STORE_RADAR_CACHE_DOWN", value: "Der Showers-Radar-Dienst ist gerade nicht erreichbar. Die Radarbilder kommen direkt vom DWD.", comment: "Weather store message"), requestID: requestID) }
     }
 
-    private func switchToDirectRadar(notice: String?) async {
+    private func switchToDirectRadar(notice: String?, requestID: UUID) async {
+        guard radarGeneration == requestID, !Task.isCancelled else { return }
         do {
             let direct = try await client.radarTimeline()
-            guard !isRadarLoading, !Task.isCancelled else { return }
+            guard radarGeneration == requestID, !isRadarLoading, !Task.isCancelled else { return }
             apply(direct, source: .direct, attribution: nil, keepSelection: true)
             radarNotice = notice
         } catch { /* keep the current images; the next refresh reports the error */ }
@@ -355,21 +364,23 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
               !attemptedRadarFallback, !isRadarLoading else { return }
         attemptedRadarFallback = true
         let requestID = generation
+        let radarRequestID = UUID()
+        radarGeneration = radarRequestID
         let unavailableReference = state.referenceTime
         let currentFrame = frameDate
         isRadarLoading = true
         Task {
-            defer { if generation == requestID { isRadarLoading = false } }
+            defer { if generation == requestID, radarGeneration == radarRequestID { isRadarLoading = false } }
             do {
                 let fallback = try await client.radarTimeline(before: unavailableReference)
-                guard generation == requestID, frameDate == currentFrame,
+                guard generation == requestID, radarGeneration == radarRequestID, frameDate == currentFrame,
                       timeline?.referenceTime == unavailableReference, !Task.isCancelled else { return }
                 timeline = fallback
                 selectedFrame = fallback.dates.firstIndex(of: fallback.referenceTime) ?? 0
                 radarNotice = String(format: NSLocalizedString("STORE_RADAR_FALLBACK_RUN", value: "Neuster Radarlauf noch nicht verfügbar. Radar zeigt den vorherigen Lauf von %@ Uhr.", comment: "Weather store message"),
                                          LocaleFormat.time(fallback.referenceTime))
             } catch {
-                guard generation == requestID else { return }
+                guard generation == requestID, radarGeneration == radarRequestID else { return }
                 radarNotice = NSLocalizedString("STORE_RADAR_RUN_UNAVAILABLE", value: "Radarlauf derzeit nicht verfügbar. Bitte erneut laden.", comment: "Weather store message")
             }
         }
@@ -382,24 +393,28 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     }
 
     /// Cache backend first; direct DWD tiles on any error, 404, timeout, invalid or stale data.
-    private func loadTimeline() async -> Result<LoadedTimeline, Error> {
+    private func loadTimeline(requestID: UUID) async -> Result<LoadedTimeline, Error> {
+        guard radarGeneration == requestID, !Task.isCancelled else { return .failure(CancellationError()) }
         if Date() >= backendBlockedUntil, case .fresh(let manifest, _) = await backend.latest() {
-            let merged = await resolveBackendTimeline(manifest, retryHistory: true)
+            guard let merged = await resolveBackendTimeline(manifest, retryHistory: true, requestID: requestID) else { return .failure(CancellationError()) }
             return .success(LoadedTimeline(timeline: merged.timeline, source: .cache,
                                            attribution: RadarAttribution(manifest)))
         }
+        guard radarGeneration == requestID, !Task.isCancelled else { return .failure(CancellationError()) }
         do { return .success(LoadedTimeline(timeline: try await client.radarTimeline(), source: .direct, attribution: nil)) }
         catch { return .failure(error) }
     }
 
     /// Combines `latest.json` with `history.json` for the chosen past. History is requested only if the
     /// choice exceeds what latest covers, and only for a new run (or when a manual refresh retries a miss).
-    private func resolveBackendTimeline(_ latest: RadarManifest, retryHistory: Bool) async -> RadarManifest {
-        latestManifest = latest
+    private func resolveBackendTimeline(_ latest: RadarManifest, retryHistory: Bool, requestID: UUID) async -> RadarManifest? {
+        guard radarGeneration == requestID, !Task.isCancelled else { return nil }
         let hours = pastHours
         if RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
             if latest.run != historyCheckedRun || (retryHistory && history == nil) {
-                switch await backend.history() {
+                let result = await backend.history()
+                guard radarGeneration == requestID, !Task.isCancelled else { return nil }
+                switch result {
                 case .loaded(let value, _):
                     history = value
                     historyCheckedRun = latest.run
@@ -415,6 +430,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         } else {
             historyStatus = .notNeeded
         }
+        latestManifest = latest
         composedHours = hours
         return RadarTimelineComposer.compose(latest: latest, history: history, hours: hours)
     }
@@ -429,10 +445,12 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     }
 
     private func recomposeTimeline() async {
-        guard radarSource == .cache, let latest = latestManifest else { return }
+        guard radarSource == .cache, !isRadarLoading, let latest = latestManifest else { return }
         let hours = pastHours
-        let merged = await resolveBackendTimeline(latest, retryHistory: true)
-        guard hours == pastHours, !isRadarLoading, !Task.isCancelled, radarSource == .cache else { return }
+        let requestID = UUID()
+        radarGeneration = requestID
+        guard let merged = await resolveBackendTimeline(latest, retryHistory: true, requestID: requestID) else { return }
+        guard radarGeneration == requestID, hours == pastHours, !isRadarLoading, !Task.isCancelled, radarSource == .cache else { return }
         apply(merged.timeline, source: .cache, attribution: RadarAttribution(latest), keepSelection: true)
     }
 

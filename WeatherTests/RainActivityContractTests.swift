@@ -2,6 +2,47 @@ import XCTest
 @testable import Weather
 
 final class RainActivityContractTests: XCTestCase {
+    func testCountdownIntervalRemainsValidBeforeAtAndAfterEvent() {
+        let target = Date(timeIntervalSinceReferenceDate: 300)
+        for offset in [-1.0, 0, 1] {
+            let now = target.addingTimeInterval(offset)
+            let interval = RainActivityTiming.countdownInterval(now: now, target: target)
+            XCTAssertEqual(interval.lowerBound, min(now, target))
+            XCTAssertEqual(interval.upperBound, target)
+            XCTAssertLessThanOrEqual(interval.lowerBound, interval.upperBound)
+        }
+    }
+
+    func testTimelineReevaluatesAtEventAndFreshnessBoundaries() {
+        let now = Date(timeIntervalSinceReferenceDate: 0)
+        let event = now.addingTimeInterval(300)
+        for phase in [RainActivityAttributes.Phase.startsIn, .endsIn] {
+            let state = RainActivityAttributes.ContentState(phase: phase, eventDate: event,
+                                                            intensityClass: 2, referenceTime: now)
+            XCTAssertEqual(RainActivityTiming.timelineDates(state: state, now: now),
+                           [now, event, state.effectiveStaleDate])
+            XCTAssertEqual(RainActivityTiming.timelineDates(state: state, now: event),
+                           [event, state.effectiveStaleDate], "event boundary must not be duplicated")
+            let afterEvent = event.addingTimeInterval(1)
+            XCTAssertEqual(RainActivityTiming.timelineDates(state: state, now: afterEvent),
+                           [afterEvent, state.effectiveStaleDate])
+            XCTAssertEqual(RainActivityTiming.timelineDates(state: state, now: state.effectiveStaleDate),
+                           [state.effectiveStaleDate])
+        }
+    }
+
+    func testTimelineWithoutCountdownOnlySchedulesFreshnessAndDeduplicatesDates() {
+        let now = Date(timeIntervalSinceReferenceDate: 0)
+        var state = RainActivityAttributes.ContentState(phase: .dry, eventDate: now.addingTimeInterval(300),
+                                                        intensityClass: 0, referenceTime: now)
+        XCTAssertEqual(RainActivityTiming.timelineDates(state: state, now: now), [now, state.effectiveStaleDate])
+        state.phase = .startsIn
+        state.eventDate = state.effectiveStaleDate
+        XCTAssertEqual(RainActivityTiming.timelineDates(state: state, now: now), [now, state.effectiveStaleDate])
+        state.eventDate = nil
+        XCTAssertEqual(RainActivityTiming.timelineDates(state: state, now: now), [now, state.effectiveStaleDate])
+    }
+
     func testBackendStartPayloadDecodesWithDefaultDateStrategy() throws {
         // Exact P2 field names and reference-date epoch, with APS using its separate UNIX epoch.
         let payload = Data(#"{"aps":{"timestamp":815356800,"event":"start","attributes-type":"RainActivityAttributes","attributes":{"displayName":"","subscriptionID":"00000000-0000-0000-0000-000000000001"},"content-state":{"phase":"startsIn","eventDate":300,"intensityClass":2,"referenceTime":0,"staleDate":1200}}}"#.utf8)

@@ -755,13 +755,13 @@ final class PushManager {
         } catch { return fail(Self.message(for: error)) }
         isInstallationReady = true
 
-        var remaining: [String] = []
         for sub in state.pendingSubscriptionDeletes {
             do { try await gateway.deleteSubscription(identity, id: sub) }
             catch PushGatewayError.notFound {}
-            catch { remaining.append(sub) }
+            catch { continue }
+            // Opt-outs may enqueue more IDs while DELETE awaits; preserve that current queue.
+            state.pendingSubscriptionDeletes.removeAll { $0 == sub }
         }
-        state.pendingSubscriptionDeletes = remaining
         persist()
 
         // A live opt-in is sent only after this installation's current start token is acknowledged.

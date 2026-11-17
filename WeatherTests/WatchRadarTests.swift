@@ -1,18 +1,22 @@
-// Portable macOS harness (no product Package.swift, no Watch UI dependencies):
-// Copy Shared/**/*.swift and these exact files into Sources/WeatherWatchRadar:
-// Weather/Data/{RadarBackend,RadarHistory,DWDRadarTimeline+App}.swift,
-// WeatherWatch/Radar/{RadarCrop,WatchRadarStore}.swift.
-// Copy this file into Tests/WeatherWatchRadarTests and define WATCH_RADAR_TESTS there.
-// SwiftPM tools 6.0; macOS >=15; .testTarget depends on WeatherWatchRadar.
-// swift test --disable-sandbox --package-path <temporary harness>
+// Portable macOS >=15 / Swift >=6.0 harness: bash tools/test_watch_radar.sh
+// The versioned script copies the shared model, backend client and Watch radar sources
+// into a temporary dependency-free SwiftPM package and defines WATCH_RADAR_TESTS.
 // The iOS WeatherTests target deliberately does not run these Watch-only tests.
 #if WATCH_RADAR_TESTS
 import XCTest
 import CoreGraphics
+import ImageIO
 @testable import WeatherWatchRadar
 
 private let radarTestTime = Date(timeIntervalSince1970: 1_800_000_000)
 private let radarTestBounds = RadarBounds(minX: 612257, minY: 5942074, maxX: 1736584, maxY: 7381298)
+
+private final class RadarDisplayClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var date = radarTestTime
+    func now() -> Date { lock.withLock { date } }
+    func set(_ date: Date) { lock.withLock { self.date = date } }
+}
 
 private func radarTestImage(edge: Int = 160) -> CGImage {
     CGContext(data: nil, width: edge, height: edge, bitsPerComponent: 8, bytesPerRow: edge * 4,
@@ -148,6 +152,58 @@ final class WatchRadarTests: XCTestCase {
         XCTAssertEqual(WatchRadarSlots.index(for: .distantFuture, reference: radarTestTime), 36)
         XCTAssertEqual(Array(WatchRadarSlots.priority(selected: 12, lowPower: false).prefix(5)), [12, 11, 13, 10, 14])
         XCTAssertEqual(WatchRadarSlots.priority(selected: 36, lowPower: true), [36, 35, 34])
+    }
+
+    func testPlaybackAdvancesThroughLoadedFramesAndStopsAtEnd() {
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [13], failed: []), .advance(13))
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 36, loaded: [0], failed: []), .stop)
+    }
+
+    func testPlaybackSkipsKnownGapsAndFailuresButWaitsForLoadingFrame() {
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [15], failed: [13, 14]), .advance(15))
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [15], failed: [13]), .wait)
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 34, loaded: [], failed: [35, 36]), .stop)
+        XCTAssertEqual(WatchRadarSlots.playbackStep(after: 12, loaded: [], failed: []), .wait)
+    }
+
+    func testLocalClockTickMarksLoadedRadarStaleWithoutRequests() async throws {
+        let fixture = RadarFixture(payload: try payload())
+        let clock = RadarDisplayClock()
+        let store = WatchRadarStore(baseURL: URL(string: "https://example.invalid/v1/radar/")!,
+                                    transport: { try await fixture.fetch($0) },
+                                    decode: { _, _, _, _ in radarTestImage() }, clock: { clock.now() })
+        store.load(place: place(), lowPower: false)
+        await store.waitUntilFinished()
+        let count = await fixture.recorded().count
+        XCTAssertEqual(store.state, .ready)
+        clock.set(radarTestTime.addingTimeInterval(1199))
+        XCTAssertEqual(store.localClockTick(), clock.now())
+        XCTAssertFalse(store.isStale)
+        XCTAssertEqual(store.state, .ready)
+        clock.set(radarTestTime.addingTimeInterval(1200))
+        XCTAssertEqual(store.localClockTick(), clock.now())
+        XCTAssertTrue(store.isStale)
+        XCTAssertEqual(store.state, .failed(.backend(.stale)))
+        let after = await fixture.recorded().count
+        XCTAssertEqual(after, count)
+    }
+
+    func testLocalClockTickOnReactivationUsesCurrentClockWithoutRequests() async throws {
+        let fixture = RadarFixture(payload: try payload())
+        let clock = RadarDisplayClock()
+        let store = WatchRadarStore(baseURL: URL(string: "https://example.invalid/v1/radar/")!,
+                                    transport: { try await fixture.fetch($0) },
+                                    decode: { _, _, _, _ in radarTestImage() }, clock: { clock.now() })
+        store.load(place: place(), lowPower: false)
+        await store.waitUntilFinished()
+        store.stop()
+        let count = await fixture.recorded().count
+        clock.set(radarTestTime.addingTimeInterval(1260))
+        XCTAssertEqual(store.localClockTick(), radarTestTime.addingTimeInterval(1260))
+        XCTAssertTrue(store.isStale)
+        XCTAssertEqual(store.state, .idle)
+        let after = await fixture.recorded().count
+        XCTAssertEqual(after, count)
     }
 
     func testIdleLoadingReadyAllSlotsPrivacyAndRAMBudget() async throws {

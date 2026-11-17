@@ -18,11 +18,34 @@ enum RadarBackendPolicy {
 }
 
 enum RadarImageDecoder {
+    // Match the existing manifest limit, independently of untrusted image metadata.
+    private static let maximumDimension = 4096
+    private static let maximumPixels = 4096 * 4096
+
+    static func hasValidDimensions(_ properties: [String: Any], width: Int, height: Int) -> Bool {
+        func dimension(_ key: CFString) -> Int? {
+            guard let number = properties[key as String] as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+            let value = number.doubleValue
+            guard value.isFinite, value >= 1, value <= Double(maximumDimension),
+                  let integer = Int(exactly: value) else { return nil }
+            return integer
+        }
+        guard let actualWidth = dimension(kCGImagePropertyPixelWidth),
+              let actualHeight = dimension(kCGImagePropertyPixelHeight),
+              actualWidth == width, actualHeight == height,
+              actualWidth <= maximumPixels / actualHeight else { return false }
+        return true
+    }
+
     /// Decodes a complete WebP/PNG with exactly the manifest's dimensions.
     static func decode(_ data: Data, width: Int, height: Int) -> CGImage? {
         guard !data.isEmpty, data.count <= RadarBackendConfig.maximumImageBytes,
-              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let source = CGImageSourceCreateWithData(data as CFData,
+                                                      [kCGImageSourceShouldCache: false] as CFDictionary),
               CGImageSourceGetCount(source) == 1,
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
+              hasValidDimensions(properties, width: width, height: height),
               let image = CGImageSourceCreateImageAtIndex(source, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary),
               image.width == width, image.height == height,
               CGImageSourceGetStatusAtIndex(source, 0) == .statusComplete else { return nil }

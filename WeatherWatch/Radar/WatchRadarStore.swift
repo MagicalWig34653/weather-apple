@@ -42,6 +42,16 @@ enum WatchRadarSlots {
         }
     }
 
+    enum PlaybackStep: Equatable { case advance(Int), wait, stop }
+
+    /// Skip known failures, but keep the selected frame while its successor is still loading.
+    static func playbackStep(after selected: Int, loaded: Set<Int>, failed: Set<Int>) -> PlaybackStep {
+        var next = selected + 1
+        while next < count, failed.contains(next) { next += 1 }
+        guard next < count else { return .stop }
+        return loaded.contains(next) ? .advance(next) : .wait
+    }
+
     static func isStale(_ manifest: RadarManifest, at now: Date) -> Bool {
         !manifest.isFresh(at: now) || now.timeIntervalSince(manifest.referenceTime) >= RadarBackendConfig.maximumDataAge
     }
@@ -201,6 +211,13 @@ final class WatchRadarStore: ObservableObject {
     }
 
     func image(at index: Int) -> CGImage? { cache.image(at: index) }
+
+    /// Refresh status and footer from the same local instant, without fetching data.
+    func localClockTick() -> Date {
+        let date = clock()
+        updateFreshness(at: date)
+        return date
+    }
 
     /// Invoke on the UI's local clock tick; this does not cause a network request.
     func updateFreshness(at date: Date? = nil) {

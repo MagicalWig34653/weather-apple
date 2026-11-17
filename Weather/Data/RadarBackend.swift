@@ -211,6 +211,8 @@ actor RadarBackendClient {
     private let clock: @Sendable () -> Date
     private var etag: String?
     private var last: RadarManifest?
+    private var latestGeneration = UUID()
+    private var historyGeneration = UUID()
     private var historyEtag: String?
     private var lastHistory: RadarHistory?
 
@@ -247,6 +249,8 @@ actor RadarBackendClient {
 
     /// Optional longer past (`history.json`). Any error leaves the caller with `latest.json` only.
     func history() async -> HistoryOutcome {
+        let requestID = UUID()
+        historyGeneration = requestID
         var request = URLRequest(url: baseURL.appendingPathComponent("history.json"),
                                  cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6)
         request.httpShouldHandleCookies = false
@@ -255,6 +259,7 @@ actor RadarBackendClient {
         let data: Data, response: HTTPURLResponse
         do { (data, response) = try await transport(request) }
         catch { return .unavailable(.unreachable) }
+        guard historyGeneration == requestID, !Task.isCancelled else { return .unavailable(.unreachable) }
         let value: RadarHistory
         switch response.statusCode {
         case 304:
@@ -276,6 +281,8 @@ actor RadarBackendClient {
     }
 
     func latest() async -> Outcome {
+        let requestID = UUID()
+        latestGeneration = requestID
         var request = URLRequest(url: baseURL.appendingPathComponent("latest.json"),
                                  cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6)
         request.httpShouldHandleCookies = false
@@ -284,6 +291,7 @@ actor RadarBackendClient {
         let data: Data, response: HTTPURLResponse
         do { (data, response) = try await transport(request) }
         catch { return .fallback(.unreachable) }
+        guard latestGeneration == requestID, !Task.isCancelled else { return .fallback(.unreachable) }
         let manifest: RadarManifest
         switch response.statusCode {
         case 304:

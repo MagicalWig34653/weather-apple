@@ -402,3 +402,103 @@ final class PushRegionWireTests: XCTestCase {
         XCTAssertEqual(try text("RAIN_STARTS_IN", "en"), "Rain starts in 10 min")
     }
 }
+
+/// Suspends one DELETE so another opt-out can enqueue work during the same sync.
+private actor SuspendedRegionDeleteGateway: PushGateway {
+    private let base = FakeGateway()
+    private var shouldSuspend = false
+    private var blocked = false
+    private var blockedWaiter: CheckedContinuation<Void, Never>?
+    private var release: CheckedContinuation<Void, Never>?
+    private var failingID: String?
+
+    init() { base.capabilitySet = ["regions"] }
+    func suspendNextDelete(failingID: String? = nil) {
+        shouldSuspend = true
+        self.failingID = failingID
+    }
+    func waitUntilBlocked() async {
+        if blocked { return }
+        await withCheckedContinuation { blockedWaiter = $0 }
+    }
+    func resumeDelete() { release?.resume(); release = nil }
+    func clearFailure() { failingID = nil }
+    func deletedIDs() -> [String] { base.deletedIDs }
+    func capabilities() async throws -> Set<String> { try await base.capabilities() }
+    func putInstallation(_ identity: PushIdentity, token: String, environment: PushEnvironment, locale: String) async throws {
+        try await base.putInstallation(identity, token: token, environment: environment, locale: locale)
+    }
+    func deleteInstallation(_ identity: PushIdentity) async throws { try await base.deleteInstallation(identity) }
+    func createSubscription(_ identity: PushIdentity, _ request: PushSubscriptionRequest) async throws -> String {
+        try await base.createSubscription(identity, request)
+    }
+    func updateSubscription(_ identity: PushIdentity, id: String, _ request: PushSubscriptionRequest) async throws {
+        try await base.updateSubscription(identity, id: id, request)
+    }
+    func deleteSubscription(_ identity: PushIdentity, id: String) async throws {
+        if shouldSuspend {
+            shouldSuspend = false
+            blocked = true
+            blockedWaiter?.resume()
+            blockedWaiter = nil
+            await withCheckedContinuation { release = $0 }
+        }
+        if id == failingID { throw PushGatewayError.offline }
+        try await base.deleteSubscription(identity, id: id)
+    }
+    func sendTestNotification(_ identity: PushIdentity) async throws -> String { try await base.sendTestNotification(identity) }
+}
+
+@MainActor
+final class PushDeletionQueueTests: XCTestCase {
+    func testOptOutDuringSuspendedDeleteKeepsNewDelete() async throws {
+        try await checkConcurrentOptOut(firstDeleteFails: false)
+    }
+
+    func testFailedDeleteAndNewOptOutBothRemainReconcilable() async throws {
+        try await checkConcurrentOptOut(firstDeleteFails: true)
+    }
+
+    private func checkConcurrentOptOut(firstDeleteFails: Bool) async throws {
+        let suite = "push-delete-queue-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let gateway = SuspendedRegionDeleteGateway()
+        let manager = PushManager(gateway: gateway, secrets: FakeSecrets(), authorizer: FakeAuthorizer(.authorized),
+                                  registrar: FakeRegistrar(), defaults: defaults, environment: .sandbox, locale: "de")
+        await manager.didRegister(deviceToken: Data([1, 2, 3, 4]))
+        var ids: [UUID] = []
+        for name in ["A", "B", "C"] {
+            let result = await manager.addRegion(latitude: 52.52, longitude: 13.405, radiusKm: 5, sharePercent: 10, name: name)
+            guard case .added(let id) = result else { return XCTFail("Expected region \(name)") }
+            ids.append(id)
+        }
+        let firstSub = try XCTUnwrap(manager.region(for: ids[0])?.subscriptionID)
+        let secondSub = try XCTUnwrap(manager.region(for: ids[1])?.subscriptionID)
+        let retainedSub = try XCTUnwrap(manager.region(for: ids[2])?.subscriptionID)
+        await gateway.suspendNextDelete(failingID: firstDeleteFails ? firstSub : nil)
+        let firstRemoval = Task { await manager.removeRegion(id: ids[0]) }
+        await gateway.waitUntilBlocked()
+        await manager.removeRegion(id: ids[1])
+        XCTAssertEqual(Set(manager.state.pendingSubscriptionDeletes), Set([firstSub, secondSub]))
+        await gateway.resumeDelete()
+        await firstRemoval.value
+
+        let deleted = await gateway.deletedIDs()
+        XCTAssertTrue(deleted.contains(secondSub), "The opt-out enqueued during DELETE must reach the server")
+        XCTAssertEqual(manager.region(for: ids[2])?.subscriptionID, retainedSub)
+        XCTAssertEqual(manager.regionCount, 1)
+        if firstDeleteFails {
+            XCTAssertEqual(manager.state.pendingSubscriptionDeletes, [firstSub])
+            let persisted = try JSONDecoder().decode(PushState.self, from: XCTUnwrap(defaults.data(forKey: PushManager.stateKey)))
+            XCTAssertEqual(persisted.pendingSubscriptionDeletes, [firstSub])
+            await gateway.clearFailure()
+            await manager.sync()
+        }
+        XCTAssertTrue(manager.state.pendingSubscriptionDeletes.isEmpty)
+        let finalDeleted = await gateway.deletedIDs()
+        XCTAssertEqual(Set(finalDeleted), Set([firstSub, secondSub]))
+        XCTAssertEqual(finalDeleted.count, 2)
+        XCTAssertFalse(finalDeleted.contains(retainedSub))
+    }
+}

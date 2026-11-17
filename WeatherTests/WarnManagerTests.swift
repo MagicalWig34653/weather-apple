@@ -8,23 +8,30 @@ final class WarnManagerTests: XCTestCase {
     private final class FakeGateway: WarnGateway, @unchecked Sendable {
         var calls: [String] = []
         var created: [WarnSubscriptionSettings] = []
+        var createIdentities: [String] = []
+        var updateIdentities: [String] = []
         var updated: [(String, WarnSubscriptionSettings)] = []
         var deleted: [String] = []
         var failCreate: WarnGatewayError?
         var failUpdate: WarnGatewayError?
+        var failDelete: WarnGatewayError?
         var counter = 0
         func create(_ identity: PushIdentity, _ settings: WarnSubscriptionSettings) async throws -> String {
             calls.append("create")
             if let failCreate { throw failCreate }
-            counter += 1; created.append(settings)
+            counter += 1; created.append(settings); createIdentities.append(identity.installationID)
             return String(format: "00000000-0000-0000-0000-%012d", counter)
         }
         func update(_ identity: PushIdentity, id: String, _ settings: WarnSubscriptionSettings) async throws {
             calls.append("update")
             if let failUpdate { throw failUpdate }
-            updated.append((id, settings))
+            updated.append((id, settings)); updateIdentities.append(identity.installationID)
         }
-        func delete(_ identity: PushIdentity, id: String) async throws { calls.append("delete"); deleted.append(id) }
+        func delete(_ identity: PushIdentity, id: String) async throws {
+            calls.append("delete")
+            if let failDelete { throw failDelete }
+            deleted.append(id)
+        }
         func list(_ identity: PushIdentity) async throws -> [(id: String, settings: WarnSubscriptionSettings)] { calls.append("list"); return [] }
     }
 
@@ -121,6 +128,76 @@ final class WarnManagerTests: XCTestCase {
         XCTAssertNil(env.gateway.updated.last?.1.minSeverity[.ice])
     }
 
+    func testInstallationChangeRecreatesUnchangedSubscriptionsAndPersistsBinding() async throws {
+        let target = place("A", 51.5, 10.5)
+        let env = try await make(targets: [target])
+        let next = PushIdentity(installationID: "00000000-0000-0000-0000-000000000002", secret: "next")
+        env.host.identity = next
+
+        await env.manager.reconcile()
+
+        XCTAssertEqual(env.gateway.createIdentities, [identity.installationID, next.installationID])
+        XCTAssertEqual(env.gateway.updated.count, 0)
+        XCTAssertEqual(env.gateway.deleted.count, 0, "Old subscription IDs do not belong to the new installation")
+        let saved = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: saved) as? [String: Any])
+        XCTAssertEqual(object["installationID"] as? String, next.installationID)
+
+        let geometry = try WarnGeometry.decode(try WarnGeometryTests.sampleData())
+        let restarted = WarnManager(gateway: env.gateway, host: env.host,
+                                    capabilities: { ["warnings", "warnings_push"] },
+                                    matcher: { WarnCellMatcher(geometry: geometry) }, targets: { [target] },
+                                    defaults: env.defaults, nameDefaults: env.names)
+        await restarted.refreshCapabilities()
+        await restarted.reconcile()
+        XCTAssertEqual(env.gateway.created.count, 2)
+        XCTAssertEqual(env.gateway.updated.count, 0)
+    }
+
+    func testLegacyStateConfirmsExistingSubscriptionInsteadOfDuplicatingIt() async throws {
+        let target = place("A", 51.5, 10.5)
+        let env = try await make(targets: [target])
+        let saved = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: saved) as? [String: Any])
+        legacy.removeValue(forKey: "installationID")
+        env.defaults.set(try JSONSerialization.data(withJSONObject: legacy), forKey: WarnManager.stateKey)
+        let geometry = try WarnGeometry.decode(try WarnGeometryTests.sampleData())
+        let restarted = WarnManager(gateway: env.gateway, host: env.host,
+                                    capabilities: { ["warnings", "warnings_push"] },
+                                    matcher: { WarnCellMatcher(geometry: geometry) }, targets: { [target] },
+                                    defaults: env.defaults, nameDefaults: env.names)
+        await restarted.refreshCapabilities()
+        env.gateway.failUpdate = .unavailable
+        await restarted.reconcile()
+        XCTAssertEqual(env.gateway.created.count, 1)
+        XCTAssertEqual(restarted.subscriptionCount, 1)
+        env.gateway.failUpdate = nil
+        await restarted.reconcile()
+        XCTAssertEqual(env.gateway.created.count, 1)
+        XCTAssertEqual(env.gateway.updateIdentities, [identity.installationID])
+        await restarted.reconcile()
+        XCTAssertEqual(env.gateway.updated.count, 1)
+    }
+
+    func testLegacySubscriptionMissingFromCurrentInstallationIsRecreated() async throws {
+        let target = place("A", 51.5, 10.5)
+        let env = try await make(targets: [target])
+        let saved = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: saved) as? [String: Any])
+        legacy.removeValue(forKey: "installationID")
+        env.defaults.set(try JSONSerialization.data(withJSONObject: legacy), forKey: WarnManager.stateKey)
+        let geometry = try WarnGeometry.decode(try WarnGeometryTests.sampleData())
+        let restarted = WarnManager(gateway: env.gateway, host: env.host,
+                                    capabilities: { ["warnings", "warnings_push"] },
+                                    matcher: { WarnCellMatcher(geometry: geometry) }, targets: { [target] },
+                                    defaults: env.defaults)
+        await restarted.refreshCapabilities()
+        env.gateway.failUpdate = .notFound
+        await restarted.reconcile()
+        XCTAssertEqual(env.gateway.created.count, 2)
+        XCTAssertEqual(restarted.subscriptionCount, 1)
+    }
+
     func testLimitAndGeometryOutdatedStatesWithoutCrash() async throws {
         let env = try await make(enabled: false)
         env.manager.targets = { [self.place("A", 51.5, 10.5)] }
@@ -160,6 +237,56 @@ final class WarnManagerTests: XCTestCase {
         XCTAssertEqual(env.gateway.deleted.count, 1)
         XCTAssertEqual(env.host.synced, 1)
         XCTAssertFalse(env.manager.isActive)
+    }
+
+    func testDisableWithoutIdentityKeepsPendingDeletionAcrossRestart() async throws {
+        let env = try await make(targets: [place("A", 51.5, 10.5)])
+        let saved = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        let subscriptionID = try XCTUnwrap(JSONDecoder().decode(WarnManager.State.self, from: saved).subs.values.first?.id)
+        env.host.identity = nil
+
+        await env.manager.setEnabled(false)
+
+        XCTAssertFalse(env.manager.settings.enabled)
+        XCTAssertEqual(env.manager.subscriptionCount, 1)
+        XCTAssertEqual(env.gateway.deleted, [])
+        let pending = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        XCTAssertEqual(try JSONDecoder().decode(WarnManager.State.self, from: pending).subs.values.first?.id,
+                       subscriptionID)
+
+        let restarted = WarnManager(gateway: env.gateway, host: env.host,
+                                    capabilities: { ["warnings", "warnings_push"] }, matcher: { nil },
+                                    defaults: env.defaults, nameDefaults: env.names)
+        await restarted.refreshCapabilities()
+        await restarted.reconcile()
+        XCTAssertEqual(restarted.subscriptionCount, 1)
+        XCTAssertFalse(restarted.settings.enabled)
+
+        env.host.identity = identity
+        env.gateway.failDelete = .unavailable
+        await restarted.reconcile()
+        XCTAssertEqual(restarted.subscriptionCount, 1)
+        XCTAssertEqual(env.gateway.deleted, [])
+
+        env.gateway.failDelete = nil
+        await restarted.reconcile()
+        XCTAssertEqual(env.gateway.deleted, [subscriptionID])
+        XCTAssertEqual(restarted.subscriptionCount, 0)
+        let completed = try XCTUnwrap(env.defaults.data(forKey: WarnManager.stateKey))
+        XCTAssertTrue(try JSONDecoder().decode(WarnManager.State.self, from: completed).subs.isEmpty)
+    }
+
+    func testPendingDeletionCompletesWhenServerAlreadyRemovedSubscription() async throws {
+        let env = try await make(targets: [place("A", 51.5, 10.5)])
+        env.host.identity = nil
+        await env.manager.setEnabled(false)
+        XCTAssertEqual(env.manager.subscriptionCount, 1)
+
+        env.host.identity = identity
+        env.gateway.failDelete = .notFound
+        await env.manager.reconcile()
+        XCTAssertEqual(env.gateway.calls, ["create", "delete"])
+        XCTAssertEqual(env.manager.subscriptionCount, 0)
     }
 
     func testDeniedPermissionKeepsSwitchOff() async throws {

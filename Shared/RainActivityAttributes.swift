@@ -89,3 +89,20 @@ public struct RainActivityAttributes: Codable, Hashable, Sendable {
 #if canImport(ActivityKit) && os(iOS)
 extension RainActivityAttributes: ActivityAttributes {}
 #endif
+
+/// Pure timing rules shared by the Live Activity and its regression tests.
+enum RainActivityTiming {
+    static func countdownInterval(now: Date, target: Date) -> ClosedRange<Date> {
+        min(now, target)...target
+    }
+
+    static func timelineDates(state: RainActivityAttributes.ContentState, now: Date) -> [Date] {
+        var dates = [now]
+        if state.effectiveStaleDate > now { dates.append(state.effectiveStaleDate) }
+        if state.phase == .startsIn || state.phase == .endsIn,
+           let event = state.eventDate, event > now {
+            dates.append(event)
+        }
+        return Array(Set(dates)).sorted()
+    }
+}

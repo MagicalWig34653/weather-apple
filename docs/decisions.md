@@ -45,6 +45,10 @@ Aktuelle ausdrückliche Nutzerentscheidungen haben Vorrang. Dieses Dokument erg�
 
 Möglichst kostensparsam entwickeln. Agents sind Pflicht. Sessions müssen wegwerfbar sein und das Repo ist die Source of Truth; alle relevanten Ergebnisse und Entscheidungen sind immer im Repo zu dokumentieren. Der konkrete Prozess steht in `AGENTS.md`, der fortsetzbare Arbeitsstand in `docs/status.md`.
 
+### Review-Korrekturen (Nutzerauftrag vom 17. November 2026)
+
+Die extern bereitgestellten Apple-Review-Befunde 1–6 sind nach erneuter Codeprüfung zu beheben; 7–8 nur mit kleinem Fix. Je Befund zuerst den Regressionstest schreiben, dann den minimalen Fix, jeweils in einem eigenen deutschen Commit. Unzutreffende Befunde begründet verwerfen. Während dieses Auftrags keine Builds, Tests, Test-Discovery, Lints oder Netzaufrufe und keinen Push ausführen; die Prüfung übernimmt der Aufrufer. Das schließt die sonst vor Text-/Oberflächencommits verlangte L10n-Prüfung ein: ihre Nichtausführung ausdrücklich dokumentieren. Der Abschlussbericht `BERICHT-FIXES.md` nennt je Befund Status, Commit und exakten Testbefehl; swift-testing-Namen im App-Target bei `-only-testing` mit `()` angeben. Produktumfang und Veröffentlichungsfreigaben ändern sich dadurch nicht.
+
 ## Entwicklungsstart und Testgeräte (28. Oktober 2026)
 
 - Nutzerfreigabe: Plan schreiben, Einstiegsfragen klären, danach anfangen. Alle drei Einstiegsfragen sind beantwortet; der Start ist damit freigegeben.
