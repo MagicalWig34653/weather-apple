@@ -202,6 +202,8 @@ Jeweils mit Empfehlung zuerst.
 - **E8 Veraltete Doku-Seite `docs-site/content/datenschutz.md`** (GitHub Pages, Stand Build 11, ohne Push): (a) durch einen kurzen Verweis auf showers.linolaske.de/datenschutz ersetzen; (b) auf den Stand von Teil A bringen (doppelte Pflege); (c) unverändert lassen (widersprüchliche öffentliche Aussagen).
 - **E9 Anwaltliche Prüfung insgesamt:** (a) nicht vor dem Start, wenn E1, E3, E5 und E7 umgesetzt sind (Restrisiko gering bis mittel); (b) einmalige Pauschalprüfung von Datenschutzerklärung und Impressum (Kosten, typischerweise dreistellig, nicht recherchiert).
 
+**Nachtrag 18.11.2026:** Alle Entscheidungen E1 bis E9 und die Endfassung der Texte stehen in [rechtspruefung-entscheidungen.md](rechtspruefung-entscheidungen.md).
+
 ## Entscheidungen von Lino (Board, 14.11.2026)
 
 - **E3 (a):** Diagnose-Text mit Build 47 korrigieren. Umgesetzt im Quelltext (`DEVICE_LINK_FOOTER`, `DEVICE_LINK_PRIVACY`, de/en: Betreiber sieht Regenhinweise gekoppelter Geräte mit auf etwa 1 km gerundeter Position); Build 47 und Upload stehen aus.
