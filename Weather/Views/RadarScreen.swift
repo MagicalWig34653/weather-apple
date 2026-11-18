@@ -125,7 +125,7 @@ struct RadarScreen: View {
             VStack(spacing: 10) {
                 header
                 forecastCard
-                if let message = statusMessage {
+                ForEach(statusMessages, id: \.self) { message in
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -681,7 +681,7 @@ struct RadarScreen: View {
                     }
                     // Flat backing in the system background colour: the glass over the map varies, the text must not depend on it.
                     .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(.systemBackground).opacity(0.62)))
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(.systemBackground).opacity(0.78)))
                 }
             }
             .accessibilityElement(children: .combine)
@@ -702,20 +702,14 @@ struct RadarScreen: View {
         }
     }
 
-    private var statusMessage: String? {
-        if let message = store.locationMessage { return message }
-        if let message = store.storageMessage { return message }
-        if let state = currentRadarLoadState, state.failed > 0 {
-            if store.activeLayer != .radar { return String(format: NSLocalizedString("RADAR_STATUS_LAYER_IMAGE_MISSING", value: "Das Bild der Ebene %@ für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.", comment: "Radar"), store.activeLayer.title) }
-            return store.radarSource == .cache
-                ? NSLocalizedString("RADAR_STATUS_IMAGE_MISSING", value: "Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.", comment: "Radar")
-                : NSLocalizedString("RADAR_STATUS_TILES_MISSING", value: "Einige Radarkacheln fehlen. Bitte erneut aktualisieren.", comment: "Radar")
-        }
-        if store.activeLayer != .radar { return nil }
-        if let error = store.radarError { return String(format: NSLocalizedString("RADAR_STATUS_RADAR_ERROR", value: "Radar: %@", comment: "Radar"), error) }
-        if let error = store.forecastError, store.forecast == nil || store.forecastFailureConfirmed { return String(format: NSLocalizedString("RADAR_STATUS_FORECAST_ERROR", value: "Ortsprognose: %@", comment: "Radar"), error) }
-        if let notice = store.radarNotice { return notice }
-        return nil
+    /// Notices under the header (up to two): a forecast failure and a radar image problem are shown together.
+    private var statusMessages: [String] {
+        RadarStatusMessages.messages(RadarStatusInput(
+            locationMessage: store.locationMessage, storageMessage: store.storageMessage,
+            radarLayerActive: store.activeLayer == .radar, layerTitle: store.activeLayer.title,
+            radarImageMissing: (currentRadarLoadState?.failed ?? 0) > 0, radarFromCache: store.radarSource == .cache,
+            radarError: store.radarError, forecastError: store.forecastError, forecastShown: store.forecast != nil,
+            forecastFailureConfirmed: store.forecastFailureConfirmed, radarNotice: store.radarNotice))
     }
 
     private func age(_ date: Date) -> String {

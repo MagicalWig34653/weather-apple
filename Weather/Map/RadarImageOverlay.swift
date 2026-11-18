@@ -118,7 +118,7 @@ final class BackendRadarLoader: @unchecked Sendable {
         self.cache = cache
         self.prefetchCeiling = prefetchCeiling
         self.decoded = DecodedImageCache(limit: decodedLimit)
-        self.fetch = fetch ?? BackendRadarLoader.makeFetch()
+        self.fetch = fetch ?? BackendRadarLoader.defaultFetch()
         let width = manifest.imageWidth, height = manifest.imageHeight
         self.decode = decode ?? { RadarImageDecoder.decode($0, width: width, height: height) }
         if trimsCache { cache.retain(Set(manifest.slots.map(\.url))) }
@@ -203,6 +203,13 @@ final class BackendRadarLoader: @unchecked Sendable {
         private var items: [URL]
         init(_ items: [URL]) { self.items = items }
         func next() -> URL? { lock.withLock { items.isEmpty ? nil : items.removeFirst() } }
+    }
+
+    private static func defaultFetch() -> Fetch {
+        #if DEBUG
+        if RadarUITestStub.isActive { return { url in try await RadarUITestStub.fetch(url) } }
+        #endif
+        return makeFetch()
     }
 
     private static func makeFetch() -> Fetch {

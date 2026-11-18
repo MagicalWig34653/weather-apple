@@ -10,7 +10,7 @@ final class ForecastRefreshUITests: XCTestCase {
     }
 
     private func launch(_ mode: String, language: UITestLaunch.Language = .german) -> XCUIApplication {
-        let app = UITestLaunch.app(language: language, extra: ["-UITestForecast", mode])
+        let app = UITestLaunch.app(language: language, extra: ["-UITestForecast", mode, "-UITestRadar", "fixture"])
         app.launch()
         return app
     }
@@ -38,7 +38,7 @@ final class ForecastRefreshUITests: XCTestCase {
     /// Refreshing caption at three text sizes (extra small, standard, accessibility XXXL) for the contrast measurement.
     func testRefreshingCaptionAtDynamicTypeSizes() throws {
         for (label, category) in [("xs", "UICTContentSizeCategoryXS"), ("std", "UICTContentSizeCategoryL"), ("axxxl", "UICTContentSizeCategoryAccessibilityXXXL")] {
-            let app = UITestLaunch.app(extra: ["-UITestForecast", "delayed", "-UIPreferredContentSizeCategoryName", category])
+            let app = UITestLaunch.app(extra: ["-UITestForecast", "delayed", "-UITestRadar", "fixture", "-UIPreferredContentSizeCategoryName", category])
             app.launch()
             let header = app.buttons["forecast-details"]
             XCTAssertTrue(header.waitForExistence(timeout: 30))
@@ -95,6 +95,7 @@ final class ForecastRefreshUITests: XCTestCase {
             let loaded = NSPredicate(format: "label != '' AND NOT (label CONTAINS 'geladen') AND NOT (label CONTAINS 'nicht verfügbar')")
             XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 60), .completed, header.label)
             sleep(2)
+            XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Radar für' OR label CONTAINS 'Radarkacheln'")).firstMatch.exists, "radar fixture must load cleanly")
             for text in ["Aktualisiere", "fehlgeschlagen", "keinen neueren Stand", "Ältere Prognose"] {
                 XCTAssertFalse(header.label.contains(text), header.label)
             }
@@ -143,6 +144,10 @@ final class ForecastRefreshUITests: XCTestCase {
         }
         XCTAssertTrue(found, "failure after the repeats, labels seen: \(history)")
         XCTAssertFalse(header.label.contains("Ältere Prognose"))
+        // The reason line stays visible; the radar fixture produces no radar notices that could displace it.
+        let reason = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Ortsprognose'")).firstMatch
+        XCTAssertTrue(reason.waitForExistence(timeout: 5), "reason line missing")
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Radarkacheln' OR label CONTAINS 'lädt' OR label CONTAINS 'nicht geladen'")).firstMatch.exists)
         shot(app, "forecast-failed-\(suffix)")
         app.terminate()
     }

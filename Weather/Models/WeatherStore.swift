@@ -89,7 +89,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     override convenience init() {
         #if DEBUG
         if let mode = ForecastUITestStub.mode {
-            self.init(client: ForecastUITestStub.client(mode: mode), backend: ForecastUITestStub.backend)
+            self.init(client: ForecastUITestStub.client(mode: mode), backend: RadarUITestStub.isActive ? RadarUITestStub.backend : ForecastUITestStub.backend)
             clock = { ForecastUITestStub.now }
             return
         }

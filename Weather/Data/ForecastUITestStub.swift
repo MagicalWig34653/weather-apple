@@ -7,8 +7,8 @@ import Foundation
 /// - `failed`: first index query answers, all later ones fail with HTTP 503.
 /// - `failonce`: exactly one failing load (the 2nd to 4th index request, i.e. one query with its retries), then normal answers.
 /// - `current`: the shown run is the expected newest one (normal state, "Stand vor 5 Min.").
-/// - `behind`: the index never offers a newer run than the shown one ("Stand vor 12 Min.").
-/// All other modes show a run 12 minutes old, while a newer one is expected.
+/// - `behind`: the index never offers a newer run than the shown one ("Stand vor 10 Min.").
+/// All other modes show the run 08:40 UTC (10 minutes old), while a newer one is expected.
 enum ForecastUITestStub {
     static var mode: String? {
         guard let index = CommandLine.arguments.firstIndex(of: "-UITestForecast"),
@@ -31,7 +31,7 @@ enum ForecastUITestStub {
 
     static func client(mode: String) -> DWDClient {
         let counter = Counter()
-        let runs = mode == "current" ? RadarPollSchedule.nominal(at: now) : now.addingTimeInterval(-720)
+        let runs = RadarPollSchedule.nominal(at: now).addingTimeInterval(mode == "current" ? 0 : -300)
         return DWDClient(transport: { request in
             let url = request.url ?? DWDRequest.indexURL
             func response(_ code: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)! }
