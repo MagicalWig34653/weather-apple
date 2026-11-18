@@ -666,19 +666,25 @@ struct RadarScreen: View {
             let statusReplacesSummary = status != nil && (status != .refreshing || forecast.isStale(at: displayNow))
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    if statusReplacesSummary, let status { forecastStatusIcon(status) }
+                    if statusReplacesSummary, let status, status != .refreshing { forecastStatusIcon(status) }
+                    // While refreshing only the age is visible; the spoken label keeps "Aktualisiere …".
                     Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                         : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
+                         : (statusReplacesSummary && status != nil
+                            ? (status == .refreshing ? forecast.ageDescription(at: displayNow) : forecastStatusText(status!, forecast: forecast))
+                            : forecast.summary(at: displayNow)))
                         .font(.subheadline.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow))
+                    if statusReplacesSummary, status == .refreshing { forecastStatusIcon(.refreshing) }
                 }
                 if status == .refreshing, !statusReplacesSummary {
-                    // Subtle: small spinner, plain caption, no backing surface. A soft halo in the opposite
-                    // colour keeps it readable (>= 4.5:1) over the glass on the map without becoming a blob.
+                    // Calm: no "Aktualisiere" text, only the age and a small spinner at its right. The spoken label keeps
+                    // "Aktualisiere …"; the soft halo keeps text and spinner readable over the glass without a surface.
                     HStack(spacing: 5) {
-                        forecastStatusIcon(.refreshing)
-                        Text(forecastStatusText(.refreshing, forecast: forecast))
+                        Text(forecast.ageDescription(at: displayNow))
                             .font(.caption).foregroundStyle(.primary.opacity(0.85))
+                            .accessibilityLabel(forecastStatusText(.refreshing, forecast: forecast))
+                        forecastStatusIcon(.refreshing)
                     }
                     .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
                     .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
@@ -696,7 +702,8 @@ struct RadarScreen: View {
 
     @ViewBuilder private func forecastStatusIcon(_ status: WeatherStore.ForecastStatus) -> some View {
         if status == .refreshing {
-            ProgressView().controlSize(.mini).accessibilityHidden(true)
+            // Non-text contrast (>= 3:1): primary tint instead of the default light grey spinner.
+            ProgressView().controlSize(.small).tint(.primary).accessibilityHidden(true)
         } else {
             Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
         }

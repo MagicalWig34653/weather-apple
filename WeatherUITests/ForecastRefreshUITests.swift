@@ -1,6 +1,6 @@
 import XCTest
 
-/// "Aktualisiere …" in the forecast header. Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
+/// Refreshing indicator in the forecast header (spinner right of "Stand vor X Min."; "Aktualisiere" lives in the accessibility label). Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
 /// Screenshots for the manual check go to `/private/tmp/claude-501/daten-aktuell-shots` (skipped if not writable).
 final class ForecastRefreshUITests: XCTestCase {
     /// Appearance is set from outside with `xcrun simctl ui <udid> appearance light|dark`; names follow the real appearance.
