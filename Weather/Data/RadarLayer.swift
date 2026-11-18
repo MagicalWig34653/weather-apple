@@ -10,6 +10,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Model fields of the 2 m air (ICON-EU via WMS or ICON-D2): temperature, dew point, relative humidity.
     /// Public ids; the server resolves them to its active source. Only offered once the backend reports them.
     case temperature, dewpoint, humidity
+    /// Rain radar beyond Germany: Europe (EUMETNET OPERA composite, re-projected and coloured by the backend) and the
+    /// world (NOAA, estimated from satellite data, not in the backend yet). Both are backend layers without DWD fallback.
+    case radarEU = "radar_eu", radarWorld = "radar_world"
     /// Visible channel (Germany grid): never chosen by the user, only refines the sun layer by day.
     case cloudmaskVis = "cloudmask_vis"
 
@@ -17,15 +20,38 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
 
     /// Layers the user can choose (the cloud mask is the data basis of the sun layer). Europe is its own entry
     /// (no zoom automatism); `pressureEU` is only offered once the backend reports it (`isOfferedWhenUnavailable`).
-    static let selectable: [RadarLayer] = [.radar, .pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask]
+    static let selectable: [RadarLayer] = [.radar, .radarEU, .radarWorld, .pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask]
     /// Helper layers fetched with their parent layer, not chosen and not probed on their own.
     static let auxiliary: [RadarLayer] = [.cloudmaskVis]
     /// Layers fetched from the backend's `/v1/layers/<id>/` API.
-    static let backendLayers: [RadarLayer] = [.pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask, .cloudmaskVis]
+    static let backendLayers: [RadarLayer] = [.radarEU, .radarWorld, .pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask, .cloudmaskVis]
 
     /// `false` for layers newer than the first backend release: while the backend does not report them
     /// (404, not yet asked, unreachable) they are not shown in the menu at all instead of greyed out.
-    var isOfferedWhenUnavailable: Bool { self != .pressureEU && !isAirField }
+    var isOfferedWhenUnavailable: Bool { self != .pressureEU && self != .radarWorld && !isAirField }
+
+    /// Menu group "Regenebenen" (nested submenu): DWD Germany, OPERA Europe, NOAA world.
+    static let rainLayers: [RadarLayer] = [.radar, .radarEU, .radarWorld]
+    /// Menu group "Zusatzebenen": everything that is not rain.
+    static let extraLayers: [RadarLayer] = selectable.filter { !rainLayers.contains($0) }.sorted { $0.extraOrder < $1.extraOrder }
+    private var extraOrder: Int { [.clouds, .cloudmask, .lightning, .pressure, .pressureEU, .temperature, .dewpoint, .humidity].firstIndex(of: self) ?? 99 }
+
+    var isRain: Bool { Self.rainLayers.contains(self) }
+
+    /// Entry text inside the rain submenu (the capsule keeps `title`).
+    var menuTitle: String {
+        switch self {
+        case .radar: NSLocalizedString("LAYER_RADAR_DE_MENU", value: "Deutschland (DWD)", comment: "Layer menu entry")
+        case .radarEU: NSLocalizedString("LAYER_RADAR_EU_MENU", value: "Europa (OPERA)", comment: "Layer menu entry")
+        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_MENU", value: "Welt (NOAA)", comment: "Layer menu entry")
+        default: title
+        }
+    }
+
+    /// Short caveat shown with the menu entry (world: no measurement, estimated).
+    var menuNote: String? {
+        self == .radarWorld ? NSLocalizedString("LAYER_RADAR_WORLD_NOTE", value: "aus Satellitendaten geschätzt, ungenauer", comment: "Layer menu note") : nil
+    }
 
     /// 2 m model fields (temperature, dew point, relative humidity): hourly forecast, always shown as model values.
     var isAirField: Bool { self == .temperature || self == .dewpoint || self == .humidity }
@@ -38,6 +64,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .radar: NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Layer name or caption")
+        case .radarEU: NSLocalizedString("LAYER_RADAR_EU_TITLE", value: "Regenradar Europa", comment: "Layer name or caption")
+        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_TITLE", value: "Regenradar Welt", comment: "Layer name or caption")
         case .pressure: NSLocalizedString("LAYER_PRESSURE_TITLE", value: "Luftdruck", comment: "Layer name or caption")
         case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_TITLE", value: "Luftdruck Europa", comment: "Layer name or caption")
         case .lightning: NSLocalizedString("LAYER_LIGHTNING_TITLE", value: "Blitze", comment: "Layer name or caption")
@@ -54,6 +82,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var spokenName: String {
         switch self {
         case .radar: NSLocalizedString("LAYER_RADAR_SPOKEN", value: "Regenradar", comment: "Layer name or caption")
+        case .radarEU: NSLocalizedString("LAYER_RADAR_EU_SPOKEN", value: "Regenradar Europa, OPERA", comment: "Layer name or caption")
+        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_SPOKEN", value: "Regenradar Welt, aus Satellitendaten geschätzt, ungenauer", comment: "Layer name or caption")
         case .pressure: NSLocalizedString("LAYER_PRESSURE_SPOKEN", value: "Luftdruck, Isobaren", comment: "Layer name or caption")
         case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_SPOKEN", value: "Luftdruck Europa, Isobaren", comment: "Layer name or caption")
         case .lightning: NSLocalizedString("LAYER_LIGHTNING_SPOKEN", value: "Blitze", comment: "Layer name or caption")
@@ -68,6 +98,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var symbolName: String {
         switch self {
         case .radar: "cloud.rain"
+        case .radarEU: "globe.europe.africa"
+        case .radarWorld: "globe"
         case .pressure, .pressureEU: "gauge.with.dots.needle.33percent"
         case .lightning: "bolt.fill"
         case .clouds: "cloud"
@@ -79,14 +111,15 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
 
     /// VoiceOver label of the time slider.
     var timeAxisLabel: String {
-        self == .radar ? NSLocalizedString("LAYER_TIME_AXIS_RADAR", value: "Radarzeitpunkt", comment: "Layer name or caption")
+        isRain ? NSLocalizedString("LAYER_TIME_AXIS_RADAR", value: "Radarzeitpunkt", comment: "Layer name or caption")
             : String(format: NSLocalizedString("LAYER_TIME_AXIS", value: "Zeitpunkt %@", comment: "Layer name or caption"), title)
     }
 
     /// Own time grid per layer (minutes); only documentation/tests, the real step comes from the manifest.
     var nominalStepMinutes: Int {
         switch self {
-        case .radar, .lightning: 5
+        case .radar, .radarEU, .lightning: 5
+        case .radarWorld: 10
         case .clouds, .cloudmaskVis: 10
         case .cloudmask: 15
         case .pressure, .pressureEU, .temperature, .dewpoint, .humidity: 60
@@ -96,7 +129,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Re-check interval of `latest.json` for the visible, active layer (ETag, 304 is cheap).
     var pollInterval: TimeInterval {
         switch self {
-        case .radar, .lightning: 60
+        case .radar, .radarEU, .lightning: 60
+        case .radarWorld: 120
         case .clouds, .cloudmask, .cloudmaskVis: 120
         case .pressure, .pressureEU, .temperature, .dewpoint, .humidity: 300
         }
@@ -106,6 +140,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     var maximumObservationAge: TimeInterval {
         switch self {
         case .lightning: 30 * 60
+        case .radarEU: 30 * 60
+        case .radarWorld: 60 * 60
         case .clouds, .cloudmask, .cloudmaskVis: 2 * 3600
         case .pressure, .pressureEU, .radar, .temperature, .dewpoint, .humidity: 0
         }
@@ -121,6 +157,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .clouds, .cloudmask: 19
         // Europe isobars are transparent lossless images, but decode to 17.8 MB each: only a window is preloaded.
         case .pressureEU: 13
+        case .radarEU, .radarWorld: 25
         // Hourly +48 h fields (49 images): only a window around the selected slot is preloaded.
         case .temperature, .dewpoint, .humidity: 13
         default: nil
@@ -130,7 +167,8 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Map overlay opacity. Cloud images are opaque RGB, isobars and lightning are transparent PNG-like.
     var overlayOpacity: Double {
         switch self {
-        case .radar: 0.72
+        case .radar, .radarEU: 0.72
+        case .radarWorld: 0.65
         case .clouds: 0.8
         case .cloudmask: 0.85
         case .pressure, .pressureEU, .lightning, .cloudmaskVis: 0.9
@@ -143,11 +181,13 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     func frameCaption(isForecast: Bool) -> String {
         switch self {
         case .cloudmask: NSLocalizedString("LAYER_CAPTION_LOOKBACK", value: "Rückblick", comment: "Layer name or caption")
-        case .radar, .lightning, .clouds:
+        case .radar, .radarEU, .lightning, .clouds:
             isForecast ? NSLocalizedString("LAYER_CAPTION_FORECAST", value: "Vorhersage", comment: "Layer name or caption") : NSLocalizedString("LAYER_CAPTION_MEASUREMENT", value: "Messung", comment: "Layer name or caption")
         case .pressure, .pressureEU:
             isForecast ? NSLocalizedString("LAYER_CAPTION_FORECAST", value: "Vorhersage", comment: "Layer name or caption") : NSLocalizedString("LAYER_CAPTION_MODEL", value: "Modell", comment: "Layer name or caption")
         case .cloudmaskVis: NSLocalizedString("LAYER_CAPTION_LOOKBACK", value: "Rückblick", comment: "Layer name or caption")
+        // Satellite estimate: never called a measurement.
+        case .radarWorld: NSLocalizedString("LAYER_CAPTION_ESTIMATE", value: "Schätzung", comment: "Layer name or caption")
         // Never a measurement: "Modell" for the analysis slot, "Modellvorhersage" for later slots.
         case .temperature, .dewpoint, .humidity:
             isForecast ? NSLocalizedString("LAYER_CAPTION_MODEL_FORECAST", value: "Modellvorhersage", comment: "Layer name or caption")
@@ -453,6 +493,17 @@ final class RadarLayerStore {
         layer.isOfferedWhenUnavailable || availability(layer) == .available
     }
     var offeredLayers: [RadarLayer] { RadarLayer.selectable.filter(isOffered) }
+
+    /// Entry of the rain submenu. A layer the backend does not report yet (world) stays visible as "soon", disabled.
+    struct RainMenuEntry: Equatable {
+        let layer: RadarLayer
+        var isSoon: Bool
+    }
+    var rainMenuEntries: [RainMenuEntry] {
+        RadarLayer.rainLayers.map { RainMenuEntry(layer: $0, isSoon: !isOffered($0)) }
+    }
+    /// Entries of "Zusatzebenen" that are offered.
+    var extraMenuLayers: [RadarLayer] { RadarLayer.extraLayers.filter(isOffered) }
 
     /// Manifest of the visible-channel helper layer for the sun layer, only when it is fresh and has the same
     /// extent as the cloud mask (else `nil`: the sun layer uses the mask alone).

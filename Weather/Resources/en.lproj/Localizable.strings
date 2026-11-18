@@ -219,7 +219,7 @@
 "RADAR_SAVE_PLACE_MESSAGE" = "Name and coordinates stay on your iPhone and are also sent to your paired Apple Watch if Showers is installed there.";
 "RADAR_LAYER_SECTION" = "Map layer";
 "RADAR_LAYER_MENU_LABEL" = "Choose map layer";
-"RADAR_LAYER_MENU_HINT" = "Selects exactly one layer: rain radar, pressure, lightning, clouds, sun, and temperature and humidity where offered. Also contains Reload data.";
+"RADAR_LAYER_MENU_HINT" = "Selects exactly one layer. Submenus: Rain layers (Germany, Europe, world), Extra layers (clouds, sun, lightning, pressure, temperature, humidity) and Display. Also contains Reload data.";
 "RADAR_LAYER_SELECTED_SUFFIX" = ", selected";
 "RADAR_RELOAD" = "Reload data";
 "RADAR_RELOAD_HINT" = "Reloads the latest map data";
@@ -550,3 +550,24 @@
 "VC_PAUSE" = "Pause";
 "VC_PLAY" = "Play";
 "PLACES_ALERT_FOR" = "Rain alert for %@";
+/* Kartenwahl: verschachteltes Menü, Regenebenen Europa/Welt */
+"LAYER_RADAR_EU_TITLE" = "Rain radar Europe";
+"LAYER_RADAR_WORLD_TITLE" = "Rain radar world";
+"LAYER_RADAR_EU_SPOKEN" = "Rain radar Europe, OPERA";
+"LAYER_RADAR_WORLD_SPOKEN" = "Rain radar world, estimated from satellite data, less accurate";
+"LAYER_RADAR_DE_MENU" = "Germany (DWD)";
+"LAYER_RADAR_EU_MENU" = "Europe (OPERA)";
+"LAYER_RADAR_WORLD_MENU" = "World (NOAA)";
+"LAYER_RADAR_WORLD_NOTE" = "Estimated from satellite data, less accurate";
+"LAYER_RADAR_SOON" = "soon";
+"LAYER_CAPTION_ESTIMATE" = "Estimate";
+"RADAR_MENU_GROUP_RAIN" = "Rain layers";
+"RADAR_MENU_GROUP_EXTRA" = "Extra layers";
+"RADAR_MENU_GROUP_DISPLAY" = "Display";
+"RADAR_MENU_GROUP_SUFFIX" = ", submenu";
+"RADAR_MENU_FOREST" = "Show forest";
+"RADAR_MENU_QUICK_RAIN" = "Rain";
+"LEGEND_RADAR_EU_HINT" = "Precipitation across Europe from the EUMETNET OPERA radar network, every 5 minutes. The data is re-projected and coloured.";
+"LEGEND_RADAR_WORLD_HINT" = "Worldwide precipitation from NOAA, estimated from satellite data and therefore less accurate than radar measurements. There are gaps, and intensity and position can be off.";
+"LEGEND_TITLE_RADAR_EU" = "Precipitation Europe";
+"LEGEND_TITLE_RADAR_WORLD" = "Precipitation world (estimate)";

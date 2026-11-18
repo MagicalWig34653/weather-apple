@@ -219,7 +219,7 @@
 "RADAR_SAVE_PLACE_MESSAGE" = "Name und Koordinaten bleiben auf deinem iPhone und werden auch an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist.";
 "RADAR_LAYER_SECTION" = "Kartenebene";
 "RADAR_LAYER_MENU_LABEL" = "Kartenebene wählen";
-"RADAR_LAYER_MENU_HINT" = "Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.";
+"RADAR_LAYER_MENU_HINT" = "Wählt genau eine Ebene. Untermenüs: Regenebenen (Deutschland, Europa, Welt), Zusatzebenen (Wolken, Sonne, Blitze, Luftdruck, Temperatur, Feuchte) und Darstellung. Enthält auch Daten neu laden.";
 "RADAR_LAYER_SELECTED_SUFFIX" = ", ausgewählt";
 "RADAR_RELOAD" = "Daten neu laden";
 "RADAR_RELOAD_HINT" = "Lädt den aktuellen Datenstand der Karte neu";
@@ -550,3 +550,24 @@
 "VC_PAUSE" = "Pause";
 "VC_PLAY" = "Abspielen";
 "PLACES_ALERT_FOR" = "Regenhinweis für %@";
+/* Kartenwahl: verschachteltes Menü, Regenebenen Europa/Welt */
+"LAYER_RADAR_EU_TITLE" = "Regenradar Europa";
+"LAYER_RADAR_WORLD_TITLE" = "Regenradar Welt";
+"LAYER_RADAR_EU_SPOKEN" = "Regenradar Europa, OPERA";
+"LAYER_RADAR_WORLD_SPOKEN" = "Regenradar Welt, aus Satellitendaten geschätzt, ungenauer";
+"LAYER_RADAR_DE_MENU" = "Deutschland (DWD)";
+"LAYER_RADAR_EU_MENU" = "Europa (OPERA)";
+"LAYER_RADAR_WORLD_MENU" = "Welt (NOAA)";
+"LAYER_RADAR_WORLD_NOTE" = "aus Satellitendaten geschätzt, ungenauer";
+"LAYER_RADAR_SOON" = "bald";
+"LAYER_CAPTION_ESTIMATE" = "Schätzung";
+"RADAR_MENU_GROUP_RAIN" = "Regenebenen";
+"RADAR_MENU_GROUP_EXTRA" = "Zusatzebenen";
+"RADAR_MENU_GROUP_DISPLAY" = "Darstellung";
+"RADAR_MENU_GROUP_SUFFIX" = ", Untermenü";
+"RADAR_MENU_FOREST" = "Wald anzeigen";
+"RADAR_MENU_QUICK_RAIN" = "Regen";
+"LEGEND_RADAR_EU_HINT" = "Niederschlag in Europa aus dem OPERA-Radarverbund von EUMETNET, alle 5 Minuten. Die Daten sind umprojiziert und eingefärbt.";
+"LEGEND_RADAR_WORLD_HINT" = "Niederschlag weltweit von NOAA, aus Satellitendaten geschätzt und deshalb ungenauer als Radarmessungen. Es gibt Lücken, und Stärke und Ort können abweichen.";
+"LEGEND_TITLE_RADAR_EU" = "Niederschlag Europa";
+"LEGEND_TITLE_RADAR_WORLD" = "Niederschlag Welt (Schätzung)";

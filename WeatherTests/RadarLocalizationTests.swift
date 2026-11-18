@@ -73,6 +73,23 @@ final class RadarLocalizationTests: XCTestCase {
         XCTAssertEqual(String(format: try XCTUnwrap(en["TIMELINE_SLIDER_HINT"]), "A", "B").prefix(9), "From A to")
     }
 
+    func testNestedLayerMenuKeysExistInBothLanguagesWithEnglishWording() throws {
+        let en = try table("en"), deTable = try table("de")
+        let keys = ["LAYER_RADAR_EU_TITLE", "LAYER_RADAR_EU_SPOKEN", "LAYER_RADAR_WORLD_TITLE", "LAYER_RADAR_WORLD_SPOKEN",
+                    "LAYER_RADAR_DE_MENU", "LAYER_RADAR_EU_MENU", "LAYER_RADAR_WORLD_MENU", "LAYER_RADAR_WORLD_NOTE", "LAYER_RADAR_SOON", "RADAR_MENU_GROUP_RAIN", "RADAR_MENU_GROUP_EXTRA",
+                    "RADAR_MENU_GROUP_DISPLAY", "RADAR_MENU_FOREST", "RADAR_MENU_GROUP_SUFFIX", "RADAR_MENU_QUICK_RAIN",
+                    "LEGEND_RADAR_EU_HINT", "LEGEND_RADAR_WORLD_HINT", "LEGEND_TITLE_RADAR_EU", "LEGEND_TITLE_RADAR_WORLD"]
+        for key in keys {
+            XCTAssertNotNil(en[key], "en \(key)")
+            XCTAssertNotNil(deTable[key], "de \(key)")
+            XCTAssertNotEqual(en[key], deTable[key], key)
+        }
+        XCTAssertEqual(en["RADAR_MENU_GROUP_RAIN"], "Rain layers")
+        XCTAssertEqual(en["LAYER_RADAR_EU_MENU"], "Europe (OPERA)")
+        XCTAssertEqual(en["LAYER_RADAR_WORLD_NOTE"], "Estimated from satellite data, less accurate")
+        XCTAssertEqual(deTable["RADAR_MENU_GROUP_EXTRA"], "Zusatzebenen")
+    }
+
     func testPastWindowLabelGermanSingularAndPlural() {
         // The host runs in German (Simulator de-DE); English comes from the table test above.
         XCTAssertEqual(RadarPastWindow.label(1), "1 Stunde")

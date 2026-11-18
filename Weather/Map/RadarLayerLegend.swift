@@ -7,6 +7,8 @@ enum RadarLayerLegendText {
     static func hint(for layer: RadarLayer) -> String {
         switch layer {
         case .radar: NSLocalizedString("LEGEND_RADAR_HINT", value: "Niederschlag in Millimeter pro Stunde.", comment: "Legend hint")
+        case .radarEU: NSLocalizedString("LEGEND_RADAR_EU_HINT", value: "Niederschlag in Europa aus dem OPERA-Radarverbund von EUMETNET, alle 5 Minuten. Die Farben entsprechen der Skala des Deutschland-Radars; die Daten sind umprojiziert und eingefärbt.", comment: "Legend hint")
+        case .radarWorld: NSLocalizedString("LEGEND_RADAR_WORLD_HINT", value: "Niederschlag weltweit von NOAA, aus Satellitendaten geschätzt und deshalb ungenauer als Radarmessungen. Es gibt Lücken, und Stärke und Ort können abweichen.", comment: "Legend hint")
         case .pressure: NSLocalizedString("LEGEND_PRESSURE_HINT", value: "Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage. Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind.", comment: "Legend hint")
         case .pressureEU: NSLocalizedString("LEGEND_PRESSURE_EU_HINT", value: "Linien gleichen Luftdrucks auf Meereshöhe (Isobaren) in Hektopascal, berechnet vom Wettermodell ICON des DWD, stündlich und mit Vorhersage, Ausschnitt Europa. Je enger die Linien beieinander liegen, desto stärker weht in der Regel der Wind.", comment: "Legend hint")
         case .lightning: NSLocalizedString("LEGEND_LIGHTNING_HINT", value: "Blitzdichte der letzten 15 Minuten (NowCastMIX des DWD). Je kräftiger die Farbe, desto mehr Blitze in dem Gebiet.", comment: "Legend hint")
@@ -46,6 +48,8 @@ enum RadarLayerLegendText {
     static func title(for layer: RadarLayer) -> String {
         switch layer {
         case .radar: NSLocalizedString("LEGEND_TITLE_RADAR", value: "Niederschlag in mm/h", comment: "Legend title")
+        case .radarEU: NSLocalizedString("LEGEND_TITLE_RADAR_EU", value: "Niederschlag Europa", comment: "Legend title")
+        case .radarWorld: NSLocalizedString("LEGEND_TITLE_RADAR_WORLD", value: "Niederschlag Welt (Schätzung)", comment: "Legend title")
         case .pressure: NSLocalizedString("LEGEND_TITLE_PRESSURE", value: "Luftdruck (Isobaren)", comment: "Legend title")
         case .pressureEU: NSLocalizedString("LEGEND_TITLE_PRESSURE_EU", value: "Luftdruck Europa (Isobaren)", comment: "Legend title")
         case .lightning: NSLocalizedString("LEGEND_TITLE_LIGHTNING", value: "Blitzdichte", comment: "Legend title")
@@ -60,7 +64,7 @@ enum RadarLayerLegendText {
     /// Hint for the legend toggle button.
     static func toggleHint(for layer: RadarLayer) -> String {
         switch layer {
-        case .radar: NSLocalizedString("LEGEND_TOGGLE_RADAR", value: "Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde", comment: "Legend toggle hint")
+        case .radar, .radarEU, .radarWorld: NSLocalizedString("LEGEND_TOGGLE_RADAR", value: "Zeigt oder verbirgt die Farbskala in Millimeter pro Stunde", comment: "Legend toggle hint")
         case .pressure, .pressureEU: NSLocalizedString("LEGEND_TOGGLE_PRESSURE", value: "Zeigt oder verbirgt den Hinweis zu den Isobaren", comment: "Legend toggle hint")
         case .lightning: NSLocalizedString("LEGEND_TOGGLE_LIGHTNING", value: "Zeigt oder verbirgt die Legende der Blitzdichte", comment: "Legend toggle hint")
         case .clouds: NSLocalizedString("LEGEND_TOGGLE_CLOUDS", value: "Zeigt oder verbirgt den Hinweis zum Satellitenbild", comment: "Legend toggle hint")
