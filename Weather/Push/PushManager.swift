@@ -201,6 +201,9 @@ final class PushManager {
     }
 
     static func live() -> PushManager {
+        #if DEBUG
+        if let stub = PushUITestStub.manager() { return stub }
+        #endif
         let manager = PushManager(gateway: HTTPPushGateway(), secrets: KeychainPushSecretStore(),
                                   authorizer: SystemPushAuthorizing(), registrar: SystemRemoteRegistrar(),
                                   activityManager: SystemRainActivityManager(), activityDefaults: UserDefaults(suiteName: SharedConfig.appGroup))
@@ -293,6 +296,9 @@ final class PushManager {
     /// Opt-in. The explanation text has already been shown by the caller. Returns whether the opt-in is active.
     @discardableResult
     func enable(placeID: UUID, latitude: Double, longitude: Double) async -> Bool {
+        #if DEBUG
+        PushStubLog.shared.bump("enable")
+        #endif
         messages[placeID] = nil
         guard let cell = PushGrid.cell(latitude: latitude, longitude: longitude) else {
             messages[placeID] = NSLocalizedString("PUSH_MSG_OUT_OF_COVERAGE", value: "Dieser Ort liegt außerhalb des Radargebiets; Regenhinweise sind hier nicht möglich.", comment: "Push")

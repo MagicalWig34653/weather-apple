@@ -274,6 +274,7 @@
 		F6375147B90F98BD02906931 /* WidgetRefreshAndStringsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0994D98B40C0E872CAEB31C /* WidgetRefreshAndStringsTests.swift */; };
 		F6B3A8578FC7CF2F81F7624E /* DWDRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E506014F74FCB1F262D83D /* DWDRequest.swift */; };
 		F73C7C235E0853039C19ED3F /* NotificationNameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E008BB26D171BB1F9F2FC8 /* NotificationNameStore.swift */; };
+		F901C900E1F6E772E8599AA4 /* PushUITestStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B2B1B78C5E02E8E405CE44 /* PushUITestStub.swift */; };
 		FC53F4ADAD5AE068572020BE /* RadarPrefetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16524FDBC29EF7778DC8877B /* RadarPrefetchTests.swift */; };
 		FCB14B8EA83290BAB381717B /* WidgetTimelineBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F57EC5F818EF91ED7A88D /* WidgetTimelineBuilder.swift */; };
 		FE1634B5E48A983D75962FB4 /* WarningPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4D5051D6C7F6CFFEE70D6A /* WarningPresentation.swift */; };
@@ -369,6 +370,7 @@
 		01AB64369CCDACFC1B78BA4C /* SolarPosition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarPosition.swift; sourceTree = "<group>"; };
 		03E40DE98AD11AE8518AC72A /* ModelLayerSourcesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelLayerSourcesTests.swift; sourceTree = "<group>"; };
 		059FF384C55ED1C200B2EC8F /* PlacesEnglishTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacesEnglishTests.swift; sourceTree = "<group>"; };
+		07B2B1B78C5E02E8E405CE44 /* PushUITestStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushUITestStub.swift; sourceTree = "<group>"; };
 		0A8D91776C55BD64C22B4080 /* ForestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForestTests.swift; sourceTree = "<group>"; };
 		0C4D5051D6C7F6CFFEE70D6A /* WarningPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningPresentation.swift; sourceTree = "<group>"; };
 		0C611C7CE40C6A89732B8A51 /* SavedPlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedPlace.swift; sourceTree = "<group>"; };
@@ -509,8 +511,8 @@
 		A91C08FB88B3A541C27E2CC7 /* SunMask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunMask.swift; sourceTree = "<group>"; };
 		AA5BFBBDA00968BDEFB8E985 /* WebPLosslessDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPLosslessDecoder.swift; sourceTree = "<group>"; };
 		AA76D542667074A3AA33EFA0 /* Fixtures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fixtures; path = WeatherTests/Fixtures; sourceTree = SOURCE_ROOT; };
-		B14E840904BD2BC60FCA1C77 /* RadarStatusMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarStatusMessages.swift; sourceTree = "<group>"; };
 		AB110F50660A2E89580D6456 /* SetupWizardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupWizardTests.swift; sourceTree = "<group>"; };
+		B14E840904BD2BC60FCA1C77 /* RadarStatusMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarStatusMessages.swift; sourceTree = "<group>"; };
 		B1EBF9EAB9B1727636D28C4D /* RadarCrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarCrop.swift; sourceTree = "<group>"; };
 		B1F768BD1A31672946CEB2E0 /* WarnGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnGeometryTests.swift; sourceTree = "<group>"; };
 		B339BE23F03B8AC4859F87DE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -765,6 +767,7 @@
 				8174F0961CBA8C530C9B30C0 /* PushGrid.swift */,
 				2901C92E5F1E1C1E706A6AE6 /* PushKeychain.swift */,
 				BCB2C1112479F903D8978745 /* PushManager.swift */,
+				07B2B1B78C5E02E8E405CE44 /* PushUITestStub.swift */,
 				EBE95B24FD0B56AB87DFAA99 /* RainActivityManager.swift */,
 				ECFF43655BADE3EB2BE2B3C6 /* RainActivityText.swift */,
 			);
@@ -1360,6 +1363,7 @@
 				64DDC32E997D39887A3D44E9 /* PushGrid.swift in Sources */,
 				5A327499E6EDC83F1132B90B /* PushKeychain.swift in Sources */,
 				E568B96A170F5AEE5C3E0866 /* PushManager.swift in Sources */,
+				F901C900E1F6E772E8599AA4 /* PushUITestStub.swift in Sources */,
 				0F0AA995C0804E9BB2B042EE /* RadarBackend.swift in Sources */,
 				35F573107874A37CB210AE27 /* RadarHistory.swift in Sources */,
 				833B08E15FD8FA6A2A9DF0F8 /* RadarImageOverlay.swift in Sources */,

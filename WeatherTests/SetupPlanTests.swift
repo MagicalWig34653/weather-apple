@@ -179,15 +179,93 @@ final class SetupPlanTests: XCTestCase {
         XCTAssertEqual(consent.selected.count, 3)
     }
 
-    func testPrivacyTextsNoLongerClaimLocationStaysOnDevice() {
+    @MainActor func testDeselectingEverythingAfterConfirmationNeverEnables() async {
+        var consent = SetupAlertConsent()
+        let a = UUID()
+        consent.set(a, on: true)
+        consent.confirm()
+        consent.set(a, on: false)
+        XCTAssertFalse(consent.canRequest)
+        XCTAssertFalse(consent.confirmed)
+        consent.confirm()
+        XCTAssertFalse(consent.confirmed)
+        var calls = 0
+        let enabled = await consent.enableConfirmed(in: [a]) { _ in calls += 1; return true }
+        XCTAssertEqual(enabled, 0)
+        XCTAssertEqual(calls, 0)
+    }
+
+    @MainActor func testEnableCountsOnlySuccessfulPlaces() async {
+        var consent = SetupAlertConsent()
+        let a = UUID(), b = UUID()
+        consent.set(a, on: true)
+        consent.set(b, on: true)
+        consent.confirm()
+        let enabled = await consent.enableConfirmed(in: [a, b]) { $0 == a }
+        XCTAssertEqual(enabled, 1)
+    }
+
+    // MARK: Texte (kein stilles Überspringen: fehlendes Bundle oder Schlüssel macht den Test rot)
+
+    private func strings(_ lang: String) throws -> [String: String] {
+        let bundlePath = try XCTUnwrap(Bundle.main.path(forResource: lang, ofType: "lproj"), "\(lang).lproj not found in the app bundle")
+        let path = try XCTUnwrap(Bundle(path: bundlePath)?.path(forResource: "Localizable", ofType: "strings"), "Localizable.strings (\(lang)) not found")
+        return try XCTUnwrap(NSDictionary(contentsOfFile: path) as? [String: String], "Localizable.strings (\(lang)) unreadable")
+    }
+
+    func testPrivacyTextsNoLongerClaimLocationStaysOnDevice() throws {
         for lang in ["de", "en"] {
-            let path = Bundle(for: SetupPlanTests.self).path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: lang)
-                ?? Bundle.main.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: lang)
-            guard let path, let dict = NSDictionary(contentsOfFile: path) as? [String: String] else { continue }
-            XCTAssertFalse((dict["SETUP_LOCATION_BODY"] ?? "").contains(lang == "de" ? "bleibt auf dem Gerät" : "stays on the device"), lang)
-            let alert = dict["SETUP_ALERT_BODY"] ?? ""
+            let dict = try strings(lang)
+            let location = try XCTUnwrap(dict["SETUP_LOCATION_BODY"], lang)
+            XCTAssertFalse(location.contains(lang == "de" ? "bleibt auf dem Gerät" : "stays on the device"), lang)
+            XCTAssertTrue(location.contains(lang == "de" ? "Deutschen Wetterdienst" : "German Weather Service"), lang)
+            let alert = try XCTUnwrap(dict["SETUP_ALERT_BODY"], lang)
             XCTAssertTrue(alert.contains(lang == "de" ? "Installationskennung" : "installation ID"), lang)
             XCTAssertTrue(alert.contains(lang == "de" ? "ausschalten" : "turn this off"), lang)
+        }
+    }
+
+    /// Alle Einwilligungstexte nennen Installationskennung, Widerruf (Ausschalten, Löschen) und den Knopf „Weiter“.
+    func testAllConsentTextsMentionInstallationIDAndWithdrawal() throws {
+        for lang in ["de", "en"] {
+            let dict = try strings(lang)
+            let button = try XCTUnwrap(dict["PUSH_CONTINUE"], lang)
+            for key in ["PUSH_PLACE_CONFIRM_MESSAGE", "REGION_EXPLANATION", "SETUP_ALERT_CONFIRM_MESSAGE"] {
+                let text = try XCTUnwrap(dict[key], "\(key) \(lang)")
+                XCTAssertTrue(text.contains(lang == "de" ? "zufällige Installationskennung" : "random installation ID"), "\(key) \(lang)")
+                XCTAssertTrue(text.contains(lang == "de" ? "widerruft das jederzeit und löscht die Daten auf dem Server" : "withdraws consent at any time and deletes the data on the server"), "\(key) \(lang)")
+                XCTAssertTrue(text.contains(lang == "de" ? "„\(button)“ willigst du ein" : "“\(button)” you consent"), "\(key) \(lang)")
+                XCTAssertTrue(text.contains(lang == "de" ? "Gerätetoken" : "device token"), "\(key) \(lang)")
+            }
+            for key in ["PUSH_PLACE_CONFIRM_MESSAGE", "SETUP_ALERT_CONFIRM_MESSAGE"] {
+                let text = try XCTUnwrap(dict[key], key)
+                XCTAssertTrue(text.contains("0,7 km") || text.contains("0.7 km"), "\(key) \(lang): Rasterzelle")
+            }
+        }
+    }
+
+    func testPendingNoteExistsAndDiffersFromNothingPreselectedNote() throws {
+        for lang in ["de", "en"] {
+            let dict = try strings(lang)
+            let pending = try XCTUnwrap(dict["SETUP_ALERT_PENDING_NOTE"], lang)
+            let none = try XCTUnwrap(dict["SETUP_ALERT_PROMPT_NOTE"], lang)
+            XCTAssertNotEqual(pending, none, lang)
+            XCTAssertTrue(pending.contains(lang == "de" ? "Bestätigung" : "confirm"), lang)
+            XCTAssertFalse(pending.contains(lang == "de" ? "vorgewählt" : "preselected"), lang)
+            XCTAssertTrue(none.contains(lang == "de" ? "vorgewählt" : "preselected"), lang)
+        }
+    }
+
+    /// „Regenhinweis“ überall gleich; „Warnung“ bleibt den amtlichen DWD-Warnungen vorbehalten.
+    func testRainAlertTitleIsConsistent() throws {
+        let titles = ["de": "Regenhinweis", "en": "Rain alert"]
+        for (lang, title) in titles {
+            let dict = try strings(lang)
+            XCTAssertEqual(dict["SETUP_ALERT_TITLE"], title, lang)
+            XCTAssertEqual(dict["PUSH_PLACE_CONFIRM_TITLE"], lang == "de" ? "Regenhinweis aktivieren?" : "Enable Rain Alert?", lang)
+            for (key, value) in dict where key.hasPrefix("SETUP_") {
+                XCTAssertFalse(value.contains("Regenwarnung") || value.localizedCaseInsensitiveContains("rain warning"), "\(key) \(lang)")
+            }
         }
     }
 }

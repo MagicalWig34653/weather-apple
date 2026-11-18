@@ -4,7 +4,7 @@ Stand: 17.11.2026, von Lino freigegeben. Leitplanken aus `concept-v2.md`: Die Ap
 
 ## Entscheidungen (Lino, 17.11.)
 
-1. Die Regenwarnung wird direkt im Wizard angeboten (Schritt 4), nicht nur als Tipp.
+1. Der Regenhinweis wird direkt im Wizard angeboten (Schritt 4), nicht nur als Tipp.
 2. Bestehende TestFlight-Nutzer sehen den Wizard auch, aber nur mit den noch offenen Schritten.
 3. Gestaltung im Glas-Stil der App (`app-glass.md`), ohne eigene Illustration.
 
@@ -19,10 +19,10 @@ Stand: 17.11.2026, von Lino freigegeben. Leitplanken aus `concept-v2.md`: Die Ap
 
 | # | Bildschirm | Inhalt | Systemabfrage |
 |---|---|---|---|
-| 1 | Willkommen | Was Showers kann: Radar, Prognose für den Ort, Regenwarnung. Dazu „Kein Konto, kein Tracking“ und die Quellen DWD und EUMETNET OPERA. | – |
+| 1 | Willkommen | Was Showers kann: Radar, Prognose für den Ort, Regenhinweis. Dazu „Kein Konto, kein Tracking“ und die Quellen DWD und EUMETNET OPERA. | – |
 | 2 | Standort | „Für Karte und Prognose an deinem Ort. Der Standort bleibt auf dem Gerät.“ Alternativ „Lieber einen Ort suchen“. | Nur bei Nutzung, niemals „Immer“ |
 | 3 | Orte | Erster gespeicherter Ort: der Standort als Vorschlag oder über die Suche. 1–3 Orte, freiwillig. | – |
-| 4 | Regenwarnung | „Wir melden, wenn an deinem Ort Regen beginnt.“ Ehrlich, was an den Server geht: Rasterzelle und Geräte-Token, kein genauer Standort. Bisher nur für Deutschland. Danach Auswahl der Orte. | Mitteilungen |
+| 4 | Regenhinweis | „Wir melden, wenn an deinem Ort Regen beginnt.“ Ehrlich, was an den Server geht: Rasterzelle und Geräte-Token, kein genauer Standort. Bisher nur für Deutschland. Danach Auswahl der Orte. | Mitteilungen |
 | 5 | Fertig | Tipps ohne Abfrage: Widget hinzufügen, Live-Aktivität, Watch, DWD-Warnungen. Dann zum Radar. | – |
 
 ## Ablehnung und später

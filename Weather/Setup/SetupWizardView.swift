@@ -49,6 +49,15 @@ struct SetupWizardView: View {
             }
         }
         .onAppear { push.updatePlaceNames(store.places) }
+        #if DEBUG
+        .overlay(alignment: .topLeading) {
+            // UI tests only: counters of the fake push backend (nothing is shown to people).
+            if PushUITestStub.isActive {
+                Color.clear.frame(width: 1, height: 1).accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(PushStubLog.shared.summary) enabled=\(push.enabledCount) working=\(working)").accessibilityIdentifier("setup-debug")
+            }
+        }
+        #endif
         .sitePageSheet($sitePage)
         .alert(NSLocalizedString("PUSH_PLACE_CONFIRM_TITLE", value: "Regenhinweis aktivieren?", comment: "Push"), isPresented: $confirmAlerts) {
             Button(NSLocalizedString("PUSH_CONTINUE", value: "Weiter", comment: "Push")) { consent.confirm(); Task { await enableAlerts() } }
@@ -219,8 +228,14 @@ struct SetupWizardView: View {
                 .accessibilityIdentifier("setup-alert-place")
             }
             if let alertMessage { Label(alertMessage, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange) }
-            Text(NSLocalizedString("SETUP_ALERT_PROMPT_NOTE", value: "Nichts ist vorgewählt. Erst nach deiner Zustimmung fragt iOS, ob Showers Mitteilungen senden darf.", comment: "Setup"))
-                .font(.footnote).foregroundStyle(.secondary)
+            // "Nothing preselected" only before a choice; once a place is ticked the note is about the pending confirmation.
+            if consent.canRequest {
+                Text(NSLocalizedString("SETUP_ALERT_PENDING_NOTE", value: "Der Regenhinweis wird erst nach deiner Bestätigung eingeschaltet.", comment: "Setup"))
+                    .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("setup-alert-note-pending")
+            } else {
+                Text(NSLocalizedString("SETUP_ALERT_PROMPT_NOTE", value: "Nichts ist vorgewählt. Erst nach deiner Zustimmung fragt iOS, ob Showers Mitteilungen senden darf.", comment: "Setup"))
+                    .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("setup-alert-note-none")
+            }
         }
     }
 
@@ -275,7 +290,7 @@ struct SetupWizardView: View {
         }
     }
 
-    private func enableAlerts() async {
+    @MainActor private func enableAlerts() async {
         working = true
         alertMessage = nil
         let places = store.places
@@ -297,6 +312,9 @@ struct SetupWizardView: View {
         request.naturalLanguageQuery = term
         request.region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 51.1, longitude: 10.4),
                                             span: MKCoordinateSpan(latitudeDelta: 9, longitudeDelta: 14))
+        #if DEBUG
+        if let fixed = PushUITestStub.searchResult(for: term) { results = [fixed]; return }
+        #endif
         do {
             results = try await MKLocalSearch(request: request).start().mapItems
             if results.isEmpty { searchMessage = NSLocalizedString("PLACES_NO_RESULTS", value: "Keine passenden Orte gefunden.", comment: "Places") }

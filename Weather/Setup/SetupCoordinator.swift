@@ -34,6 +34,9 @@ final class SetupCoordinator {
         guard !evaluated, !Self.suppressedForUITests else { return }
         evaluated = true
         await push.refreshAuthorization()
+        #if DEBUG
+        PushUITestStub.cleanPlaces(store)
+        #endif
         if CommandLine.arguments.contains("-UITestSetup") {
             // The shared simulator keeps permission and place state; tests get the framed flow regardless.
             progress.reset()

@@ -319,7 +319,7 @@
 "PLACES_REGIONS_FOOTER" = "Rain alert for an area (5, 10 or 25 km) instead of a single place. The name and centre stay on this device; the server only receives a rough area.";
 "PLACES_REGION_LIMIT" = "At most %1$lld regions (at most %2$lld alerts in total).";
 "REGION_ADD" = "Add Region";
-"REGION_EXPLANATION" = "Showers notifies you when rain reaches this region. The following is sent to the Showers server: the device token, the centre at a coarser resolution than a grid cell (about 2 km, no coordinates), the radius, threshold, trigger share and lead time; no account, no name. iOS then asks whether notifications are allowed.";
+"REGION_EXPLANATION" = "Showers notifies you when rain reaches this region. The following is sent to the Showers server: the device token, a random installation ID, the centre at a coarser resolution than a grid cell (about 2 km, no coordinates), the radius, threshold, trigger share and lead time; no account, no name. By tapping “Continue” you consent. Turning it off withdraws consent at any time and deletes the data on the server. iOS then asks whether notifications are allowed.";
 "REGION_PRIVACY_FOOTNOTE" = "Sent to the server: the device token, a random installation ID, the centre at a coarser resolution than a grid cell (about 2 km), the radius, and the threshold, trigger share and lead time. No coordinates, no name, no account. The name of the region stays on this device.";
 "REGION_UNSUPPORTED" = "Regions are currently unavailable.";
 "REGION_SUPPORT_UNKNOWN" = "Could not check whether the server supports regions.";
@@ -369,7 +369,7 @@
 "PUSH_DELIVERY_SPORT" = "Exercise: When cycling, running or doing other workouts, add Showers as an allowed app in the Focus you use for it; otherwise the notification stays silent there.";
 "PUSH_PLACE_PRIVACY" = "Sent to the server: the device token of your iPhone, a random installation ID, the radar grid cell around this place (edge length about 0.7 km), and the threshold and lead time. No coordinates, no place name, no account.";
 "PUSH_PLACE_CONFIRM_TITLE" = "Enable Rain Alert?";
-"PUSH_PLACE_CONFIRM_MESSAGE" = "Showers notifies you when it is about to start raining at %@. The following is sent to the Showers server: the device token, the radar grid cell (edge length about 0.7 km, no coordinates), threshold and lead time; no account. iOS then asks whether notifications are allowed.";
+"PUSH_PLACE_CONFIRM_MESSAGE" = "Showers notifies you when it is about to start raining at %@. The following is sent to the Showers server: the device token, a random installation ID, the radar grid cell (edge length about 0.7 km, no coordinates), threshold and lead time; no account. By tapping “Continue” you consent. Turning it off withdraws consent at any time and deletes the data on the server. iOS then asks whether notifications are allowed.";
 "PUSH_SENSITIVITY_VERY_LIGHT" = "Very light";
 "PUSH_SENSITIVITY_LIGHT" = "Light";
 "PUSH_SENSITIVITY_MODERATE" = "Moderate";
@@ -583,6 +583,7 @@
 "SETUP_ALERT_NO_PLACES" = "Save a place first, for example in Places.";
 "SETUP_ALERT_OUTSIDE" = "Outside Germany: radar yes, alert not yet.";
 "SETUP_ALERT_PROMPT_NOTE" = "Nothing is preselected. Only after you consent does iOS ask whether Showers may send notifications.";
+"SETUP_ALERT_PENDING_NOTE" = "Rain alert is only turned on after you confirm.";
 "SETUP_ALERT_TITLE" = "Rain alert";
 "SETUP_DONE_AGAIN" = "You can find setup any time under “About Showers”.";
 "SETUP_DONE_BODY" = "A few tips, no permissions needed:";
