@@ -437,3 +437,9 @@ Nutzerentscheidung "nimm erstmal d2": `Weather/Resources/Icon/AppIcon.icon` = `e
 ## Build 49: Upload an TestFlight (18.11.2026)
 
 Stand 18.11.2026: Build 49 (Showers 0.1.1 (49), Bundle `de.linolaske.showernow`, Team `J2DU2P47XW`, Archiv aus `61bb4c2`) per `xcodebuild -exportArchive` (destination upload, `testFlightInternalTestingOnly=true`) hochgeladen: `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Zustand `Uploaded package is processing` (17:50 Uhr MEZ). Apple-Verarbeitung und interne TestFlight-Verfügbarkeit nicht geprüft; nicht zur Prüfung eingereicht, nichts in App Store Connect geändert.
+
+## Build 50 (18.11.2026)
+
+- Showers 0.1.1 (50), Archiv aus dem Stand dieses Commits gebaut, nicht exportiert, nicht hochgeladen.
+- Inhalt: Ladekreis der Prognose-Pille nur bei laufender Anfrage (inkl. Erstladen mit Text "Regenprognose wird geladen ..." und Kreis rechts); "Stand vor ..." aus dem Prognose-Kopf entfernt; Dunkel-Test repariert.
+- Nicht geprüft: Gerät, VoiceOver, Apple-Verarbeitung, CI-Lauf.
