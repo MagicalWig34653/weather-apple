@@ -65,8 +65,21 @@ final class SetupWizardTests: XCTestCase {
         }
         attach(app, "03c-orte-gespeichert")
         app.buttons["setup-primary"].tap()
-        XCTAssertTrue(app.staticTexts["Regenwarnung"].waitForExistence(timeout: 5))
-        attach(app, "04-regenwarnung")
+        XCTAssertTrue(app.staticTexts["Regenhinweis"].waitForExistence(timeout: 5))
+        attach(app, "04-regenhinweis")
+        // Opt-in: nothing preselected, button disabled until a place is ticked, then an explicit consent dialog.
+        XCTAssertFalse(app.buttons["setup-primary"].isEnabled)
+        let toggle = app.switches.matching(identifier: "setup-alert-place").firstMatch
+        if toggle.waitForExistence(timeout: 5) {
+            XCTAssertEqual(toggle.value as? String, "0")
+            toggle.tap()
+            attach(app, "04b-regenhinweis-ausgewaehlt")
+            XCTAssertTrue(app.buttons["setup-primary"].isEnabled)
+            app.buttons["setup-primary"].tap()
+            XCTAssertTrue(app.alerts["Regenhinweis aktivieren?"].waitForExistence(timeout: 5))
+            attach(app, "04c-zustimmung")
+            app.alerts.buttons["Abbrechen"].tap()
+        }
         app.buttons["setup-later"].tap()
         XCTAssertTrue(app.staticTexts["Fertig"].waitForExistence(timeout: 5))
         attach(app, "05-fertig")

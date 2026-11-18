@@ -94,3 +94,32 @@ struct SetupProgress {
     func markCompleted() { defaults.set(SetupPlan.currentVersion, forKey: Self.key) }
     func reset() { defaults.removeObject(forKey: Self.key) }
 }
+
+/// Opt-in for the rain alert step (consent under GDPR): nothing is preselected, and `push.enable` is only ever
+/// called for places the person ticked AND after they confirmed the consent dialog.
+struct SetupAlertConsent: Equatable, Sendable {
+    static let maxPlaces = 3
+    private(set) var selected: Set<UUID> = []
+    private(set) var confirmed = false
+
+    var canRequest: Bool { !selected.isEmpty }
+
+    mutating func set(_ id: UUID, on: Bool) {
+        if on, selected.count < Self.maxPlaces { selected.insert(id) }
+        else if !on { selected.remove(id) }
+        confirmed = false
+    }
+
+    /// Called only from the confirm button of the consent dialog.
+    mutating func confirm() { if canRequest { confirmed = true } }
+
+    /// Calls `enable` for each selected place in the given order, and only if consent was confirmed. Returns the count enabled.
+    @MainActor func enableConfirmed(in order: [UUID], using enable: (UUID) async -> Bool) async -> Int {
+        guard confirmed else { return 0 }
+        var enabled = 0
+        for id in order where selected.contains(id) {
+            if await enable(id) { enabled += 1 }
+        }
+        return enabled
+    }
+}

@@ -18,7 +18,9 @@ struct SetupWizardView: View {
     @State private var query = ""
     @State private var results: [MKMapItem] = []
     @State private var searchMessage: String?
-    @State private var selectedAlertPlaces: Set<UUID> = []
+    @State private var consent = SetupAlertConsent()
+    @State private var confirmAlerts = false
+    @State private var sitePage: SitePage?
     @State private var alertMessage: String?
     @State private var alertsEnabled = 0
 
@@ -47,6 +49,18 @@ struct SetupWizardView: View {
             }
         }
         .onAppear { push.updatePlaceNames(store.places) }
+        .sitePageSheet($sitePage)
+        .alert(NSLocalizedString("PUSH_PLACE_CONFIRM_TITLE", value: "Regenhinweis aktivieren?", comment: "Push"), isPresented: $confirmAlerts) {
+            Button(NSLocalizedString("PUSH_CONTINUE", value: "Weiter", comment: "Push")) { consent.confirm(); Task { await enableAlerts() } }
+            Button(NSLocalizedString("PUSH_READ_PRIVACY", value: "Datenschutzerklärung lesen", comment: "Push")) { sitePage = .privacy }
+            Button(NSLocalizedString("COMMON_CANCEL", value: "Abbrechen", comment: "Common"), role: .cancel) {}
+        } message: {
+            Text(String(format: NSLocalizedString("SETUP_ALERT_CONFIRM_MESSAGE", value: "Showers meldet dir per Mitteilung, wenn es bei %@ bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine zufällige Installationskennung, die Rasterzelle des Radarbildes (Kantenlänge etwa 0,7 km, keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Mit „Weiter“ willigst du ein. Ausschalten widerruft das jederzeit und löscht die Daten auf dem Server. Danach fragt iOS, ob Mitteilungen erlaubt sind.", comment: "Setup"), selectedPlaceNames))
+        }
+    }
+
+    private var selectedPlaceNames: String {
+        store.places.filter { consent.selected.contains($0.id) }.map(\.name).formatted(.list(type: .and))
     }
 
     // MARK: Header and footer
@@ -77,7 +91,7 @@ struct SetupWizardView: View {
                 Text(primaryTitle).frame(maxWidth: .infinity).padding(.vertical, 6)
             }
             .buttonStyle(.glassProminent)
-            .disabled(working || (step == .rainAlert && selectedAlertPlaces.isEmpty && alertsEnabled == 0))
+            .disabled(working || (step == .rainAlert && !consent.canRequest))
             .accessibilityIdentifier("setup-primary")
             if let later = laterTitle {
                 Button(later) { advance() }
@@ -93,6 +107,7 @@ struct SetupWizardView: View {
         switch step {
         case .welcome: NSLocalizedString("SETUP_START", value: "Los geht’s", comment: "Setup")
         case .done: NSLocalizedString("SETUP_TO_RADAR", value: "Zum Radar", comment: "Setup")
+        case .rainAlert: NSLocalizedString("SETUP_ALERT_ENABLE", value: "Regenhinweis einschalten", comment: "Setup")
         default: NSLocalizedString("SETUP_NEXT", value: "Weiter", comment: "Setup")
         }
     }
@@ -128,7 +143,7 @@ struct SetupWizardView: View {
     private var welcomeCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             title(NSLocalizedString("SETUP_WELCOME_TITLE", value: "Willkommen bei Showers", comment: "Setup"), symbol: "cloud.rain")
-            body(NSLocalizedString("SETUP_WELCOME_BODY", value: "Regenradar, Prognose für deinen Ort und auf Wunsch eine Regenwarnung.", comment: "Setup"))
+            body(NSLocalizedString("SETUP_WELCOME_BODY", value: "Regenradar, Prognose für deinen Ort und auf Wunsch ein Regenhinweis.", comment: "Setup"))
             Label(NSLocalizedString("SETUP_WELCOME_PRIVACY", value: "Kein Konto, kein Tracking.", comment: "Setup"), systemImage: "hand.raised")
             Label(NSLocalizedString("SETUP_WELCOME_SOURCES", value: "Daten vom Deutschen Wetterdienst und von EUMETNET OPERA.", comment: "Setup"), systemImage: "map")
         }
@@ -137,7 +152,7 @@ struct SetupWizardView: View {
     @ViewBuilder private var locationCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             title(NSLocalizedString("SETUP_LOCATION_TITLE", value: "Dein Standort", comment: "Setup"), symbol: "location")
-            body(NSLocalizedString("SETUP_LOCATION_BODY", value: "Für Karte und Prognose an deinem Ort. Der Standort bleibt auf dem Gerät. Showers fragt nur nach dem Standort, während die App geöffnet ist.", comment: "Setup"))
+            body(NSLocalizedString("SETUP_LOCATION_BODY", value: "Für Karte und Prognose an deinem Ort. Für die Prognose geht nur der Punkt an den Deutschen Wetterdienst, nicht an Showers. Showers fragt nur nach dem Standort, während die App geöffnet ist.", comment: "Setup"))
             Label(NSLocalizedString("SETUP_LOCATION_NOT", value: "Es wird kein Standortverlauf gespeichert.", comment: "Setup"), systemImage: "checkmark.shield")
             Button(NSLocalizedString("SETUP_LOCATION_SEARCH", value: "Lieber einen Ort suchen", comment: "Setup")) { advance() }
                 .frame(minHeight: 44).accessibilityIdentifier("setup-location-search")
@@ -175,15 +190,15 @@ struct SetupWizardView: View {
                     .accessibilityIdentifier("setup-result")
                 }
             }
-            Text(NSLocalizedString("SETUP_PLACES_PRIVACY", value: "Orte bleiben auf diesem Gerät. Die Suche nutzt Apple-Kartendienste.", comment: "Setup"))
+            Text(NSLocalizedString("SETUP_PLACES_PRIVACY", value: "Orte bleiben auf diesem Gerät und deiner Apple Watch. Die Suche nutzt Apple-Kartendienste.", comment: "Setup"))
                 .font(.footnote).foregroundStyle(.secondary)
         }
     }
 
     private var rainAlertCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            title(NSLocalizedString("SETUP_ALERT_TITLE", value: "Regenwarnung", comment: "Setup"), symbol: "bell.badge")
-            body(NSLocalizedString("SETUP_ALERT_BODY", value: "Wir melden dir, wenn an deinem Ort Regen beginnt. Dafür gehen an den Showers-Server nur das Gerätetoken, die Rasterzelle des Radarbildes (etwa 0,7 km Kantenlänge) sowie Schwelle und Vorlaufzeit. Kein genauer Standort, kein Ortsname, kein Konto.", comment: "Setup"))
+            title(NSLocalizedString("SETUP_ALERT_TITLE", value: "Regenhinweis", comment: "Setup"), symbol: "bell.badge")
+            body(NSLocalizedString("SETUP_ALERT_BODY", value: "Wir melden dir, wenn an deinem Ort Regen beginnt. Dafür gehen an den Showers-Server das Gerätetoken, eine zufällige Installationskennung, die Rasterzelle des Radarbildes (etwa 0,7 km Kantenlänge) sowie Schwelle und Vorlaufzeit. Kein genauer Standort, kein Ortsname, kein Konto. Du kannst das jederzeit ausschalten; dann werden die Daten auf dem Server gelöscht.", comment: "Setup"))
             Label(NSLocalizedString("SETUP_ALERT_GERMANY", value: "Bisher nur für Orte in Deutschland.", comment: "Setup"), systemImage: "info.circle")
             Text(NSLocalizedString("SETUP_ALERT_CHOOSE", value: "Für welche Orte?", comment: "Setup")).font(.headline)
             if store.places.isEmpty {
@@ -191,22 +206,20 @@ struct SetupWizardView: View {
             }
             ForEach(store.places) { place in
                 let supported = PushGrid.cell(latitude: place.coordinate.latitude, longitude: place.coordinate.longitude) != nil
-                Toggle(isOn: Binding(get: { selectedAlertPlaces.contains(place.id) }, set: { on in
-                    if on, selectedAlertPlaces.count < maxAlertPlaces { selectedAlertPlaces.insert(place.id) }
-                    else if !on { selectedAlertPlaces.remove(place.id) }
-                })) {
+                Toggle(isOn: Binding(get: { consent.selected.contains(place.id) }, set: { consent.set(place.id, on: $0) })) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(place.name)
                         if !supported {
-                            Text(NSLocalizedString("SETUP_ALERT_OUTSIDE", value: "Außerhalb von Deutschland: Radar ja, Warnung noch nicht.", comment: "Setup")).font(.caption).foregroundStyle(.secondary)
+                            Text(NSLocalizedString("SETUP_ALERT_OUTSIDE", value: "Außerhalb von Deutschland: Radar ja, Hinweis noch nicht.", comment: "Setup")).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }
                 .disabled(!supported)
                 .frame(minHeight: 44)
+                .accessibilityIdentifier("setup-alert-place")
             }
             if let alertMessage { Label(alertMessage, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange) }
-            Text(NSLocalizedString("SETUP_ALERT_PROMPT_NOTE", value: "Nach „Weiter“ fragt iOS, ob Showers Mitteilungen senden darf.", comment: "Setup"))
+            Text(NSLocalizedString("SETUP_ALERT_PROMPT_NOTE", value: "Nichts ist vorgewählt. Erst nach deiner Zustimmung fragt iOS, ob Showers Mitteilungen senden darf.", comment: "Setup"))
                 .font(.footnote).foregroundStyle(.secondary)
         }
     }
@@ -240,12 +253,8 @@ struct SetupWizardView: View {
 
     private func prepareStep() {
         locationState = SetupLocationState(CLLocationManager().authorizationStatus)
-        if step == .rainAlert {
-            selectedAlertPlaces = Set(store.places.prefix(maxAlertPlaces).filter {
-                PushGrid.cell(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude) != nil && push.settings(for: $0.id) == nil
-            }.map(\.id))
-            alertMessage = nil
-        }
+        // Rain alert is opt-in per place: nothing is preselected.
+        if step == .rainAlert { consent = SetupAlertConsent(); alertMessage = nil }
     }
 
     private func primaryAction() async {
@@ -260,16 +269,24 @@ struct SetupWizardView: View {
             }
             advance()
         case .rainAlert:
-            working = true
+            // Only asks for consent; enabling happens in the dialog's "Weiter".
             alertMessage = nil
-            for place in store.places where selectedAlertPlaces.contains(place.id) {
-                if await push.enable(placeID: place.id, latitude: place.coordinate.latitude, longitude: place.coordinate.longitude) {
-                    alertsEnabled += 1
-                } else if let message = push.messages[place.id] { alertMessage = message }
-            }
-            working = false
-            if alertMessage == nil || alertsEnabled > 0 { advance() }
+            confirmAlerts = true
         }
+    }
+
+    private func enableAlerts() async {
+        working = true
+        alertMessage = nil
+        let places = store.places
+        alertsEnabled += await consent.enableConfirmed(in: places.map(\.id)) { id in
+            guard let place = places.first(where: { $0.id == id }) else { return false }
+            let ok = await push.enable(placeID: place.id, latitude: place.coordinate.latitude, longitude: place.coordinate.longitude)
+            if !ok, let message = push.messages[place.id] { alertMessage = message }
+            return ok
+        }
+        working = false
+        if alertMessage == nil || alertsEnabled > 0 { advance() }
     }
 
     @MainActor private func search() async {

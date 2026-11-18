@@ -123,4 +123,71 @@ final class SetupPlanTests: XCTestCase {
         XCTAssertEqual(SetupLocationState(.denied), .denied)
         XCTAssertEqual(SetupLocationState(.restricted), .denied)
     }
+
+    // MARK: Regenhinweis nur mit ausdrücklicher Zustimmung
+
+    func testConsentStartsEmptyAndCannotRequest() {
+        let consent = SetupAlertConsent()
+        XCTAssertTrue(consent.selected.isEmpty)
+        XCTAssertFalse(consent.canRequest)
+        XCTAssertFalse(consent.confirmed)
+    }
+
+    @MainActor func testEnableNeverCalledWithoutConfirmation() async {
+        var consent = SetupAlertConsent()
+        let id = UUID()
+        consent.set(id, on: true)
+        var calls = 0
+        let enabled = await consent.enableConfirmed(in: [id]) { _ in calls += 1; return true }
+        XCTAssertEqual(enabled, 0)
+        XCTAssertEqual(calls, 0)
+    }
+
+    @MainActor func testConfirmWithoutSelectionDoesNothing() async {
+        var consent = SetupAlertConsent()
+        consent.confirm()
+        XCTAssertFalse(consent.confirmed)
+    }
+
+    @MainActor func testEnableOnlyForSelectedPlacesAfterConfirmation() async {
+        var consent = SetupAlertConsent()
+        let a = UUID(), b = UUID(), c = UUID()
+        consent.set(a, on: true)
+        consent.set(c, on: true)
+        consent.confirm()
+        var called: [UUID] = []
+        let enabled = await consent.enableConfirmed(in: [a, b, c]) { called.append($0); return true }
+        XCTAssertEqual(enabled, 2)
+        XCTAssertEqual(called, [a, c])
+    }
+
+    @MainActor func testChangingSelectionRevokesConfirmation() async {
+        var consent = SetupAlertConsent()
+        let a = UUID(), b = UUID()
+        consent.set(a, on: true)
+        consent.confirm()
+        consent.set(b, on: true)
+        XCTAssertFalse(consent.confirmed)
+        var calls = 0
+        _ = await consent.enableConfirmed(in: [a, b]) { _ in calls += 1; return true }
+        XCTAssertEqual(calls, 0)
+    }
+
+    func testAtMostThreePlaces() {
+        var consent = SetupAlertConsent()
+        for _ in 0..<5 { consent.set(UUID(), on: true) }
+        XCTAssertEqual(consent.selected.count, 3)
+    }
+
+    func testPrivacyTextsNoLongerClaimLocationStaysOnDevice() {
+        for lang in ["de", "en"] {
+            let path = Bundle(for: SetupPlanTests.self).path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: lang)
+                ?? Bundle.main.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: lang)
+            guard let path, let dict = NSDictionary(contentsOfFile: path) as? [String: String] else { continue }
+            XCTAssertFalse((dict["SETUP_LOCATION_BODY"] ?? "").contains(lang == "de" ? "bleibt auf dem Gerät" : "stays on the device"), lang)
+            let alert = dict["SETUP_ALERT_BODY"] ?? ""
+            XCTAssertTrue(alert.contains(lang == "de" ? "Installationskennung" : "installation ID"), lang)
+            XCTAssertTrue(alert.contains(lang == "de" ? "ausschalten" : "turn this off"), lang)
+        }
+    }
 }
