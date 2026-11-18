@@ -232,7 +232,6 @@
 "RADAR_SAVE_PLACE_BUTTON" = "Ausgewählten Ort speichern oder umbenennen";
 "RADAR_FORECAST_LOADING" = "Regenprognose wird geladen …";
 "RADAR_FORECAST_UNAVAILABLE" = "Prognose nicht verfügbar";
-"RADAR_FORECAST_OLD" = "Ältere Prognose (%@) · bitte aktualisieren";
 "RADAR_STATUS_LAYER_IMAGE_MISSING" = "Das Bild der Ebene %@ für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.";
 "RADAR_STATUS_IMAGE_MISSING" = "Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.";
 "RADAR_STATUS_TILES_MISSING" = "Einige Radarkacheln fehlen. Bitte erneut aktualisieren.";
@@ -572,3 +571,7 @@
 "LAYER_DEWPOINT_MENU" = "Taupunkt";
 "LAYER_HUMIDITY_MENU" = "Relativ";
 "RADAR_CREDIT_HINT" = "Vollständige Quellenangaben unter Datenquellen und Datenschutz";
+"RADAR_FORECAST_CAPTION_REFRESHING" = "Aktualisiere … · %@";
+"RADAR_FORECAST_CAPTION_FAILED" = "Aktualisierung fehlgeschlagen · %@";
+"RADAR_FORECAST_CAPTION_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand · %@";
+"RADAR_DETAILS_SERVER_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand als diese Prognose, %@. Die App fragt weiter nach.";

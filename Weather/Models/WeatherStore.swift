@@ -45,6 +45,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     var centerRevision = 0
     var radarReloadRevision = 0
     var lastRefresh: Date?
+    /// Consecutive failed point-forecast loads (0 after a success or a place change).
+    private(set) var forecastFailures = 0
+    /// Last successful point-forecast load; tells "service has nothing newer" from "not asked yet".
+    private(set) var forecastCheckedAt: Date?
     /// Where the currently shown radar images come from (honest source display).
     var radarSource: RadarSource = .cache
     var radarAttribution = RadarAttribution.default
@@ -63,6 +67,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
+    /// Token of the running point-forecast load (a forecast-only reload does not touch the radar generation).
+    @ObservationIgnored private var forecastToken = UUID()
     /// Shared by polls, manual reloads and timeline composition across suspension points.
     @ObservationIgnored private var radarGeneration = UUID()
     /// Refresh started by the last `select`; tests await it to order requests deterministically.
@@ -81,6 +87,13 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private var composedHours = RadarPastWindow.defaultHours
 
     override convenience init() {
+        #if DEBUG
+        if let mode = ForecastUITestStub.mode {
+            self.init(client: ForecastUITestStub.client(mode: mode), backend: RadarUITestStub.isActive ? RadarUITestStub.backend : ForecastUITestStub.backend)
+            clock = { ForecastUITestStub.now }
+            return
+        }
+        #endif
         self.init(client: DWDClient())
     }
 
@@ -121,8 +134,48 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         } catch { storageMessage = NSLocalizedString("STORE_ERR_LOAD_PLACES", value: "Gespeicherte Orte oder Prognosen konnten nicht geladen werden.", comment: "Weather store message") }
     }
 
-    var needsRefresh: Bool {
-        !isLoading && (lastRefresh.map { Date().timeIntervalSince($0) >= 300 } ?? true)
+    /// Load now when nothing was loaded yet, no forecast is shown, or a newer run is expected than the shown one
+    /// (independent of how long ago the last load was).
+    func needsRefresh(now: Date? = nil) -> Bool {
+        let now = now ?? clock()
+        return !isForecastLoading && (forecast == nil
+                       || ForecastRefreshPolicy.newRunExpected(shown: forecast?.referenceTime, now: now))
+    }
+
+    /// Time source for the forecast logic; injectable for tests.
+    @ObservationIgnored var clock: () -> Date = { Date() }
+
+    /// What the forecast header says about freshness; `nil` for a current forecast.
+    enum ForecastStatus: Equatable { case refreshing, failed, serverBehind }
+
+    /// A failure is shown only after a repeat also failed.
+    var forecastFailureConfirmed: Bool { forecastError != nil && forecastFailures >= ForecastRefreshPolicy.confirmedFailures }
+
+    func forecastStatus(now: Date? = nil) -> ForecastStatus? {
+        let now = now ?? clock()
+        guard let forecast else { return nil }
+        if isForecastLoading || (forecastError != nil && !forecastFailureConfirmed) { return .refreshing }
+        if forecastFailureConfirmed { return .failed }
+        if ForecastRefreshPolicy.serverBehind(shown: forecast.referenceTime, checkedAt: forecastCheckedAt, now: now) { return .serverBehind }
+        return forecast.isStale(at: now) ? .refreshing : nil
+    }
+
+    /// Visible-app loop: load when due (also right after returning), then wait as `ForecastRefreshSchedule` says.
+    func runForecastRefresh(schedule: ForecastRefreshSchedule = ForecastRefreshSchedule(),
+                            restricted: (() -> Bool)? = nil,
+                            sleep: (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }) async {
+        var schedule = schedule
+        while !Task.isCancelled {
+            if needsRefresh() { await reloadForecast() }
+            var limited = restricted?() ?? (ProcessInfo.processInfo.isLowPowerModeEnabled || pathGate.isConstrained)
+            #if DEBUG
+            // Only with -UITestForecast (DEBUG): the simulator's network path state can push the cadence to 300 s.
+            // The cause of the one-off test-runner restart in ForecastRefreshUITests is not proven (Backlog card).
+            if ForecastUITestStub.mode != nil { limited = false }
+            #endif
+            let delay = schedule.nextDelay(now: clock(),shown: forecast?.referenceTime, failures: forecastFailures, restricted: limited)
+            do { try await sleep(delay) } catch { return }
+        }
     }
 
     var frameDate: Date? {
@@ -152,11 +205,14 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func select(_ place: SavedPlace) {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
+        forecastToken = UUID()
         radarGeneration = UUID()
         selectedPlace = place
         if places.contains(where: { $0.id == place.id }) { persistPlaces() }
         forecast = lastValidForecast(for: place.id)
         forecastError = nil
+        forecastFailures = 0
+        forecastCheckedAt = nil
         isPlaying = false
         centerRevision += 1
         reloadWidgets()
@@ -205,6 +261,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func refresh() async {
         let requestID = UUID()
         generation = requestID
+        forecastToken = requestID
         radarGeneration = requestID
         let place = selectedPlace
         isRadarLoading = true
@@ -316,16 +373,32 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         } catch { /* keep the current images; the next refresh reports the error */ }
     }
 
+    /// Point forecast only (timed refresh and retries): leaves the radar and its tiles alone.
+    func reloadForecast() async {
+        guard !isForecastLoading else { return }
+        let token = UUID()
+        forecastToken = token
+        let place = selectedPlace
+        isForecastLoading = true
+        forecastError = nil
+        defer { if forecastToken == token { isForecastLoading = false } }
+        await refreshForecast(requestID: token, place: place)
+        if forecastToken == token, selectedPlace.id == place.id, !Task.isCancelled { lastRefresh = clock() }
+    }
+
     private func refreshForecast(requestID: UUID, place: SavedPlace) async {
         let result = await loadForecast(at: place.coordinate)
-        guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
+        guard forecastToken == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
         isForecastLoading = false
         switch result {
         case .success(let value):
             forecast = value
+            forecastFailures = 0
+            forecastCheckedAt = clock()
             rememberForecast(value, for: place.id)
             reloadWidgets()
         case .failure(let error):
+            forecastFailures += 1
             // Keep (or restore) this place's last valid forecast; the view marks it as not confirmed.
             forecast = lastValidForecast(for: place.id)
             forecastError = error.localizedDescription
@@ -455,7 +528,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     }
 
     private func loadForecast(at coordinate: WeatherCoordinate) async -> Result<RainForecast, Error> {
-        do { return .success(try await client.forecast(at: coordinate)) }
+        // Caches are skipped only while a newer run than the shown one is expected.
+        let now = clock()
+        let expected = ForecastRefreshPolicy.newRunExpected(shown: forecast?.referenceTime, now: now)
+            ? ForecastRefreshPolicy.expectedRun(at: now) : nil
+        do { return .success(try await client.forecast(at: coordinate, expectedNewest: expected)) }
         catch { return .failure(error) }
     }
 

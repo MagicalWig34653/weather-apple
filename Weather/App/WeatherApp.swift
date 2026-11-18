@@ -61,11 +61,8 @@ struct WeatherApp: App {
                 }
                 .task(id: scenePhase) {
                     guard scenePhase == .active else { return }
-                    while !Task.isCancelled {
-                        if store.needsRefresh { await store.refresh() }
-                        do { try await Task.sleep(for: .seconds(300)) }
-                        catch { return }
-                    }
+                    // Load at once when a newer run is expected than the shown one (also on return), then time-controlled.
+                    await store.runForecastRefresh()
                 }
                 // Cache manifest while visible: adaptive cadence (ETag, 304), see RadarPollSchedule.
                 .task(id: scenePhase) {

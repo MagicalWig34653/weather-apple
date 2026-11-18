@@ -20,7 +20,7 @@ struct RadarScreen: View {
     /// Calms the per-slot loading hint (see `SlotFeedbackGate`); `heldFeedback` is what is currently shown.
     @State private var feedbackGate = SlotFeedbackGate()
     @State private var heldFeedback: (text: String, failed: Bool)?
-    @State private var displayNow = Date()
+    @State private var displayNow = screenNow()
     /// Slot index under the finger while scrubbing; drives thumb and time label independent of tile loading.
     @State private var scrubIndex: Int?
     /// Fine-scrubbing stage while the finger is down (`nil` when not dragging).
@@ -119,7 +119,7 @@ struct RadarScreen: View {
             VStack(spacing: 10) {
                 header
                 forecastCard
-                if let message = statusMessage {
+                ForEach(statusMessages, id: \.self) { message in
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -248,7 +248,7 @@ struct RadarScreen: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             while !Task.isCancelled {
-                displayNow = Date()
+                displayNow = screenNow()
                 do { try await Task.sleep(for: .seconds(30)) }
                 catch { return }
             }
@@ -698,10 +698,8 @@ struct RadarScreen: View {
             HStack(spacing: 8) {
                 Button { sheet = .details } label: {
                     HStack(spacing: 6) {
-                        Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar") : forecastHeadline)
-                            .font(.subheadline.weight(.semibold))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+                        forecastLabel
+                        forecastTrailing
                     }
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
@@ -726,36 +724,100 @@ struct RadarScreen: View {
         }
     }
 
-    private var forecastHeadline: String {
-        guard let forecast = store.forecast else {
-            return store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar")
+    /// Text for a non-current forecast, e.g. "Aktualisiere … · Stand vor 6 Min.".
+    private func forecastStatusText(_ status: WeatherStore.ForecastStatus, forecast: RainForecast) -> String {
+        let age = forecast.ageDescription(at: displayNow)
+        switch status {
+        case .refreshing: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_REFRESHING", value: "Aktualisiere … · %@", comment: "Radar"), age)
+        case .failed: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_FAILED", value: "Aktualisierung fehlgeschlagen · %@", comment: "Radar"), age)
+        case .serverBehind: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_BEHIND", value: "Der Wetterdienst hat noch keinen neueren Stand · %@", comment: "Radar"), age)
         }
-        if store.forecastError != nil || forecast.isStale(at: displayNow) {
-            return String(format: NSLocalizedString("RADAR_FORECAST_OLD", value: "Ältere Prognose (%@) · bitte aktualisieren", comment: "Radar"), forecast.ageDescription(at: displayNow))
-        }
-        return forecast.summary(at: displayNow)
     }
 
-    private var statusMessage: String? {
-        if let message = store.locationMessage { return message }
-        if let message = store.storageMessage { return message }
-        if let state = currentRadarLoadState, state.failed > 0 {
-            if store.activeLayer != .radar { return String(format: NSLocalizedString("RADAR_STATUS_LAYER_IMAGE_MISSING", value: "Das Bild der Ebene %@ für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.", comment: "Radar"), store.activeLayer.title) }
-            return store.radarSource == .cache
-                ? NSLocalizedString("RADAR_STATUS_IMAGE_MISSING", value: "Das Radarbild für diesen Zeitpunkt fehlt. Bitte erneut aktualisieren.", comment: "Radar")
-                : NSLocalizedString("RADAR_STATUS_TILES_MISSING", value: "Einige Radarkacheln fehlen. Bitte erneut aktualisieren.", comment: "Radar")
+    /// UI tests with the forecast stub query the spinner's frame; for real users it stays hidden from VoiceOver.
+    private static var exposeSpinnerForUITests: Bool {
+        #if DEBUG
+        return ForecastUITestStub.mode != nil
+        #else
+        return false
+        #endif
+    }
+
+    private var isRefreshingForecast: Bool { store.forecast != nil && store.forecastStatus(now: displayNow) == .refreshing }
+
+    /// Chevron where it always was (right behind the text), plus the refreshing spinner at the RIGHT EDGE of the pill.
+    /// No second line, no age text.
+    @ViewBuilder private var forecastTrailing: some View {
+        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+        if isRefreshingForecast {
+            Spacer(minLength: 8)
+            forecastStatusIcon(.refreshing)
         }
-        if store.activeLayer != .radar { return nil }
-        if let error = store.radarError { return String(format: NSLocalizedString("RADAR_STATUS_RADAR_ERROR", value: "Radar: %@", comment: "Radar"), error) }
-        if let error = store.forecastError { return String(format: NSLocalizedString("RADAR_STATUS_FORECAST_ERROR", value: "Ortsprognose: %@", comment: "Radar"), error) }
-        if let notice = store.radarNotice { return notice }
-        return nil
+    }
+
+    @ViewBuilder private var forecastLabel: some View {
+        if let forecast = store.forecast {
+            let status = store.forecastStatus(now: displayNow)
+            // Failure and "server behind" replace the summary; refreshing never does (only the spinner shows it).
+            let statusReplacesSummary = status != nil && status != .refreshing
+            HStack(spacing: 6) {
+                if statusReplacesSummary, let status { forecastStatusIcon(status) }
+                Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                     : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    // The spoken label keeps "Aktualisiere … · Stand vor X Min."; it is not shown as text.
+                    .accessibilityLabel(status == .refreshing
+                        ? "\(forecast.summary(at: displayNow)). \(forecastStatusText(.refreshing, forecast: forecast))"
+                        : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(status == .refreshing ? "forecast-refreshing" : status == .failed ? "forecast-update-failed" : status == .serverBehind ? "forecast-server-behind" : "forecast-headline")
+        } else {
+            Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                 : (store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar")))
+                .font(.subheadline.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private func forecastStatusIcon(_ status: WeatherStore.ForecastStatus) -> some View {
+        if status == .refreshing {
+            // Non-text contrast (>= 3:1): primary tint instead of the default light grey spinner.
+            // The halo in the opposite colour darkens/lightens the glass right behind the thin spokes.
+            ProgressView().controlSize(.small).tint(.primary)
+                .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
+                .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
+                .shadow(color: Color(.systemBackground).opacity(0.6), radius: 5)
+                .accessibilityIdentifier("forecast-refresh-spinner")
+                .accessibilityHidden(!Self.exposeSpinnerForUITests)
+        } else {
+            Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
+        }
+    }
+
+    /// Notices under the header (up to two): a forecast failure and a radar image problem are shown together.
+    private var statusMessages: [String] {
+        RadarStatusMessages.messages(RadarStatusInput(
+            locationMessage: store.locationMessage, storageMessage: store.storageMessage,
+            radarLayerActive: store.activeLayer == .radar, layerTitle: store.activeLayer.title,
+            radarImageMissing: (currentRadarLoadState?.failed ?? 0) > 0, radarFromCache: store.radarSource == .cache,
+            radarError: store.radarError, forecastError: store.forecastError, forecastShown: store.forecast != nil,
+            forecastFailureConfirmed: store.forecastFailureConfirmed, radarNotice: store.radarNotice))
     }
 
     private func age(_ date: Date) -> String {
         let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
         return minutes == 0 ? NSLocalizedString("RADAR_AGE_NOW", value: "gerade aktualisiert", comment: "Radar") : String(format: NSLocalizedString("RADAR_AGE_MINUTES", value: "vor %d Min.", comment: "Radar"), minutes)
     }
+}
+
+/// "Now" for the screen; UI tests with the forecast stub use the frozen time of the fixture.
+private func screenNow() -> Date {
+    #if DEBUG
+    if ForecastUITestStub.mode != nil { return ForecastUITestStub.now }
+    #endif
+    return Date()
 }
 
 /// Pure slot logic for the timeline slider, kept testable without UI.
@@ -823,13 +885,15 @@ struct ForecastDetails: View {
                         Text(String(format: NSLocalizedString("RADAR_DETAILS_SOURCE_AGE", value: "DWD · %@", comment: "Radar"), forecast.ageDescription(at: context.date)))
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent(NSLocalizedString("RADAR_DETAILS_IMAGES", value: "Radarbilder", comment: "Radar"), value: store.radarSource.label)
-                        if store.forecastError != nil || forecast.isStale(at: context.date) {
-                            Label(store.forecastError != nil
+                        if store.forecastFailureConfirmed || store.forecastStatus(now: context.date) == .serverBehind || forecast.isStale(at: context.date) {
+                            Label(store.forecastFailureConfirmed
                                   ? String(format: NSLocalizedString("RADAR_DETAILS_UPDATE_FAILED", value: "Aktualisierung fehlgeschlagen. Letzte gültige Prognose, %@. Sie ist nicht aktuell bestätigt.", comment: "Radar"), forecast.ageDescription(at: context.date))
+                                  : store.forecastStatus(now: context.date) == .serverBehind
+                                  ? String(format: NSLocalizedString("RADAR_DETAILS_SERVER_BEHIND", value: "Der Wetterdienst hat noch keinen neueren Stand als diese Prognose, %@. Die App fragt weiter nach.", comment: "Radar"), forecast.ageDescription(at: context.date))
                                   : NSLocalizedString("RADAR_DETAILS_NOT_CONFIRMED", value: "Die Prognose ist nicht aktuell bestätigt.", comment: "Radar"), systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
                         }
-                        ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastError != nil)
+                        ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastFailureConfirmed)
                         Text(NSLocalizedString("RADAR_MAP_HINT_SENTENCE", value: "Lange auf die Karte drücken, um einen Ort zu wählen.", comment: "Radar"))
                         Text(NSLocalizedString("RADAR_DETAILS_DISCLAIMER", value: "Radarprognosen beschreiben die erwartete Entwicklung. Gerade bei entstehenden oder sich auflösenden Schauern können Beginn, Ende und Intensität abweichen.", comment: "Radar"))
                         Text(String(format: NSLocalizedString("RADAR_DETAILS_MODIFICATION", value: "%@. Niederschlagswerte der Ortsprognose umgerechnet und aufbereitet.", comment: "Radar"), store.radarAttribution.modificationNotice))
