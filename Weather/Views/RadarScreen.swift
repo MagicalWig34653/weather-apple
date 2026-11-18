@@ -673,15 +673,15 @@ struct RadarScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if status == .refreshing, !statusReplacesSummary {
+                    // Subtle: small spinner, plain caption, no backing surface. A soft halo in the opposite
+                    // colour keeps it readable (>= 4.5:1) over the glass on the map without becoming a blob.
                     HStack(spacing: 5) {
                         forecastStatusIcon(.refreshing)
-                        // Full-strength primary text (not secondary): readable on glass over the map in light and dark.
                         Text(forecastStatusText(.refreshing, forecast: forecast))
-                            .font(.caption.weight(.medium)).foregroundStyle(.primary)
+                            .font(.caption).foregroundStyle(.primary.opacity(0.85))
                     }
-                    // Flat backing in the system background colour: the glass over the map varies, the text must not depend on it.
-                    .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(.systemBackground).opacity(0.78)))
+                    .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
+                    .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
                 }
             }
             .accessibilityElement(children: .combine)
@@ -696,7 +696,7 @@ struct RadarScreen: View {
 
     @ViewBuilder private func forecastStatusIcon(_ status: WeatherStore.ForecastStatus) -> some View {
         if status == .refreshing {
-            ProgressView().controlSize(.small).tint(.primary).accessibilityHidden(true)
+            ProgressView().controlSize(.mini).accessibilityHidden(true)
         } else {
             Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
         }
