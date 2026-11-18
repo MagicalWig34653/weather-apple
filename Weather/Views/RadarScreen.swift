@@ -31,6 +31,10 @@ struct RadarScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var legendTop: CGFloat = 0
     @State private var pillBlockTop: CGFloat?
+    /// Height of the pill block (pill, on home-button devices also the credit): Apple's legal link sits above it, never under the pill.
+    @State private var pillBlockHeight: CGFloat = 0
+    /// Bottom safe area of the device (home indicator), measured outside the slider inset.
+    @State private var deviceBottomInset: CGFloat = 0
     @Namespace private var glassNamespace
     @State private var nowJumps = 0
 
@@ -48,7 +52,7 @@ struct RadarScreen: View {
                      referenceTime: store.displayFrameReference, centerRevision: store.centerRevision,
                      reloadRevision: store.radarReloadRevision,
                      timeline: store.displayTimeline, prefetchActive: scenePhase == .active && !store.isPlaying,
-                     bottomInset: mapBottomInset, layer: store.activeLayer,
+                     bottomInset: mapBottomInset + pillBlockHeight + 8, layer: store.activeLayer,
                      visibleManifest: store.activeLayer == .cloudmask ? store.layers.sunVisibleManifest?.backend : nil,
                      scale: store.layers.activeManifest?.nativeScale,
                      showForest: forestVisible,
@@ -104,24 +108,14 @@ struct RadarScreen: View {
                 .allowsHitTesting(false)
                 VStack(spacing: 6) {
                 timePill
-                Group {
-                    if let line = ForestPreference.sourceLine(base: store.displayAttributionLine, layer: store.activeLayer,
-                                                              visible: forestVisible, info: ForestInfo.bundled) {
-                        Text(line)
-                            .font(.caption2).foregroundStyle(.secondary)
-                            .lineLimit(ForestPreference.isShown(layer: store.activeLayer, visible: forestVisible, info: ForestInfo.bundled) ? 6 : 2)
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 8).padding(.vertical, 3)
-                            .glassEffect(.regular, in: Capsule())
-                            .accessibilityIdentifier("radar-attribution")
-                    }
-                }
-                .allowsHitTesting(false)
+                // Home-button devices: the credit stays above the slider. Otherwise it is drawn below the slider (see `timeline`).
+                if !hasStripBelowSlider { creditLine(sizeLimit: .xxxLarge) }
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { pillBlockTop = $0 }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { pillBlockHeight = $0 }
             }
-            .padding(.bottom, 8)
+            // Close to the slider card: the gap between pill and slider is small.
+            .padding(.bottom, 4)
             VStack(spacing: 10) {
                 header
                 forecastCard
@@ -206,6 +200,7 @@ struct RadarScreen: View {
                 .padding(.bottom, 2)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapBottomInset = $0 }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { deviceBottomInset = $0 }
 
         .sheet(item: $sheet) { item in
             switch item {
@@ -291,27 +286,70 @@ struct RadarScreen: View {
 
     private struct LayerPollKey: Equatable { let layer: RadarLayer; let active: Bool }
 
+    /// One selectable layer: checkmark when active, greyed out with a hint when unavailable, note as subtitle.
+    @ViewBuilder
+    private func layerButton(_ layer: RadarLayer) -> some View {
+        let availability = store.layers.availability(layer)
+        let selected = layer == store.activeLayer
+        let hint = availability.hint
+        Button {
+            store.isPlaying = false
+            showLegend = false
+            store.layers.select(layer)
+        } label: {
+            // The native menu shows one line only: hints go into the title in parentheses.
+            Label(layer.menuTitle + (hint.map { " (\($0))" } ?? ""), systemImage: selected ? "checkmark" : layer.symbolName)
+        }
+        .disabled(!availability.isSelectable)
+        .accessibilityLabel(layer.spokenName + (hint.map { ", \($0)" } ?? "")
+                            + (selected ? NSLocalizedString("RADAR_LAYER_SELECTED_SUFFIX", value: ", ausgewählt", comment: "Radar") : ""))
+        .accessibilityIdentifier("radar-layer-\(layer.rawValue)")
+    }
+
+    /// Submenu with the offered members of a group; hidden when the backend offers none. The group's symbol
+    /// switches to a checkmark-free variant: the check sits on the active entry inside.
+    @ViewBuilder
+    private func layerGroup(_ title: String, symbol: String, layers: [RadarLayer], id: String) -> some View {
+        if !layers.isEmpty {
+            Menu {
+                ForEach(layers) { layer in layerButton(layer) }
+            } label: {
+                Label(title, systemImage: symbol)
+            }
+            .accessibilityIdentifier(id)
+        }
+    }
+
     /// Top right: layer choice (capsule with the active layer) plus manual reload. Reload used to be its own button;
     /// the adaptive poll already fetches `latest.json` every 10 to 60 s, so a manual reload is a rare action.
     private var layerMenu: some View {
         Menu {
-            Section(NSLocalizedString("RADAR_LAYER_SECTION", value: "Kartenebene", comment: "Radar")) {
-                ForEach(store.layers.offeredLayers) { layer in
-                    let availability = store.layers.availability(layer)
-                    Button {
-                        store.isPlaying = false
-                        showLegend = false
-                        store.layers.select(layer)
-                    } label: {
-                        Label(layer.title + (availability.hint.map { " (\($0))" } ?? ""),
-                              systemImage: layer == store.activeLayer ? "checkmark" : layer.symbolName)
+            // Rain: DWD Germany, OPERA Europe, NOAA world (soon).
+            Menu {
+                ForEach(store.layers.rainMenuEntries, id: \.layer) { entry in
+                    if entry.isSoon {
+                        Button {} label: {
+                            // The native menu shows one line only: the "soon" note goes into the title.
+                            Label(entry.layer.menuTitle + " (" + NSLocalizedString("LAYER_RADAR_SOON", value: "bald", comment: "Layer menu note") + ")",
+                                  systemImage: entry.layer.symbolName)
+                        }
+                        .disabled(true)
+                        .accessibilityLabel(entry.layer.spokenName + ", " + NSLocalizedString("LAYER_RADAR_SOON", value: "bald", comment: "Layer menu note"))
+                        .accessibilityIdentifier("radar-layer-\(entry.layer.rawValue)")
+                    } else {
+                        layerButton(entry.layer)
                     }
-                    .disabled(!availability.isSelectable)
-                    .accessibilityLabel(layer.spokenName + (availability.hint.map { ", \($0)" } ?? "")
-                                        + (layer == store.activeLayer ? NSLocalizedString("RADAR_LAYER_SELECTED_SUFFIX", value: ", ausgewählt", comment: "Radar") : ""))
-                    .accessibilityIdentifier("radar-layer-\(layer.rawValue)")
                 }
+            } label: {
+                Label(NSLocalizedString("RADAR_MENU_GROUP_RAIN", value: "Regen", comment: "Radar menu group"), systemImage: "cloud.rain")
             }
+            .accessibilityIdentifier("radar-layer-group-rain")
+            layerGroup(NSLocalizedString("RADAR_MENU_GROUP_PRESSURE", value: "Luftdruck", comment: "Radar menu group"),
+                       symbol: "gauge.with.dots.needle.33percent", layers: store.layers.offered(RadarLayer.pressureLayers), id: "radar-layer-group-pressure")
+            layerGroup(NSLocalizedString("RADAR_MENU_GROUP_HUMIDITY", value: "Feuchtigkeit", comment: "Radar menu group"),
+                       symbol: "humidity", layers: store.layers.offered(RadarLayer.humidityLayers), id: "radar-layer-group-humidity")
+            ForEach(store.layers.offered(RadarLayer.singleMenuLayers)) { layer in layerButton(layer) }
+            Divider()
             Section {
                 Button {
                     store.isPlaying = false
@@ -347,7 +385,7 @@ struct RadarScreen: View {
         .accessibilityValue(store.activeLayer.spokenName)
         .accessibilityInputLabels([NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"), store.activeLayer.title,
                                    NSLocalizedString("VC_LAYER", value: "Kartenebene", comment: "Voice Control")])
-        .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.", comment: "Radar"))
+        .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene. Untermenüs: Regen (Deutschland, Europa, Welt), Luftdruck und Feuchtigkeit; dazu Temperatur, Blitze, Wolken und Sonne. Enthält auch Daten neu laden.", comment: "Radar"))
         .accessibilityIdentifier("radar-layer-menu")
     }
 
@@ -464,6 +502,37 @@ struct RadarScreen: View {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) { heldFeedback = next }
     }
 
+    /// Short credit in the size and style of Apple Maps' legal text, no capsule. The full source text, licences and
+    /// modification notices are in the information screen (Datenquellen).
+    @ViewBuilder private func creditLine(sizeLimit: DynamicTypeSize = .xLarge) -> some View {
+        if let line = ForestPreference.shortSourceLine(base: store.displayShortAttribution, layer: store.activeLayer,
+                                                       visible: forestVisible, info: ForestInfo.bundled) {
+            Text(line)
+                .font(.caption2).foregroundStyle(.primary.opacity(0.75))
+                .lineLimit(1).minimumScaleFactor(0.8)
+                // A fixed strip below the slider: the text grows only a little with Dynamic Type (VoiceOver reads it in full).
+                .dynamicTypeSize(...sizeLimit)
+                .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
+                .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
+                .padding(.horizontal, 8)
+                // Rendering only (no layout space): a faint backdrop behind the text keeps it readable on any map colour.
+                .background { Capsule().fill(Color(.systemBackground).opacity(0.35)).blur(radius: 2) }
+                .allowsHitTesting(false)
+                .accessibilityLabel(line)
+                .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
+                .accessibilityIdentifier("radar-attribution")
+        }
+    }
+
+    /// The strip between the slider card and the screen edge (home indicator devices, about 34 pt) is free: the credit
+    /// goes there and the slider keeps its position. Devices with a home button have no such strip.
+    private var hasStripBelowSlider: Bool { deviceBottomInset >= 20 }
+
+    /// Widest plain time of the current locale (digits of equal width), reserves the pill's width.
+    private static var widestTimeTemplate: String {
+        Date(timeIntervalSinceReferenceDate: 8 * 3600 + 8 * 60).formatted(date: .omitted, time: .shortened)
+    }
+
     /// Compact card: only the slider (the time moved to `timePill`, play/pause is the pill's tap).
     private var timeline: some View {
         timeSlider
@@ -471,6 +540,13 @@ struct RadarScreen: View {
             .padding(.vertical, 3)
             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
             .accessibilityIdentifier("radar-timeline")
+            // The credit hangs below the card without taking layout space: the slider keeps its position. It sits in the
+            // free strip between the card and the home indicator (card bottom + 20 pt = text bottom, about 3 pt below the card).
+            .overlay(alignment: .bottom) {
+                if hasStripBelowSlider {
+                    creditLine().offset(y: 20)
+                }
+            }
     }
 
     private var displayedIsForecast: Bool {
@@ -492,21 +568,20 @@ struct RadarScreen: View {
             let playing = store.isPlaying
             HStack(spacing: 8) {
                 Image(systemName: playing ? "pause.fill" : "play.fill").font(.system(size: 13, weight: .bold))
-                // A hidden template with the widest content fixes the height, so another day never changes the pill's size.
-                Text("Mo., 88. Okt. · 88:88 AM").font(.title3.weight(.semibold)).monospacedDigit()
-                    .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-                    .hidden()
-                    .overlay {
-                        Group { if let day { Text("\(day) · \(time)") } else { time } }
-                            .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.7)
-                            .multilineTextAlignment(.center)
-                    }
+                // As wide as its content (play symbol and time). A hidden time of the widest digits keeps the width calm while
+                // scrubbing; another day's label makes it wider. At the largest sizes two lines keep the height stable.
+                ZStack {
+                    // Largest sizes: the former wide template keeps the two-line pill as it was; otherwise only the time's width.
+                    Text(stacked ? "Mo., 88. Okt. \u{00B7} 88:88 AM" : Self.widestTimeTemplate).font(.title3.weight(.semibold)).monospacedDigit().hidden()
+                    Group { if let day { Text("\(day) \u{00B7} \(time)") } else { time } }
+                }
+                .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).minimumScaleFactor(0.7)
+                .multilineTextAlignment(.center)
             }
             .foregroundStyle(.primary)
             .accessibilityHidden(true)
             .padding(.horizontal, 16)
-            .frame(minWidth: 112, minHeight: 44)
+            .frame(minHeight: 44)
             .contentShape(Capsule())
             // Dark: a dark underlay lifts the white text's contrast. Light: a light underlay and dark text (the dark one made the pill too dark).
             .background(Capsule().fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.6)))

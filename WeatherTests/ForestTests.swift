@@ -29,15 +29,16 @@ final class ForestTests: XCTestCase {
         XCTAssertTrue(ForestPreference.isVisible(defaults))
     }
 
-    func testSourceLineGetsForestSourceOnlyWhileShown() throws {
+    func testShortCreditGetsForestCreditOnlyWhileShown() throws {
         let info = ForestInfo.bundled
-        let base = "Quelle: Deutscher Wetterdienst · Showers-Server"
-        XCTAssertEqual(ForestPreference.sourceLine(base: base, layer: .dewpoint, visible: false, info: info), base)
-        XCTAssertEqual(ForestPreference.sourceLine(base: base, layer: .pressure, visible: true, info: info), base)
-        let line = try XCTUnwrap(ForestPreference.sourceLine(base: base, layer: .dewpoint, visible: true, info: info))
-        XCTAssertTrue(line.hasPrefix(base))
-        XCTAssertTrue(line.contains("ESA WorldCover") && line.contains("550"))
-        XCTAssertNil(ForestPreference.sourceLine(base: nil, layer: .dewpoint, visible: true, info: info))
+        let base = "\u{00A9} DWD"
+        XCTAssertEqual(ForestPreference.shortSourceLine(base: base, layer: .dewpoint, visible: false, info: info), base)
+        XCTAssertEqual(ForestPreference.shortSourceLine(base: base, layer: .pressure, visible: true, info: info), base)
+        let line = try XCTUnwrap(ForestPreference.shortSourceLine(base: base, layer: .dewpoint, visible: true, info: info))
+        XCTAssertEqual(line, "\u{00A9} DWD \u{00B7} \u{00A9} ESA WorldCover")
+        XCTAssertNil(ForestPreference.shortSourceLine(base: nil, layer: .dewpoint, visible: true, info: info))
+        // The full forest source (ESA WorldCover, Copernicus Sentinel, processing notice) stays in the legend and the info screen.
+        XCTAssertTrue(try XCTUnwrap(info).sourceLine.contains("ESA WorldCover"))
     }
 
     func testInfoParserRejectsBrokenData() {

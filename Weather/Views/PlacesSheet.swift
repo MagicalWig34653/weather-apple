@@ -35,7 +35,11 @@ struct PlacesSheet: View {
                                         Label(place.name, systemImage: "mappin.circle.fill")
                                         Spacer()
                                         if place.id == store.selectedPlace.id { Image(systemName: "checkmark").accessibilityHidden(true) }
-                                    }.foregroundStyle(.primary).contentShape(Rectangle())
+                                    }
+                                    .foregroundStyle(.primary)
+                                    // Hit area of at least 44 pt, also at the smallest text size.
+                                    .frame(minHeight: 44)
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.borderless)
                                 .accessibilityAddTraits(place.id == store.selectedPlace.id ? .isSelected : [])
@@ -43,6 +47,8 @@ struct PlacesSheet: View {
                                     pushPlaceID = place.id
                                 } label: {
                                     Image(systemName: push.settings(for: place.id) != nil ? "bell.fill" : "bell")
+                                        .frame(minWidth: 44, minHeight: 44)
+                                        .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.borderless)
                                 .accessibilityLabel(String(format: NSLocalizedString("PLACES_ALERT_FOR", value: "Regenhinweis für %@", comment: "Places"), place.name))
@@ -94,6 +100,8 @@ struct PlacesSheet: View {
                                         Text(address).font(.caption).foregroundStyle(.secondary)
                                     }
                                 }
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                .contentShape(Rectangle())
                             }
                         }
                     }

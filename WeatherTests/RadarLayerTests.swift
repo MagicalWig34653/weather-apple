@@ -28,6 +28,79 @@ final class RadarLayerTests: XCTestCase {
         return try JSONSerialization.data(withJSONObject: object)
     }
 
+    func testShortCreditPerLayerKeepsTheNameVisible() {
+        XCTAssertEqual(RadarLayer.radar.shortAttribution, "\u{00A9} DWD")
+        XCTAssertEqual(RadarLayer.radarEU.shortAttribution, "\u{00A9} EUMETNET")
+        XCTAssertEqual(RadarLayer.radarWorld.shortAttribution, "NOAA")
+        XCTAssertEqual(RadarLayer.clouds.shortAttribution, "\u{00A9} EUMETSAT")
+        for layer in RadarLayer.allCases { XCTAssertFalse(layer.shortAttribution.isEmpty, layer.rawValue) }
+    }
+
+    // MARK: Rain layers (menu "Regen")
+
+    func testRainLayersEuropeAndWorldAreBackendLayersWithOwnSwitches() {
+        XCTAssertEqual(RadarLayer.rainLayers, [.radar, .radarEU, .radarWorld])
+        XCTAssertEqual(RadarLayer.radarEU.rawValue, "radar_eu")
+        XCTAssertEqual(RadarLayer.radarWorld.rawValue, "radar_world")
+        for layer in [RadarLayer.radarEU, .radarWorld] {
+            XCTAssertTrue(layer.isRain)
+            XCTAssertTrue(layer.isBackendLayer, "no DWD fallback")
+            XCTAssertTrue(RadarLayer.backendLayers.contains(layer))
+            XCTAssertTrue(RadarLayer.selectable.contains(layer))
+            XCTAssertFalse(layer.title.isEmpty)
+            XCTAssertFalse(layer.spokenName.isEmpty)
+            XCTAssertFalse(layer.symbolName.isEmpty)
+            XCTAssertFalse(layer.frameCaption(isForecast: false).isEmpty)
+            XCTAssertGreaterThan(layer.overlayOpacity, 0)
+            XCTAssertGreaterThan(layer.pollInterval, 0)
+            XCTAssertGreaterThan(layer.maximumObservationAge, 0, "observation: a stale now must not pass for current")
+            XCTAssertEqual(layer.backendPathComponent, layer.rawValue)
+        }
+        XCTAssertTrue(RadarLayer.radar.isRain)
+        XCTAssertFalse(RadarLayer.lightning.isRain)
+        XCTAssertEqual(RadarLayer.radarEU.nominalStepMinutes, 5)
+        XCTAssertEqual(RadarLayer.radarEU.symbolName, "globe.europe.africa")
+        XCTAssertEqual(RadarLayer.radarWorld.symbolName, "globe")
+        XCTAssertEqual(RadarLayer.radarEU.title, "Regenradar Europa")
+        XCTAssertEqual(RadarLayer.radarWorld.title, "Regenradar Welt")
+        XCTAssertEqual(RadarLayer.radarEU.menuTitle, "Europa (OPERA)")
+        XCTAssertEqual(RadarLayer.radarWorld.menuTitle, "Welt (NOAA)")
+        XCTAssertEqual(RadarLayer.radar.menuTitle, "Deutschland (DWD)")
+    }
+
+    func testMenuGroupsCoverEverySelectableLayerOnceInTheAgreedOrder() {
+        XCTAssertEqual(RadarLayer.rainLayers, [.radar, .radarEU, .radarWorld])
+        XCTAssertEqual(RadarLayer.pressureLayers, [.pressure, .pressureEU])
+        XCTAssertEqual(RadarLayer.humidityLayers, [.dewpoint, .humidity])
+        XCTAssertEqual(RadarLayer.singleMenuLayers, [.temperature, .lightning, .clouds, .cloudmask])
+        let all = RadarLayer.rainLayers + RadarLayer.pressureLayers + RadarLayer.humidityLayers + RadarLayer.singleMenuLayers
+        XCTAssertEqual(Set(all), Set(RadarLayer.selectable))
+        XCTAssertEqual(all.count, RadarLayer.selectable.count, "no layer in two groups")
+        XCTAssertEqual(RadarLayer.pressure.menuTitle, "Deutschland")
+        XCTAssertEqual(RadarLayer.pressureEU.menuTitle, "Europa")
+        XCTAssertEqual(RadarLayer.dewpoint.menuTitle, "Taupunkt")
+        XCTAssertEqual(RadarLayer.humidity.menuTitle, "Relativ")
+        XCTAssertEqual(RadarLayer.temperature.menuTitle, RadarLayer.temperature.title)
+    }
+
+    @MainActor
+    func testGroupsHideWhenTheBackendOffersNoMemberOfThem() {
+        let layers = store(Responder { _ in (404, Data(), [:]) })
+        XCTAssertEqual(layers.offered(RadarLayer.pressureLayers), [.pressure], "Europe pressure only once reported")
+        XCTAssertEqual(layers.offered(RadarLayer.humidityLayers), [], "humidity group hidden: nothing offered")
+        XCTAssertEqual(layers.offered(RadarLayer.singleMenuLayers), [.lightning, .clouds, .cloudmask], "temperature only once reported")
+    }
+
+    @MainActor
+    func testWorldIsOnlyOfferedWhenBackendReportsItEuropeIsListedGreyedOut() {
+        let layers = store(Responder { _ in (404, Data(), [:]) })
+        XCTAssertTrue(layers.isOffered(.radarEU), "backend delivers it: listed, greyed out while it answers 404")
+        XCTAssertFalse(layers.isOffered(.radarWorld), "not in the backend yet: only when it reports the layer")
+        XCTAssertFalse(layers.select(.radarWorld))
+        XCTAssertEqual(layers.rainMenuEntries.map(\.layer), [.radar, .radarEU, .radarWorld])
+        XCTAssertEqual(layers.rainMenuEntries.map(\.isSoon), [false, false, true], "world shown as 'soon' instead of hidden")
+    }
+
     // MARK: URLs
 
     func testLayerBaseURLsDeriveFromRadarBase() {
@@ -165,7 +238,7 @@ final class RadarLayerTests: XCTestCase {
         let date = utc("2026-10-31T13:00:00Z")
         XCTAssertTrue(TimelineAccessibility.value(date: date, isForecast: false, reference: date, caption: "Modell").hasSuffix(", Modell"))
         XCTAssertTrue(TimelineAccessibility.value(date: date, isForecast: false, reference: date).hasSuffix(", Messung"), "radar wording unchanged")
-        XCTAssertEqual(RadarLayer.selectable, [.radar, .pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask], "cloudmask is the sun layer")
+        XCTAssertEqual(RadarLayer.selectable, [.radar, .radarEU, .radarWorld, .pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask], "cloudmask is the sun layer")
         XCTAssertFalse(RadarLayer.selectable.contains(.cloudmaskVis), "the visible channel is a helper, not a menu entry")
         XCTAssertEqual(RadarLayer.pressureEU.title, "Luftdruck Europa")
         XCTAssertEqual(RadarLayer.pressureEU.rawValue, "pressure_eu")
@@ -287,13 +360,13 @@ final class RadarLayerTests: XCTestCase {
         let responder = Responder { _ in (404, Data(), [:]) }
         let layers = store(responder)
         await layers.probeAll(force: true)
-        for layer in [RadarLayer.pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask] {
+        for layer in [RadarLayer.radarEU, .radarWorld, .pressure, .pressureEU, .temperature, .dewpoint, .humidity, .lightning, .clouds, .cloudmask] {
             XCTAssertEqual(layers.availability(layer), .notPublished)
             XCTAssertFalse(layers.isSelectable(layer))
             XCTAssertFalse(layers.select(layer), "a layer the server does not offer cannot be chosen")
         }
         XCTAssertEqual(layers.active, .radar)
-        XCTAssertEqual(responder.paths.count, 8, "one request per optional layer, including the sun layer; no helper request without the sun layer")
+        XCTAssertEqual(responder.paths.count, 10, "one request per optional layer, including the sun layer; no helper request without the sun layer")
         XCTAssertEqual(layers.availability(.pressure).hint, "nicht verfügbar")
     }
 
@@ -302,11 +375,11 @@ final class RadarLayerTests: XCTestCase {
         let responder = try backendResponder()
         let layers = store(responder)
         await layers.probeAll()
-        XCTAssertEqual(responder.paths.count, 9, "eight optional layers plus the visible-channel helper of the available sun layer")
+        XCTAssertEqual(responder.paths.count, 11, "ten optional layers plus the visible-channel helper of the available sun layer")
         await layers.probeAll()
-        XCTAssertEqual(responder.paths.count, 9, "throttled")
+        XCTAssertEqual(responder.paths.count, 11, "throttled")
         await layers.probeAll(force: true, restricted: true)
-        XCTAssertEqual(responder.paths.count, 9, "restricted with the radar active: no layer requests")
+        XCTAssertEqual(responder.paths.count, 11, "restricted with the radar active: no layer requests")
         for layer in [RadarLayer.pressure, .lightning, .clouds, .cloudmask] { XCTAssertEqual(layers.availability(layer), .available) }
     }
 
@@ -414,7 +487,7 @@ final class RadarLayerTests: XCTestCase {
         weather.selectedFrame = 1
         XCTAssertEqual(weather.displayTimeline?.dates, radar.dates)
         XCTAssertEqual(weather.displayFrameDate, utc("2026-10-31T12:30:00Z"))
-        XCTAssertEqual(weather.displayAttributionLine, "Quelle: Deutscher Wetterdienst · über Showers")
+        XCTAssertEqual(weather.displayShortAttribution, "\u{00A9} DWD")
         weather.displayFrameIndex = 2
         XCTAssertEqual(weather.selectedFrame, 2, "radar index is written through")
         XCTAssertTrue(weather.displayIsForecastFrame)
@@ -428,7 +501,7 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertEqual(weather.selectedFrame, 2, "the radar selection is untouched by the layer")
         XCTAssertEqual(weather.timeline?.dates, radar.dates, "radar timeline untouched")
         XCTAssertFalse(weather.displayIsForecastFrame)
-        XCTAssertEqual(weather.displayAttributionLine, "Contains modified EUMETSAT Meteosat data 2026 · über Showers")
+        XCTAssertEqual(weather.displayShortAttribution, "\u{00A9} EUMETSAT")
         XCTAssertEqual(weather.displayFrameReference, utc("2026-10-31T11:50:00Z"))
     }
 
@@ -440,7 +513,7 @@ final class RadarLayerTests: XCTestCase {
         weather.timeline = RadarTimeline(referenceTime: utc("2026-10-31T12:30:00Z"), dates: [utc("2026-10-31T12:30:00Z")])
         XCTAssertTrue(layers.select(.pressure), "unknown/unreachable layers can be tried")
         XCTAssertNil(weather.displayTimeline, "no radar fallback for optional layers")
-        XCTAssertNil(weather.displayAttributionLine)
+        XCTAssertNil(weather.displayShortAttribution)
     }
 
     // MARK: Attribution strings
@@ -577,7 +650,7 @@ final class RadarLayerTests: XCTestCase {
         await without.probeAll(force: true)
         XCTAssertEqual(without.availability(.pressureEU), .notPublished)
         XCTAssertFalse(without.offeredLayers.contains(.pressureEU))
-        XCTAssertEqual(without.offeredLayers, [.radar, .pressure, .lightning, .clouds, .cloudmask],
+        XCTAssertEqual(without.offeredLayers, [.radar, .radarEU, .pressure, .lightning, .clouds, .cloudmask],
                        "German layers keep their (greyed-out) entries")
         XCTAssertFalse(without.select(.pressureEU))
         XCTAssertEqual(without.active, .radar, "no fallback banner state, just refused")

@@ -126,16 +126,24 @@ final class WeatherSmokeTests: XCTestCase {
     }
 
     func testLayerMenuTopRightOffersLayersAndReload() throws {
-        let app = launchApp()
+        // The fixture offers every layer (the group "Feuchtigkeit" is only listed once the backend reports a member).
+        let app = UITestLaunch.app(language: .german, extra: ["-UITestLayers", "all"])
+        app.launch()
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 15))
+        sleep(3)
         XCTAssertGreaterThanOrEqual(menu.frame.height, 44)
         XCTAssertGreaterThan(menu.frame.midX, app.frame.midX, "Die Ebenenwahl sitzt oben rechts.")
         XCTAssertLessThan(menu.frame.minY, 160)
         XCTAssertEqual(menu.value as? String, "Regenradar")
         XCTAssertFalse(app.buttons["Wetterdaten aktualisieren"].exists, "Kein eigener Neuladen-Knopf mehr.")
         menu.tap()
-        XCTAssertTrue(app.buttons["Regenradar"].waitForExistence(timeout: 5))
+        for entry in ["Regen", "Luftdruck", "Feuchtigkeit"] {
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", entry)).firstMatch.waitForExistence(timeout: 5), "Untermenü \(entry)")
+        }
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Zusatzebenen")).firstMatch.exists, "Gruppe Zusatzebenen entfällt")
+        XCTAssertFalse(app.buttons["radar-layer-quick-radar"].exists, "keine Symbolreihe mehr")
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Darstellung")).firstMatch.exists, "Darstellung entfällt")
         XCTAssertTrue(app.buttons["Daten neu laden"].exists)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "layer-menu-open"
@@ -368,16 +376,10 @@ final class WeatherSmokeTests: XCTestCase {
             func layerButton(_ prefix: String) -> XCUIElement {
                 app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
             }
-            let temperature = layerButton("Temperatur")
-            var opened = false
-            for _ in 0..<6 where !opened {
-                menu.tap()
-                opened = temperature.waitForExistence(timeout: 3)
-                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
-            }
-            XCTAssertTrue(opened, "Temperatur erscheint, sobald der Server sie meldet (large=\(large)).")
-            XCTAssertTrue(layerButton("Feuchte (Taupunkt)").exists)
-            XCTAssertFalse(layerButton("Feuchte (relativ)").exists, "Relative Feuchte wird nicht angeboten (Server-Flag aus).")
+            let temperatureEntry = openLayerEntry(app, group: nil, entry: "Temperatur")
+            XCTAssertNotNil(temperatureEntry, "Temperatur erscheint, sobald der Server sie meldet (large=\(large)).")
+            let temperature = temperatureEntry ?? layerButton("Temperatur")
+            XCTAssertTrue(layerButton("Feuchtigkeit").exists, "Untermenü Feuchtigkeit")
             temperature.tap()
             let slider = app.sliders["Zeitpunkt Temperatur"]
             XCTAssertTrue(slider.waitForExistence(timeout: 10))
@@ -415,15 +417,10 @@ final class WeatherSmokeTests: XCTestCase {
             app.launch()
             let menu = app.buttons["radar-layer-menu"]
             XCTAssertTrue(menu.waitForExistence(timeout: 15))
-            let dew = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (Taupunkt)")).firstMatch
-            var opened = false
-            for _ in 0..<6 where !opened {
-                menu.tap()
-                opened = dew.waitForExistence(timeout: 3)
-                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
-            }
-            XCTAssertTrue(opened)
-            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (relativ)")).firstMatch.exists)
+            let dewEntry = openLayerEntry(app, group: "Feuchtigkeit", entry: "Taupunkt")
+            XCTAssertNotNil(dewEntry)
+            let dew = dewEntry ?? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Taupunkt")).firstMatch
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Relativ")).firstMatch.exists)
             dew.tap()
             // Header: the long layer title must not squeeze the place name (used to shrink to "Be…").
             let placeButton = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Ort auswählen")).firstMatch
@@ -477,14 +474,9 @@ final class WeatherSmokeTests: XCTestCase {
             app.launch()
             let menu = app.buttons["radar-layer-menu"]
             XCTAssertTrue(menu.waitForExistence(timeout: 15))
-            let dew = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (Taupunkt)")).firstMatch
-            var opened = false
-            for _ in 0..<6 where !opened {
-                menu.tap()
-                opened = dew.waitForExistence(timeout: 3)
-                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
-            }
-            XCTAssertTrue(opened)
+            let dewEntry = openLayerEntry(app, group: "Feuchtigkeit", entry: "Taupunkt")
+            XCTAssertNotNil(dewEntry)
+            let dew = dewEntry ?? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Taupunkt")).firstMatch
             dew.tap()
             app.buttons["radar-legend-toggle"].tap()
             let panel = app.descendants(matching: .any)["radar-legend"]
@@ -493,7 +485,10 @@ final class WeatherSmokeTests: XCTestCase {
             let window = app.windows.firstMatch.frame
             let pill = app.descendants(matching: .any)["radar-frame-label"]
             let attribution = app.staticTexts["radar-attribution"]
-            let pillTop = [pill, attribution].filter { $0.exists }.map { $0.frame.minY }.min() ?? window.maxY
+            // The credit sits below the slider (devices with a home indicator) or above it (home button): count it only above the slider.
+            let slider = app.sliders["radar-timeline"]
+            let creditAbove = attribution.exists && slider.exists && attribution.frame.maxY <= slider.frame.minY
+            let pillTop = [pill, creditAbove ? attribution : pill].filter { $0.exists }.map { $0.frame.minY }.min() ?? window.maxY
             XCTAssertLessThanOrEqual(panel.frame.maxY, pillTop + 1, "Legende endet über Zeit-Pille und Quellzeile (large=\(large))")
             XCTAssertLessThanOrEqual(panel.frame.maxY, window.maxY)
             let scale = app.descendants(matching: .any)["temperature-scale"]

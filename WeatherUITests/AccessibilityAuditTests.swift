@@ -380,7 +380,14 @@ final class AccessibilityAuditTests: XCTestCase {
             let legend = app.buttons["radar-legend-toggle"]
             if legend.exists { legend.tap(); sleep(1); dump(app, "c-\(name)-legende") }
             let menu = app.buttons["radar-layer-menu"]
-            if menu.exists { menu.tap(); sleep(1); shot(app, "c-\(name)-ebenenmenue"); app.tap() }
+            if menu.exists {
+                menu.tap(); sleep(1); shot(app, "c-\(name)-ebenenmenue")
+                audit(app, "c-\(name)-ebenenmenue", types: [.textClipped, .dynamicType, .sufficientElementDescription])
+                let rain = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Regen' OR label CONTAINS 'Rain'")).firstMatch
+                if rain.waitForExistence(timeout: 3) { rain.tap(); sleep(1); shot(app, "c-\(name)-ebenenmenue-regen") }
+                // Outside the menu: a tap in the middle would activate an entry.
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+            }
             app.terminate()
             let warn = launch(.german, extra: ["-UITestWarnings", "fixture"])
             XCUIDevice.shared.appearance = dark ? .dark : .light
