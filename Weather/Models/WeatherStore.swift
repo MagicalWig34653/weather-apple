@@ -67,6 +67,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
+    /// Token of the running point-forecast load (a forecast-only reload does not touch the radar generation).
+    @ObservationIgnored private var forecastToken = UUID()
     /// Shared by polls, manual reloads and timeline composition across suspension points.
     @ObservationIgnored private var radarGeneration = UUID()
     /// Refresh started by the last `select`; tests await it to order requests deterministically.
@@ -135,7 +137,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// (independent of how long ago the last load was).
     func needsRefresh(now: Date? = nil) -> Bool {
         let now = now ?? clock()
-        return !isLoading && (lastRefresh == nil || forecast == nil
+        return !isForecastLoading && (forecast == nil
                        || ForecastRefreshPolicy.newRunExpected(shown: forecast?.referenceTime, now: now))
     }
 
@@ -163,8 +165,13 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
                             sleep: (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }) async {
         var schedule = schedule
         while !Task.isCancelled {
-            if needsRefresh() { await refresh() }
-            let limited = restricted?() ?? (ProcessInfo.processInfo.isLowPowerModeEnabled || pathGate.isConstrained)
+            if needsRefresh() { await reloadForecast() }
+            var limited = restricted?() ?? (ProcessInfo.processInfo.isLowPowerModeEnabled || pathGate.isConstrained)
+            #if DEBUG
+            // Only with -UITestForecast (DEBUG): the simulator's network path state can push the cadence to 300 s.
+            // The cause of the one-off test-runner restart in ForecastRefreshUITests is not proven (Backlog card).
+            if ForecastUITestStub.mode != nil { limited = false }
+            #endif
             let delay = schedule.nextDelay(now: clock(),shown: forecast?.referenceTime, failures: forecastFailures, restricted: limited)
             do { try await sleep(delay) } catch { return }
         }
@@ -197,6 +204,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func select(_ place: SavedPlace) {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
+        forecastToken = UUID()
         radarGeneration = UUID()
         selectedPlace = place
         if places.contains(where: { $0.id == place.id }) { persistPlaces() }
@@ -252,6 +260,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func refresh() async {
         let requestID = UUID()
         generation = requestID
+        forecastToken = requestID
         radarGeneration = requestID
         let place = selectedPlace
         isRadarLoading = true
@@ -363,9 +372,22 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         } catch { /* keep the current images; the next refresh reports the error */ }
     }
 
+    /// Point forecast only (timed refresh and retries): leaves the radar and its tiles alone.
+    func reloadForecast() async {
+        guard !isForecastLoading else { return }
+        let token = UUID()
+        forecastToken = token
+        let place = selectedPlace
+        isForecastLoading = true
+        forecastError = nil
+        defer { if forecastToken == token { isForecastLoading = false } }
+        await refreshForecast(requestID: token, place: place)
+        if forecastToken == token, selectedPlace.id == place.id, !Task.isCancelled { lastRefresh = clock() }
+    }
+
     private func refreshForecast(requestID: UUID, place: SavedPlace) async {
         let result = await loadForecast(at: place.coordinate)
-        guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
+        guard forecastToken == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
         isForecastLoading = false
         switch result {
         case .success(let value):

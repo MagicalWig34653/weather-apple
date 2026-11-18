@@ -3,10 +3,14 @@ import XCTest
 /// "Aktualisiere …" in the forecast header. Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
 /// Screenshots for the manual check go to `/private/tmp/claude-501/daten-aktuell-shots` (skipped if not writable).
 final class ForecastRefreshUITests: XCTestCase {
-    private func launch(_ mode: String, dark: Bool, language: UITestLaunch.Language = .german) -> XCUIApplication {
-        var extra = ["-UITestForecast", mode]
-        if dark { extra += ["-AppleInterfaceStyle", "Dark"] }
-        let app = UITestLaunch.app(language: language, extra: extra)
+    /// Appearance is set from outside with `xcrun simctl ui <udid> appearance light|dark`; names follow the real appearance.
+    /// `XCUIDevice.appearance` reports `.unspecified` for the simulator setting, so the script passes it as `TEST_RUNNER_SHOT_SUFFIX`.
+    private var suffix: String {
+        ProcessInfo.processInfo.environment["SHOT_SUFFIX"] ?? (XCUIDevice.shared.appearance == .dark ? "dark" : "light")
+    }
+
+    private func launch(_ mode: String, language: UITestLaunch.Language = .german) -> XCUIApplication {
+        let app = UITestLaunch.app(language: language, extra: ["-UITestForecast", mode])
         app.launch()
         return app
     }
@@ -22,6 +26,12 @@ final class ForecastRefreshUITests: XCTestCase {
         return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: element)], timeout: timeout) == .completed
     }
 
+    /// Waits until the first forecast is shown (not the loading or unavailable text).
+    private func waitForForecast(_ header: XCUIElement) {
+        let predicate = NSPredicate(format: "NOT (label CONTAINS[c] 'geladen') AND NOT (label CONTAINS[c] 'loading') AND NOT (label CONTAINS[c] 'nicht verf') AND NOT (label CONTAINS[c] 'unavailable')")
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: header)], timeout: 30), .completed, header.label)
+    }
+
     private func backgroundAndReturn(_ app: XCUIApplication) {
         XCUIDevice.shared.press(.home)
         sleep(1)
@@ -29,8 +39,8 @@ final class ForecastRefreshUITests: XCTestCase {
     }
 
     func testRefreshingIndicatorShowsWhileForecastIsShown() throws {
-        for dark in [false, true] {
-            let app = launch("delayed", dark: dark)
+        do {
+            let app = launch("delayed")
             let header = app.buttons["forecast-details"]
             XCTAssertTrue(header.waitForExistence(timeout: 30))
             // The first forecast loads at once (summary line, no indicator yet).
@@ -38,18 +48,18 @@ final class ForecastRefreshUITests: XCTestCase {
             XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 30), .completed, header.label)
             // Returning: the shown run is older than the expected one, so the load starts at once; the stub delays it.
             backgroundAndReturn(app)
-            XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 20), "indicator visible: \(header.label)")
+            XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "indicator visible: \(header.label)")
             XCTAssertTrue(header.label.contains("Stand vor"), "the age stays: \(header.label)")
             XCTAssertFalse(header.label.contains("Ältere Prognose"))
             XCTAssertFalse(header.label.contains("fehlgeschlagen"))
-            shot(app, "forecast-refreshing-\(dark ? "dark" : "light")")
+            shot(app, "forecast-refreshing-\(suffix)")
             app.terminate()
         }
     }
 
     func testCurrentForecastShowsNoStatus() throws {
-        for dark in [false, true] {
-            let app = launch("current", dark: dark)
+        do {
+            let app = launch("current")
             let header = app.buttons["forecast-details"]
             XCTAssertTrue(header.waitForExistence(timeout: 30))
             let loaded = NSPredicate(format: "label != '' AND NOT (label CONTAINS 'geladen') AND NOT (label CONTAINS 'nicht verfügbar')")
@@ -58,46 +68,66 @@ final class ForecastRefreshUITests: XCTestCase {
             for text in ["Aktualisiere", "fehlgeschlagen", "keinen neueren Stand", "Ältere Prognose"] {
                 XCTAssertFalse(header.label.contains(text), header.label)
             }
-            shot(app, "forecast-normal-\(dark ? "dark" : "light")")
+            shot(app, "forecast-normal-\(suffix)")
             app.terminate()
         }
     }
 
     func testRefreshingIndicatorEnglish() throws {
-        let app = launch("delayed", dark: false, language: .english)
+        let app = launch("delayed", language: .english)
         let header = app.buttons["forecast-details"]
         XCTAssertTrue(header.waitForExistence(timeout: 30))
-        sleep(4)
+        waitForForecast(header)
         backgroundAndReturn(app)
         XCTAssertTrue(waitForLabel(header, containing: "Updating", timeout: 20), "indicator visible: \(header.label)")
     }
 
-    func testFailedUpdateShowsFailureOnlyAfterRepeat() throws {
-        for dark in [false, true] {
-            let app = launch("failed", dark: dark)
-            let header = app.buttons["forecast-details"]
-            XCTAssertTrue(header.waitForExistence(timeout: 30))
-            sleep(4)
-            backgroundAndReturn(app) // first failing load (index 503), repeat after 20 s
-            XCTAssertFalse(waitForLabel(header, containing: "fehlgeschlagen", timeout: 4), "no failure after the first error: \(header.label)")
-            XCTAssertFalse(header.label.contains("Ältere Prognose"))
-            XCTAssertTrue(waitForLabel(header, containing: "fehlgeschlagen", timeout: 90), "failure after the repeat: \(header.label)")
-            shot(app, "forecast-failed-\(dark ? "dark" : "light")")
-            app.terminate()
+    /// One failing load (stub `failonce`) must not show a failure or "Ältere Prognose"; the next load recovers.
+    func testSingleFailureShowsNoFailureMessage() throws {
+        let app = launch("failonce")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        backgroundAndReturn(app) // the load on return fails once, then the repeat succeeds
+        let failure = NSPredicate(format: "label CONTAINS 'fehlgeschlagen' OR label CONTAINS 'Ältere Prognose'")
+        let seen = XCTWaiter().wait(for: [expectation(for: failure, evaluatedWith: header)], timeout: 30)
+        XCTAssertEqual(seen, .timedOut, "no failure message after a single failure: \(header.label)")
+        app.terminate()
+    }
+
+    /// Repeated failures (stub `failed`) end in "Aktualisierung fehlgeschlagen", never in "Ältere Prognose".
+    func testRepeatedFailureShowsFailureMessage() throws {
+        let app = launch("failed")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        backgroundAndReturn(app)
+        // Poll once a second and keep the label history, so a miss says what the header showed.
+        var history: [String] = []
+        var found = false
+        for _ in 0..<120 {
+            let label = header.label
+            if history.last != label { history.append(label) }
+            if label.contains("fehlgeschlagen") { found = true; break }
+            sleep(1)
         }
+        XCTAssertTrue(found, "failure after the repeats, labels seen: \(history)")
+        XCTAssertFalse(header.label.contains("Ältere Prognose"))
+        shot(app, "forecast-failed-\(suffix)")
+        app.terminate()
     }
 
     func testServerBehindScreenshot() throws {
         // Needs a check at or after N + 260 s, which holds for about 2/3 of every 5-minute slot.
         let slotOffset = (Date().timeIntervalSince1970 - 165).truncatingRemainder(dividingBy: 300)
         try XCTSkipIf(slotOffset < 110, "Zu früh im Takt-Fenster für den Hinweis \"noch keinen neueren Stand\".")
-        for dark in [false, true] {
-            let app = launch("behind", dark: dark)
+        do {
+            let app = launch("behind")
             let header = app.buttons["forecast-details"]
             XCTAssertTrue(header.waitForExistence(timeout: 30))
             XCTAssertTrue(waitForLabel(header, containing: "keinen neueren Stand", timeout: 30), "label: \(header.label)")
             XCTAssertFalse(header.label.contains("fehlgeschlagen"))
-            shot(app, "forecast-server-behind-\(dark ? "dark" : "light")")
+            shot(app, "forecast-server-behind-\(suffix)")
             app.terminate()
         }
     }

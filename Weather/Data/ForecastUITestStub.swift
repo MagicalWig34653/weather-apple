@@ -1,9 +1,10 @@
 #if DEBUG
 import Foundation
 
-/// UI tests only (Debug builds): `-UITestForecast delayed|failed|behind|current` simulates the DWD run index and point
-/// - `delayed`: first index query answers at once, later ones after 12 s ("Aktualisiere …" stays visible).
+/// UI tests only (Debug builds): `-UITestForecast delayed|failed|failonce|behind|current` simulates the DWD run index and point
+/// - `delayed`: first index query answers at once, later ones after 40 s ("Aktualisiere …" stays visible).
 /// - `failed`: first index query answers, all later ones fail with HTTP 503.
+/// - `failonce`: exactly one failing load (the 2nd to 4th index request, i.e. one query with its retries), then normal answers.
 /// - `current`: the shown run is the expected newest one (normal state).
 /// - `behind`: queries always answer with the same (older) run, the index never offers a newer one.
 enum ForecastUITestStub {
@@ -21,14 +22,15 @@ enum ForecastUITestStub {
 
     static func client(mode: String) -> DWDClient {
         let counter = Counter()
-        let runs = RadarPollSchedule.nominal(at: Date()).addingTimeInterval(mode == "behind" ? -600 : mode == "current" ? 0 : -300)
+        let runs = RadarPollSchedule.nominal(at: Date()).addingTimeInterval(mode == "behind" ? -600 : mode == "current" || mode == "failonce" ? 0 : -300)
         return DWDClient(transport: { request in
             let url = request.url ?? DWDRequest.indexURL
             func response(_ code: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)! }
             if url.absoluteString == DWDRequest.indexURL.absoluteString {
-                if counter.nextIndex() > 1 {
-                    if mode == "failed" { return (Data(), response(503)) }
-                    if mode == "delayed" { try await Task.sleep(for: .seconds(12)) }
+                let number = counter.nextIndex()
+                if number > 1 {
+                    if mode == "failed" || (mode == "failonce" && number <= 4) { return (Data(), response(503)) }
+                    if mode == "delayed" { try await Task.sleep(for: .seconds(40)) }
                 }
                 let day = DateFormatter()
                 day.locale = Locale(identifier: "en_US_POSIX"); day.timeZone = TimeZone(identifier: "UTC")
