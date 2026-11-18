@@ -210,6 +210,7 @@
 		C47A6FE5458CA968A49A5BF7 /* RadarLegendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D869DF43F36A72BF83A3426 /* RadarLegendTests.swift */; };
 		C51E092B1605ABD02990AFA2 /* ForecastCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45AC674C1BC6565A9747880 /* ForecastCache.swift */; };
 		C5383E1925861B382555160E /* WidgetDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F3EDD496FC77265F0FDADD /* WidgetDeepLink.swift */; };
+		C580F02D92AC66E88CFEC153 /* PlacesLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17A801DDF8BA00FDED07D0D /* PlacesLayoutTests.swift */; };
 		C91DE7525CE8DA49DA94820C /* RainActivityContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C6E818DA20B198D44B2860 /* RainActivityContractTests.swift */; };
 		C9896A47945B7AC8A45E3061 /* WidgetTimelineBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F57EC5F818EF91ED7A88D /* WidgetTimelineBuilder.swift */; };
 		C9967A9B55D723341F06BA35 /* RadarPrefetch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CC320D05B090776DC3BC2A /* RadarPrefetch.swift */; };
@@ -537,6 +538,7 @@
 		F074EE7537C4C452040B4523 /* RadarBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarBackendTests.swift; sourceTree = "<group>"; };
 		F0A76C723F5D7B064629F385 /* LayerMenuPrototypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerMenuPrototypeTests.swift; sourceTree = "<group>"; };
 		F10F57EC5F818EF91ED7A88D /* WidgetTimelineBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTimelineBuilder.swift; sourceTree = "<group>"; };
+		F17A801DDF8BA00FDED07D0D /* PlacesLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacesLayoutTests.swift; sourceTree = "<group>"; };
 		F45AC674C1BC6565A9747880 /* ForecastCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastCache.swift; sourceTree = "<group>"; };
 		F51F5A3C7D4921484A874BBC /* WarnFeedUITestStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnFeedUITestStub.swift; sourceTree = "<group>"; };
 		F935FB12CA5FF284A87360BC /* RainActivityPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainActivityPresentation.swift; sourceTree = "<group>"; };
@@ -586,6 +588,7 @@
 				3B5C3EE7EFF1059C786B657F /* CreditLineLayoutTests.swift */,
 				F0A76C723F5D7B064629F385 /* LayerMenuPrototypeTests.swift */,
 				059FF384C55ED1C200B2EC8F /* PlacesEnglishTests.swift */,
+				F17A801DDF8BA00FDED07D0D /* PlacesLayoutTests.swift */,
 				37D6D537707721F2AA930F4D /* PseudoLocalizationTests.swift */,
 				6C15E85470A90E23A2F92CB7 /* RadarEnglishTests.swift */,
 				8937CBAA8908C4993B3CCFC4 /* UITestLaunch.swift */,
@@ -1553,6 +1556,7 @@
 				16DD65C9A473129E377D62D6 /* CreditLineLayoutTests.swift in Sources */,
 				CF959FAC75551254C2A4DDE8 /* LayerMenuPrototypeTests.swift in Sources */,
 				9963072DC7159D8962A455DA /* PlacesEnglishTests.swift in Sources */,
+				C580F02D92AC66E88CFEC153 /* PlacesLayoutTests.swift in Sources */,
 				BE8347722C02D4FB43AD148B /* PseudoLocalizationTests.swift in Sources */,
 				2D2396336B5A33F83F839249 /* RadarEnglishTests.swift in Sources */,
 				6CA759BB4928578FA47BBF7C /* UITestLaunch.swift in Sources */,

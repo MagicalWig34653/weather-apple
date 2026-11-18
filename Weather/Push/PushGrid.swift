@@ -89,11 +89,16 @@ enum PushSensitivity: String, Codable, CaseIterable, Identifiable, Sendable {
     }
     var detail: String {
         switch self {
-        case .veryLight: NSLocalizedString("PUSH_SENSITIVITY_VERY_LIGHT_DETAIL", value: "ab ca. 0,1 mm/h, löst auch bei Nieselregen aus", comment: "Push")
+        case .veryLight: NSLocalizedString("PUSH_SENSITIVITY_VERY_LIGHT_DETAIL", value: "ab 0,1 mm/h, auch bei Nieselregen", comment: "Push")
         case .light: NSLocalizedString("PUSH_SENSITIVITY_LIGHT_DETAIL", value: "ab 0,4 mm/h", comment: "Push")
         case .moderate: NSLocalizedString("PUSH_SENSITIVITY_MODERATE_DETAIL", value: "ab 2 mm/h", comment: "Push")
         case .heavy: NSLocalizedString("PUSH_SENSITIVITY_HEAVY_DETAIL", value: "ab 7,5 mm/h", comment: "Push")
         }
+    }
+    /// Threshold of the selected level as a short line under the picker (the picker value itself shows only the title,
+    /// so it is not truncated, also at large text sizes).
+    var hint: String {
+        String(format: NSLocalizedString("PUSH_SENSITIVITY_HINT", value: "Meldung %@", comment: "Push"), detail)
     }
 }
 

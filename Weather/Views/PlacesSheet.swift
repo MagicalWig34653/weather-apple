@@ -31,26 +31,22 @@ struct PlacesSheet: View {
                                     store.select(place)
                                     dismiss()
                                 } label: {
-                                    HStack {
-                                        Label(place.name, systemImage: "mappin.circle.fill")
-                                        Spacer()
-                                        if place.id == store.selectedPlace.id { Image(systemName: "checkmark").accessibilityHidden(true) }
-                                    }
-                                    .foregroundStyle(.primary)
-                                    // Hit area of at least 44 pt, also at the smallest text size.
-                                    .frame(minHeight: 44)
-                                    .contentShape(Rectangle())
+                                    rowLabel(place)
+                                        .frame(minHeight: 44)
+                                        .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.borderless)
                                 .accessibilityAddTraits(place.id == store.selectedPlace.id ? .isSelected : [])
+                                .compactHitTarget { rowLabel(place) }
                                 Button {
                                     pushPlaceID = place.id
                                 } label: {
-                                    Image(systemName: push.settings(for: place.id) != nil ? "bell.fill" : "bell")
+                                    bellImage(place)
                                         .frame(minWidth: 44, minHeight: 44)
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.borderless)
+                                .compactHitTarget { bellImage(place) }
                                 .accessibilityLabel(String(format: NSLocalizedString("PLACES_ALERT_FOR", value: "Regenhinweis für %@", comment: "Places"), place.name))
                                 .accessibilityInputLabels([String(format: NSLocalizedString("PLACES_ALERT_FOR", value: "Regenhinweis für %@", comment: "Places"), place.name),
                                                            NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Places")])
@@ -94,15 +90,11 @@ struct PlacesSheet: View {
                                     latitude: coordinate.latitude, longitude: coordinate.longitude)))
                                 dismiss()
                             } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.name ?? NSLocalizedString("PLACES_ITEM_FALLBACK", value: "Ort", comment: "Places")).foregroundStyle(.primary)
-                                    if let address = item.address?.shortAddress {
-                                        Text(address).font(.caption).foregroundStyle(.secondary)
-                                    }
-                                }
+                                resultLabel(item)
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                                 .contentShape(Rectangle())
                             }
+                            .compactHitTarget { resultLabel(item) }
                         }
                     }
                 }
@@ -197,5 +189,63 @@ struct PlacesSheet: View {
             searchMessage = NSLocalizedString("PLACES_SEARCH_UNAVAILABLE", value: "Die Ortssuche ist gerade nicht verfügbar. Du kannst einen Punkt auf der Karte auswählen.", comment: "Places")
         }
         isSearching = false
+    }
+}
+
+extension PlacesSheet {
+    @ViewBuilder fileprivate func rowLabel(_ place: SavedPlace) -> some View {
+        HStack {
+            Label(place.name, systemImage: "mappin.circle.fill")
+            Spacer()
+            if place.id == store.selectedPlace.id { Image(systemName: "checkmark").accessibilityHidden(true) }
+        }
+        .foregroundStyle(.primary)
+    }
+
+    fileprivate func bellImage(_ place: SavedPlace) -> some View {
+        Image(systemName: push.settings(for: place.id) != nil ? "bell.fill" : "bell")
+    }
+
+    @ViewBuilder fileprivate func resultLabel(_ item: MKMapItem) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(item.name ?? NSLocalizedString("PLACES_ITEM_FALLBACK", value: "Ort", comment: "Places")).foregroundStyle(.primary)
+            if let address = item.address?.shortAddress {
+                Text(address).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// Layout of a control with an enlarged touch target: it occupies only the size of the invisible `natural` copy of its
+/// content, while the control itself (its own frame of at least 44 pt, also the accessibility frame) is centered over it and
+/// overflows into the row's own padding. So the list row looks as before while the hit area is at least 44 pt.
+private struct CompactHitTarget: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        subviews.count == 2 ? subviews[1].sizeThatFits(proposal) : .zero
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 2 else { return }
+        subviews[1].place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center, proposal: ProposedViewSize(bounds.size))
+        let size = subviews[0].sizeThatFits(ProposedViewSize(width: bounds.width, height: nil))
+        let width = max(size.width, bounds.width), height = max(size.height, bounds.height)
+        subviews[0].place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center, proposal: ProposedViewSize(width: width, height: height))
+    }
+}
+
+private struct CompactHitTargetModifier<Natural: View>: ViewModifier {
+    let natural: Natural
+
+    func body(content: Content) -> some View {
+        CompactHitTarget {
+            content
+            natural.hidden().accessibilityHidden(true)
+        }
+    }
+}
+
+private extension View {
+    func compactHitTarget<Natural: View>(@ViewBuilder natural: () -> Natural) -> some View {
+        modifier(CompactHitTargetModifier(natural: natural()))
     }
 }

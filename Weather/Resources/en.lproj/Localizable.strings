@@ -349,7 +349,7 @@
 "PUSH_LEAD_TIME" = "Lead time";
 "PUSH_LEAD_MINUTES" = "%lld minutes";
 "PUSH_SENSITIVITY" = "Sensitivity";
-"PUSH_SENSITIVITY_ROW" = "%1$@ (%2$@)";
+"PUSH_SENSITIVITY_HINT" = "Alert %@";
 "PUSH_TIME_SENSITIVE" = "Time Sensitive";
 "REGION_SETTINGS_FOOTER" = "Notification as soon as the selected share of the area is expected to get at least this much rain within the lead time. After that, at most one notification per hour and region. Time Sensitive breaks through Focus and Notification Summary, but not the silent switch.";
 "PUSH_OPEN_SYSTEM_SETTINGS" = "Open System Settings";
@@ -375,7 +375,7 @@
 "PUSH_SENSITIVITY_LIGHT" = "Light";
 "PUSH_SENSITIVITY_MODERATE" = "Moderate";
 "PUSH_SENSITIVITY_HEAVY" = "Heavy";
-"PUSH_SENSITIVITY_VERY_LIGHT_DETAIL" = "from about 0.1 mm/h, also triggers on drizzle";
+"PUSH_SENSITIVITY_VERY_LIGHT_DETAIL" = "from 0.1 mm/h, even drizzle";
 "PUSH_SENSITIVITY_LIGHT_DETAIL" = "from 0.4 mm/h";
 "PUSH_SENSITIVITY_MODERATE_DETAIL" = "from 2 mm/h";
 "PUSH_SENSITIVITY_HEAVY_DETAIL" = "from 7.5 mm/h";

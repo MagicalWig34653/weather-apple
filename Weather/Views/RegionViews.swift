@@ -210,8 +210,9 @@ struct RegionSettingsView: View {
                     }
                     Picker(NSLocalizedString("PUSH_SENSITIVITY", value: "Empfindlichkeit", comment: "Push"), selection: Binding(get: { region.sensitivity },
                                                                  set: { v in Task { await push.updateRegion(id: regionID, sensitivity: v) } })) {
-                        ForEach(PushSensitivity.allCases) { Text(String(format: NSLocalizedString("PUSH_SENSITIVITY_ROW", value: "%1$@ (%2$@)", comment: "Push"), $0.title, $0.detail)).tag($0) }
+                        ForEach(PushSensitivity.allCases) { Text($0.title).tag($0) }
                     }
+                    Text(region.sensitivity.hint).font(.footnote).foregroundStyle(.secondary)
                     Toggle(NSLocalizedString("PUSH_TIME_SENSITIVE", value: "Zeitkritisch", comment: "Push"), isOn: Binding(get: { region.timeSensitive },
                                                          set: { v in Task { await push.updateRegion(id: regionID, timeSensitive: v) } }))
                 } header: { Text(NSLocalizedString("PUSH_SETTINGS_HEADER", value: "Einstellungen", comment: "Push")) } footer: {

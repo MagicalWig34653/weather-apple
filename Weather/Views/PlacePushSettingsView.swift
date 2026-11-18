@@ -39,8 +39,9 @@ struct PlacePushSettingsView: View {
                     Picker(NSLocalizedString("PUSH_SENSITIVITY", value: "Empfindlichkeit", comment: "Push"), selection: Binding(
                         get: { settings.sensitivity },
                         set: { value in Task { await push.update(placeID: place.id, sensitivity: value) } })) {
-                        ForEach(PushSensitivity.allCases) { Text(String(format: NSLocalizedString("PUSH_SENSITIVITY_ROW", value: "%1$@ (%2$@)", comment: "Push"), $0.title, $0.detail)).tag($0) }
+                        ForEach(PushSensitivity.allCases) { Text($0.title).tag($0) }
                     }
+                    Text(settings.sensitivity.hint).font(.footnote).foregroundStyle(.secondary)
                     Toggle(NSLocalizedString("PUSH_TIME_SENSITIVE", value: "Zeitkritisch", comment: "Push"), isOn: Binding(
                         get: { settings.timeSensitive },
                         set: { value in Task { await push.update(placeID: place.id, timeSensitive: value) } }))
@@ -100,6 +101,9 @@ struct PlacePushSettingsView: View {
         .navigationTitle(NSLocalizedString("PUSH_ALERT_LABEL", value: "Regenhinweis", comment: "Push"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
+            #if DEBUG
+            if CommandLine.arguments.contains("-UITestPushSeed") { push.seedForUITest(placeID: place.id) }
+            #endif
             await push.refreshAuthorization()
             await push.refreshLiveActivitySupport()
         }

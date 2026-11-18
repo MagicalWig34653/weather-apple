@@ -1004,6 +1004,14 @@ final class PushManager {
         }
     }
 
+    #if DEBUG
+    /// UI tests only (`-UITestPushSeed`): shows the opted-in settings screen without server or permission; memory only.
+    func seedForUITest(placeID: UUID) {
+        guard state.places[placeID] == nil else { return }
+        state.places[placeID] = PlacePushSettings(cell: .init(x: 1, y: 1), sensitivity: .veryLight, needsUpload: false)
+    }
+    #endif
+
     private func persist() {
         if let data = try? JSONEncoder().encode(state) { defaults.set(data, forKey: Self.stateKey) }
         // Only IDs, no names/coordinates/tokens. Widget extension resolves names through PlaceStore.

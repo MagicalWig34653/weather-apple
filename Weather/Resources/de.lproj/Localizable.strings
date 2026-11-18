@@ -349,7 +349,7 @@
 "PUSH_LEAD_TIME" = "Vorlaufzeit";
 "PUSH_LEAD_MINUTES" = "%lld Minuten";
 "PUSH_SENSITIVITY" = "Empfindlichkeit";
-"PUSH_SENSITIVITY_ROW" = "%1$@ (%2$@)";
+"PUSH_SENSITIVITY_HINT" = "Meldung %@";
 "PUSH_TIME_SENSITIVE" = "Zeitkritisch";
 "REGION_SETTINGS_FOOTER" = "Meldung, sobald der gewählte Anteil der Fläche innerhalb der Vorlaufzeit mindestens so stark Regen bekommt. Danach höchstens eine Meldung pro Stunde und Region. Zeitkritisch durchbricht Fokus und Mitteilungszusammenfassung, nicht den Stummschalter.";
 "PUSH_OPEN_SYSTEM_SETTINGS" = "Systemeinstellungen öffnen";
@@ -375,7 +375,7 @@
 "PUSH_SENSITIVITY_LIGHT" = "Leicht";
 "PUSH_SENSITIVITY_MODERATE" = "Mäßig";
 "PUSH_SENSITIVITY_HEAVY" = "Stark";
-"PUSH_SENSITIVITY_VERY_LIGHT_DETAIL" = "ab ca. 0,1 mm/h, löst auch bei Nieselregen aus";
+"PUSH_SENSITIVITY_VERY_LIGHT_DETAIL" = "ab 0,1 mm/h, auch bei Nieselregen";
 "PUSH_SENSITIVITY_LIGHT_DETAIL" = "ab 0,4 mm/h";
 "PUSH_SENSITIVITY_MODERATE_DETAIL" = "ab 2 mm/h";
 "PUSH_SENSITIVITY_HEAVY_DETAIL" = "ab 7,5 mm/h";
