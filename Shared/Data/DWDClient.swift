@@ -35,10 +35,12 @@ actor DWDClient {
         }
     }
 
-    func forecast(at coordinate: WeatherCoordinate) async throws -> RainForecast {
+    /// `expectedNewest`: the run a fresh index should contain; the 5-minute index cache is skipped only
+    /// while its newest run is older than that, otherwise the caches stay in use.
+    func forecast(at coordinate: WeatherCoordinate, expectedNewest: Date? = nil) async throws -> RainForecast {
         guard coordinate.isSupported else { throw DWDDataError.unsupportedLocation }
         // Resolve the current run first: a still-fresh point must not hide a newer run.
-        let dates = try await runs()
+        let dates = try await runs(expectedNewest: expectedNewest)
         try Task.checkCancellation()
         guard let reference = dates.last else { throw DWDDataError.unavailable }
         let now = clock()
@@ -87,11 +89,12 @@ actor DWDClient {
         return DWDRadarTimeline(referenceTime: reference, dates: history + nowcast)
     }
 
-    private func runs() async throws -> [Date] {
+    private func runs(expectedNewest: Date? = nil) async throws -> [Date] {
         let now = clock()
         if let cachedRuns, now.timeIntervalSince(cachedRuns.fetchedAt) < 300,
            let latest = cachedRuns.dates.last,
-           now.timeIntervalSince(latest) <= RainForecast.maximumAge {
+           now.timeIntervalSince(latest) <= RainForecast.maximumAge,
+           expectedNewest.map({ latest >= $0 }) ?? true {
             return cachedRuns.dates
         }
         if let pendingRuns { return try await pendingRuns.value }

@@ -232,7 +232,6 @@
 "RADAR_SAVE_PLACE_BUTTON" = "Save or rename the selected place";
 "RADAR_FORECAST_LOADING" = "Loading rain forecast …";
 "RADAR_FORECAST_UNAVAILABLE" = "Forecast unavailable";
-"RADAR_FORECAST_OLD" = "Older forecast (%@) · please refresh";
 "RADAR_STATUS_LAYER_IMAGE_MISSING" = "The %@ layer image for this time is missing. Please refresh.";
 "RADAR_STATUS_IMAGE_MISSING" = "The radar image for this time is missing. Please refresh.";
 "RADAR_STATUS_TILES_MISSING" = "Some radar tiles are missing. Please refresh.";
@@ -550,3 +549,7 @@
 "VC_PAUSE" = "Pause";
 "VC_PLAY" = "Play";
 "PLACES_ALERT_FOR" = "Rain alert for %@";
+"RADAR_FORECAST_CAPTION_REFRESHING" = "Updating … · %@";
+"RADAR_FORECAST_CAPTION_FAILED" = "Update failed · %@";
+"RADAR_FORECAST_CAPTION_BEHIND" = "The weather service has no newer data yet · %@";
+"RADAR_DETAILS_SERVER_BEHIND" = "The weather service has no newer data than this forecast yet, %@. The app keeps checking.";

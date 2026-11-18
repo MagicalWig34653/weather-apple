@@ -623,9 +623,7 @@ struct RadarScreen: View {
             HStack(spacing: 8) {
                 Button { sheet = .details } label: {
                     HStack(spacing: 6) {
-                        Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar") : forecastHeadline)
-                            .font(.subheadline.weight(.semibold))
-                            .fixedSize(horizontal: false, vertical: true)
+                        forecastLabel
                         Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
                     }
                     .padding(.horizontal, 14)
@@ -651,14 +649,53 @@ struct RadarScreen: View {
         }
     }
 
-    private var forecastHeadline: String {
-        guard let forecast = store.forecast else {
-            return store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar")
+    /// Text for a non-current forecast, e.g. "Aktualisiere … · Stand vor 6 Min.".
+    private func forecastStatusText(_ status: WeatherStore.ForecastStatus, forecast: RainForecast) -> String {
+        let age = forecast.ageDescription(at: displayNow)
+        switch status {
+        case .refreshing: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_REFRESHING", value: "Aktualisiere … · %@", comment: "Radar"), age)
+        case .failed: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_FAILED", value: "Aktualisierung fehlgeschlagen · %@", comment: "Radar"), age)
+        case .serverBehind: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_BEHIND", value: "Der Wetterdienst hat noch keinen neueren Stand · %@", comment: "Radar"), age)
         }
-        if store.forecastError != nil || forecast.isStale(at: displayNow) {
-            return String(format: NSLocalizedString("RADAR_FORECAST_OLD", value: "Ältere Prognose (%@) · bitte aktualisieren", comment: "Radar"), forecast.ageDescription(at: displayNow))
+    }
+
+    @ViewBuilder private var forecastLabel: some View {
+        if let forecast = store.forecast {
+            let status = store.forecastStatus(now: displayNow)
+            // A stale forecast has no usable summary; its line says what is happening instead.
+            let statusReplacesSummary = status != nil && (status != .refreshing || forecast.isStale(at: displayNow))
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    if statusReplacesSummary, let status { forecastStatusIcon(status) }
+                    Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                         : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if status == .refreshing, !statusReplacesSummary {
+                    HStack(spacing: 5) {
+                        forecastStatusIcon(.refreshing)
+                        Text(forecastStatusText(.refreshing, forecast: forecast))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(status == .refreshing ? "forecast-refreshing" : status == .failed ? "forecast-update-failed" : status == .serverBehind ? "forecast-server-behind" : "forecast-headline")
+        } else {
+            Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                 : (store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar")))
+                .font(.subheadline.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
         }
-        return forecast.summary(at: displayNow)
+    }
+
+    @ViewBuilder private func forecastStatusIcon(_ status: WeatherStore.ForecastStatus) -> some View {
+        if status == .refreshing {
+            ProgressView().controlSize(.mini).accessibilityHidden(true)
+        } else {
+            Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
+        }
     }
 
     private var statusMessage: String? {
@@ -672,7 +709,7 @@ struct RadarScreen: View {
         }
         if store.activeLayer != .radar { return nil }
         if let error = store.radarError { return String(format: NSLocalizedString("RADAR_STATUS_RADAR_ERROR", value: "Radar: %@", comment: "Radar"), error) }
-        if let error = store.forecastError { return String(format: NSLocalizedString("RADAR_STATUS_FORECAST_ERROR", value: "Ortsprognose: %@", comment: "Radar"), error) }
+        if let error = store.forecastError, store.forecast == nil || store.forecastFailureConfirmed { return String(format: NSLocalizedString("RADAR_STATUS_FORECAST_ERROR", value: "Ortsprognose: %@", comment: "Radar"), error) }
         if let notice = store.radarNotice { return notice }
         return nil
     }
@@ -748,13 +785,15 @@ struct ForecastDetails: View {
                         Text(String(format: NSLocalizedString("RADAR_DETAILS_SOURCE_AGE", value: "DWD · %@", comment: "Radar"), forecast.ageDescription(at: context.date)))
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent(NSLocalizedString("RADAR_DETAILS_IMAGES", value: "Radarbilder", comment: "Radar"), value: store.radarSource.label)
-                        if store.forecastError != nil || forecast.isStale(at: context.date) {
-                            Label(store.forecastError != nil
+                        if store.forecastFailureConfirmed || store.forecastStatus(now: context.date) == .serverBehind || forecast.isStale(at: context.date) {
+                            Label(store.forecastFailureConfirmed
                                   ? String(format: NSLocalizedString("RADAR_DETAILS_UPDATE_FAILED", value: "Aktualisierung fehlgeschlagen. Letzte gültige Prognose, %@. Sie ist nicht aktuell bestätigt.", comment: "Radar"), forecast.ageDescription(at: context.date))
+                                  : store.forecastStatus(now: context.date) == .serverBehind
+                                  ? String(format: NSLocalizedString("RADAR_DETAILS_SERVER_BEHIND", value: "Der Wetterdienst hat noch keinen neueren Stand als diese Prognose, %@. Die App fragt weiter nach.", comment: "Radar"), forecast.ageDescription(at: context.date))
                                   : NSLocalizedString("RADAR_DETAILS_NOT_CONFIRMED", value: "Die Prognose ist nicht aktuell bestätigt.", comment: "Radar"), systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
                         }
-                        ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastError != nil)
+                        ForecastInterpretationSection(forecast: forecast, hasCurrentError: store.forecastFailureConfirmed)
                         Text(NSLocalizedString("RADAR_MAP_HINT_SENTENCE", value: "Lange auf die Karte drücken, um einen Ort zu wählen.", comment: "Radar"))
                         Text(NSLocalizedString("RADAR_DETAILS_DISCLAIMER", value: "Radarprognosen beschreiben die erwartete Entwicklung. Gerade bei entstehenden oder sich auflösenden Schauern können Beginn, Ende und Intensität abweichen.", comment: "Radar"))
                         Text(String(format: NSLocalizedString("RADAR_DETAILS_MODIFICATION", value: "%@. Niederschlagswerte der Ortsprognose umgerechnet und aufbereitet.", comment: "Radar"), store.radarAttribution.modificationNotice))
