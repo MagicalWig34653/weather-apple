@@ -36,7 +36,17 @@ final class CreditLineLayoutTests: XCTestCase {
         XCTAssertTrue(slider.waitForExistence(timeout: 10))
         XCTAssertTrue(credit.waitForExistence(timeout: 10))
         let strip = window.maxY - slider.frame.maxY
-        note("zahlen-\(tag)", "window \(f(window))\nslider \(f(slider.frame))\ncredit \(f(credit.frame)) label=\(credit.label)\nstreifen unter slider=\(String(format: "%.1f", strip))")
+        let pill = app.descendants(matching: .any)["radar-frame-label"]
+        // Apples legal link ("Rechtl. Informationen"): its frame if the accessibility tree has it.
+        let legal = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] 'Rechtl' OR label CONTAINS[c] 'Legal'")).firstMatch
+        let legalText = legal.exists ? f(legal.frame) : "nicht im Accessibility-Baum"
+        note("zahlen-\(tag)", "window \(f(window))\nslider \(f(slider.frame))\npill \(f(pill.frame))\ncredit \(f(credit.frame)) label=\(credit.label)\nrechtslink \(legalText)\nstreifen unter slider=\(String(format: "%.1f", strip))")
+        // Baseline vor dem Umbau (18.11., 440x956): Pille y 794.7 bis 838.7 (normal), 701.0 bis 831.7 (AXXXL).
+        let pillBaseline = ["440x956": 794.7]["\(Int(window.width))x\(Int(window.height))"]
+        if let pillBaseline, !tag.hasSuffix("axxxl") { XCTAssertEqual(pill.frame.minY, pillBaseline, accuracy: 0.5, "Pille-y unverändert (\(tag))") }
+        if tag.hasSuffix("axxxl"), Int(window.width) == 440 { XCTAssertEqual(pill.frame.minY, 701.0, accuracy: 0.5, "Pille-y unverändert (\(tag))") }
+        // Der Rechtslink bleibt frei: höchstens die gerundete Pillenecke berührt seinen Rahmen (wie in der Baseline, 5 pt).
+        if legal.exists { XCTAssertLessThanOrEqual(pill.frame.maxY - legal.frame.minY, 6, "Pille verdeckt den Rechtslink nicht (\(tag))") }
         // Der Slider behält seine Lage: gemessen vor dem Umbau (18.11.): 440x956 -> y 870, 375x667 -> y 615.
         let baseline = ["440x956": 870.0, "375x667": 615.0]["\(Int(window.width))x\(Int(window.height))"]
         if let baseline { XCTAssertEqual(slider.frame.minY, baseline, accuracy: 0.5, "Slider-y unverändert (\(tag))") }

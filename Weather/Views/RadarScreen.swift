@@ -106,8 +106,10 @@ struct RadarScreen: View {
                 .allowsHitTesting(false)
                 VStack(spacing: 6) {
                 timePill
-                // Devices without a free strip below the slider (home button): the credit stays above the slider.
-                if !hasStripBelowSlider { creditLine }
+                // Home-button devices: the credit stays above the slider. Otherwise it is drawn below the slider (see `timeline`);
+                // here it keeps its layout space invisibly, so the pill stays where it always was and keeps Apple's legal link free.
+                // The placeholder keeps the former size limit, so the pill keeps its position at every text size.
+                if hasStripBelowSlider { creditLine(sizeLimit: .xxxLarge).hidden() } else { creditLine(sizeLimit: .xxxLarge) }
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { pillBlockTop = $0 }
             }
@@ -500,16 +502,19 @@ struct RadarScreen: View {
 
     /// Short credit in the size and style of Apple Maps' legal text, no capsule. The full source text, licences and
     /// modification notices are in the information screen (Datenquellen).
-    @ViewBuilder private var creditLine: some View {
+    @ViewBuilder private func creditLine(sizeLimit: DynamicTypeSize = .xLarge) -> some View {
         if let line = ForestPreference.shortSourceLine(base: store.displayShortAttribution, layer: store.activeLayer,
                                                        visible: forestVisible, info: ForestInfo.bundled) {
             Text(line)
                 .font(.caption2).foregroundStyle(.primary.opacity(0.75))
                 .lineLimit(1).minimumScaleFactor(0.8)
                 // A fixed strip below the slider: the text grows only a little with Dynamic Type (VoiceOver reads it in full).
-                .dynamicTypeSize(...DynamicTypeSize.xLarge)
+                .dynamicTypeSize(...sizeLimit)
                 .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
+                .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
                 .padding(.horizontal, 8)
+                // Rendering only (no layout space): a faint backdrop behind the text keeps it readable on any map colour.
+                .background { Capsule().fill(Color(.systemBackground).opacity(0.35)).blur(radius: 2) }
                 .allowsHitTesting(false)
                 .accessibilityLabel(line)
                 .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
@@ -532,7 +537,7 @@ struct RadarScreen: View {
             // free strip between the card and the home indicator (card bottom + 20 pt = text bottom, about 3 pt below the card).
             .overlay(alignment: .bottom) {
                 if hasStripBelowSlider {
-                    creditLine.offset(y: 20)
+                    creditLine().offset(y: 20)
                 }
             }
     }
