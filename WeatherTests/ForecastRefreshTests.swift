@@ -102,6 +102,23 @@ final class ForecastRefreshTests: XCTestCase {
         XCTAssertEqual(indexCount, 2, "new run expected: index fetched again")
     }
 
+    /// Der Ladekreis am Pillenrand erscheint bei jedem Ladevorgang, auch beim Erstladen ohne Prognose.
+    func testSpinnerShowsOnEveryForecastLoadIncludingFirst() async throws {
+        let clock = Clock(at(240))
+        let transport = Transport(fixture: try fixture())
+        let store = makeStore(transport, clock: clock)
+        XCTAssertFalse(store.showsForecastSpinner(), "idle without forecast: no spinner")
+        store.isForecastLoading = true
+        XCTAssertNil(store.forecast)
+        XCTAssertTrue(store.showsForecastSpinner(), "first load without forecast shows the spinner")
+        store.isForecastLoading = false
+        await store.refresh()
+        XCTAssertNotNil(store.forecast)
+        XCTAssertFalse(store.showsForecastSpinner(), "current forecast: no spinner")
+        store.isForecastLoading = true
+        XCTAssertTrue(store.showsForecastSpinner(), "reload with forecast shows the spinner")
+    }
+
     func testFirstFailureDoesNotShowOlderForecastButSecondDoes() async throws {
         let clock = Clock(at(240))
         let transport = Transport(fixture: try fixture())

@@ -2,6 +2,7 @@ import XCTest
 
 /// Refreshing indicator in the forecast header (only a spinner at the right edge of the pill; "Aktualisiere · Stand vor" lives in the accessibility label). Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
 /// Screenshots for the manual check go to `/private/tmp/claude-501/daten-aktuell-shots` (skipped if not writable).
+@MainActor
 final class ForecastRefreshUITests: XCTestCase {
     /// Appearance is set from outside with `xcrun simctl ui <udid> appearance light|dark`; names follow the real appearance.
     /// `XCUIDevice.appearance` reports `.unspecified` for the simulator setting, so the script passes it as `TEST_RUNNER_SHOT_SUFFIX`.
@@ -10,9 +11,28 @@ final class ForecastRefreshUITests: XCTestCase {
     }
 
     private func launch(_ mode: String, language: UITestLaunch.Language = .german) -> XCUIApplication {
-        let app = UITestLaunch.app(language: language, extra: ["-UITestForecast", mode, "-UITestRadar", "fixture"])
+        let app = UITestLaunch.app(language: language, extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestForecast", mode, "-UITestRadar", "fixture"]))
         app.launch()
         return app
+    }
+
+    /// First load without a forecast (stub `firstload` delays the first request): the loading circle sits at the right edge of the pill.
+    func testFirstLoadShowsSpinnerAtPillEdge() throws {
+        let app = launch("firstload")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
+        XCTAssertTrue(spinner.waitForExistence(timeout: 10), "spinner during the first load: \(header.label)")
+        let gap = header.frame.maxX - spinner.frame.maxX
+        XCTAssertGreaterThanOrEqual(gap, 0, "spinner inside the pill")
+        XCTAssertLessThanOrEqual(gap, 24, "spinner at the right edge, gap \(gap) pt")
+        let luminance = UITestLaunch.meanLuminance(app.screenshot().image)
+        if suffix == "dark" { XCTAssertLessThan(luminance, 0.45, "dark screenshot expected, luminance \(luminance)") }
+        shot(app, "forecast-firstload-\(suffix)")
+        // After the load the spinner is gone.
+        waitForForecast(header)
+        XCTAssertFalse(app.descendants(matching: .any)["forecast-refresh-spinner"].exists, "no spinner after the first load")
+        app.terminate()
     }
 
     private func shot(_ app: XCUIApplication, _ name: String) {
@@ -110,7 +130,7 @@ final class ForecastRefreshUITests: XCTestCase {
     /// measurement, and the position check.
     func testRefreshingSpinnerPlacement() throws {
         do {
-            let app = UITestLaunch.app(extra: ["-UITestForecast", "delayed", "-UITestRadar", "fixture"])
+            let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestForecast", "delayed", "-UITestRadar", "fixture"]))
             app.launch()
             let header = app.buttons["forecast-details"]
             XCTAssertTrue(header.waitForExistence(timeout: 30))

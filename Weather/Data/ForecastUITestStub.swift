@@ -37,6 +37,7 @@ enum ForecastUITestStub {
             func response(_ code: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)! }
             if url.absoluteString == DWDRequest.indexURL.absoluteString {
                 let number = counter.nextIndex()
+                if number == 1, mode == "firstload" { try await Task.sleep(for: .seconds(25)) }
                 if number > 1 {
                     if mode == "failed" || (mode == "failonce" && number <= 4) { return (Data(), response(503)) }
                     if mode == "delayed" { try await Task.sleep(for: .seconds(40)) }

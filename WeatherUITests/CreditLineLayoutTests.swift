@@ -65,13 +65,16 @@ final class CreditLineLayoutTests: XCTestCase {
     }
 
     private func run(_ appearance: XCUIDevice.Appearance, _ suffix: String, expectBelow: Bool) throws {
-        XCUIDevice.shared.appearance = appearance
-        let app = UITestLaunch.app(language: .german, extra: ["-UITestLayers", "all"])
+        let app = UITestLaunch.app(language: .german, extra: UITestLaunch.setAppearance(appearance, extra: ["-UITestLayers", "all"]))
         app.launch()
         XCTAssertTrue(app.buttons["radar-layer-menu"].waitForExistence(timeout: 20))
         sleep(3)
         let size = app.windows.firstMatch.frame.size
         let device = "\(Int(size.width))x\(Int(size.height))"
+        // Slider card strip (system glass) follows the appearance; the screenshot must really be dark / light.
+        let luminance = UITestLaunch.meanLuminance(app.screenshot().image)
+        note("helligkeit-\(suffix)", String(format: "mittlere Helligkeit %.3f", luminance))
+        if appearance == .dark { XCTAssertLessThan(luminance, 0.45, "Dunkelmodus wirkt nicht: Bild hell (\(luminance))") }
         shot(app, "\(device)-\(suffix)-standard")
         measure(app, tag: "\(device)-\(suffix)-standard", expectBelow: expectBelow)
         // Lange Zeile: Temperatur mit Wald.

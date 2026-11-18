@@ -21,6 +21,26 @@ enum UITestLaunch {
     }
 }
 
+extension UITestLaunch {
+    /// Sets dark mode reliably: the device appearance AND the launch argument (the simulator setting alone did not reach the app, screenshots stayed light).
+    @MainActor
+    static func setAppearance(_ appearance: XCUIDevice.Appearance, extra: [String]) -> [String] {
+        XCUIDevice.shared.appearance = appearance
+        return appearance == .dark ? extra + ["-AppleInterfaceStyle", "Dark"] : extra
+    }
+
+    /// Mean luminance (0...1) of a screenshot, to prove light/dark in tests.
+    static func meanLuminance(_ image: UIImage) -> Double {
+        guard let cg = image.cgImage else { return -1 }
+        var px = [UInt8](repeating: 0, count: 4)
+        let ctx = CGContext(data: &px, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        ctx?.interpolationQuality = .medium
+        ctx?.draw(cg, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        return (0.2126 * Double(px[0]) + 0.7152 * Double(px[1]) + 0.0722 * Double(px[2])) / 255
+    }
+}
+
 extension XCTestCase {
     /// Opens the nested layer menu (capsule, then submenu `group` if any) and returns the entry whose label starts with
     /// `prefix`. Retries because layers appear only once the server has reported them. Returns `nil` if it never shows.

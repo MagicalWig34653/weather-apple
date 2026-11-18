@@ -160,6 +160,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         return forecast.isStale(at: now) ? .refreshing : nil
     }
 
+    /// Loading circle at the right edge of the forecast pill: on every load, also the first one without a forecast.
+    func showsForecastSpinner(now: Date? = nil) -> Bool {
+        forecast == nil ? isForecastLoading : forecastStatus(now: now) == .refreshing
+    }
+
     /// Visible-app loop: load when due (also right after returning), then wait as `ForecastRefreshSchedule` says.
     func runForecastRefresh(schedule: ForecastRefreshSchedule = ForecastRefreshSchedule(),
                             restricted: (() -> Bool)? = nil,
