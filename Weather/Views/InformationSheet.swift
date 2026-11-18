@@ -187,7 +187,7 @@ struct InformationSheet: View {
         if store.layers.snapshot(.clouds).manifest != nil {
             Link("EUMETSAT · EUMETView", destination: URL(string: "https://view.eumetsat.int")!)
         }
-        Text(NSLocalizedString("INFO_LAYER_SOURCES_NOTE", value: "Zusatzebenen (Luftdruck, Blitze, Wolken, Temperatur, Feuchte) liefert der Showers-Radar-Dienst. Sind sie dort nicht verfügbar, sind sie ausgegraut. Ein Direktabruf beim DWD ist dafür nicht vorgesehen.", comment: "Info"))
+        Text(NSLocalizedString("INFO_LAYER_SOURCES_NOTE", value: "Die Ebenen Regen Europa und Welt, Luftdruck, Blitze, Wolken, Sonne, Temperatur und Feuchtigkeit liefert der Showers-Radar-Dienst. Sind sie dort nicht verfügbar, sind sie ausgegraut. Ein Direktabruf beim DWD ist dafür nicht vorgesehen.", comment: "Info"))
             .font(.footnote).foregroundStyle(.secondary)
     }
 

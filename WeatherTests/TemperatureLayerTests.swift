@@ -39,7 +39,7 @@ final class TemperatureLayerTests: XCTestCase {
             XCTAssertFalse(layer.symbolName.isEmpty)
             XCTAssertEqual(layer.backendPathComponent, layer.rawValue)
         }
-        XCTAssertEqual(RadarLayer.selectable.prefix(4), [.radar, .pressure, .pressureEU, .temperature])
+        XCTAssertEqual(RadarLayer.selectable.prefix(6), [.radar, .radarEU, .radarWorld, .pressure, .pressureEU, .temperature])
         XCTAssertTrue([RadarLayer.radar, .pressure, .lightning, .clouds, .cloudmask].allSatisfy(\.isOfferedWhenUnavailable))
         XCTAssertFalse(RadarLayer.pressureEU.isOfferedWhenUnavailable)
     }
