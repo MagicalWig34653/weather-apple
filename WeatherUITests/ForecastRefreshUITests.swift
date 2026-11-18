@@ -1,6 +1,6 @@
 import XCTest
 
-/// Refreshing indicator in the forecast header (spinner right of "Stand vor X Min."; "Aktualisiere" lives in the accessibility label). Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
+/// Refreshing indicator in the forecast header (only a spinner at the right edge of the pill; "Aktualisiere · Stand vor" lives in the accessibility label). Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
 /// Screenshots for the manual check go to `/private/tmp/claude-501/daten-aktuell-shots` (skipped if not writable).
 final class ForecastRefreshUITests: XCTestCase {
     /// Appearance is set from outside with `xcrun simctl ui <udid> appearance light|dark`; names follow the real appearance.
@@ -79,7 +79,9 @@ final class ForecastRefreshUITests: XCTestCase {
             // Returning: the shown run is older than the expected one, so the load starts at once; the stub delays it.
             backgroundAndReturn(app)
             XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "indicator visible: \(header.label)")
-            XCTAssertTrue(header.label.contains("Stand vor"), "the age stays: \(header.label)")
+            XCTAssertTrue(header.label.contains("Stand vor"), "the spoken label keeps the age: \(header.label)")
+            // No visible second line: there is no separate static text that starts with the age.
+            XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Stand vor'")).firstMatch.exists, "no visible age line while refreshing")
             XCTAssertFalse(header.label.contains("Ältere Prognose"))
             XCTAssertFalse(header.label.contains("fehlgeschlagen"))
             shot(app, "forecast-refreshing-\(suffix)")
@@ -100,6 +102,22 @@ final class ForecastRefreshUITests: XCTestCase {
                 XCTAssertFalse(header.label.contains(text), header.label)
             }
             shot(app, "forecast-normal-\(suffix)")
+            app.terminate()
+        }
+    }
+
+    /// Spinner placement A (beside the chevron) and B (in place of the chevron): one screenshot each for the review.
+    func testRefreshingSpinnerVariants() throws {
+        for variant in ["A", "B"] {
+            let app = UITestLaunch.app(extra: ["-UITestForecast", "delayed", "-UITestRadar", "fixture", "-UITestRefreshSpinner", variant])
+            app.launch()
+            let header = app.buttons["forecast-details"]
+            XCTAssertTrue(header.waitForExistence(timeout: 30))
+            waitForForecast(header)
+            backgroundAndReturn(app)
+            XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "\(variant): \(header.label)")
+            sleep(1)
+            shot(app, "forecast-refreshing-\(variant)-\(suffix)-d4")
             app.terminate()
         }
     }

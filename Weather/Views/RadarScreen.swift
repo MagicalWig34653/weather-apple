@@ -624,7 +624,7 @@ struct RadarScreen: View {
                 Button { sheet = .details } label: {
                     HStack(spacing: 6) {
                         forecastLabel
-                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+                        forecastTrailing
                     }
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
@@ -659,36 +659,46 @@ struct RadarScreen: View {
         }
     }
 
+    /// Where the refreshing spinner sits in the forecast pill: next to the chevron (A) or in its place (B).
+    private enum RefreshSpinnerPlacement {
+        case besideChevron, replacesChevron
+        static var current: Self {
+            #if DEBUG
+            if let index = CommandLine.arguments.firstIndex(of: "-UITestRefreshSpinner"), CommandLine.arguments.indices.contains(index + 1) {
+                return CommandLine.arguments[index + 1] == "B" ? .replacesChevron : .besideChevron
+            }
+            #endif
+            return .besideChevron
+        }
+    }
+
+    private var isRefreshingForecast: Bool { store.forecast != nil && store.forecastStatus(now: displayNow) == .refreshing }
+
+    /// Spinner (and chevron) at the right edge of the pill. No second line, no age text while refreshing.
+    @ViewBuilder private var forecastTrailing: some View {
+        if isRefreshingForecast {
+            forecastStatusIcon(.refreshing)
+        }
+        if !(isRefreshingForecast && RefreshSpinnerPlacement.current == .replacesChevron) {
+            Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+        }
+    }
+
     @ViewBuilder private var forecastLabel: some View {
         if let forecast = store.forecast {
             let status = store.forecastStatus(now: displayNow)
-            // A stale forecast has no usable summary; its line says what is happening instead.
-            let statusReplacesSummary = status != nil && (status != .refreshing || forecast.isStale(at: displayNow))
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    if statusReplacesSummary, let status, status != .refreshing { forecastStatusIcon(status) }
-                    // While refreshing only the age is visible; the spoken label keeps "Aktualisiere …".
-                    Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                         : (statusReplacesSummary && status != nil
-                            ? (status == .refreshing ? forecast.ageDescription(at: displayNow) : forecastStatusText(status!, forecast: forecast))
-                            : forecast.summary(at: displayNow)))
-                        .font(.subheadline.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow))
-                    if statusReplacesSummary, status == .refreshing { forecastStatusIcon(.refreshing) }
-                }
-                if status == .refreshing, !statusReplacesSummary {
-                    // Calm: no "Aktualisiere" text, only the age and a small spinner at its right. The spoken label keeps
-                    // "Aktualisiere …"; the soft halo keeps text and spinner readable over the glass without a surface.
-                    HStack(spacing: 5) {
-                        Text(forecast.ageDescription(at: displayNow))
-                            .font(.caption).foregroundStyle(.primary.opacity(0.85))
-                            .accessibilityLabel(forecastStatusText(.refreshing, forecast: forecast))
-                        forecastStatusIcon(.refreshing)
-                    }
-                    .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
-                    .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
-                }
+            // Failure and "server behind" replace the summary; refreshing never does (only the spinner shows it).
+            let statusReplacesSummary = status != nil && status != .refreshing
+            HStack(spacing: 6) {
+                if statusReplacesSummary, let status { forecastStatusIcon(status) }
+                Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                     : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    // The spoken label keeps "Aktualisiere … · Stand vor X Min."; it is not shown as text.
+                    .accessibilityLabel(status == .refreshing
+                        ? "\(forecast.summary(at: displayNow)). \(forecastStatusText(.refreshing, forecast: forecast))"
+                        : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier(status == .refreshing ? "forecast-refreshing" : status == .failed ? "forecast-update-failed" : status == .serverBehind ? "forecast-server-behind" : "forecast-headline")
@@ -703,7 +713,11 @@ struct RadarScreen: View {
     @ViewBuilder private func forecastStatusIcon(_ status: WeatherStore.ForecastStatus) -> some View {
         if status == .refreshing {
             // Non-text contrast (>= 3:1): primary tint instead of the default light grey spinner.
-            ProgressView().controlSize(.small).tint(.primary).accessibilityHidden(true)
+            // The halo in the opposite colour darkens/lightens the glass right behind the thin spokes.
+            ProgressView().controlSize(.small).tint(.primary)
+                .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
+                .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
+                .accessibilityHidden(true)
         } else {
             Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
         }
