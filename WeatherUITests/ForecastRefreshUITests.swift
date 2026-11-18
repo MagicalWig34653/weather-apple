@@ -36,7 +36,6 @@ final class ForecastRefreshUITests: XCTestCase {
             // The first forecast loads at once (summary line, no indicator yet).
             let loaded = NSPredicate(format: "label != '' AND NOT (label CONTAINS 'geladen') AND NOT (label CONTAINS 'nicht verfügbar')")
             XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 30), .completed, header.label)
-            shot(app, "forecast-normal-\(dark ? "dark" : "light")")
             // Returning: the shown run is older than the expected one, so the load starts at once; the stub delays it.
             backgroundAndReturn(app)
             XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 20), "indicator visible: \(header.label)")
@@ -44,6 +43,22 @@ final class ForecastRefreshUITests: XCTestCase {
             XCTAssertFalse(header.label.contains("Ältere Prognose"))
             XCTAssertFalse(header.label.contains("fehlgeschlagen"))
             shot(app, "forecast-refreshing-\(dark ? "dark" : "light")")
+            app.terminate()
+        }
+    }
+
+    func testCurrentForecastShowsNoStatus() throws {
+        for dark in [false, true] {
+            let app = launch("current", dark: dark)
+            let header = app.buttons["forecast-details"]
+            XCTAssertTrue(header.waitForExistence(timeout: 30))
+            let loaded = NSPredicate(format: "label != '' AND NOT (label CONTAINS 'geladen') AND NOT (label CONTAINS 'nicht verfügbar')")
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 30), .completed, header.label)
+            sleep(2)
+            for text in ["Aktualisiere", "fehlgeschlagen", "keinen neueren Stand", "Ältere Prognose"] {
+                XCTAssertFalse(header.label.contains(text), header.label)
+            }
+            shot(app, "forecast-normal-\(dark ? "dark" : "light")")
             app.terminate()
         }
     }

@@ -1,10 +1,10 @@
 #if DEBUG
 import Foundation
 
-/// UI tests only (Debug builds): `-UITestForecast delayed|failed|behind` simulates the DWD run index and point
-/// queries without network. The shown run is `ageMinutes` old (default: one grid step behind the expected run).
+/// UI tests only (Debug builds): `-UITestForecast delayed|failed|behind|current` simulates the DWD run index and point
 /// - `delayed`: first index query answers at once, later ones after 12 s ("Aktualisiere …" stays visible).
 /// - `failed`: first index query answers, all later ones fail with HTTP 503.
+/// - `current`: the shown run is the expected newest one (normal state).
 /// - `behind`: queries always answer with the same (older) run, the index never offers a newer one.
 enum ForecastUITestStub {
     static var mode: String? {
@@ -21,7 +21,7 @@ enum ForecastUITestStub {
 
     static func client(mode: String) -> DWDClient {
         let counter = Counter()
-        let runs = RadarPollSchedule.nominal(at: Date()).addingTimeInterval(mode == "behind" ? -900 : -300)
+        let runs = RadarPollSchedule.nominal(at: Date()).addingTimeInterval(mode == "behind" ? -600 : mode == "current" ? 0 : -300)
         return DWDClient(transport: { request in
             let url = request.url ?? DWDRequest.indexURL
             func response(_ code: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)! }
