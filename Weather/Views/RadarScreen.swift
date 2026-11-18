@@ -313,12 +313,8 @@ struct RadarScreen: View {
             if iconOnly {
                 Label(name, systemImage: layer.symbolName)
             } else {
-                Label {
-                    Text(name)
-                    if let line = hint ?? layer.menuNote { Text(line) }
-                } icon: {
-                    Image(systemName: selected ? "checkmark" : layer.symbolName)
-                }
+                // The native menu shows one line only: hints go into the title in parentheses.
+                Label(name + (hint.map { " (\($0))" } ?? ""), systemImage: selected ? "checkmark" : layer.symbolName)
             }
         }
         .disabled(!availability.isSelectable)
@@ -344,10 +340,9 @@ struct RadarScreen: View {
                 ForEach(store.layers.rainMenuEntries, id: \.layer) { entry in
                     if entry.isSoon {
                         Button {} label: {
-                            Label {
-                                Text(entry.layer.menuTitle)
-                                Text(NSLocalizedString("LAYER_RADAR_SOON", value: "bald", comment: "Layer menu note"))
-                            } icon: { Image(systemName: entry.layer.symbolName) }
+                            // The native menu shows one line only: the "soon" note goes into the title.
+                            Label(entry.layer.menuTitle + " (" + NSLocalizedString("LAYER_RADAR_SOON", value: "bald", comment: "Layer menu note") + ")",
+                                  systemImage: entry.layer.symbolName)
                         }
                         .disabled(true)
                         .accessibilityLabel(entry.layer.spokenName + ", " + NSLocalizedString("LAYER_RADAR_SOON", value: "bald", comment: "Layer menu note"))
