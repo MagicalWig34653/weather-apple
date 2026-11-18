@@ -1,6 +1,6 @@
 import XCTest
 
-/// Refreshing indicator in the forecast header (only a spinner at the right edge of the pill; "Aktualisiere · Stand vor" lives in the accessibility label). Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
+/// Refreshing indicator in the forecast header (only a spinner at the right edge of the pill; "Aktualisiere …" lives in the accessibility label; no "Stand vor" in the header in any state). Debug stub `-UITestForecast delayed|failed|behind` (no network for the forecast).
 /// Screenshots for the manual check go to `/private/tmp/claude-501/daten-aktuell-shots` (skipped if not writable).
 @MainActor
 final class ForecastRefreshUITests: XCTestCase {
@@ -82,6 +82,11 @@ final class ForecastRefreshUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: header)], timeout: 60), .completed, header.label)
     }
 
+    /// The header (pill) never shows or speaks the age, in no state (Lino 18.11.2026: "Stand vor..." weg).
+    private func assertNoAge(_ header: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertFalse(header.label.contains("Stand vor"), "age in the header: \(header.label)", file: file, line: line)
+    }
+
     private func backgroundAndReturn(_ app: XCUIApplication) {
         XCUIDevice.shared.press(.home)
         sleep(1)
@@ -99,7 +104,7 @@ final class ForecastRefreshUITests: XCTestCase {
             // Returning: the shown run is older than the expected one, so the load starts at once; the stub delays it.
             backgroundAndReturn(app)
             XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "indicator visible: \(header.label)")
-            XCTAssertTrue(header.label.contains("Stand vor"), "the spoken label keeps the age: \(header.label)")
+            XCTAssertFalse(header.label.contains("Stand vor"), "no age in the header, also not spoken: \(header.label)")
             // No visible second line: there is no separate static text that starts with the age.
             XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Stand vor'")).firstMatch.exists, "no visible age line while refreshing")
             XCTAssertFalse(header.label.contains("Ältere Prognose"))
@@ -121,7 +126,9 @@ final class ForecastRefreshUITests: XCTestCase {
             for text in ["Aktualisiere", "fehlgeschlagen", "keinen neueren Stand", "Ältere Prognose"] {
                 XCTAssertFalse(header.label.contains(text), header.label)
             }
+            assertNoAge(header)
             shot(app, "forecast-normal-\(suffix)")
+            fixShot(app, "kopf-normal")
             app.terminate()
         }
     }
@@ -201,6 +208,7 @@ final class ForecastRefreshUITests: XCTestCase {
             sleep(1)
         }
         XCTAssertTrue(found, "failure after the repeats, labels seen: \(history)")
+        assertNoAge(header)
         XCTAssertFalse(header.label.contains("Ältere Prognose"))
         // The reason line stays visible; the radar fixture produces no radar notices that could displace it.
         let reason = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Ortsprognose'")).firstMatch
@@ -227,14 +235,17 @@ final class ForecastRefreshUITests: XCTestCase {
         waitForForecast(header)
         let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
         XCTAssertFalse(spinner.exists, "no spinner before the load")
+        assertNoAge(header)
         fixShot(app, "nothing-newer-1-before")
         backgroundAndReturn(app)
         XCTAssertTrue(spinner.waitForExistence(timeout: 10), "spinner while the load runs: \(header.label)")
+        assertNoAge(header)
         fixShot(app, "nothing-newer-2-during")
         XCTAssertTrue(spinner.waitForNonExistence(timeout: 20), "spinner must end when the load ends: \(header.label)")
         XCTAssertTrue(waitForLabel(header, containing: "keinen neueren Stand", timeout: 5), header.label)
         sleep(3)
         XCTAssertFalse(spinner.exists, "spinner stays away after the load")
+        assertNoAge(header)
         fixShot(app, "nothing-newer-3-after")
         app.terminate()
     }
@@ -248,17 +259,21 @@ final class ForecastRefreshUITests: XCTestCase {
         waitForForecast(header)
         let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
         XCTAssertFalse(spinner.exists, "no spinner before the load")
+        assertNoAge(header)
         fixShot(app, "failed-1-before")
         backgroundAndReturn(app)
         XCTAssertTrue(spinner.waitForExistence(timeout: 10), "spinner while the load runs: \(header.label)")
+        assertNoAge(header)
         fixShot(app, "failed-2-during")
         XCTAssertTrue(spinner.waitForNonExistence(timeout: 18), "spinner must end with the failed load: \(header.label)")
         XCTAssertFalse(header.label.contains("fehlgeschlagen"), "first failure: no failure text yet: \(header.label)")
         sleep(3)
         XCTAssertFalse(spinner.exists, "no spinner while waiting for the repeat")
+        assertNoAge(header)
         fixShot(app, "failed-3-after-first-failure")
         XCTAssertTrue(waitForLabel(header, containing: "fehlgeschlagen", timeout: 60), "failure text after the repeat: \(header.label)")
         XCTAssertTrue(spinner.waitForNonExistence(timeout: 5), "no spinner with the failure text")
+        assertNoAge(header)
         fixShot(app, "failed-4-after-confirmed-failure")
         app.terminate()
     }
@@ -271,6 +286,7 @@ final class ForecastRefreshUITests: XCTestCase {
             XCTAssertTrue(header.waitForExistence(timeout: 30))
             XCTAssertTrue(waitForLabel(header, containing: "keinen neueren Stand", timeout: 30), "label: \(header.label)")
             XCTAssertFalse(header.label.contains("fehlgeschlagen"))
+            assertNoAge(header)
             shot(app, "forecast-server-behind-\(suffix)")
             app.terminate()
         }

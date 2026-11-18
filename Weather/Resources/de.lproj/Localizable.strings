@@ -571,7 +571,7 @@
 "LAYER_DEWPOINT_MENU" = "Taupunkt";
 "LAYER_HUMIDITY_MENU" = "Relativ";
 "RADAR_CREDIT_HINT" = "Vollständige Quellenangaben unter Datenquellen und Datenschutz";
-"RADAR_FORECAST_CAPTION_REFRESHING" = "Aktualisiere … · %@";
-"RADAR_FORECAST_CAPTION_FAILED" = "Aktualisierung fehlgeschlagen · %@";
-"RADAR_FORECAST_CAPTION_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand · %@";
+"RADAR_FORECAST_CAPTION_REFRESHING" = "Aktualisiere …";
+"RADAR_FORECAST_CAPTION_FAILED" = "Aktualisierung fehlgeschlagen";
+"RADAR_FORECAST_CAPTION_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand";
 "RADAR_DETAILS_SERVER_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand als diese Prognose, %@. Die App fragt weiter nach.";

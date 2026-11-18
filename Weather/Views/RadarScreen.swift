@@ -724,13 +724,13 @@ struct RadarScreen: View {
         }
     }
 
-    /// Text for a non-current forecast, e.g. "Aktualisiere … · Stand vor 6 Min.".
-    private func forecastStatusText(_ status: WeatherStore.ForecastStatus, forecast: RainForecast) -> String {
-        let age = forecast.ageDescription(at: displayNow)
+    /// Header text for a non-current forecast, e.g. "Aktualisierung fehlgeschlagen". No age in the header
+    /// (Lino 18.11.2026: "Stand vor..." weg); the details sheet still shows it.
+    private func forecastStatusText(_ status: WeatherStore.ForecastStatus) -> String {
         switch status {
-        case .refreshing: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_REFRESHING", value: "Aktualisiere … · %@", comment: "Radar"), age)
-        case .failed: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_FAILED", value: "Aktualisierung fehlgeschlagen · %@", comment: "Radar"), age)
-        case .serverBehind: return String(format: NSLocalizedString("RADAR_FORECAST_CAPTION_BEHIND", value: "Der Wetterdienst hat noch keinen neueren Stand · %@", comment: "Radar"), age)
+        case .refreshing: return NSLocalizedString("RADAR_FORECAST_CAPTION_REFRESHING", value: "Aktualisiere …", comment: "Radar")
+        case .failed: return NSLocalizedString("RADAR_FORECAST_CAPTION_FAILED", value: "Aktualisierung fehlgeschlagen", comment: "Radar")
+        case .serverBehind: return NSLocalizedString("RADAR_FORECAST_CAPTION_BEHIND", value: "Der Wetterdienst hat noch keinen neueren Stand", comment: "Radar")
         }
     }
 
@@ -763,13 +763,13 @@ struct RadarScreen: View {
             HStack(spacing: 6) {
                 if statusReplacesSummary, let status { forecastStatusIcon(status) }
                 Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                     : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
+                     : (statusReplacesSummary && status != nil ? forecastStatusText(status!) : forecast.summary(at: displayNow)))
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
-                    // The spoken label keeps "Aktualisiere … · Stand vor X Min."; it is not shown as text.
+                    // The spoken label adds "Aktualisiere …" (no age); it is not shown as text.
                     .accessibilityLabel(status == .refreshing
-                        ? "\(forecast.summary(at: displayNow)). \(forecastStatusText(.refreshing, forecast: forecast))"
-                        : (statusReplacesSummary && status != nil ? forecastStatusText(status!, forecast: forecast) : forecast.summary(at: displayNow)))
+                        ? "\(forecast.summary(at: displayNow)). \(forecastStatusText(.refreshing))"
+                        : (statusReplacesSummary && status != nil ? forecastStatusText(status!) : forecast.summary(at: displayNow)))
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier(status == .refreshing ? "forecast-refreshing" : status == .failed ? "forecast-update-failed" : status == .serverBehind ? "forecast-server-behind" : "forecast-headline")
