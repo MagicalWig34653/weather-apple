@@ -210,6 +210,59 @@ final class ForecastRefreshUITests: XCTestCase {
         app.terminate()
     }
 
+    // MARK: The spinner ends (Build 49: it kept spinning)
+
+    /// Before / during / after pictures for the review (light and dark).
+    private func fixShot(_ app: XCUIApplication, _ name: String) {
+        let dir = "/private/tmp/claude-501/ladekreis-shots"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name)-\(suffix).png"))
+    }
+
+    /// The load on return brings no newer run (stub `slowbehind`, 6 s): spinner while it runs, gone afterwards.
+    func testSpinnerEndsWhenLoadBringsNothingNewer() throws {
+        let app = launch("slowbehind")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
+        XCTAssertFalse(spinner.exists, "no spinner before the load")
+        fixShot(app, "nothing-newer-1-before")
+        backgroundAndReturn(app)
+        XCTAssertTrue(spinner.waitForExistence(timeout: 10), "spinner while the load runs: \(header.label)")
+        fixShot(app, "nothing-newer-2-during")
+        XCTAssertTrue(spinner.waitForNonExistence(timeout: 20), "spinner must end when the load ends: \(header.label)")
+        XCTAssertTrue(waitForLabel(header, containing: "keinen neueren Stand", timeout: 5), header.label)
+        sleep(3)
+        XCTAssertFalse(spinner.exists, "spinner stays away after the load")
+        fixShot(app, "nothing-newer-3-after")
+        app.terminate()
+    }
+
+    /// The load on return fails (stub `slowfailed`, about 13 s with the client's repeats): the spinner ends with the
+    /// failed load and stays away while the app waits for the repeat; the failure text comes after the repeat as before.
+    func testSpinnerEndsWhenLoadFails() throws {
+        let app = launch("slowfailed")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
+        XCTAssertFalse(spinner.exists, "no spinner before the load")
+        fixShot(app, "failed-1-before")
+        backgroundAndReturn(app)
+        XCTAssertTrue(spinner.waitForExistence(timeout: 10), "spinner while the load runs: \(header.label)")
+        fixShot(app, "failed-2-during")
+        XCTAssertTrue(spinner.waitForNonExistence(timeout: 18), "spinner must end with the failed load: \(header.label)")
+        XCTAssertFalse(header.label.contains("fehlgeschlagen"), "first failure: no failure text yet: \(header.label)")
+        sleep(3)
+        XCTAssertFalse(spinner.exists, "no spinner while waiting for the repeat")
+        fixShot(app, "failed-3-after-first-failure")
+        XCTAssertTrue(waitForLabel(header, containing: "fehlgeschlagen", timeout: 60), "failure text after the repeat: \(header.label)")
+        XCTAssertTrue(spinner.waitForNonExistence(timeout: 5), "no spinner with the failure text")
+        fixShot(app, "failed-4-after-confirmed-failure")
+        app.terminate()
+    }
+
     func testServerBehindScreenshot() throws {
         // The stub's frozen clock sits 300 s after the expected run, so the check is always late enough.
         do {

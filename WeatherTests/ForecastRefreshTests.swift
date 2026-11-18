@@ -107,16 +107,16 @@ final class ForecastRefreshTests: XCTestCase {
         let clock = Clock(at(240))
         let transport = Transport(fixture: try fixture())
         let store = makeStore(transport, clock: clock)
-        XCTAssertFalse(store.showsForecastSpinner(), "idle without forecast: no spinner")
+        XCTAssertFalse(store.showsForecastSpinner, "idle without forecast: no spinner")
         store.isForecastLoading = true
         XCTAssertNil(store.forecast)
-        XCTAssertTrue(store.showsForecastSpinner(), "first load without forecast shows the spinner")
+        XCTAssertTrue(store.showsForecastSpinner, "first load without forecast shows the spinner")
         store.isForecastLoading = false
         await store.refresh()
         XCTAssertNotNil(store.forecast)
-        XCTAssertFalse(store.showsForecastSpinner(), "current forecast: no spinner")
+        XCTAssertFalse(store.showsForecastSpinner, "current forecast: no spinner")
         store.isForecastLoading = true
-        XCTAssertTrue(store.showsForecastSpinner(), "reload with forecast shows the spinner")
+        XCTAssertTrue(store.showsForecastSpinner, "reload with forecast shows the spinner")
     }
 
     func testFirstFailureDoesNotShowOlderForecastButSecondDoes() async throws {
@@ -131,7 +131,8 @@ final class ForecastRefreshTests: XCTestCase {
         XCTAssertNotNil(store.forecastError)
         XCTAssertEqual(store.forecastFailures, 1)
         XCTAssertFalse(store.forecastFailureConfirmed)
-        XCTAssertEqual(store.forecastStatus(), .refreshing, "a retry is pending, no failure message yet")
+        XCTAssertNil(store.forecastStatus(), "a retry is pending, no failure message yet")
+        XCTAssertFalse(store.showsForecastSpinner, "no request runs between the repeats: no spinner")
         XCTAssertNotNil(store.forecast, "last valid forecast stays")
         await store.refresh()
         XCTAssertTrue(store.forecastFailureConfirmed)
@@ -166,6 +167,85 @@ final class ForecastRefreshTests: XCTestCase {
         XCTAssertEqual(store.forecastFailures, 4)
     }
 
+    // MARK: Spinner ends (Build 49: "WARUM GEHT DER LADEKREIS JETZT NICHT WEG")
+
+    private func staleForecast() -> RainForecast {
+        RainForecast(referenceTime: at(-1500), samples: [RainSample(date: at(-1500), amountMM: 0)])
+    }
+
+    /// Shown and remembered as the place's last valid forecast (like a saved place with its cache).
+    private func show(_ forecast: RainForecast, in store: WeatherStore) {
+        store.forecast = forecast
+        store.rememberForecast(forecast, for: store.selectedPlace.id)
+    }
+
+    /// Load ends with the same run (the service has nothing newer yet): no spinner afterwards.
+    func testSpinnerEndsWhenLoadBringsNothingNewer() async throws {
+        let clock = Clock(at(240))
+        let transport = Transport(fixture: try fixture())
+        let store = makeStore(transport, clock: clock)
+        await store.refresh()
+        clock.set(at(520)) // N1 expected, the index still answers N0
+        XCTAssertTrue(store.needsRefresh())
+        await store.reloadForecast()
+        XCTAssertEqual(store.forecast?.referenceTime, n0)
+        XCTAssertFalse(store.isForecastLoading)
+        XCTAssertFalse(store.showsForecastSpinner, "load finished without a newer run")
+        clock.set(at(580)) // later answer without newer run: "server behind", still no spinner
+        await store.reloadForecast()
+        XCTAssertEqual(store.forecastStatus(), .serverBehind)
+        XCTAssertFalse(store.showsForecastSpinner)
+    }
+
+    /// The current run is shown and a load fails (e.g. WMS timeout): the loop does not repeat before the next run is
+    /// expected, so an "unconfirmed failure" spinner would spin for minutes.
+    func testSpinnerEndsAfterFailedLoadWhileCurrentRunIsShown() async throws {
+        let clock = Clock(at(240))
+        let transport = Transport(fixture: try fixture())
+        await transport.setPointStatus(503)
+        let store = makeStore(transport, clock: clock)
+        show(RainForecast(referenceTime: n0, samples: [RainSample(date: n0, amountMM: 0)]), in: store)
+        await store.refresh() // e.g. "Daten neu laden" or the start-up load
+        XCTAssertEqual(store.forecastFailures, 1)
+        XCTAssertFalse(store.needsRefresh(), "current run shown: the loop will not repeat before the next run")
+        XCTAssertFalse(store.isForecastLoading)
+        XCTAssertFalse(store.showsForecastSpinner, "no request runs: no spinner")
+        XCTAssertNotEqual(store.forecastStatus(), .refreshing)
+    }
+
+    /// A load whose task is cancelled (scene change) leaves an old stale forecast without error: no spinner.
+    func testSpinnerEndsAfterCancelledLoad() async throws {
+        let clock = Clock(at(240))
+        let transport = Transport(fixture: try fixture())
+        await transport.setPointDelay(0.3)
+        let store = makeStore(transport, clock: clock)
+        show(staleForecast(), in: store)
+        let task = Task { await store.reloadForecast() }
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertTrue(store.isForecastLoading)
+        XCTAssertTrue(store.showsForecastSpinner, "spinner while the request runs")
+        task.cancel()
+        await task.value
+        XCTAssertFalse(store.isForecastLoading)
+        XCTAssertFalse(store.showsForecastSpinner, "cancelled load: no request runs, no spinner")
+    }
+
+    /// The visible-app loop with failures: the spinner never shows while the loop waits between attempts.
+    func testNoSpinnerWhileLoopWaitsBetweenAttempts() async throws {
+        let clock = Clock(at(470))
+        let transport = Transport(fixture: try fixture())
+        await transport.setPointStatus(503)
+        let store = makeStore(transport, clock: clock)
+        show(RainForecast(referenceTime: n0, samples: [RainSample(date: n0, amountMM: 0)]), in: store)
+        var spinnerWhileWaiting: [Bool] = []
+        await store.runForecastRefresh(schedule: ForecastRefreshSchedule(random: { 0 }), restricted: { false }) { _ in
+            spinnerWhileWaiting.append(store.showsForecastSpinner)
+            if spinnerWhileWaiting.count == 3 { throw CancellationError() }
+        }
+        XCTAssertEqual(spinnerWhileWaiting, [false, false, false])
+        XCTAssertEqual(store.forecastStatus(), .failed, "the stale hint after a confirmed failure stays")
+    }
+
     func testLoopWaitsForTheNextRunAfterSuccess() async throws {
         let clock = Clock(at(240))
         let transport = Transport(fixture: try fixture())
@@ -195,16 +275,19 @@ private actor Transport {
     let fixture: Data
     private(set) var indexCount = 0
     private var pointStatus: Int?
+    private var pointDelay: TimeInterval = 0
     init(fixture: Data) { self.fixture = fixture }
     func setPointStatus(_ status: Int?) { pointStatus = status }
+    func setPointDelay(_ seconds: TimeInterval) { pointDelay = seconds }
 
-    func respond(_ request: URLRequest) throws -> (Data, HTTPURLResponse) {
+    func respond(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let url = request.url!
         func http(_ status: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)! }
         if url.host == "opendata.dwd.de" {
             indexCount += 1
             return (Data("composite_rv_20261028_1515.tar".utf8), http(200))
         }
+        if pointDelay > 0 { try await Task.sleep(for: .seconds(pointDelay)) }
         if let pointStatus { return (Data("<html>error</html>".utf8), http(pointStatus)) }
         return (fixture, http(200))
     }

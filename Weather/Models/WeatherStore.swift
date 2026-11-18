@@ -154,16 +154,16 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func forecastStatus(now: Date? = nil) -> ForecastStatus? {
         let now = now ?? clock()
         guard let forecast else { return nil }
-        if isForecastLoading || (forecastError != nil && !forecastFailureConfirmed) { return .refreshing }
+        // "Refreshing" only while a request really runs: not while waiting for a repeat after a first failure,
+        // not for a stale forecast whose load ended or was cancelled (Build 49 kept spinning in those states).
+        if isForecastLoading { return .refreshing }
         if forecastFailureConfirmed { return .failed }
         if ForecastRefreshPolicy.serverBehind(shown: forecast.referenceTime, checkedAt: forecastCheckedAt, now: now) { return .serverBehind }
-        return forecast.isStale(at: now) ? .refreshing : nil
+        return nil
     }
 
-    /// Loading circle at the right edge of the forecast pill: on every load, also the first one without a forecast.
-    func showsForecastSpinner(now: Date? = nil) -> Bool {
-        forecast == nil ? isForecastLoading : forecastStatus(now: now) == .refreshing
-    }
+    /// Loading circle at the right edge of the forecast pill: exactly while a forecast request runs, also the first one.
+    var showsForecastSpinner: Bool { isForecastLoading }
 
     /// Visible-app loop: load when due (also right after returning), then wait as `ForecastRefreshSchedule` says.
     func runForecastRefresh(schedule: ForecastRefreshSchedule = ForecastRefreshSchedule(),

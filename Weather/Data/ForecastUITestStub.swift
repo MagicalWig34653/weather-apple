@@ -8,6 +8,8 @@ import Foundation
 /// - `failonce`: exactly one failing load (the 2nd to 4th index request, i.e. one query with its retries), then normal answers.
 /// - `current`: the shown run is the expected newest one (normal state, "Stand vor 5 Min.").
 /// - `behind`: the index never offers a newer run than the shown one ("Stand vor 10 Min.").
+/// - `slowbehind`: like `behind`, later index queries answer after 6 s (load ends without newer data).
+/// - `slowfailed`: later index queries fail with HTTP 503 after 4 s each (load ends with an error).
 /// All other modes show the run 08:40 UTC (10 minutes old), while a newer one is expected.
 enum ForecastUITestStub {
     static var mode: String? {
@@ -41,6 +43,8 @@ enum ForecastUITestStub {
                 if number > 1 {
                     if mode == "failed" || (mode == "failonce" && number <= 4) { return (Data(), response(503)) }
                     if mode == "delayed" { try await Task.sleep(for: .seconds(40)) }
+                    if mode == "slowfailed" { try await Task.sleep(for: .seconds(4)); return (Data(), response(503)) }
+                    if mode == "slowbehind" { try await Task.sleep(for: .seconds(6)) }
                 }
                 let day = DateFormatter()
                 day.locale = Locale(identifier: "en_US_POSIX"); day.timeZone = TimeZone(identifier: "UTC")

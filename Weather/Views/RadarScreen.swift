@@ -743,7 +743,7 @@ struct RadarScreen: View {
         #endif
     }
 
-    private var isRefreshingForecast: Bool { store.showsForecastSpinner(now: displayNow) }
+    private var isRefreshingForecast: Bool { store.showsForecastSpinner }
 
     /// Chevron where it always was (right behind the text), plus the refreshing spinner at the RIGHT EDGE of the pill.
     /// No second line, no age text.
