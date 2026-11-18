@@ -126,9 +126,12 @@ final class WeatherSmokeTests: XCTestCase {
     }
 
     func testLayerMenuTopRightOffersLayersAndReload() throws {
-        let app = launchApp()
+        // The fixture offers every layer (the group "Feuchtigkeit" is only listed once the backend reports a member).
+        let app = UITestLaunch.app(language: .german, extra: ["-UITestLayers", "all"])
+        app.launch()
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 15))
+        sleep(3)
         XCTAssertGreaterThanOrEqual(menu.frame.height, 44)
         XCTAssertGreaterThan(menu.frame.midX, app.frame.midX, "Die Ebenenwahl sitzt oben rechts.")
         XCTAssertLessThan(menu.frame.minY, 160)
