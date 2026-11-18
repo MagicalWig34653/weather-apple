@@ -611,3 +611,7 @@ Beleg: Wiederholung am 18.11.2026 um 10:01 bis 10:04 mit gesetztem `PATH`: `Uplo
 Weitere Hinweise:
 - Bei `destination=upload` bleibt der Exportordner leer. Die IPA liegt nur im Xcode-Temp-Ordner (`XcodeDistPipeline.*/Packages/Showers.ipa`, unter dem Temp-Verzeichnis des Systems) und kann dort für die SHA-256 gelesen werden, solange der Lauf sie nicht entfernt hat.
 - Läuft der Befehl über `sparsam` (Plätze, Drosselung), kann `xcodebuild -exportArchive` auf einen freien Platz warten ("Plätze belegt ... warte"); das ist kein Hänger.
+
+## Build 49: Upload an TestFlight (18.11.2026)
+
+Stand 18.11.2026: Build 49 (Showers 0.1.1 (49), Bundle `de.linolaske.showernow`, Team `J2DU2P47XW`, Archiv aus `61bb4c2`) per `xcodebuild -exportArchive` (destination upload, `testFlightInternalTestingOnly=true`) hochgeladen: `EXPORT SUCCEEDED`, `Upload succeeded`, letzter Zustand `Uploaded package is processing` (17:50 Uhr MEZ). Apple-Verarbeitung und interne TestFlight-Verfügbarkeit nicht geprüft; nicht zur Prüfung eingereicht, nichts in App Store Connect geändert.
