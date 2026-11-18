@@ -443,3 +443,9 @@ Stand 18.11.2026: Build 49 (Showers 0.1.1 (49), Bundle `de.linolaske.showernow`,
 - Showers 0.1.1 (50), Archiv aus dem Stand dieses Commits gebaut, nicht exportiert, nicht hochgeladen.
 - Inhalt: Ladekreis der Prognose-Pille nur bei laufender Anfrage (inkl. Erstladen mit Text "Regenprognose wird geladen ..." und Kreis rechts); "Stand vor ..." aus dem Prognose-Kopf entfernt; Dunkel-Test repariert.
 - Nicht geprüft: Gerät, VoiceOver, Apple-Verarbeitung, CI-Lauf.
+
+## Build 50: Upload an TestFlight (18.11.2026)
+
+- Showers 0.1.1 (50) über den Upload-Wrapper (`testflight-upload.sh showers 50 ...`) per `xcodebuild -exportArchive` hochgeladen, nur interne Gruppen (`testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false`). Wrapper-Exit 0.
+- Lauf 20:15 bis 20:20:51 Uhr: "Uploading Showers.ipa is complete", "Uploaded package is processing" (20:20:51), "Upload succeeded", `** EXPORT SUCCEEDED **`.
+- Nicht geprüft: Apple-Verarbeitungsabschluss und interne TestFlight-Verfügbarkeit (kein Statuszugang); nichts in App Store Connect geändert.
