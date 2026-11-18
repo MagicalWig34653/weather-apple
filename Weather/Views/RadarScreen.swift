@@ -31,6 +31,8 @@ struct RadarScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var legendTop: CGFloat = 0
     @State private var pillBlockTop: CGFloat?
+    /// Height of the pill block (pill, on home-button devices also the credit): Apple's legal link sits above it, never under the pill.
+    @State private var pillBlockHeight: CGFloat = 0
     /// Bottom safe area of the device (home indicator), measured outside the slider inset.
     @State private var deviceBottomInset: CGFloat = 0
     @Namespace private var glassNamespace
@@ -50,7 +52,7 @@ struct RadarScreen: View {
                      referenceTime: store.displayFrameReference, centerRevision: store.centerRevision,
                      reloadRevision: store.radarReloadRevision,
                      timeline: store.displayTimeline, prefetchActive: scenePhase == .active && !store.isPlaying,
-                     bottomInset: mapBottomInset, layer: store.activeLayer,
+                     bottomInset: mapBottomInset + pillBlockHeight + 8, layer: store.activeLayer,
                      visibleManifest: store.activeLayer == .cloudmask ? store.layers.sunVisibleManifest?.backend : nil,
                      scale: store.layers.activeManifest?.nativeScale,
                      showForest: forestVisible,
@@ -106,14 +108,14 @@ struct RadarScreen: View {
                 .allowsHitTesting(false)
                 VStack(spacing: 6) {
                 timePill
-                // Home-button devices: the credit stays above the slider. Otherwise it is drawn below the slider (see `timeline`);
-                // here it keeps its layout space invisibly, so the pill stays where it always was and keeps Apple's legal link free.
-                // The placeholder keeps the former size limit, so the pill keeps its position at every text size.
-                if hasStripBelowSlider { creditLine(sizeLimit: .xxxLarge).hidden() } else { creditLine(sizeLimit: .xxxLarge) }
+                // Home-button devices: the credit stays above the slider. Otherwise it is drawn below the slider (see `timeline`).
+                if !hasStripBelowSlider { creditLine(sizeLimit: .xxxLarge) }
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { pillBlockTop = $0 }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { pillBlockHeight = $0 }
             }
-            .padding(.bottom, 8)
+            // Close to the slider card: the gap between pill and slider is small.
+            .padding(.bottom, 4)
             VStack(spacing: 10) {
                 header
                 forecastCard
@@ -526,6 +528,11 @@ struct RadarScreen: View {
     /// goes there and the slider keeps its position. Devices with a home button have no such strip.
     private var hasStripBelowSlider: Bool { deviceBottomInset >= 20 }
 
+    /// Widest plain time of the current locale (digits of equal width), reserves the pill's width.
+    private static var widestTimeTemplate: String {
+        Date(timeIntervalSinceReferenceDate: 8 * 3600 + 8 * 60).formatted(date: .omitted, time: .shortened)
+    }
+
     /// Compact card: only the slider (the time moved to `timePill`, play/pause is the pill's tap).
     private var timeline: some View {
         timeSlider
@@ -561,21 +568,20 @@ struct RadarScreen: View {
             let playing = store.isPlaying
             HStack(spacing: 8) {
                 Image(systemName: playing ? "pause.fill" : "play.fill").font(.system(size: 13, weight: .bold))
-                // A hidden template with the widest content fixes the height, so another day never changes the pill's size.
-                Text("Mo., 88. Okt. · 88:88 AM").font(.title3.weight(.semibold)).monospacedDigit()
-                    .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-                    .hidden()
-                    .overlay {
-                        Group { if let day { Text("\(day) · \(time)") } else { time } }
-                            .lineLimit(stacked ? 2 : 1).minimumScaleFactor(0.7)
-                            .multilineTextAlignment(.center)
-                    }
+                // As wide as its content (play symbol and time). A hidden time of the widest digits keeps the width calm while
+                // scrubbing; another day's label makes it wider. At the largest sizes two lines keep the height stable.
+                ZStack {
+                    // Largest sizes: the former wide template keeps the two-line pill as it was; otherwise only the time's width.
+                    Text(stacked ? "Mo., 88. Okt. \u{00B7} 88:88 AM" : Self.widestTimeTemplate).font(.title3.weight(.semibold)).monospacedDigit().hidden()
+                    Group { if let day { Text("\(day) \u{00B7} \(time)") } else { time } }
+                }
+                .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).minimumScaleFactor(0.7)
+                .multilineTextAlignment(.center)
             }
             .foregroundStyle(.primary)
             .accessibilityHidden(true)
             .padding(.horizontal, 16)
-            .frame(minWidth: 112, minHeight: 44)
+            .frame(minHeight: 44)
             .contentShape(Capsule())
             // Dark: a dark underlay lifts the white text's contrast. Light: a light underlay and dark text (the dark one made the pill too dark).
             .background(Capsule().fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.6)))

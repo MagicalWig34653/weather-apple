@@ -41,15 +41,21 @@ final class CreditLineLayoutTests: XCTestCase {
         let legal = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] 'Rechtl' OR label CONTAINS[c] 'Legal'")).firstMatch
         let legalText = legal.exists ? f(legal.frame) : "nicht im Accessibility-Baum"
         note("zahlen-\(tag)", "window \(f(window))\nslider \(f(slider.frame))\npill \(f(pill.frame))\ncredit \(f(credit.frame)) label=\(credit.label)\nrechtslink \(legalText)\nstreifen unter slider=\(String(format: "%.1f", strip))")
-        // Baseline vor dem Umbau (18.11., 440x956): Pille y 794.7 bis 838.7 (normal), 701.0 bis 831.7 (AXXXL).
-        let pillBaseline = ["440x956": 794.7]["\(Int(window.width))x\(Int(window.height))"]
-        if let pillBaseline, !tag.hasSuffix("axxxl") { XCTAssertEqual(pill.frame.minY, pillBaseline, accuracy: 0.5, "Pille-y unverändert (\(tag))") }
-        if tag.hasSuffix("axxxl"), Int(window.width) == 440 { XCTAssertEqual(pill.frame.minY, 701.0, accuracy: 0.5, "Pille-y unverändert (\(tag))") }
-        // Der Rechtslink bleibt frei: höchstens die gerundete Pillenecke berührt seinen Rahmen (wie in der Baseline, 5 pt).
-        if legal.exists { XCTAssertLessThanOrEqual(pill.frame.maxY - legal.frame.minY, 6, "Pille verdeckt den Rechtslink nicht (\(tag))") }
-        // Der Slider behält seine Lage: gemessen vor dem Umbau (18.11.): 440x956 -> y 870, 375x667 -> y 615.
-        let baseline = ["440x956": 870.0, "375x667": 615.0]["\(Int(window.width))x\(Int(window.height))"]
-        if let baseline { XCTAssertEqual(slider.frame.minY, baseline, accuracy: 0.5, "Slider-y unverändert (\(tag))") }
+        // Der Slider behält seine Lage (gemessen vor dem Umbau, 18.11.): 440x956 -> y 870, 375x667 -> y 615.
+        let sliderBaseline = ["440x956": 870.0, "375x667": 615.0]["\(Int(window.width))x\(Int(window.height))"]
+        if let sliderBaseline { XCTAssertEqual(slider.frame.minY, sliderBaseline, accuracy: 0.5, "Slider-y unverändert (\(tag))") }
+        // Pille (Build 48): nur so breit wie der Inhalt, mittig, dicht über der Slider-Karte; der Rechtslink liegt darüber, nie darunter.
+        let axxxl = tag.hasSuffix("axxxl")
+        if legal.exists { XCTAssertFalse(legal.frame.intersects(pill.frame), "Pille überdeckt den Rechtslink nicht, 0 pt Überlappung (\(tag))") }
+        if !axxxl {
+            XCTAssertLessThanOrEqual(pill.frame.width, 150, "Pille nur so breit wie der Inhalt (\(tag))")
+            XCTAssertEqual(pill.frame.midX, window.midX, accuracy: 2, "Pille mittig (\(tag))")
+            if strip >= 20 {
+                let gapToCard = slider.frame.minY - 3 - pill.frame.maxY   // die Karte reicht 3 pt über den Slider
+                XCTAssertGreaterThanOrEqual(gapToCard, -0.5, "Pille überlappt die Slider-Karte nicht (\(tag))")
+                XCTAssertLessThanOrEqual(gapToCard, 8, "Lücke Pille zu Slider-Karte klein (\(tag))")
+            }
+        }
         XCTAssertGreaterThanOrEqual(credit.frame.minX, window.minX, "Zeile links nicht abgeschnitten (\(tag))")
         XCTAssertLessThanOrEqual(credit.frame.maxX, window.maxX, "Zeile rechts nicht abgeschnitten (\(tag))")
         if expectBelow, strip >= 20 {
