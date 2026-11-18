@@ -106,7 +106,8 @@ final class ForecastRefreshUITests: XCTestCase {
         }
     }
 
-    /// Spinner placement A (beside the chevron) and B (in place of the chevron): one screenshot each for the review.
+    /// Spinner placement A (chevron stays, spinner at the right edge) and B (no chevron, spinner at the right edge):
+    /// one screenshot each for the review, several spinner phases for the contrast measurement, and the position check.
     func testRefreshingSpinnerVariants() throws {
         for variant in ["A", "B"] {
             let app = UITestLaunch.app(extra: ["-UITestForecast", "delayed", "-UITestRadar", "fixture", "-UITestRefreshSpinner", variant])
@@ -114,10 +115,29 @@ final class ForecastRefreshUITests: XCTestCase {
             let header = app.buttons["forecast-details"]
             XCTAssertTrue(header.waitForExistence(timeout: 30))
             waitForForecast(header)
+            XCTAssertFalse(app.descendants(matching: .any)["forecast-refresh-spinner"].exists, "no spinner while the forecast is current")
             backgroundAndReturn(app)
             XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "\(variant): \(header.label)")
+            let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
+            XCTAssertTrue(spinner.waitForExistence(timeout: 10), "spinner queryable")
+            // The spinner sits at the RIGHT EDGE of the pill, not in the text flow.
+            let gap = header.frame.maxX - spinner.frame.maxX
+            XCTAssertGreaterThanOrEqual(gap, 0, "\(variant): spinner inside the pill")
+            XCTAssertLessThanOrEqual(gap, 24, "\(variant): spinner at the right edge, gap \(gap) pt")
+            XCTAssertGreaterThan(spinner.frame.minX, header.frame.midX, "\(variant): spinner in the right half")
             sleep(1)
-            shot(app, "forecast-refreshing-\(variant)-\(suffix)-d4")
+            shot(app, "forecast-refreshing-\(variant)-\(suffix)-d5")
+            // Several phases of the spinning symbol for the worst-case contrast.
+            let dir = "/private/tmp/claude-501/daten-aktuell-phases"
+            try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            for k in 0..<8 {
+                let name = "\(variant)-\(suffix)-\(k)"
+                try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+                let f = spinner.frame
+                let root: [String: Any] = ["screen": ["w": app.frame.width, "h": app.frame.height], "cx": f.midX, "cy": f.midY]
+                if let data = try? JSONSerialization.data(withJSONObject: root) { try? data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).json")) }
+                usleep(130_000)
+            }
             app.terminate()
         }
     }

@@ -672,15 +672,26 @@ struct RadarScreen: View {
         }
     }
 
+    /// UI tests with the forecast stub query the spinner's frame; for real users it stays hidden from VoiceOver.
+    private static var exposeSpinnerForUITests: Bool {
+        #if DEBUG
+        return ForecastUITestStub.mode != nil
+        #else
+        return false
+        #endif
+    }
+
     private var isRefreshingForecast: Bool { store.forecast != nil && store.forecastStatus(now: displayNow) == .refreshing }
 
-    /// Spinner (and chevron) at the right edge of the pill. No second line, no age text while refreshing.
+    /// Chevron where it always was (right behind the text), plus the refreshing spinner at the RIGHT EDGE of the pill.
+    /// Variant B drops the chevron while refreshing, so the spinner sits where the pill ends. No second line, no age text.
     @ViewBuilder private var forecastTrailing: some View {
-        if isRefreshingForecast {
-            forecastStatusIcon(.refreshing)
-        }
         if !(isRefreshingForecast && RefreshSpinnerPlacement.current == .replacesChevron) {
             Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+        }
+        if isRefreshingForecast {
+            Spacer(minLength: 8)
+            forecastStatusIcon(.refreshing)
         }
     }
 
@@ -717,7 +728,9 @@ struct RadarScreen: View {
             ProgressView().controlSize(.small).tint(.primary)
                 .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
                 .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
-                .accessibilityHidden(true)
+                .shadow(color: Color(.systemBackground).opacity(0.6), radius: 5)
+                .accessibilityIdentifier("forecast-refresh-spinner")
+                .accessibilityHidden(!Self.exposeSpinnerForUITests)
         } else {
             Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
         }
