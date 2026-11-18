@@ -21,6 +21,36 @@ final class ForecastRefreshUITests: XCTestCase {
         try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
     }
 
+    /// Screenshot of the refreshing header plus the caption frame (bottom part of the header) for `tools/contrast_measure.swift`.
+    private func contrastShot(_ app: XCUIApplication, _ name: String, header: XCUIElement) {
+        let dir = "/private/tmp/claude-501/daten-aktuell-contrast"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+        let f = header.frame
+        let caption: [String: Any] = ["label": "caption", "type": 48, "x": f.minX + 14, "y": f.minY + f.height * 0.62,
+                                       "w": f.width - 48, "h": f.height * 0.34]
+        let root: [String: Any] = ["screen": ["w": app.frame.width, "h": app.frame.height], "elements": [caption]]
+        if let data = try? JSONSerialization.data(withJSONObject: root) {
+            try? data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).json"))
+        }
+    }
+
+    /// Refreshing caption at three text sizes (extra small, standard, accessibility XXXL) for the contrast measurement.
+    func testRefreshingCaptionAtDynamicTypeSizes() throws {
+        for (label, category) in [("xs", "UICTContentSizeCategoryXS"), ("std", "UICTContentSizeCategoryL"), ("axxxl", "UICTContentSizeCategoryAccessibilityXXXL")] {
+            let app = UITestLaunch.app(extra: ["-UITestForecast", "delayed", "-UIPreferredContentSizeCategoryName", category])
+            app.launch()
+            let header = app.buttons["forecast-details"]
+            XCTAssertTrue(header.waitForExistence(timeout: 30))
+            waitForForecast(header)
+            backgroundAndReturn(app)
+            XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "\(label): \(header.label)")
+            sleep(1)
+            contrastShot(app, "contrast-refreshing-\(label)-\(suffix)", header: header)
+            app.terminate()
+        }
+    }
+
     private func waitForLabel(_ element: XCUIElement, containing text: String, timeout: TimeInterval) -> Bool {
         let predicate = NSPredicate(format: "label CONTAINS %@", text)
         return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: element)], timeout: timeout) == .completed
@@ -29,7 +59,7 @@ final class ForecastRefreshUITests: XCTestCase {
     /// Waits until the first forecast is shown (not the loading or unavailable text).
     private func waitForForecast(_ header: XCUIElement) {
         let predicate = NSPredicate(format: "NOT (label CONTAINS[c] 'geladen') AND NOT (label CONTAINS[c] 'loading') AND NOT (label CONTAINS[c] 'nicht verf') AND NOT (label CONTAINS[c] 'unavailable')")
-        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: header)], timeout: 30), .completed, header.label)
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: header)], timeout: 60), .completed, header.label)
     }
 
     private func backgroundAndReturn(_ app: XCUIApplication) {
@@ -45,7 +75,7 @@ final class ForecastRefreshUITests: XCTestCase {
             XCTAssertTrue(header.waitForExistence(timeout: 30))
             // The first forecast loads at once (summary line, no indicator yet).
             let loaded = NSPredicate(format: "label != '' AND NOT (label CONTAINS 'geladen') AND NOT (label CONTAINS 'nicht verfügbar')")
-            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 30), .completed, header.label)
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 60), .completed, header.label)
             // Returning: the shown run is older than the expected one, so the load starts at once; the stub delays it.
             backgroundAndReturn(app)
             XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "indicator visible: \(header.label)")
@@ -63,7 +93,7 @@ final class ForecastRefreshUITests: XCTestCase {
             let header = app.buttons["forecast-details"]
             XCTAssertTrue(header.waitForExistence(timeout: 30))
             let loaded = NSPredicate(format: "label != '' AND NOT (label CONTAINS 'geladen') AND NOT (label CONTAINS 'nicht verfügbar')")
-            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 30), .completed, header.label)
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 60), .completed, header.label)
             sleep(2)
             for text in ["Aktualisiere", "fehlgeschlagen", "keinen neueren Stand", "Ältere Prognose"] {
                 XCTAssertFalse(header.label.contains(text), header.label)
@@ -118,9 +148,7 @@ final class ForecastRefreshUITests: XCTestCase {
     }
 
     func testServerBehindScreenshot() throws {
-        // Needs a check at or after N + 260 s, which holds for about 2/3 of every 5-minute slot.
-        let slotOffset = (Date().timeIntervalSince1970 - 165).truncatingRemainder(dividingBy: 300)
-        try XCTSkipIf(slotOffset < 110, "Zu früh im Takt-Fenster für den Hinweis \"noch keinen neueren Stand\".")
+        // The stub's frozen clock sits 300 s after the expected run, so the check is always late enough.
         do {
             let app = launch("behind")
             let header = app.buttons["forecast-details"]

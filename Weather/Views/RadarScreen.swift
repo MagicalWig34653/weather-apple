@@ -20,7 +20,7 @@ struct RadarScreen: View {
     /// Calms the per-slot loading hint (see `SlotFeedbackGate`); `heldFeedback` is what is currently shown.
     @State private var feedbackGate = SlotFeedbackGate()
     @State private var heldFeedback: (text: String, failed: Bool)?
-    @State private var displayNow = Date()
+    @State private var displayNow = screenNow()
     /// Slot index under the finger while scrubbing; drives thumb and time label independent of tile loading.
     @State private var scrubIndex: Int?
     /// Fine-scrubbing stage while the finger is down (`nil` when not dragging).
@@ -253,7 +253,7 @@ struct RadarScreen: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             while !Task.isCancelled {
-                displayNow = Date()
+                displayNow = screenNow()
                 do { try await Task.sleep(for: .seconds(30)) }
                 catch { return }
             }
@@ -675,9 +675,13 @@ struct RadarScreen: View {
                 if status == .refreshing, !statusReplacesSummary {
                     HStack(spacing: 5) {
                         forecastStatusIcon(.refreshing)
+                        // Full-strength primary text (not secondary): readable on glass over the map in light and dark.
                         Text(forecastStatusText(.refreshing, forecast: forecast))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption.weight(.medium)).foregroundStyle(.primary)
                     }
+                    // Flat backing in the system background colour: the glass over the map varies, the text must not depend on it.
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(.systemBackground).opacity(0.62)))
                 }
             }
             .accessibilityElement(children: .combine)
@@ -692,7 +696,7 @@ struct RadarScreen: View {
 
     @ViewBuilder private func forecastStatusIcon(_ status: WeatherStore.ForecastStatus) -> some View {
         if status == .refreshing {
-            ProgressView().controlSize(.mini).accessibilityHidden(true)
+            ProgressView().controlSize(.small).tint(.primary).accessibilityHidden(true)
         } else {
             Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
         }
@@ -718,6 +722,14 @@ struct RadarScreen: View {
         let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
         return minutes == 0 ? NSLocalizedString("RADAR_AGE_NOW", value: "gerade aktualisiert", comment: "Radar") : String(format: NSLocalizedString("RADAR_AGE_MINUTES", value: "vor %d Min.", comment: "Radar"), minutes)
     }
+}
+
+/// "Now" for the screen; UI tests with the forecast stub use the frozen time of the fixture.
+private func screenNow() -> Date {
+    #if DEBUG
+    if ForecastUITestStub.mode != nil { return ForecastUITestStub.now }
+    #endif
+    return Date()
 }
 
 /// Pure slot logic for the timeline slider, kept testable without UI.
