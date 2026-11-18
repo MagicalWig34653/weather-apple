@@ -31,6 +31,8 @@ struct RadarScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var legendTop: CGFloat = 0
     @State private var pillBlockTop: CGFloat?
+    /// Bottom safe area of the device (home indicator), measured outside the slider inset.
+    @State private var deviceBottomInset: CGFloat = 0
     @Namespace private var glassNamespace
     @State private var nowJumps = 0
 
@@ -104,23 +106,8 @@ struct RadarScreen: View {
                 .allowsHitTesting(false)
                 VStack(spacing: 6) {
                 timePill
-                Group {
-                    // Short credit in the size and style of Apple Maps' legal text, no capsule. The full source text,
-                    // licences and modification notices are in the information screen (Datenquellen).
-                    if let line = ForestPreference.shortSourceLine(base: store.displayShortAttribution, layer: store.activeLayer,
-                                                                   visible: forestVisible, info: ForestInfo.bundled) {
-                        Text(line)
-                            .font(.caption2).foregroundStyle(.primary.opacity(0.75))
-                            .lineLimit(1).minimumScaleFactor(0.8)
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                            .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
-                            .padding(.horizontal, 8)
-                            .accessibilityLabel(line)
-                            .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
-                            .accessibilityIdentifier("radar-attribution")
-                    }
-                }
-                .allowsHitTesting(false)
+                // Devices without a free strip below the slider (home button): the credit stays above the slider.
+                if !hasStripBelowSlider { creditLine }
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { pillBlockTop = $0 }
             }
@@ -209,6 +196,7 @@ struct RadarScreen: View {
                 .padding(.bottom, 2)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapBottomInset = $0 }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { deviceBottomInset = $0 }
 
         .sheet(item: $sheet) { item in
             switch item {
@@ -510,6 +498,29 @@ struct RadarScreen: View {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) { heldFeedback = next }
     }
 
+    /// Short credit in the size and style of Apple Maps' legal text, no capsule. The full source text, licences and
+    /// modification notices are in the information screen (Datenquellen).
+    @ViewBuilder private var creditLine: some View {
+        if let line = ForestPreference.shortSourceLine(base: store.displayShortAttribution, layer: store.activeLayer,
+                                                       visible: forestVisible, info: ForestInfo.bundled) {
+            Text(line)
+                .font(.caption2).foregroundStyle(.primary.opacity(0.75))
+                .lineLimit(1).minimumScaleFactor(0.8)
+                // A fixed strip below the slider: the text grows only a little with Dynamic Type (VoiceOver reads it in full).
+                .dynamicTypeSize(...DynamicTypeSize.xLarge)
+                .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
+                .padding(.horizontal, 8)
+                .allowsHitTesting(false)
+                .accessibilityLabel(line)
+                .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
+                .accessibilityIdentifier("radar-attribution")
+        }
+    }
+
+    /// The strip between the slider card and the screen edge (home indicator devices, about 34 pt) is free: the credit
+    /// goes there and the slider keeps its position. Devices with a home button have no such strip.
+    private var hasStripBelowSlider: Bool { deviceBottomInset >= 20 }
+
     /// Compact card: only the slider (the time moved to `timePill`, play/pause is the pill's tap).
     private var timeline: some View {
         timeSlider
@@ -517,6 +528,13 @@ struct RadarScreen: View {
             .padding(.vertical, 3)
             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
             .accessibilityIdentifier("radar-timeline")
+            // The credit hangs below the card without taking layout space: the slider keeps its position. It sits in the
+            // free strip between the card and the home indicator (card bottom + 20 pt = text bottom, about 3 pt below the card).
+            .overlay(alignment: .bottom) {
+                if hasStripBelowSlider {
+                    creditLine.offset(y: 20)
+                }
+            }
     }
 
     private var displayedIsForecast: Bool {
