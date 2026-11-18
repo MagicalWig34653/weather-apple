@@ -95,7 +95,7 @@ final class ForecastRefreshUITests: XCTestCase {
             let loaded = NSPredicate(format: "label != '' AND NOT (label CONTAINS 'geladen') AND NOT (label CONTAINS 'nicht verfügbar')")
             XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: loaded, evaluatedWith: header)], timeout: 60), .completed, header.label)
             sleep(2)
-            XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Radar für' OR label CONTAINS 'Radarkacheln'")).firstMatch.exists, "radar fixture must load cleanly")
+            XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Radar für' OR label CONTAINS 'Radarkacheln' OR label CONTAINS 'Historie nicht'")).firstMatch.exists, "radar fixture must load cleanly")
             for text in ["Aktualisiere", "fehlgeschlagen", "keinen neueren Stand", "Ältere Prognose"] {
                 XCTAssertFalse(header.label.contains(text), header.label)
             }

@@ -23,8 +23,11 @@ enum RadarUITestStub {
         RadarBackendClient(transport: { request in
             let url = request.url ?? RadarBackendConfig.baseURL()
             func http(_ code: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)! }
-            guard url.lastPathComponent == "latest.json" else { return (Data(), http(404)) }
-            return (manifestJSON(), http(200))
+            switch url.lastPathComponent {
+            case "latest.json": return (manifestJSON(), http(200))
+            case "history.json": return (historyJSON(), http(200))
+            default: return (Data(), http(404))
+            }
         }, clock: { ForecastUITestStub.now })
     }
 
@@ -45,6 +48,21 @@ enum RadarUITestStub {
         }
         let json = "{\"schema\":1,\"run\":\"\(run)\",\"reference_time\":\"\(iso(reference))\",\"generated_at\":\"\(iso(reference.addingTimeInterval(190)))\","
             + "\"step_minutes\":5,\"forecast_horizon_minutes\":120,\"image\":{\"format\":\"image/webp\",\"width\":\(width),\"height\":\(height),"
+            + "\"projection\":\"EPSG:3857\",\"bbox\":\(bbox),\"bbox_wgs84\":[5.5,47.0,15.6,55.1]},"
+            + "\"attribution\":\"Quelle: Deutscher Wetterdienst\",\"modification_notice\":\"Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben\","
+            + "\"slots\":[\(slots.joined(separator: ","))]}"
+        return Data(json.utf8)
+    }
+
+    /// `history.json`: the hour before the manifest's first slot (06:40 to 07:35 UTC), same image block as the manifest.
+    static func historyJSON() -> Data {
+        let iso = DWDRequest.timestamp
+        let slots = (0..<12).map { step -> String in
+            let time = firstSlot.addingTimeInterval(Double(step - 12) * 300)
+            return "{\"time\":\"\(iso(time))\",\"kind\":\"analysis\",\"path\":\"history/\(name(time)).webp\"}"
+        }
+        let json = "{\"schema\":1,\"run\":\"\(name(reference))\",\"generated_at\":\"\(iso(reference.addingTimeInterval(190)))\","
+            + "\"step_minutes\":5,\"history_hours\":48,\"image\":{\"format\":\"image/webp\",\"width\":\(width),\"height\":\(height),"
             + "\"projection\":\"EPSG:3857\",\"bbox\":\(bbox),\"bbox_wgs84\":[5.5,47.0,15.6,55.1]},"
             + "\"attribution\":\"Quelle: Deutscher Wetterdienst\",\"modification_notice\":\"Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben\","
             + "\"slots\":[\(slots.joined(separator: ","))]}"
