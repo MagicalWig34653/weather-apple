@@ -46,13 +46,16 @@ final class RadarEnglishTests: XCTestCase {
         assertNoGerman(app)
         attach(app, "en-radar-header")
         menu.tap()
-        XCTAssertTrue(app.buttons["Rain radar"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Reload data"].exists)
-        for title in ["Pressure", "Lightning", "Clouds", "Sun"] {
-            XCTAssertTrue(app.buttons[title].exists, title)
+        for group in ["Rain", "Pressure", "Display"] {
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", group)).firstMatch.waitForExistence(timeout: 5), group)
         }
+        XCTAssertTrue(app.buttons["Reload data"].exists)
         assertNoGerman(app)
         attach(app, "en-layer-menu")
+        for title in ["Lightning", "Clouds", "Sun"] {
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch.waitForExistence(timeout: 5), title)
+        }
+        assertNoGerman(app)
     }
 
     func testTimelineAndPillAreEnglish() throws {
@@ -87,14 +90,9 @@ final class RadarEnglishTests: XCTestCase {
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 15))
         let temperature = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Temperature")).firstMatch
-        var opened = false
-        for _ in 0..<6 where !opened {
-            menu.tap()
-            opened = temperature.waitForExistence(timeout: 3)
-            if !opened { app.buttons["Rain radar"].tap(); sleep(2) }
-        }
-        XCTAssertTrue(opened, "Temperature appears once the server reports it")
-        temperature.tap()
+        let entry = openLayerEntry(app, group: nil, entry: "Temperature")
+        XCTAssertNotNil(entry, "Temperature appears once the server reports it")
+        (entry ?? temperature).tap()
         let slider = app.sliders["Time slot, Temperature"]
         XCTAssertTrue(slider.waitForExistence(timeout: 10))
         XCTAssertTrue((slider.value as? String ?? "").contains("Model"), slider.value as? String ?? "")

@@ -58,16 +58,29 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertEqual(RadarLayer.radarEU.menuTitle, "Europa (OPERA)")
         XCTAssertEqual(RadarLayer.radarWorld.menuTitle, "Welt (NOAA)")
         XCTAssertEqual(RadarLayer.radar.menuTitle, "Deutschland (DWD)")
-        XCTAssertNotNil(RadarLayer.radarWorld.menuNote, "world: estimated from satellite data, less accurate")
-        XCTAssertNil(RadarLayer.radarEU.menuNote)
     }
 
-    func testMenuGroupsCoverEverySelectableLayerOnce() {
-        let extra = RadarLayer.extraLayers
-        XCTAssertEqual(extra, [.clouds, .cloudmask, .lightning, .pressure, .pressureEU, .temperature, .dewpoint, .humidity])
-        let all = RadarLayer.rainLayers + extra
+    func testMenuGroupsCoverEverySelectableLayerOnceInTheAgreedOrder() {
+        XCTAssertEqual(RadarLayer.rainLayers, [.radar, .radarEU, .radarWorld])
+        XCTAssertEqual(RadarLayer.pressureLayers, [.pressure, .pressureEU])
+        XCTAssertEqual(RadarLayer.humidityLayers, [.dewpoint, .humidity])
+        XCTAssertEqual(RadarLayer.singleMenuLayers, [.temperature, .lightning, .clouds, .cloudmask])
+        let all = RadarLayer.rainLayers + RadarLayer.pressureLayers + RadarLayer.humidityLayers + RadarLayer.singleMenuLayers
         XCTAssertEqual(Set(all), Set(RadarLayer.selectable))
         XCTAssertEqual(all.count, RadarLayer.selectable.count, "no layer in two groups")
+        XCTAssertEqual(RadarLayer.pressure.menuTitle, "Deutschland")
+        XCTAssertEqual(RadarLayer.pressureEU.menuTitle, "Europa")
+        XCTAssertEqual(RadarLayer.dewpoint.menuTitle, "Taupunkt")
+        XCTAssertEqual(RadarLayer.humidity.menuTitle, "Relativ")
+        XCTAssertEqual(RadarLayer.temperature.menuTitle, RadarLayer.temperature.title)
+    }
+
+    @MainActor
+    func testGroupsHideWhenTheBackendOffersNoMemberOfThem() {
+        let layers = store(Responder { _ in (404, Data(), [:]) })
+        XCTAssertEqual(layers.offered(RadarLayer.pressureLayers), [.pressure], "Europe pressure only once reported")
+        XCTAssertEqual(layers.offered(RadarLayer.humidityLayers), [], "humidity group hidden: nothing offered")
+        XCTAssertEqual(layers.offered(RadarLayer.singleMenuLayers), [.lightning, .clouds, .cloudmask], "temperature only once reported")
     }
 
     @MainActor

@@ -21,30 +21,70 @@ final class LayerMenuPrototypeTests: XCTestCase {
         add(shot)
     }
 
+    private func group(_ app: XCUIApplication, _ name: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
+    }
+
+    private func closeMenu(_ app: XCUIApplication) {
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(1)
+    }
+
+    private func open(_ app: XCUIApplication, _ menu: XCUIElement, group name: String?) {
+        menu.tap()
+        guard let name else { return }
+        let entry = group(app, name)
+        XCTAssertTrue(entry.waitForExistence(timeout: 5), "Untermenü \(name) fehlt")
+        entry.tap()
+    }
+
+    /// Hauptliste, Untermenüs Regen, Luftdruck und Feuchtigkeit; dann Temperatur aktiv (Haken), Darstellung mit Wald, Legende.
     private func run(_ appearance: XCUIDevice.Appearance, _ suffix: String) throws {
         XCUIDevice.shared.appearance = appearance
-        let app = UITestLaunch.app(language: .german)
+        let app = UITestLaunch.app(language: .german, extra: ["-UITestLayers", "d2"])
         app.launch()
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 20))
+        sleep(3)
+        // Layers appear once the server (fixture) reported them: the main list is shown after a re-open.
+        menu.tap(); closeMenu(app); sleep(2)
         menu.tap()
-        attach("1-hauptmenue-\(suffix)")
-        // Untermenüs sind native Menü-Einträge; Zugriff über Beschriftung, weil die Kennungen je nach System fehlen.
-        let rain = app.buttons["radar-layer-group-rain"].exists ? app.buttons["radar-layer-group-rain"]
-            : app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Regenebenen")).firstMatch
-        XCTAssertTrue(rain.waitForExistence(timeout: 5), "Untermenü Regenebenen fehlt")
-        rain.tap()
-        attach("2-regenebenen-\(suffix)")
-        // Zurück zum Hauptmenü (System-Zurück oder Menü neu öffnen).
-        app.terminate()
-        app.launch()
-        XCTAssertTrue(menu.waitForExistence(timeout: 20))
+        attach("1-hauptliste-\(suffix)")
+        XCTAssertFalse(app.buttons["radar-layer-quick-radar"].exists, "keine Symbolreihe")
+        closeMenu(app)
+        open(app, menu, group: "Regen")
+        attach("2-regen-\(suffix)")
+        closeMenu(app)
+        open(app, menu, group: "Luftdruck")
+        attach("3-luftdruck-\(suffix)")
+        closeMenu(app)
+        open(app, menu, group: "Feuchtigkeit")
+        attach("4-feuchtigkeit-\(suffix)")
+        closeMenu(app)
+        let temperature = try XCTUnwrap(openLayerEntry(app, group: nil, entry: "Temperatur"), "Temperatur fehlt")
+        temperature.tap()
+        XCTAssertTrue(app.sliders["Zeitpunkt Temperatur"].waitForExistence(timeout: 10))
+        sleep(2)
         menu.tap()
-        let extra = app.buttons["radar-layer-group-extra"].exists ? app.buttons["radar-layer-group-extra"]
-            : app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Zusatzebenen")).firstMatch
-        XCTAssertTrue(extra.waitForExistence(timeout: 5), "Untermenü Zusatzebenen fehlt")
-        extra.tap()
-        attach("3-zusatzebenen-\(suffix)")
+        attach("5-hauptliste-temperatur-aktiv-\(suffix)")
+        let display = group(app, "Darstellung")
+        XCTAssertTrue(display.waitForExistence(timeout: 5), "Untermenü Darstellung fehlt")
+        display.tap()
+        attach("6-darstellung-\(suffix)")
+        let forest = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Wald")).firstMatch
+        XCTAssertTrue(forest.waitForExistence(timeout: 5), "Wald-Schalter fehlt")
+        forest.tap()
+        attach("7-darstellung-wald-an-\(suffix)")
+        closeMenu(app)
+        let legend = app.buttons["radar-legend-toggle"]
+        if legend.waitForExistence(timeout: 5) {
+            legend.tap()
+            XCTAssertTrue(app.descendants(matching: .any)["radar-legend"].waitForExistence(timeout: 5))
+            XCTAssertEqual(app.switches["forest-toggle"].value as? String, "1", "Wald-Schalter im Menü hat den Wald eingeschaltet")
+            attach("8-legende-wald-\(suffix)")
+            // Wald zurücksetzen (die Einstellung bleibt sonst auf dem Gerät und verfälscht andere Tests).
+            app.switches["forest-toggle"].tap()
+        }
     }
 
     func testMenuScreenshotsLight() throws { try run(.light, "hell") }

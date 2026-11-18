@@ -32,9 +32,11 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
 
     /// Menu group "Regenebenen" (nested submenu): DWD Germany, OPERA Europe, NOAA world.
     static let rainLayers: [RadarLayer] = [.radar, .radarEU, .radarWorld]
-    /// Menu group "Zusatzebenen": everything that is not rain.
-    static let extraLayers: [RadarLayer] = selectable.filter { !rainLayers.contains($0) }.sorted { $0.extraOrder < $1.extraOrder }
-    private var extraOrder: Int { [.clouds, .cloudmask, .lightning, .pressure, .pressureEU, .temperature, .dewpoint, .humidity].firstIndex(of: self) ?? 99 }
+    /// Menu structure (top to bottom): Regen > rainLayers, Luftdruck > pressureLayers, Feuchtigkeit > humidityLayers,
+    /// then the single entries. Exactly one layer stays active (unchanged behaviour).
+    static let pressureLayers: [RadarLayer] = [.pressure, .pressureEU]
+    static let humidityLayers: [RadarLayer] = [.dewpoint, .humidity]
+    static let singleMenuLayers: [RadarLayer] = [.temperature, .lightning, .clouds, .cloudmask]
 
     var isRain: Bool { Self.rainLayers.contains(self) }
 
@@ -44,13 +46,12 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         case .radar: NSLocalizedString("LAYER_RADAR_DE_MENU", value: "Deutschland (DWD)", comment: "Layer menu entry")
         case .radarEU: NSLocalizedString("LAYER_RADAR_EU_MENU", value: "Europa (OPERA)", comment: "Layer menu entry")
         case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_MENU", value: "Welt (NOAA)", comment: "Layer menu entry")
+        case .pressure: NSLocalizedString("LAYER_PRESSURE_MENU", value: "Deutschland", comment: "Layer menu entry")
+        case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_MENU", value: "Europa", comment: "Layer menu entry")
+        case .dewpoint: NSLocalizedString("LAYER_DEWPOINT_MENU", value: "Taupunkt", comment: "Layer menu entry")
+        case .humidity: NSLocalizedString("LAYER_HUMIDITY_MENU", value: "Relativ", comment: "Layer menu entry")
         default: title
         }
-    }
-
-    /// Short caveat shown with the menu entry (world: no measurement, estimated).
-    var menuNote: String? {
-        self == .radarWorld ? NSLocalizedString("LAYER_RADAR_WORLD_NOTE", value: "aus Satellitendaten geschätzt, ungenauer", comment: "Layer menu note") : nil
     }
 
     /// 2 m model fields (temperature, dew point, relative humidity): hourly forecast, always shown as model values.
@@ -502,8 +503,8 @@ final class RadarLayerStore {
     var rainMenuEntries: [RainMenuEntry] {
         RadarLayer.rainLayers.map { RainMenuEntry(layer: $0, isSoon: !isOffered($0)) }
     }
-    /// Entries of "Zusatzebenen" that are offered.
-    var extraMenuLayers: [RadarLayer] { RadarLayer.extraLayers.filter(isOffered) }
+    /// The offered members of a menu group (an empty result hides the group).
+    func offered(_ group: [RadarLayer]) -> [RadarLayer] { group.filter(isOffered) }
 
     /// Manifest of the visible-channel helper layer for the sun layer, only when it is fresh and has the same
     /// extent as the cloud mask (else `nil`: the sun layer uses the mask alone).

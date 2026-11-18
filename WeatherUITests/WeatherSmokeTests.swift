@@ -135,7 +135,11 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertEqual(menu.value as? String, "Regenradar")
         XCTAssertFalse(app.buttons["Wetterdaten aktualisieren"].exists, "Kein eigener Neuladen-Knopf mehr.")
         menu.tap()
-        XCTAssertTrue(app.buttons["Regenradar"].waitForExistence(timeout: 5))
+        for entry in ["Regen", "Luftdruck", "Darstellung"] {
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", entry)).firstMatch.waitForExistence(timeout: 5), "Untermenü \(entry)")
+        }
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Zusatzebenen")).firstMatch.exists, "Gruppe Zusatzebenen entfällt")
+        XCTAssertFalse(app.buttons["radar-layer-quick-radar"].exists, "keine Symbolreihe mehr")
         XCTAssertTrue(app.buttons["Daten neu laden"].exists)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "layer-menu-open"
@@ -368,16 +372,10 @@ final class WeatherSmokeTests: XCTestCase {
             func layerButton(_ prefix: String) -> XCUIElement {
                 app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
             }
-            let temperature = layerButton("Temperatur")
-            var opened = false
-            for _ in 0..<6 where !opened {
-                menu.tap()
-                opened = temperature.waitForExistence(timeout: 3)
-                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
-            }
-            XCTAssertTrue(opened, "Temperatur erscheint, sobald der Server sie meldet (large=\(large)).")
-            XCTAssertTrue(layerButton("Feuchte (Taupunkt)").exists)
-            XCTAssertFalse(layerButton("Feuchte (relativ)").exists, "Relative Feuchte wird nicht angeboten (Server-Flag aus).")
+            let temperatureEntry = openLayerEntry(app, group: nil, entry: "Temperatur")
+            XCTAssertNotNil(temperatureEntry, "Temperatur erscheint, sobald der Server sie meldet (large=\(large)).")
+            let temperature = temperatureEntry ?? layerButton("Temperatur")
+            XCTAssertTrue(layerButton("Feuchtigkeit").exists, "Untermenü Feuchtigkeit")
             temperature.tap()
             let slider = app.sliders["Zeitpunkt Temperatur"]
             XCTAssertTrue(slider.waitForExistence(timeout: 10))
@@ -415,15 +413,10 @@ final class WeatherSmokeTests: XCTestCase {
             app.launch()
             let menu = app.buttons["radar-layer-menu"]
             XCTAssertTrue(menu.waitForExistence(timeout: 15))
-            let dew = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (Taupunkt)")).firstMatch
-            var opened = false
-            for _ in 0..<6 where !opened {
-                menu.tap()
-                opened = dew.waitForExistence(timeout: 3)
-                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
-            }
-            XCTAssertTrue(opened)
-            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (relativ)")).firstMatch.exists)
+            let dewEntry = openLayerEntry(app, group: "Feuchtigkeit", entry: "Taupunkt")
+            XCTAssertNotNil(dewEntry)
+            let dew = dewEntry ?? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Taupunkt")).firstMatch
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Relativ")).firstMatch.exists)
             dew.tap()
             // Header: the long layer title must not squeeze the place name (used to shrink to "Be…").
             let placeButton = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Ort auswählen")).firstMatch
@@ -477,14 +470,9 @@ final class WeatherSmokeTests: XCTestCase {
             app.launch()
             let menu = app.buttons["radar-layer-menu"]
             XCTAssertTrue(menu.waitForExistence(timeout: 15))
-            let dew = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Feuchte (Taupunkt)")).firstMatch
-            var opened = false
-            for _ in 0..<6 where !opened {
-                menu.tap()
-                opened = dew.waitForExistence(timeout: 3)
-                if !opened { app.buttons["Regenradar"].tap(); sleep(2) }
-            }
-            XCTAssertTrue(opened)
+            let dewEntry = openLayerEntry(app, group: "Feuchtigkeit", entry: "Taupunkt")
+            XCTAssertNotNil(dewEntry)
+            let dew = dewEntry ?? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Taupunkt")).firstMatch
             dew.tap()
             app.buttons["radar-legend-toggle"].tap()
             let panel = app.descendants(matching: .any)["radar-legend"]
