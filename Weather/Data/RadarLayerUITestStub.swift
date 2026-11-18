@@ -87,7 +87,6 @@ extension RadarLayerStore {
         })
     }
 }
-#endif
 
 /// UI tests only: slot images of the stubbed layers, drawn locally (1024 x 1311, like the manifest says), so the map
 /// shows a real overlay instead of "image missing". Colours follow each layer's family; no network.
@@ -149,3 +148,4 @@ nonisolated enum UITestLayerImage {
         }
     }
 }
+#endif
