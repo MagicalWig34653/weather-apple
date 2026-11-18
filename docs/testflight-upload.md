@@ -591,3 +591,23 @@ Quellencheckpoint: Commit `e9a089c` "chore: Buildnummer 46" (`CURRENT_PROJECT_VE
 Lokaler Export und IPA-Pruefung: CFBundleVersion 46 und `PrivacyInfo.xcprivacy` in allen fuenf Bundles, `codesign --verify --deep --strict` je Bundle ok, `aps-environment` vorhanden (production laut Exportprofil), `WarnGeometry.bin`, `forest-de-v1.webp`, `scales-v1.json` im App-Bundle; neue Texte (`INFO_WIDGET_DIAG_TITLE` "Diagnose") im Bundle.
 
 **Genau ein Upload, 10. November 2026 gegen 19:03 Uhr:** Exit 0, `EXPORT SUCCEEDED`, `Upload succeeded`, `Uploaded package is processing`. Kein Retry. Verarbeitung/Installierbarkeit nicht geprueft.
+
+## Build 47: Export scheitert mit "exportArchive Copy failed" (Exit 70)
+
+Beobachtung 18.11.2026: Der erste `xcodebuild -exportArchive` (09:59) endete mit `error: exportArchive Copy failed`, `** EXPORT FAILED **`, Exit 70. Hochgeladen wurde nichts; in App Store Connect entstand nur ein Build-Eintrag im Zustand `AWAITING_UPLOAD` (Ablauf: `buildUploads` angelegt, 201, danach kein Datei-Upload).
+
+Ursache (aus den Verteilungslogs `*.xcdistributionlogs`, Schritt `IDEDistributionPackagingStep`): Xcodes Packaging ruft `rsync` über den `PATH` auf. Im `PATH` lag ein Nicht-Apple-`rsync` 3.5.2, der die Option `--extended-attributes` nicht kennt (`rsync: on remote machine: --extended-attributes: unknown option`).
+
+Abhilfe: vor `xcodebuild -exportArchive` (und vorsorglich `archive`) den `PATH` auf die Systempfade setzen:
+
+```sh
+PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive \
+  -archivePath "$WEATHER_ARCHIVE_PATH" -exportPath "$WEATHER_EXPORT_PATH" \
+  -exportOptionsPlist "$WEATHER_EXPORT_OPTIONS_PATH" -allowProvisioningUpdates
+```
+
+Beleg: Wiederholung am 18.11.2026 um 10:01 bis 10:04 mit gesetztem `PATH`: `Upload succeeded`, `Uploaded package is processing.` (Build 47, Exit 0).
+
+Weitere Hinweise:
+- Bei `destination=upload` bleibt der Exportordner leer. Die IPA liegt nur im Xcode-Temp-Ordner (`XcodeDistPipeline.*/Packages/Showers.ipa`, unter dem Temp-Verzeichnis des Systems) und kann dort für die SHA-256 gelesen werden, solange der Lauf sie nicht entfernt hat.
+- Läuft der Befehl über `sparsam` (Plätze, Drosselung), kann `xcodebuild -exportArchive` auf einen freien Platz warten ("Plätze belegt ... warte"); das ist kein Hänger.
