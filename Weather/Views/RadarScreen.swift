@@ -291,27 +291,97 @@ struct RadarScreen: View {
 
     private struct LayerPollKey: Equatable { let layer: RadarLayer; let active: Bool }
 
+    /// Quick row of the menu. The first symbol is the active rain layer (else the DWD radar).
+    private var quickLayers: [(layer: RadarLayer, label: String)] {
+        [(store.activeLayer.isRain ? store.activeLayer : .radar, NSLocalizedString("RADAR_MENU_QUICK_RAIN", value: "Regen", comment: "Radar menu quick row")),
+         (.clouds, RadarLayer.clouds.title), (.lightning, RadarLayer.lightning.title), (.temperature, RadarLayer.temperature.title)]
+            .filter { store.layers.isOffered($0.layer) }
+    }
+
+    /// One selectable layer: checkmark when active, greyed out with a hint when unavailable, note as subtitle.
+    @ViewBuilder
+    private func layerButton(_ layer: RadarLayer, iconOnly: Bool = false, label: String? = nil) -> some View {
+        let availability = store.layers.availability(layer)
+        let selected = layer == store.activeLayer
+        let name = label ?? layer.menuTitle
+        let hint = availability.hint
+        Button {
+            store.isPlaying = false
+            showLegend = false
+            store.layers.select(layer)
+        } label: {
+            if iconOnly {
+                Label(name, systemImage: layer.symbolName)
+            } else {
+                Label {
+                    Text(name)
+                    if let line = hint ?? layer.menuNote { Text(line) }
+                } icon: {
+                    Image(systemName: selected ? "checkmark" : layer.symbolName)
+                }
+            }
+        }
+        .disabled(!availability.isSelectable)
+        .accessibilityLabel(layer.spokenName + (hint.map { ", \($0)" } ?? "")
+                            + (selected ? NSLocalizedString("RADAR_LAYER_SELECTED_SUFFIX", value: ", ausgewählt", comment: "Radar") : ""))
+        .accessibilityIdentifier(iconOnly ? "radar-layer-quick-\(layer.rawValue)" : "radar-layer-\(layer.rawValue)")
+    }
+
     /// Top right: layer choice (capsule with the active layer) plus manual reload. Reload used to be its own button;
     /// the adaptive poll already fetches `latest.json` every 10 to 60 s, so a manual reload is a rare action.
     private var layerMenu: some View {
         Menu {
-            Section(NSLocalizedString("RADAR_LAYER_SECTION", value: "Kartenebene", comment: "Radar")) {
-                ForEach(store.layers.offeredLayers) { layer in
-                    let availability = store.layers.availability(layer)
-                    Button {
-                        store.isPlaying = false
-                        showLegend = false
-                        store.layers.select(layer)
-                    } label: {
-                        Label(layer.title + (availability.hint.map { " (\($0))" } ?? ""),
-                              systemImage: layer == store.activeLayer ? "checkmark" : layer.symbolName)
-                    }
-                    .disabled(!availability.isSelectable)
-                    .accessibilityLabel(layer.spokenName + (availability.hint.map { ", \($0)" } ?? "")
-                                        + (layer == store.activeLayer ? NSLocalizedString("RADAR_LAYER_SELECTED_SUFFIX", value: ", ausgewählt", comment: "Radar") : ""))
-                    .accessibilityIdentifier("radar-layer-\(layer.rawValue)")
+            // Quick row (native ControlGroup in the menu): one tap per common layer.
+            ControlGroup {
+                ForEach(quickLayers, id: \.layer) { entry in
+                    layerButton(entry.layer, iconOnly: true, label: entry.label)
                 }
             }
+            .controlGroupStyle(.palette)
+            .accessibilityIdentifier("radar-layer-quick")
+            // Submenu "Regenebenen": DWD Germany, OPERA Europe, NOAA world (soon).
+            Menu {
+                ForEach(store.layers.rainMenuEntries, id: \.layer) { entry in
+                    if entry.isSoon {
+                        Button {} label: {
+                            Label {
+                                Text(entry.layer.menuTitle)
+                                Text(NSLocalizedString("LAYER_RADAR_SOON", value: "bald", comment: "Layer menu note"))
+                            } icon: { Image(systemName: entry.layer.symbolName) }
+                        }
+                        .disabled(true)
+                        .accessibilityLabel(entry.layer.spokenName + ", " + NSLocalizedString("LAYER_RADAR_SOON", value: "bald", comment: "Layer menu note"))
+                        .accessibilityIdentifier("radar-layer-\(entry.layer.rawValue)")
+                    } else {
+                        layerButton(entry.layer)
+                    }
+                }
+            } label: {
+                Label(NSLocalizedString("RADAR_MENU_GROUP_RAIN", value: "Regenebenen", comment: "Radar menu group"), systemImage: "cloud.rain")
+            }
+            .accessibilityLabel(NSLocalizedString("RADAR_MENU_GROUP_RAIN", value: "Regenebenen", comment: "Radar menu group") + NSLocalizedString("RADAR_MENU_GROUP_SUFFIX", value: ", Untermenü", comment: "Radar menu group"))
+            .accessibilityIdentifier("radar-layer-group-rain")
+            // Submenu "Zusatzebenen".
+            Menu {
+                ForEach(store.layers.extraMenuLayers) { layer in layerButton(layer) }
+            } label: {
+                Label(NSLocalizedString("RADAR_MENU_GROUP_EXTRA", value: "Zusatzebenen", comment: "Radar menu group"), systemImage: "square.3.layers.3d")
+            }
+            .accessibilityLabel(NSLocalizedString("RADAR_MENU_GROUP_EXTRA", value: "Zusatzebenen", comment: "Radar menu group") + NSLocalizedString("RADAR_MENU_GROUP_SUFFIX", value: ", Untermenü", comment: "Radar menu group"))
+            .accessibilityIdentifier("radar-layer-group-extra")
+            // Submenu "Darstellung": switches that keep the menu open.
+            Menu {
+                Toggle(isOn: $forestVisible) {
+                    Label(NSLocalizedString("RADAR_MENU_FOREST", value: "Wald anzeigen", comment: "Radar menu"), systemImage: "tree")
+                }
+                .menuActionDismissBehavior(.disabled)
+                .disabled(!store.activeLayer.isAirField)
+                .accessibilityIdentifier("radar-menu-forest")
+            } label: {
+                Label(NSLocalizedString("RADAR_MENU_GROUP_DISPLAY", value: "Darstellung", comment: "Radar menu group"), systemImage: "paintpalette")
+            }
+            .accessibilityLabel(NSLocalizedString("RADAR_MENU_GROUP_DISPLAY", value: "Darstellung", comment: "Radar menu group") + NSLocalizedString("RADAR_MENU_GROUP_SUFFIX", value: ", Untermenü", comment: "Radar menu group"))
+            .accessibilityIdentifier("radar-layer-group-display")
             Section {
                 Button {
                     store.isPlaying = false
@@ -347,7 +417,7 @@ struct RadarScreen: View {
         .accessibilityValue(store.activeLayer.spokenName)
         .accessibilityInputLabels([NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"), store.activeLayer.title,
                                    NSLocalizedString("VC_LAYER", value: "Kartenebene", comment: "Voice Control")])
-        .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene: Regenradar, Luftdruck, Blitze, Wolken, Sonne sowie Temperatur und Feuchte, soweit angeboten. Enthält auch Daten neu laden.", comment: "Radar"))
+        .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene. Untermenüs: Regenebenen (Deutschland, Europa, Welt), Zusatzebenen (Wolken, Sonne, Blitze, Luftdruck, Temperatur, Feuchte) und Darstellung. Enthält auch Daten neu laden.", comment: "Radar"))
         .accessibilityIdentifier("radar-layer-menu")
     }
 
