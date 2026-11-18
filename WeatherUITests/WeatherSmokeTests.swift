@@ -482,7 +482,10 @@ final class WeatherSmokeTests: XCTestCase {
             let window = app.windows.firstMatch.frame
             let pill = app.descendants(matching: .any)["radar-frame-label"]
             let attribution = app.staticTexts["radar-attribution"]
-            let pillTop = [pill, attribution].filter { $0.exists }.map { $0.frame.minY }.min() ?? window.maxY
+            // The credit sits below the slider (devices with a home indicator) or above it (home button): count it only above the slider.
+            let slider = app.sliders["radar-timeline"]
+            let creditAbove = attribution.exists && slider.exists && attribution.frame.maxY <= slider.frame.minY
+            let pillTop = [pill, creditAbove ? attribution : pill].filter { $0.exists }.map { $0.frame.minY }.min() ?? window.maxY
             XCTAssertLessThanOrEqual(panel.frame.maxY, pillTop + 1, "Legende endet über Zeit-Pille und Quellzeile (large=\(large))")
             XCTAssertLessThanOrEqual(panel.frame.maxY, window.maxY)
             let scale = app.descendants(matching: .any)["temperature-scale"]
