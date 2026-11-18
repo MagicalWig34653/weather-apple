@@ -26,38 +26,40 @@ final class PlacesLayoutTests: XCTestCase {
         try? shot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(tag).png"))
     }
 
-    private func measure(size: String?, tag: String, seedPush: Bool = false) {
+    private func measure(size: String?, tag: String, seedPush: Bool = false, english: Bool = false) {
+        let t = english ? (save: "Save or rename the selected place", alertTitle: "Save place", saveButton: "Save", selectPrefix: "Choose place:", pointName: "Kartenpunkt", places: "Your Places", delete: "Delete", bellBar: "Rain alert")
+                        : (save: "Ausgewählten Ort speichern oder umbenennen", alertTitle: "Ort speichern", saveButton: "Speichern", selectPrefix: "Ort auswählen:", pointName: "Kartenpunkt", places: "Deine Orte", delete: "Löschen", bellBar: "Regenhinweis")
         let name = "Layout-\(UUID().uuidString.prefix(6))"
         var extra: [String] = []
         if let size { extra += ["-UIPreferredContentSizeCategoryName", size] }
         if seedPush { extra += ["-UITestPushSeed"] }
-        let app = UITestLaunch.app(language: .german, extra: extra)
+        let app = UITestLaunch.app(language: english ? .english : .german, extra: extra)
         app.launch()
         let map = app.otherElements["radar-map"]
         XCTAssertTrue(map.waitForExistence(timeout: 20))
         map.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.42)).press(forDuration: 1)
-        XCTAssertTrue(app.buttons["Ort auswählen: Kartenpunkt"].waitForExistence(timeout: 8))
-        app.buttons["Ausgewählten Ort speichern oder umbenennen"].tap()
-        let alert = app.alerts["Ort speichern"]
+        XCTAssertTrue(app.buttons["\(t.selectPrefix) \(t.pointName)"].waitForExistence(timeout: 8))
+        app.buttons[t.save].tap()
+        let alert = app.alerts[t.alertTitle]
         XCTAssertTrue(alert.waitForExistence(timeout: 5))
         replaceText(in: alert.textFields.firstMatch, with: name)
-        alert.buttons["Speichern"].tap()
-        if !alert.waitForNonExistence(timeout: 2) { alert.buttons["Speichern"].tap() }
-        let selector = app.buttons["Ort auswählen: \(name)"]
+        alert.buttons[t.saveButton].tap()
+        if !alert.waitForNonExistence(timeout: 2) { alert.buttons[t.saveButton].tap() }
+        let selector = app.buttons["\(t.selectPrefix) \(name)"]
         XCTAssertTrue(selector.waitForExistence(timeout: 8))
         selector.tap()
-        XCTAssertTrue(app.navigationBars["Deine Orte"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars[t.places].waitForExistence(timeout: 5))
         sleep(1)
 
         let row = app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
         let ownCell = app.cells.containing(NSPredicate(format: "label == %@", name)).firstMatch
         let bell = ownCell.buttons["place-push"].firstMatch
-        let location = app.buttons["Aktuellen Standort verwenden"].firstMatch
+        let location = app.buttons[english ? "Use current location" : "Aktuellen Standort verwenden"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         XCTAssertTrue(bell.exists)
         // Zelle der Ortszeile (enthält Glocke) und Zelle darunter ("Aktuellen Standort verwenden").
         let cell = ownCell
-        let nextCell = app.cells.containing(.button, identifier: "Aktuellen Standort verwenden").firstMatch
+        let nextCell = app.cells.containing(.button, identifier: english ? "Use current location" : "Aktuellen Standort verwenden").firstMatch
         if seedPush { _ = nextCell.waitForExistence(timeout: 1) }
         record("\(tag) row=\(row.frame) bell=\(bell.frame) cell=\(cell.frame) locationButton=\(location.exists ? location.frame : .zero) locationCell=\(nextCell.exists ? nextCell.frame : .zero)")
         let pitch = nextCell.exists ? nextCell.frame.minY - cell.frame.minY : 0
@@ -65,8 +67,8 @@ final class PlacesLayoutTests: XCTestCase {
         save(app, tag)
         if seedPush {
             bell.tap()
-            _ = app.navigationBars["Regenhinweis"].waitForExistence(timeout: 5)
-            let picker = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Empfindlichkeit")).firstMatch
+            _ = app.navigationBars[t.bellBar].waitForExistence(timeout: 5)
+            let picker = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", english ? "Sensitivity" : "Empfindlichkeit")).firstMatch
             for _ in 0..<8 where !picker.exists { app.swipeUp() }
             XCTAssertTrue(picker.waitForExistence(timeout: 5))
             record("\(tag) sensitivity label='\(picker.label)' value='\(picker.value as? String ?? "")' frame=\(picker.frame) screen=\(app.frame)")
@@ -76,7 +78,7 @@ final class PlacesLayoutTests: XCTestCase {
             app.navigationBars.buttons.firstMatch.tap()
             if row.waitForExistence(timeout: 3) {
                 row.swipeLeft()
-                if app.buttons["Löschen"].waitForExistence(timeout: 2) { app.buttons["Löschen"].tap() }
+                if app.buttons[t.delete].waitForExistence(timeout: 2) { app.buttons[t.delete].tap() }
             }
             app.terminate()
             return
@@ -97,7 +99,7 @@ final class PlacesLayoutTests: XCTestCase {
 
         // Aufräumen: nur den eigenen Testort löschen.
         row.swipeLeft()
-        if app.buttons["Löschen"].waitForExistence(timeout: 2) { app.buttons["Löschen"].tap() }
+        if app.buttons[t.delete].waitForExistence(timeout: 2) { app.buttons[t.delete].tap() }
         app.terminate()
     }
 
@@ -112,5 +114,6 @@ final class PlacesLayoutTests: XCTestCase {
     func testSensitivityStandard() { measure(size: nil, tag: "sens-std", seedPush: true) }
     func testSensitivityXSmall() { measure(size: "UICTContentSizeCategoryXS", tag: "sens-xs", seedPush: true) }
     func testSensitivityAXXXL() { measure(size: "UICTContentSizeCategoryAccessibilityXXXL", tag: "sens-axxxl", seedPush: true) }
+    func testSensitivityEnglishStandard() { measure(size: nil, tag: "sens-std-en", seedPush: true, english: true) }
     func testLayoutXSmall() { measure(size: "UICTContentSizeCategoryXS", tag: "xs") }
 }
