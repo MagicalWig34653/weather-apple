@@ -1,6 +1,6 @@
 # Datenschutz-Entwurf für das Release (Seitentext und App-Privacy, Variante B)
 
-**Stand 10.11.2026: Teil A (DE) ist final und gekürzt (siehe dort); es gibt keine englische Datenschutzseite, Teil A-EN ist nicht veröffentlicht; Klammern und Hinweise im Text sind entfernt, die Teile C bis G sind Arbeitsnotizen und gehören nicht auf die Seite.** Stand 7. November 2026 (Nutzerentscheidungen eingearbeitet; zweite Runde: Hosting Hetzner, Dashboard-Einsicht, Auskunft über die Installationskennung; danach technisch-redaktionelle Plausibilitätsprüfung gegen den Code, Korrekturen im Text mit `[R1]` bis `[R9]` markiert und in Teil F erklärt, Fragen für die externe Rechtsprüfung in Teil G). **ENTWURF zur Freigabe durch den Nutzer, NICHT live.** Weder `/datenschutz` im Backend noch `docs-site/content/datenschutz.md` noch App Store Connect wurden geändert. Dies ist keine Rechtsberatung; Rechtsgrundlagen, Impressum und Einordnung sind Vorschläge und vor Livegang rechtlich zu prüfen. Aussagen sind aus dem Code und den Repo-Dokumenten belegt; Unbekanntes steht in Teil C als Nutzerfrage und im Seitentext als `[ ... ]`.
+**Stand 18.11.2026: Endfassungen von Teil A (Datenschutzerklärung), Teil B (App Privacy), Teil H (Impressum) und Teil I (Support) nach den Entscheidungen in [research/rechtspruefung-entscheidungen.md](research/rechtspruefung-entscheidungen.md). Alle bleiben ENTWURF bis zu Linos ausdrücklicher Freigabe; nichts davon ist veröffentlicht. KI-gestützte Plausibilitätsprüfung, keine Rechtsberatung.** Frühere Stände: **Stand 10.11.2026: Teil A (DE) ist final und gekürzt (siehe dort); es gibt keine englische Datenschutzseite, Teil A-EN ist nicht veröffentlicht; Klammern und Hinweise im Text sind entfernt, die Teile C bis G sind Arbeitsnotizen und gehören nicht auf die Seite.** Stand 7. November 2026 (Nutzerentscheidungen eingearbeitet; zweite Runde: Hosting Hetzner, Dashboard-Einsicht, Auskunft über die Installationskennung; danach technisch-redaktionelle Plausibilitätsprüfung gegen den Code, Korrekturen im Text mit `[R1]` bis `[R9]` markiert und in Teil F erklärt, Fragen für die externe Rechtsprüfung in Teil G). **ENTWURF zur Freigabe durch den Nutzer, NICHT live.** Weder `/datenschutz` im Backend noch `docs-site/content/datenschutz.md` noch App Store Connect wurden geändert. Dies ist keine Rechtsberatung; Rechtsgrundlagen, Impressum und Einordnung sind Vorschläge und vor Livegang rechtlich zu prüfen. Aussagen sind aus dem Code und den Repo-Dokumenten belegt; Unbekanntes steht in Teil C als Nutzerfrage und im Seitentext als `[ ... ]`.
 
 Quellen (gelesen am 7.11.2026): Live-Seitenquelle `Sources/RadarCore/SitePages.swift` (Schwesterrepo, Methode `privacy`), Schwesterrepo `migrations/003, 006, 007, 010, 015`, `docs-site/content/api.md` (Push, Testmeldung, Live Activity, Kopplung, Warnungen), `PushService.swift` (Aufbewahrung), `PushMeasure.swift` (Dashboard), `docs/datenschutz-gebiets-live-activity.md`, `docs/decisions.md` beider Repos, `docs/app-store-release-checkliste.md`, `docs/superpowers/specs/2026-11-07-warnungen-design.md`, `docs/research/dwd-warnungen-weitergabe.md`, App-Code `Weather/Push/PushGateway.swift`, `Shared/Data/DWDClient.swift`.
 
@@ -27,51 +27,58 @@ Nach außen heißt die App immer **„Showers“**, nie „ShowerNow“. „Show
 
 ---
 
-## Teil A: Seitentext, deutsch (final, gekürzt; entspricht `/datenschutz` im Backend)
+## Teil A: Seitentext, deutsch (Endfassung 18.11.2026, ENTWURF bis Linos ausdrückliche Freigabe; Ziel `/datenschutz` im Backend)
 
-**Textstand final laut Nutzerentscheidung 10.11.2026:** gekürzt auf die Angaben nach Art. 13 DSGVO, Klammern, Platzhalter und Entwurfshinweise entfernt, keine Aussage zu Backups, Aufsichtsbehörde allgemein. Dieselbe Fassung gilt für die Webseite (Backend `SitePages.swift`) und den App-Info-Text. Der Absatz „Amtliche Warnungen“ (Teil E) erscheint auf der Webseite nur mit `PUSH_ENABLED` und `WARN_PUSH_ENABLED`. Die ausführlichere frühere Fassung steht in der Git-Historie dieser Datei (Stand 8.11.2026).
+**Stand 18.11.2026:** Fassung nach den Entscheidungen E1 bis E9 in [research/rechtspruefung-entscheidungen.md](research/rechtspruefung-entscheidungen.md). KI-gestützte Plausibilitätsprüfung, keine Rechtsberatung. **Entwurf, nicht live; erst nach Linos ausdrücklicher Freigabe veröffentlichen.** Gegenüber der Fassung vom 10.11. geändert: Abschnitt 3 (Proxy ohne Zugriffsprotokolle, Regen Europa), 4 (Rechtsgrundlage der Direktabrufe, § 25 TDDDG, Abruftakt), 5 (Rasterzelle als personenbezogenes Datum, Standardvertragsklauseln Apple), 7 (Proxy bei Hetzner), 8 (Widerspruch), 9 (Quellen mit Lizenzen). Platzhalter in eckigen Klammern liefert nur Lino (Betreiberkonfiguration `OPERATOR_NAME`, `OPERATOR_ADDRESS`, `OPERATOR_EMAIL`; nie ins Repo).
+
+**Vorbedingungen vor dem Livegang (sonst ist der Text falsch):** (1) In Zoraxy ist für die Showers-Domains neben dem Request-Logging auch die Statistik-Erfassung (`DisableStatisticCollection`) aus, alte Zoraxy-Logs und -Statistiken sind gelöscht. (2) Der Proxy läuft bei Hetzner in Deutschland und der Standard-AVV mit Hetzner ist abgeschlossen. (3) Die Backend-Seite `SitePages.swift` übernimmt diesen Wortlaut (eigene Backend-Aufgabe; `PROXY_LOG_NOTE` leer lassen). Der Absatz „Amtliche Warnungen“ (Teil E) erscheint nur mit `PUSH_ENABLED` und `WARN_PUSH_ENABLED`.
 
 > # Datenschutzerklärung
-> Für die App Showers (iPhone, iPad, Apple Watch) und den zugehörigen Radar-Dienst. Stand: 10. November 2026.
+> Für die App Showers (iPhone, iPad, Apple Watch) und den zugehörigen Radar-Dienst. Stand: 18. November 2026.
 >
 > ## 1. Verantwortlicher
-> Name, Anschrift und E-Mail des Verantwortlichen (auf der Webseite aus der Betreiberkonfiguration `OPERATOR_NAME`, `OPERATOR_ADDRESS`, `OPERATOR_EMAIL`; im App-Info-Text dieselben Angaben).
+> [OPERATOR_NAME]
+> [OPERATOR_ADDRESS]
+> E-Mail: [OPERATOR_EMAIL]
 >
 > ## 2. Überblick
 > Kein Benutzerkonto, kein Tracking, keine Werbung, keine Analyse-Dienste. Gespeicherte Orte, ihre Namen und deine Einstellungen bleiben auf deinem Gerät. Die Nutzung ist freiwillig: Du musst keine Daten bereitstellen; ohne Regenhinweise registriert sich die App nicht auf dem Server. Eine automatisierte Entscheidungsfindung im Sinne von Art. 22 DSGVO findet nicht statt.
 >
-> ## 3. Radar-Abruf und Server-Protokolle
-> Die App lädt Radarbilder und weitere Karten (Luftdruck, Blitze, Wolken, Sonne, Temperatur, Feuchte) für ganz Deutschland vom Showers-Radar-Dienst. Die Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen; er zählt nur aggregierte, personenlose Werte für den Betrieb (Anfragen je Routengruppe, Fehlerzähler, 30 Tage beziehungsweise 72 Stunden).
-> Dem Radar-Dienst ist ein Reverse Proxy vorgeschaltet. Technisch bedingt sieht er die IP-Adresse jedes Abrufs und protokolliert sie befristet. Zweck sind Betrieb, Fehlersuche und Abwehr von Missbrauch; Rechtsgrundlage ist unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO).
+> ## 3. Radar-Abruf und Server
+> Die App lädt Radarbilder und weitere Karten (Regen in Deutschland und Europa, Luftdruck, Blitze, Wolken, Sonne, Temperatur, Feuchte) vom Showers-Radar-Dienst. Es sind Gesamtbilder je Zeitpunkt; die Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen; er zählt nur aggregierte, personenlose Werte für den Betrieb (Anfragen je Routengruppe, Fehlerzähler, 30 Tage beziehungsweise 72 Stunden).
+> Dem Radar-Dienst ist ein Reverse Proxy vorgeschaltet, der die verschlüsselte Verbindung annimmt und weiterleitet. Dafür verarbeitet er technisch bedingt deine IP-Adresse, aber nur für die Dauer der Anfrage: Für den Showers-Dienst führt er keine Zugriffsprotokolle und keine Statistik mit IP-Adressen. Das gilt auch für die Anfragen der Regenhinweise (Abschnitt 5). Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und funktionsfähigen Auslieferung (Art. 6 Abs. 1 lit. f DSGVO).
 >
 > ## 4. Orte, Standort, Prognose und Karten
-> Der Standortzugriff ist optional und wird erst angefragt, wenn du ihn nutzen willst; es gibt keine Hintergrundortung und keine Standortverläufe. Gespeicherte Orte und ihre Namen liegen nur lokal auf deinem Gerät (auch für Widgets und Apple Watch). Die kurze Einordnung der Regenlage erstellt Apple Foundation Models auf dem Gerät.
-> Die Punktprognose für einen Ort, auch für Widgets und Apple Watch, ruft die App direkt beim Deutschen Wetterdienst (DWD) ab. Der Radar-Dienst erhält diese Orte nicht. Antwortet der Radar-Dienst nicht oder sind seine Daten älter als 20 Minuten, lädt die App die Radarbilder ebenfalls direkt beim DWD; die Legendenbilder einiger Karten lädt sie direkt beim DWD beziehungsweise bei EUMETSAT. Diese Stellen sehen dabei den angefragten Punkt oder Kartenausschnitt und, wie bei jeder Internetverbindung, deine IP-Adresse; es gelten ihre eigenen Datenschutzhinweise.
+> Der Standortzugriff ist optional und wird erst angefragt, wenn du ihn nutzen willst; es gibt keine Hintergrundortung und keine Standortverläufe. Gespeicherte Orte und ihre Namen liegen nur lokal auf deinem Gerät (auch für Widgets und Apple Watch). Auf deinem Gerät speichert die App nur, was für die von dir genutzten Funktionen unbedingt erforderlich ist (§ 25 Abs. 2 Nr. 2 TDDDG): Orte, Einstellungen und bei Regenhinweisen die Installationskennung samt Geheimnis im Schlüsselbund. Die kurze Einordnung der Regenlage erstellt Apple Foundation Models auf dem Gerät.
+> Die Punktprognose für einen Ort, auch für Widgets und Apple Watch, ruft die App direkt beim Deutschen Wetterdienst (DWD) ab, bei geöffneter App regelmäßig neu. Der Radar-Dienst erhält diese Orte nicht. Antwortet der Radar-Dienst nicht oder sind seine Daten älter als 20 Minuten, lädt die App die Radarbilder für Deutschland ebenfalls direkt beim DWD; die Legendenbilder einiger Karten lädt sie direkt beim DWD beziehungsweise bei EUMETSAT. Diese Stellen sehen dabei den angefragten Punkt oder Kartenausschnitt und, wie bei jeder Internetverbindung, deine IP-Adresse; es gelten ihre eigenen Datenschutzhinweise.
 > Karte und Ortssuche nutzen Apple MapKit: Dein Gerät ruft Kartendaten von Apple ab, bei der Suche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, auf der Apple Watch für den Kartenhintergrund die Koordinate des Ortes. Apple sieht dabei deine IP-Adresse; es gelten die Datenschutzbestimmungen von Apple. Suchtext und Karte gehen nicht an den Radar-Dienst.
+> Rechtsgrundlage für diese von deinem Gerät ausgelösten Abrufe ist die Bereitstellung der von dir genutzten Funktion (Art. 6 Abs. 1 lit. b DSGVO) beziehungsweise unser berechtigtes Interesse an einer funktionsfähigen App (Art. 6 Abs. 1 lit. f DSGVO).
 >
 > ## 5. Regenhinweise und Live Activities (optional)
 > Wenn du Regenhinweise für einen Ort oder ein Gebiet einschaltest, kann dich der Radar-Dienst auch bei geschlossener App benachrichtigen. Zweck ist die Zustellung dieser Hinweise; Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du mit dem Einschalten erteilst und durch Ausschalten oder Löschen jederzeit mit Wirkung für die Zukunft widerrufen kannst. Ohne diese Funktion wird nichts davon gespeichert.
-> **Gespeichert werden** auf dem Server: eine zufällige Installationskennung und der Hash eines Geheimnisses (das Geheimnis selbst liegt nur im Schlüsselbund deines Geräts); das Gerätetoken für Apple Push-Mitteilungen, die Umgebung (Entwicklung oder Produktion) und die Sprache; je Regenhinweis bei einem Ort die Rasterzelle des Radarbildes (Kantenlänge etwa 0,7 km, keine Koordinate, kein Ortsname), bei einem Gebiet der auf etwa 2 km gerundete Mittelpunkt und der Radius, dazu Schwelle, Vorlauf, Einstellungen, Zustand der Auswertung und Zeitpunkte; bei Live Activities Start- und Activity-Token; kurzzeitig der zu sendende Mitteilungstext in einer Warteschlange. Es sind bis zu 10 Regenhinweise je Installation möglich, davon bis zu 3 Gebiete. Die Rasterzelle kann zusammen mit der Installationskennung einem Gerät zugeordnet und damit personenbezogen sein; ein Standortverlauf entsteht nicht. Ortsnamen kennt der Server nicht: Eine Erweiterung der App ergänzt sie auf dem Gerät.
+> **Gespeichert werden** auf dem Server: eine zufällige Installationskennung und der Hash eines Geheimnisses (das Geheimnis selbst liegt nur im Schlüsselbund deines Geräts); das Gerätetoken für Apple Push-Mitteilungen, die Umgebung (Entwicklung oder Produktion) und die Sprache; je Regenhinweis bei einem Ort die Rasterzelle des Radarbildes (Kantenlänge etwa 0,7 km, keine genaue Koordinate, kein Ortsname), bei einem Gebiet der auf etwa 2 km gerundete Mittelpunkt und der Radius, dazu Schwelle, Vorlauf, Einstellungen, Zustand der Auswertung und Zeitpunkte; bei Live Activities Start- und Activity-Token; kurzzeitig der zu sendende Mitteilungstext in einer Warteschlange. Es sind bis zu 10 Regenhinweise je Installation möglich, davon bis zu 3 Gebiete. Zusammen mit der Installationskennung ist die Rasterzelle einem Gerät zugeordnet; wir behandeln sie deshalb als personenbezogenes Datum. Gespeichert wird nur der aktuelle Wert, ein Standortverlauf entsteht nicht. Ortsnamen kennt der Server nicht: Eine Erweiterung der App ergänzt sie auf dem Gerät.
 > **Testmeldung.** In den Einstellungen kannst du eine Testmeldung mit festem Text auslösen (höchstens 3 je Stunde); sie wird nicht gespeichert.
-> **Apple.** Mitteilungen und Live Activities werden über den Apple Push Notification Service zugestellt. Apple erhält dafür vom Server das Gerätetoken, den Inhalt der Mitteilung und technische Kennungen zum Zusammenfassen von Mitteilungen. Dabei können Daten an Server von Apple außerhalb der EU, insbesondere in den USA, übermittelt werden. Es gelten die Datenschutzbestimmungen von Apple.
+> **Apple.** Mitteilungen und Live Activities werden über den Apple Push Notification Service zugestellt. Apple erhält dafür vom Server das Gerätetoken, den Inhalt der Mitteilung und technische Kennungen zum Zusammenfassen von Mitteilungen. Dabei können Daten an Server von Apple außerhalb der EU, insbesondere in den USA, übermittelt werden. Apple stützt solche Übermittlungen nach eigenen Angaben auf EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO). Es gelten die Datenschutzbestimmungen von Apple.
 > **Speicherdauer.** Löschst du einen Regenhinweis oder schaltest die Funktion aus, löscht die App die Registrierung auf dem Server; damit werden Installation, Regenhinweise, Activity-Daten und wartende Mitteilungen gelöscht. Meldet Apple ein Gerätetoken als ungültig (zum Beispiel nach Löschen der App), löscht der Server die Registrierung sofort. Registrierungen, die 60 Tage lang nicht mehr von der App gemeldet wurden, werden automatisch gelöscht. Mitteilungen in der Warteschlange werden nach etwa 6 Stunden entfernt.
 >
 > ## 6. Betreiber-Diagnose (freiwillig)
 > Der Betreiber kann ein Gerät zur Fehlersuche bei Regenhinweisen und Live Activities koppeln. Das ist standardmäßig aus, nur in den Einstellungen der App einschaltbar und nur möglich, solange der Betreiber im Dashboard kurzzeitig ein Kopplungsfenster geöffnet hat. Dabei zeigt die App einen kurzen Koppelcode (10 Minuten gültig, einmal verwendbar), den der Betreiber nach Anmeldung mit seinem Passkey im Dashboard eingibt. Gespeichert werden die Zuordnung zur Push-Registrierung, eine vom Betreiber vergebene Bezeichnung, Zeitpunkte und ein Verlauf technischer Versandergebnisse der letzten 48 Stunden. Nur für ein gekoppeltes Gerät sieht der Betreiber dessen Regenhinweise mit der auf etwa 1 km gerundeten Position und der aktuellen Auswertung; er kann diesem Gerät Test-Mitteilungen und eine Test-Live-Activity senden. Höchstens drei Geräte können gleichzeitig gekoppelt sein. Im Betreiberprotokoll werden Kopplung, Entkopplung und Aktionen ohne Installationskennung, Token oder Ort mit einem kurzen Prüfwert 365 Tage aufbewahrt. Die Kopplung gilt bis zum Widerruf, längstens bis die Push-Registrierung gelöscht wird; du kannst sie jederzeit in der App ausschalten, dabei wird sie auf dem Server gelöscht. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).
 >
 > ## 7. Empfänger, Hosting und Drittländer
-> Der Radar-Dienst und seine Datenbank laufen auf einem eigenen virtuellen Server bei der Hetzner Online GmbH in einem Rechenzentrum in Deutschland. Hetzner verarbeitet die dort gespeicherten Daten als Auftragsverarbeiter nach Art. 28 DSGVO nur nach unseren Weisungen. Empfänger der Push-Daten ist Apple (Abschnitt 5). Direkt von deinem Gerät, ohne Beteiligung des Betreibers, gehen Anfragen an den DWD, an EUMETSAT und an Apple (Abschnitt 4); diese Stellen verarbeiten die Daten in eigener Verantwortung. Darüber hinaus geben wir keine Daten weiter und verkaufen keine Daten. Eine Übermittlung in Drittländer kann nur über Apple erfolgen (Abschnitt 5).
+> Der Radar-Dienst, der vorgeschaltete Reverse Proxy und die Datenbank laufen auf eigenen virtuellen Servern bei der Hetzner Online GmbH in Rechenzentren in Deutschland. Hetzner verarbeitet die dort gespeicherten und übertragenen Daten als Auftragsverarbeiter nach Art. 28 DSGVO nur nach unseren Weisungen. Empfänger der Push-Daten ist Apple (Abschnitt 5). Direkt von deinem Gerät, ohne Beteiligung des Betreibers, gehen Anfragen an den DWD, an EUMETSAT und an Apple (Abschnitt 4); diese Stellen verarbeiten die Daten in eigener Verantwortung. Darüber hinaus geben wir keine Daten weiter und verkaufen keine Daten. Eine Übermittlung in Drittländer kann nur über Apple erfolgen (Abschnitt 5).
 >
 > ## 8. Deine Rechte
-> Dir stehen nach der Datenschutz-Grundverordnung (DSGVO) die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch zu (Art. 15 bis 21 DSGVO) sowie das Recht, eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft zu widerrufen. Soweit wir Daten auf Grundlage berechtigter Interessen verarbeiten (Protokolle des Reverse Proxys, Abschnitt 3), kannst du aus Gründen, die sich aus deiner besonderen Situation ergeben, jederzeit widersprechen (Art. 21 DSGVO). Zudem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren, insbesondere in dem Mitgliedstaat deines Aufenthaltsorts.
+> Dir stehen nach der Datenschutz-Grundverordnung (DSGVO) die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch zu (Art. 15 bis 21 DSGVO) sowie das Recht, eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft zu widerrufen. Soweit wir Daten auf Grundlage berechtigter Interessen verarbeiten (Abschnitte 3 und 4), kannst du aus Gründen, die sich aus deiner besonderen Situation ergeben, jederzeit widersprechen (Art. 21 DSGVO). Zudem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren, insbesondere in dem Mitgliedstaat deines Aufenthaltsorts.
 > Am einfachsten löschst du deine Daten auf dem Server selbst: Schalte alle Regenhinweise in der App aus oder lösche sie. Da die Installationskennung nur auf deinem Gerät liegt, kann der Betreiber Daten auf Anfrage nur zuordnen, wenn du die Installationskennung nennst; du findest sie in der App in den Einstellungen und kannst sie dort kopieren. Wende dich für Anfragen an die in Abschnitt 1 genannte Stelle.
 >
 > ## 9. Quellen
-> Quelle: Deutscher Wetterdienst. Die Radarbilder sind aus Rasterdaten des DWD bildlich wiedergegeben und aufbereitet. Wolken- und Sonnenkarten: Contains modified EUMETSAT Meteosat data 2026. Kartenhintergrund: Apple Karten.
+> Radar Deutschland, Prognose und Warnungen: Quelle: Deutscher Wetterdienst. Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben und aufbereitet. Temperatur- und Feuchtekarten: DWD ICON-D2/ICON-EU Modelldaten (CC BY 4.0, Quelle: Deutscher Wetterdienst), verändert. Regen Europa: EUMETNET OPERA (CC BY 4.0), umprojiziert und eingefärbt. Wolken- und Sonnenkarten: Contains modified EUMETSAT Meteosat data 2026 (CC BY 4.0). Optionale Waldfläche: © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0), verändert. Warngebiete: © GeoBasis-DE / BKG 2021 (Daten modifiziert). Kartenhintergrund: Apple Karten. Lizenztext CC BY 4.0: https://creativecommons.org/licenses/by/4.0/deed.de
+
+Redaktionelle Hinweise (nicht auf die Seite): Sobald die Ebene „Welt“ live ist, in Abschnitt 3 „Regen in Deutschland, Europa und weltweit“ schreiben und in Abschnitt 9 „Regen weltweit: NOAA, aus Satellitendaten geschätzt, umprojiziert und eingefärbt“ ergänzen. Das EUMETSAT-Jahr jährlich anpassen. Abschnitt 9 muss zu den Quellzeilen der App (Backend-Manifest, `INFO_MODEL_*`) passen; Abweichungen dort gehen vor.
 
 ---
 
-## Teil A-EN: Full page text, English (NICHT VERÖFFENTLICHT, App nur in DE angeboten; veraltete, ausführlichere Fassung, nicht auf Stand Teil A)
+## Teil A-EN: Full page text, English (NICHT VERÖFFENTLICHT und nicht nötig, solange die App nur in Deutschland angeboten wird; veraltete, ausführlichere Fassung vom 7.11., nicht auf Stand Teil A; Entscheidung 18.11.: nicht weiterpflegen, siehe rechtspruefung-entscheidungen.md C/G-11)
 
 Same structure and numbering as Part A. Placeholders in square brackets. Not legal advice; the German text is the reference if they diverge.
 
@@ -195,32 +202,32 @@ Same structure and numbering as Part A. Placeholders in square brackets. Not leg
 
 ---
 
-## Teil B: App-Privacy-Angaben in App Store Connect (Variante B)
+## Teil B: App-Privacy-Angaben in App Store Connect (Variante B, Endfassung 18.11.2026, ENTWURF bis Linos Freigabe)
 
-Beantwortung des Fragebogens „App-Datenschutz“ für den Fall, dass Push, Gebiete und Live Activities live sind. **Kategorienamen und Definitionen sind aus Apple-Wissen, in Connect nicht gesehen und nicht gegen die aktuelle Apple-Seite geprüft.** Kein Rechtsrat.
+Beantwortung des Fragebogens „App-Datenschutz“ für den Fall, dass Push, Gebiete und Live Activities live sind. Apple-Definitionen am 18.11.2026 auf https://developer.apple.com/app-store/app-privacy-details/ nachgelesen („collect“, IP-Adresse, Precise/Coarse Location). Die Bezeichnungen im Connect-Formular selbst wurden nicht gesehen. Kein Rechtsrat; Eintragung in Connect macht Lino.
 
-Frage „Erfasst ihr oder Drittpartner Daten aus dieser App?“: **Ja** (Variante A „Keine Daten erfasst“ entfällt, da Gerätetoken und Zelle serverseitig gespeichert werden; Daten, die nur auf dem Gerät bleiben oder nur kurz im Speicher verarbeitet werden, zählen nicht).
+Frage „Erfasst ihr oder Drittpartner Daten aus dieser App?“: **Ja** (Gerätetoken, Installationskennung und Rasterzelle werden serverseitig gespeichert; Daten, die nur auf dem Gerät bleiben oder nur für die Dauer der Anfrage verarbeitet werden, zählen nach Apple nicht als „collected“).
 
 | # | Datentyp (Kategorie) | Erfasst? | Mit der Identität verknüpft? | Tracking? | Zweck | Grundlage im Code |
 |---|---|---|---|---|---|---|
-| 1 | Kennungen > **Geräte-ID** | Ja: Gerätetoken (APNs), Installations-UUID, Start-/Activity-Token | Ja (Kennung identifiziert die Installation; konservativ „verknüpft“) | Nein | App-Funktionalität | `push_install`, `push_activity`, `la_start_token` |
-| 2a | Standort > **Genauer Standort** (Precise Location) | Ja: Rasterzelle eines Ortes (Kante ~0,7 km) | Ja (zusammen mit Installations-UUID gespeichert) | Nein | App-Funktionalität | `push_sub.cell_x/y` (Punkt-Abo) |
-| 2b | Standort > **Grober Standort** (Coarse Location) | Ja: auf ~2 km gerundeter Mittelpunkt und Radius eines Gebiets | Ja (zusammen mit Installations-UUID gespeichert) | Nein | App-Funktionalität | `push_sub.cell_x/y`, `radius_cells` (Gebiets-Abo) |
-| 3 | alle übrigen Kategorien | Nein (Proxy-IP-Logs: siehe Punkt 10, ungeprüft) | - | - | - | siehe unten |
+| 1 | Kennungen > **Geräte-ID** | Ja: Gerätetoken (APNs), Installations-UUID, Start-/Activity-Token | Ja | Nein | App-Funktionalität | `push_install`, `push_activity`, `la_start_token` |
+| 2a | Standort > **Genauer Standort** (Precise Location) | Ja: Rasterzelle eines Ortes (Kante ~0,7 km) | Ja | Nein | App-Funktionalität | `push_sub.cell_x/y` (Punkt-Abo) |
+| 2b | Standort > **Grober Standort** (Coarse Location) | Ja: auf ~2 km gerundeter Mittelpunkt und Radius eines Gebiets | Ja | Nein | App-Funktionalität | `push_sub.cell_x/y`, `radius_cells` (Gebiets-Abo) |
+| 3 | alle übrigen Kategorien, auch Diagnose und IP-Adresse | Nein | - | - | - | siehe Hinweise 6 und 10 |
 
-Hinweise zu den einzelnen Punkten:
+Hinweise:
 
-1. **Geräte-ID:** Der Server speichert kein IDFA/IDFV, sondern eine selbst erzeugte Installations-UUID plus das APNs-Token. Apple fasst auch solche geräte-/installationsbezogenen Kennungen unter „Device ID“; Vorschlag: so deklarieren.
-2. **Genauer vs. grober Standort (Nutzerentscheidung 7.11.):** Die Zelle eines Ortes (Kante ≈ 0,7 km) wird als „Genauer Standort“ deklariert, das Gebiet (3x3-Block ≈ 2 km gerundet) als „Grober Standort“. Begründung knapp: Die Ortszelle ist kleiner als die Größenordnung, die Apple nach meiner Erinnerung für „Coarse“ nennt (Fläche von mindestens ~3 km² beziehungsweise weniger als drei Dezimalstellen bei Breite/Länge), daher die vorsichtigere Einstufung; das gerundete Gebiet liegt darüber. **Nicht geprüft:** die aktuelle Apple-Definition und der Wortlaut der Kategorien in App Store Connect; vor dem Ausfüllen dort abgleichen. **Nachtrag 12.11.2026 (Apple-Seite geprüft):** Apple definiert „Precise Location“ als Auflösung von mindestens drei Dezimalstellen bei Breite/Länge (ca. 110 m); gröber ist „Coarse“. Danach wären Ortszelle und Gebiet beide „Coarse“; die Einstufung bleibt Nutzerentscheidung, siehe [research/rechtspruefung-ergebnis.md](research/rechtspruefung-ergebnis.md) Frage 11 und E4. Hinweis: Das Gebiet-Abo wird vom Server ebenfalls mit Installations-UUID gespeichert; falls Connect je Datentyp nur einen Eintrag zulässt, ist „Genauer Standort“ die abdeckende Angabe.
-3. **Verknüpfung:** Die Daten hängen an der Installations-UUID, es gibt aber kein Konto und keine Verbindung zu Name, E-Mail oder Apple-ID. Ob „mit Identität verknüpft“ angekreuzt wird, ist Auslegungssache; wegen der dauerhaft gespeicherten Kennung (bis zu 60 Tage Inaktivität) ist „Ja, verknüpft“ die vorsichtige Angabe.
-4. **Tracking:** Nein. Keine Verknüpfung mit Daten Dritter, keine Weitergabe an Datenhändler, keine Werbung, kein Tracking-Domain-Eintrag nötig.
-5. **Zweck:** nur „App-Funktionalität“ (Regenhinweise, Live Activities). Nicht: Analyse, Werbung, Personalisierung, Produktentwicklung.
-6. **Nicht erfasst:** Kontaktdaten, Gesundheit, Finanzen, Nutzerinhalte, Browserverlauf, Suchverlauf (der Suchtext geht an Apple MapKit, nicht an den Betreiber), Käufe, Nutzungsdaten (nur aggregierte Zähler ohne Kennung), Diagnosedaten (kein Crash-SDK; Apples eigene TestFlight-/App-Store-Berichte zählen nicht zur App), Sensible Daten, Sonstige Daten.
-7. **Betreiber-Diagnose (Kopplung):** Zusätzliche Datensätze (Bezeichnung des Geräts, Zeitpunkte, 48-h-Versandverlauf) hängen an derselben Installation. Die Bezeichnung ist eine vom Betreiber vergebene Gerätebezeichnung; sie ist in den Kategorien oben mit abgedeckt (Geräte-ID, kein neuer Datentyp). Nutzerprüfung, falls die Bezeichnung personenbezogen vergeben wird.
-8. **Warnungen (später):** Warngebiets-IDs (Gemeinde) sind dem Standort (grob) zuzuordnen, Kategorien voraussichtlich unverändert (Spec §5). Bei Push-Livegang erneut prüfen.
-9. **Zusätzlich im Projekt (Agent-Aufgabe, nicht Teil dieses Entwurfs):** `PrivacyInfo.xcprivacy` je Target mit UserDefaults-Gründen (CA92.1, 1C8F.1), erstmals `b29be64` (Build 33: Device ID und Coarse Location, *nicht* verknüpft). Seit `8eb9715` (Build 34) deklariert `Weather/PrivacyInfo.xcprivacy` Device ID, Coarse **und** Precise Location, jeweils verknüpft, kein Tracking, Zweck App Functionality; das stimmt mit dieser Tabelle überein (am 7.11. gegen die Datei geprüft). Build 33 und Teil B widersprechen sich bei „verknüpft“; maßgeblich für den Release ist Build 34 oder neuer. [R8]
-
-10. **Proxy-IP-Logs und App Privacy (neu, ungeprüft):** Der Proxy protokolliert IP-Adressen aller Abrufe (nur Betrieb/Sicherheit, nicht mit Installations-ID verknüpft). Ob Apple dafür eine Angabe verlangt (z. B. unter Nutzungs- oder Diagnosedaten, Zweck Sicherheit/Betrieb), ist nicht geprüft; vor Abgabe in Connect gegen die aktuelle Apple-Definition prüfen. Teil B führt dazu bewusst noch nichts auf.
+1. **Geräte-ID:** Kein IDFA/IDFV, sondern eine selbst erzeugte Installations-UUID plus APNs-Token; als „Device ID“ deklarieren.
+2. **Standort (Entscheidung E4 (a), Lino 13.11.):** Für den Start bleiben „Genauer Standort“ (Ortszelle) und „Grober Standort“ (Gebiet) angegeben, passend zu `Weather/PrivacyInfo.xcprivacy`. Nach Apples Definition („Precise“ = Auflösung wie Breite/Länge mit mindestens drei Dezimalstellen, etwa 110 m) wären beide nur „Coarse“; die Angabe „Precise“ übererfüllt, ist aber nicht falsch. Später (eigener Build) Manifest und Connect gemeinsam auf nur „Coarse“ umstellen.
+3. **Verknüpfung:** „Ja, verknüpft“, weil die Daten dauerhaft an der Installations-UUID hängen und nach Datenschutzrecht personenbezogen sind (Apple: personenbezogene Daten gelten als verknüpft).
+4. **Tracking:** Nein. Keine Verknüpfung mit Daten Dritter, keine Werbung, keine Datenhändler, keine Tracking-Domains.
+5. **Zweck:** nur „App-Funktionalität“.
+6. **Nicht erfasst:** Kontaktdaten, Gesundheit, Finanzen, Nutzerinhalte, Browserverlauf, Suchverlauf (Suchtext geht an Apple MapKit, nicht an den Betreiber), Käufe, Nutzungsdaten (nur aggregierte Zähler ohne Kennung), Diagnosedaten (kein Crash-SDK), sensible Daten, sonstige Daten.
+7. **Betreiber-Diagnose:** Bezeichnung, Zeitpunkte und 48-h-Versandverlauf hängen an derselben Installation; abgedeckt durch Zeile 1. Die Bezeichnung nicht mit Namen von Personen vergeben.
+8. **Warnungen (später):** Warngebiets-IDs fallen unter „Grober Standort“; bei Warn-Push-Livegang erneut prüfen.
+9. **Privacy Manifest:** `Weather/PrivacyInfo.xcprivacy` deklariert Device ID, Coarse und Precise Location, verknüpft, kein Tracking, App Functionality, UserDefaults-Gründe CA92.1 und 1C8F.1 (am 18.11.2026 gegen die Datei geprüft). Stimmt mit dieser Tabelle überein.
+10. **Proxy-IP (Entscheidung E2):** Keine Angabe. Apple: Eine IP-Adresse, die bei einem Serveraufruf gesendet und nicht aufbewahrt wird, muss nicht angegeben werden; nur gespeicherte IP-Adressen sind je nach Verwendung zu deklarieren. Voraussetzung: In Zoraxy sind für die Showers-Domains Request-Logging **und** Statistik-Erfassung aus (Teil A, Vorbedingung 1). Bleibt die Statistik an, kommt hinzu: „Diagnose > Sonstige Diagnosedaten | Ja | Ja | Nein | App-Funktionalität“.
+11. **Datenschutz-URL in Connect:** `https://showers.linolaske.de/datenschutz`; Support-URL: `https://showers.linolaske.de/support`.
 
 ---
 
@@ -245,15 +252,19 @@ Hinweise zu den einzelnen Punkten:
 
 | # | Frage | Warum / Stand |
 |---|---|---|
-| 4b | **Datensicherungen:** Gibt es Backups/Snapshots (Hetzner-Backup, Datenbank-Dump)? Rhythmus, Aufbewahrung? | Offene Nutzerangabe, Platzhalter in Abschnitt 15; nicht geraten. Beeinflusst die tatsächliche Löschfrist aller Angaben in Abschnitt 5. |
-| 4c | **Vertrag zur Auftragsverarbeitung mit Hetzner** abschließen (Art. 28 DSGVO) | Nutzeraktion vor Livegang. |
-| 4d | **Läuft der Reverse Proxy (Zoraxy) auf demselben Hetzner-Server?** | Platzhalter in Abschnitt 15; sonst weiterer Auftragsverarbeiter zu nennen. |
-| 5b | **App: Installationskennung in den Einstellungen anzeigen und kopierbar machen** | App-Änderung nach Build 34 (eigene Aufgabe); Satz in Abschnitt 13 erst danach live. |
-| 12 | **EUMETSAT-Jahr und Wortlaut** der Attribution | Policy-Text gelesen, Wortlaut „Contains modified EUMETSAT Meteosat data [Jahr]“; Jahr beim Livegang anpassen (Entwurf: 2026). |
-| 3 | **Rechtsprüfung** | Alle Rechtsgrundlagen und Einordnungen sind Vorschläge; Fragenliste in Teil G. |
-| 13 | **Proxy-Frist kürzen** (zeitbasiert, Empfehlung nach Prüfung eher 7 bis 14 Tage, höchstens 30) und anschließend Text anpassen | Nutzeraktion am Zoraxy; siehe Teil G Frage 1. |
-| 14 | **Proxy-IP-Logs in App Privacy** (siehe Teil B, Punkt 10) | ungeprüft. |
-| 15 | **Zuständige Aufsichtsbehörde** des Betreibers (Bundesland) eintragen | Platzhalter in Abschnitt 13. |
+**Stand 18.11.2026:** Alle Punkte entschieden in [research/rechtspruefung-entscheidungen.md](research/rechtspruefung-entscheidungen.md) (Abschnitt „Teil C bis G“). Offen ist nur, was Lino selbst liefern oder tun muss (Frage an Karte BB266640).
+
+| # | Frage | Stand 18.11.2026 |
+|---|---|---|
+| 4b | **Datensicherungen** | Entschieden: keine Aussage im Text (Entscheidung 10.11.). Falls Backups bestehen, gilt die Löschung dort mit deren Rotation (Annahme, kein eigener Satz nötig). |
+| 4c | **AVV mit Hetzner** | Nur Lino: Standard-AVV im Hetzner-Konto abschließen (E7). |
+| 4d | **Läuft Zoraxy bei Hetzner?** | Teil A Abschnitt 7 geht davon aus (Annahme); Bestätigung durch Lino zusammen mit dem AVV. |
+| 5b | **Installationskennung in der App** | Erledigt: Anzeige und Kopieren der Kennung im Code (Commit `f45cfe8`, `PUSH_INSTALLATION_ID_*`). |
+| 12 | **EUMETSAT-Jahr** | „2026“; jährlich anpassen (redaktioneller Hinweis in Teil A). |
+| 3 | **Rechtsprüfung** | KI-Plausibilitätsprüfung abgeschlossen; kein Anwalt (E9, Lino). |
+| 13 | **Proxy-Frist** | Entfällt: Request-Logging in Zoraxy aus (Lino 13.11.); Statistik-Erfassung muss ebenfalls aus sein (E1). |
+| 14 | **Proxy-IP in App Privacy** | Keine Angabe nötig, wenn nichts gespeichert wird (E2). |
+| 15 | **Aufsichtsbehörde** | Entschieden: allgemeiner Hinweis genügt (Art. 13 Abs. 2 lit. d verlangt das Beschwerderecht, keine bestimmte Behörde; Annahme). |
 
 ---
 
@@ -341,6 +352,55 @@ Gelesen (Stand 7.11.): Backend `migrations/003, 006, 007, 009, 010, 012, 013, 01
 10. **Direktabrufe (DWD, EUMETSAT, Apple MapKit):** Reicht der Hinweis „eigene Verantwortung“, oder ist der Betreiber für die Auslösung der Abrufe mitverantwortlich (gemeinsame Verantwortung, vgl. Fanpage-/Like-Button-Rechtsprechung)?
 11. **Englische Fassung:** Klausel „the German text is the reference“ (Teil A-EN Vorspann) gewollt und wirksam?
 12. **Rasterzelle als personenbezogenes Datum:** Ist die Formulierung „kann je nach Lage personenbezogen sein“ zu weich (Zelle + Installationskennung + Token sind einem Gerät zugeordnet)?
+
+---
+
+## Teil H: Impressum, Vorlage (Endfassung 18.11.2026, ENTWURF bis Linos Freigabe; Ziel `/impressum` im Backend)
+
+Entscheidung E5 (Lino): Impressum mit eigener ladungsfähiger Anschrift. Platzhalter liefert nur Lino über die Betreiberkonfiguration (nicht ins Repo). Telefon ist optional (siehe E5 in [research/rechtspruefung-entscheidungen.md](research/rechtspruefung-entscheidungen.md)); ohne Telefonnummer entfällt die Zeile. Der Wortlaut entspricht weitgehend der heutigen Backend-Seite (`SitePages.swift`, `imprint`, Stand origin/main 230be1a gelesen am 18.11.2026); neu sind die Zeile zu EUMETNET OPERA und der Hinweis zur Anschrift.
+
+> # Impressum
+> Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG) für die App Showers und den zugehörigen Radar-Dienst.
+>
+> ## Anbieter
+> [OPERATOR_NAME]
+> [OPERATOR_ADDRESS]
+>
+> ## Kontakt
+> E-Mail: [OPERATOR_EMAIL]
+> Telefon: [OPERATOR_PHONE]
+> Weitere Wege der Kontaktaufnahme: Support (Link `/support`).
+>
+> ## Datenschutz
+> Informationen zur Verarbeitung personenbezogener Daten stehen in der Datenschutzerklärung (Link `/datenschutz`).
+>
+> ## Quellen und Datenherkunft
+> Quelle: Deutscher Wetterdienst. Die Radar- und Wetterdaten stammen vom Deutschen Wetterdienst (DWD) und sind als Rasterdaten bildlich wiedergegeben und aufbereitet (verändert).
+> Temperatur-, Taupunkt- und Feuchtekarten: DWD ICON-D2/ICON-EU Modelldaten (CC BY 4.0, Quelle: Deutscher Wetterdienst); Rasterdaten bildlich wiedergegeben und aufbereitet (verändert). Es sind Modellprognosen, keine Messwerte.
+> Regen Europa: EUMETNET OPERA (CC BY 4.0); umprojiziert und eingefärbt (verändert).
+> Wolken- und Satellitenkarten: Contains modified EUMETSAT Meteosat data. Die Daten von EUMETSAT stehen unter der Lizenz CC BY 4.0 und wurden verändert.
+> Optionale Waldfläche in der Karte: © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0); auf ca. 550 m gemittelt, in 4 Stufen gerundet und eigens eingefärbt (verändert).
+> Warngebiete: © GeoBasis-DE / BKG 2021 (Daten modifiziert).
+> Showers ist ein unabhängiges Angebot und steht in keiner Verbindung zum DWD, zu EUMETNET oder zu EUMETSAT. Die Angaben der App sind eine Orientierung und kein Ersatz für amtliche Warnungen und Wetterberichte.
+
+Hinweise (nicht auf die Seite): `[OPERATOR_ADDRESS]` = Straße, Hausnummer, PLZ, Ort, unter der Zustellung möglich ist; kein Postfach. Keine Angaben zu Verbraucherstreitbeilegung oder OS-Plattform (kostenlose App ohne Vertrag gegen Entgelt; Annahme, siehe E5). Sobald die Ebene „Welt“ live ist: „Regen weltweit: NOAA, aus Satellitendaten geschätzt; umprojiziert und eingefärbt (verändert).“ ergänzen.
+
+---
+
+## Teil I: Support-Seite, Vorlage (Endfassung 18.11.2026, ENTWURF bis Linos Freigabe; Ziel `/support` im Backend)
+
+Apple-Richtlinie 1.5 verlangt in der App und auf der Support-URL einen einfachen Kontaktweg. Platzhalter wie in Teil H.
+
+> # Support
+> Fragen, Fehler oder Wünsche zu Showers? Schreib eine E-Mail an [OPERATOR_EMAIL].
+> Fehler und Ideen kannst du auch auf GitHub melden (Link Issues). Bitte schreibe dort keine persönlichen Daten, keine Installationskennung und keine genauen Standorte.
+>
+> ## Häufige Fragen
+> **Wie lösche ich meine Daten auf dem Server?** Schalte alle Regenhinweise in der App aus oder lösche sie. Damit löscht die App ihre Registrierung auf dem Server. Ohne Regenhinweise speichert der Server nichts über dein Gerät.
+> **Auskunft über meine Daten?** Schreib an die oben genannte E-Mail-Adresse und nenne die Installationskennung aus den Einstellungen der App. Ohne sie kann der Betreiber keine Daten zuordnen.
+> **Keine Mitteilungen?** Prüfe in den iOS-Einstellungen unter Mitteilungen, ob Showers Mitteilungen senden darf, und ob ein Fokus Showers stummschaltet. In der App kannst du eine Testmeldung senden.
+>
+> Datenschutzerklärung (Link `/datenschutz`) · Impressum (Link `/impressum`)
 
 ## Nicht geprüft
 
