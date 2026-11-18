@@ -31,7 +31,7 @@ Nach außen heißt die App immer **„Showers“**, nie „ShowerNow“. „Show
 
 **Stand 18.11.2026:** Fassung nach den Entscheidungen E1 bis E9 in [research/rechtspruefung-entscheidungen.md](research/rechtspruefung-entscheidungen.md). KI-gestützte Plausibilitätsprüfung, keine Rechtsberatung. **Entwurf, nicht live; erst nach Linos ausdrücklicher Freigabe veröffentlichen.** Gegenüber der Fassung vom 10.11. geändert: Abschnitt 3 (Proxy ohne Zugriffsprotokolle, Regen Europa), 4 (Rechtsgrundlage der Direktabrufe, § 25 TDDDG, Abruftakt), 5 (Rasterzelle als personenbezogenes Datum, Standardvertragsklauseln Apple), 7 (Proxy bei Hetzner), 8 (Widerspruch), 9 (Quellen mit Lizenzen). Platzhalter in eckigen Klammern liefert nur Lino (Betreiberkonfiguration `OPERATOR_NAME`, `OPERATOR_ADDRESS`, `OPERATOR_EMAIL`; nie ins Repo).
 
-**Vorbedingungen vor dem Livegang (sonst ist der Text falsch):** (1) In Zoraxy ist für die Showers-Domains neben dem Request-Logging auch die Statistik-Erfassung (`DisableStatisticCollection`) aus, alte Zoraxy-Logs und -Statistiken sind gelöscht. (2) Der Proxy läuft bei Hetzner in Deutschland und der Standard-AVV mit Hetzner ist abgeschlossen. (3) Die Backend-Seite `SitePages.swift` übernimmt diesen Wortlaut (eigene Backend-Aufgabe; `PROXY_LOG_NOTE` leer lassen). Der Absatz „Amtliche Warnungen“ (Teil E) erscheint nur mit `PUSH_ENABLED` und `WARN_PUSH_ENABLED`.
+**Vorbedingungen vor dem Livegang (sonst ist der Text falsch):** (1) Erfüllt laut Lino (Antwort FC5AA218, 18.11.2026; Aussage, nicht live geprüft): Zoraxy-Statistik aus, `OPERATOR_*` gesetzt. (2) Der Proxy läuft bei Hetzner in Deutschland und der Standard-AVV mit Hetzner ist abgeschlossen. (3) Die Backend-Seite `SitePages.swift` übernimmt diesen Wortlaut (eigene Backend-Aufgabe; `PROXY_LOG_NOTE` leer lassen). Der Absatz „Amtliche Warnungen“ (Teil E) erscheint nur mit `PUSH_ENABLED` und `WARN_PUSH_ENABLED`.
 
 > # Datenschutzerklärung
 > Für die App Showers (iPhone, iPad, Apple Watch) und den zugehörigen Radar-Dienst. Stand: 18. November 2026.
@@ -226,7 +226,7 @@ Hinweise:
 7. **Betreiber-Diagnose:** Bezeichnung, Zeitpunkte und 48-h-Versandverlauf hängen an derselben Installation; abgedeckt durch Zeile 1. Die Bezeichnung nicht mit Namen von Personen vergeben.
 8. **Warnungen (später):** Warngebiets-IDs fallen unter „Grober Standort“; bei Warn-Push-Livegang erneut prüfen.
 9. **Privacy Manifest:** `Weather/PrivacyInfo.xcprivacy` deklariert Device ID, Coarse und Precise Location, verknüpft, kein Tracking, App Functionality, UserDefaults-Gründe CA92.1 und 1C8F.1 (am 18.11.2026 gegen die Datei geprüft). Stimmt mit dieser Tabelle überein.
-10. **Proxy-IP (Entscheidung E2):** Keine Angabe. Apple: Eine IP-Adresse, die bei einem Serveraufruf gesendet und nicht aufbewahrt wird, muss nicht angegeben werden; nur gespeicherte IP-Adressen sind je nach Verwendung zu deklarieren. Voraussetzung: In Zoraxy sind für die Showers-Domains Request-Logging **und** Statistik-Erfassung aus (Teil A, Vorbedingung 1). Bleibt die Statistik an, kommt hinzu: „Diagnose > Sonstige Diagnosedaten | Ja | Ja | Nein | App-Funktionalität“.
+10. **Proxy-IP (Entscheidung E2):** Keine Angabe. Apple: Eine IP-Adresse, die bei einem Serveraufruf gesendet und nicht aufbewahrt wird, muss nicht angegeben werden; nur gespeicherte IP-Adressen sind je nach Verwendung zu deklarieren. Voraussetzung erfüllt: Request-Logging und Statistik aus (Lino, Antwort FC5AA218, 18.11.2026).
 11. **Datenschutz-URL in Connect:** `https://showers.linolaske.de/datenschutz`; Support-URL: `https://showers.linolaske.de/support`.
 
 ---
@@ -262,7 +262,7 @@ Hinweise:
 | 5b | **Installationskennung in der App** | Erledigt: Anzeige und Kopieren der Kennung im Code (Commit `f45cfe8`, `PUSH_INSTALLATION_ID_*`). |
 | 12 | **EUMETSAT-Jahr** | „2026“; jährlich anpassen (redaktioneller Hinweis in Teil A). |
 | 3 | **Rechtsprüfung** | KI-Plausibilitätsprüfung abgeschlossen; kein Anwalt (E9, Lino). |
-| 13 | **Proxy-Frist** | Entfällt: Request-Logging in Zoraxy aus (Lino 13.11.); Statistik-Erfassung muss ebenfalls aus sein (E1). |
+| 13 | **Proxy-Frist** | Entfällt: Request-Logging in Zoraxy aus (Lino 13.11.); Statistik ist aus (E1, Lino, Antwort FC5AA218, 18.11.2026). |
 | 14 | **Proxy-IP in App Privacy** | Keine Angabe nötig, wenn nichts gespeichert wird (E2). |
 | 15 | **Aufsichtsbehörde** | Entschieden: allgemeiner Hinweis genügt (Art. 13 Abs. 2 lit. d verlangt das Beschwerderecht, keine bestimmte Behörde; Annahme). |
 

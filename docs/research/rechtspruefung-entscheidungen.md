@@ -6,8 +6,8 @@
 
 | # | Thema | Entscheidung | Wer | Risiko danach |
 |---|---|---|---|---|
-| E1 | Proxy-Logfrist | Keine Frist nötig: Zoraxy-Request-Logging ist aus (Lino 13.11.). Text: Proxy verarbeitet die IP nur für die Dauer der Anfrage. **Bedingung:** auch die Zoraxy-Statistik (`DisableStatisticCollection`) ist aus, alte Logs gelöscht | Agent; Bestätigung Lino | gering |
-| E2 | Proxy-IP in App Privacy | Keine Angabe (IP wird nicht aufbewahrt). Falls die Statistik an bleibt: „Sonstige Diagnosedaten, verknüpft“ | Agent | gering |
+| E1 | Proxy-Logfrist | Keine Frist nötig: Zoraxy-Request-Logging ist aus (Lino 13.11.). Text: Proxy verarbeitet die IP nur für die Dauer der Anfrage. Zoraxy-Statistik ist ebenfalls aus (Lino, Antwort FC5AA218, 18.11.2026; Aussage, nicht live geprüft) | Agent | gering |
+| E2 | Proxy-IP in App Privacy | Keine Angabe (IP wird nicht aufbewahrt). Statistik ist aus (Lino, Antwort FC5AA218, 18.11.2026) | Agent | gering |
 | E3 | Diagnose-Text in der App | (a) korrigiert (Lino 13.11.; im Code seit 14.11.) | Lino | gering |
 | E4 | Standort-Kategorie | (a) vorerst „Precise und Coarse“, später nur „Coarse“ (Lino 13.11.) | Lino | gering |
 | E5 | Impressum/Anschrift | Impressum mit eigener ladungsfähiger Anschrift, E-Mail, Telefon optional (Lino) | Lino liefert Angaben | gering |
@@ -16,7 +16,7 @@
 | E8 | Veraltete Doku-Seite | Durch Verweis auf showers.linolaske.de/datenschutz ersetzt (Lino; Commit 2ef5447, nicht deployt) | Agent | gering |
 | E9 | Anwalt | Kein Anwalt, da E1, E3, E5 und E7 erledigt sind bzw. werden (Lino) | Lino | gering bis mittel (Restrisiko) |
 
-**Von Lino fehlt nur:** Betreiberangaben in der Betreiberkonfiguration (Name, ladungsfähige Anschrift, E-Mail, ggf. Telefon), Abschluss des Hetzner-AVV, Bestätigung „Zoraxy-Statistik aus und alte Logs gelöscht“, DSA-Status in Connect. Eine Frage dazu steht an der Karte.
+**Von Lino fehlt nur:** Abschluss des Hetzner-AVV (Angaben liefert der Orchestrator) und DSA-Status in Connect. Betreiberangaben (`OPERATOR_*`) sind gesetzt und die Zoraxy-Statistik ist aus (Lino, Antwort FC5AA218, 18.11.2026; Aussage, nicht live geprüft).
 
 **Fertige Texte (alle ENTWURF bis Linos Freigabe, nichts veröffentlicht):** [Teil A Datenschutzerklärung, Teil B App Privacy, Teil H Impressum, Teil I Support](../datenschutz-entwurf-release.md); App-Strings als Vorschlag: [rechtstexte-app-aenderungen.md](rechtstexte-app-aenderungen.md); Doku-Seite: `docs-site/content/datenschutz.md`.
 
@@ -30,7 +30,7 @@
 
 **Begründung.** Lino hat am 13.11. das Request-Logging für die Domain abgeschaltet (Kommentar an der Karte). Zoraxy hat dafür je Proxy-Regel getrennte Schalter: `DisableLogging` („Disable logging of reverse proxy requests“) und `DisableStatisticCollection` („Disable statistic collection for this endpoint“) (B: https://raw.githubusercontent.com/tobychui/zoraxy/main/src/mod/dynamicproxy/typedef.go). Das Statistikmodul zählt je Tag unter anderem `RequestClientIp` und `RequestURL` und speichert die Tageszusammenfassung in seiner Datenbank (B: https://raw.githubusercontent.com/tobychui/zoraxy/main/src/mod/statistic/statistic.go; eine Löschfrist ist dort nicht erkennbar, H). Bei Push-Aufrufen enthält die URL die Installationskennung (`decisions.md`). Ist nur das Logging aus, die Statistik aber an, stimmt der Satz „keine Statistik mit IP-Adressen“ nicht. Im Backend selbst werden keine IP-Adressen verarbeitet: kein Treffer für `X-Forwarded-For`, `X-Real-IP`, `remoteAddress` o. Ä. in `Sources/` (B, Code gelesen); Ratenbegrenzung je Installation bzw. global ohne IP (`Config.swift`, `PushRateLimits`; B). Speicherbegrenzung (Art. 5 Abs. 1 lit. e DSGVO) ist mit „keine Speicherung“ erfüllt (A).
 
-**Risiko.** Gering, wenn die Statistik aus ist und die alten Logs (bis rund 14 Monate) gelöscht sind; sonst bleibt das Risiko aus der Prüfung vom 12.11. (hoch: falsche Angabe). Nicht geprüft: tatsächliche Zoraxy-Konfiguration, Zoraxy-Fehler- und Systemlogs (können IPs bei TLS-Fehlern enthalten, H).
+**Risiko.** Gering; Statistik aus laut Lino (Antwort FC5AA218, 18.11.2026), nicht live geprüft. Nicht geprüft: tatsächliche Zoraxy-Konfiguration, Zoraxy-Fehler- und Systemlogs (können IPs bei TLS-Fehlern enthalten, H).
 
 **Wirkung auf Texte.** Teil A Abschnitt 3 und 8 (Widerspruch bezieht sich auf Abschnitte 3 und 4); `INFO_PRIVACY_3` („befristet protokolliert“ → „nicht protokolliert“, Vorschlag 1); Backend: `PROXY_LOG_NOTE` leer lassen.
 
@@ -40,7 +40,7 @@
 
 **Begründung.** Apple: „if an authentication token or IP address is sent on a server call and not retained, or if data is sent to your servers then immediately discarded after servicing the request, you do not need to disclose this“ (B: https://developer.apple.com/app-store/app-privacy-details/, 18.11.2026). Nur gespeicherte IP-Adressen sind „based on how you use IP address“ zu deklarieren (B, ebenda).
 
-**Risiko.** Gering unter der Bedingung aus E1. Bleibt die Zoraxy-Statistik an, ist „Diagnose > Sonstige Diagnosedaten, verknüpft, App-Funktionalität“ zu ergänzen (Teil B Hinweis 10).
+**Risiko.** Gering (E1 erfüllt, Lino, Antwort FC5AA218, 18.11.2026).
 
 **Wirkung.** Teil B Zeile 3 und Hinweis 10.
 
@@ -82,7 +82,7 @@ Umgesetzt im Branch: `docs-site/content/datenschutz.md` enthält nur noch Verwei
 
 ## E9 Anwaltliche Prüfung (Lino: kein Anwalt, wenn Proxy/Diagnose/Impressum/AVV erledigt)
 
-Stand 18.11.: Diagnose erledigt (E3), Proxy erledigt bis auf die Statistik-Bestätigung (E1), Impressum und AVV hängen an Linos Angaben bzw. Abschluss. Danach Restrisiko gering bis mittel (A): Die Texte beruhen auf Code-Lesen, nicht auf Laufzeitmessung; die Rechtsfragen sind KI-Auslegung. Kein Anwalt nötig nach Linos Vorgabe.
+Stand 18.11.: Diagnose erledigt (E3), Proxy erledigt (E1, Lino, Antwort FC5AA218, 18.11.2026), Betreiberangaben gesetzt; offen nur der Hetzner-AVV. Danach Restrisiko gering bis mittel (A): Die Texte beruhen auf Code-Lesen, nicht auf Laufzeitmessung; die Rechtsfragen sind KI-Auslegung. Kein Anwalt nötig nach Linos Vorgabe.
 
 ---
 
