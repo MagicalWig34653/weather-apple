@@ -46,7 +46,7 @@ final class RadarEnglishTests: XCTestCase {
         assertNoGerman(app)
         attach(app, "en-radar-header")
         menu.tap()
-        for group in ["Rain", "Pressure", "Display"] {
+        for group in ["Rain", "Pressure", "Humidity"] {
             XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", group)).firstMatch.waitForExistence(timeout: 5), group)
         }
         XCTAssertTrue(app.buttons["Reload data"].exists)

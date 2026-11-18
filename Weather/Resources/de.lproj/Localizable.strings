@@ -219,7 +219,7 @@
 "RADAR_SAVE_PLACE_MESSAGE" = "Name und Koordinaten bleiben auf deinem iPhone und werden auch an deine gekoppelte Apple Watch übertragen, wenn dort Showers installiert ist.";
 "RADAR_LAYER_SECTION" = "Kartenebene";
 "RADAR_LAYER_MENU_LABEL" = "Kartenebene wählen";
-"RADAR_LAYER_MENU_HINT" = "Wählt genau eine Ebene. Untermenüs: Regen (Deutschland, Europa, Welt), Luftdruck und Feuchtigkeit; dazu Temperatur, Blitze, Wolken und Sonne sowie Darstellung. Enthält auch Daten neu laden.";
+"RADAR_LAYER_MENU_HINT" = "Wählt genau eine Ebene. Untermenüs: Regen (Deutschland, Europa, Welt), Luftdruck und Feuchtigkeit; dazu Temperatur, Blitze, Wolken und Sonne. Enthält auch Daten neu laden.";
 "RADAR_LAYER_SELECTED_SUFFIX" = ", ausgewählt";
 "RADAR_RELOAD" = "Daten neu laden";
 "RADAR_RELOAD_HINT" = "Lädt den aktuellen Datenstand der Karte neu";
@@ -450,7 +450,7 @@
 "INFO_PRIVACY_LOCATION" = "Standortzugriff ist optional und wird nur bei Nutzung angefordert. Keine Hintergrundortung. Punktanfragen werden nicht in einem Festplatten-Netzwerkcache gespeichert.";
 "INFO_PRIVACY_BETA" = "Prognosen können abweichen. Bei fehlenden oder veralteten Daten gibt die App keine aktuelle Aussage.";
 "INFO_SUPPORT_FOOTER" = "Showers";
-"INFO_LAYER_SOURCES_NOTE" = "Zusatzebenen (Luftdruck, Blitze, Wolken, Temperatur, Feuchte) liefert der Showers-Radar-Dienst. Sind sie dort nicht verfügbar, sind sie ausgegraut. Ein Direktabruf beim DWD ist dafür nicht vorgesehen.";
+"INFO_LAYER_SOURCES_NOTE" = "Die Ebenen Regen Europa und Welt, Luftdruck, Blitze, Wolken, Sonne, Temperatur und Feuchtigkeit liefert der Showers-Radar-Dienst. Sind sie dort nicht verfügbar, sind sie ausgegraut. Ein Direktabruf beim DWD ist dafür nicht vorgesehen.";
 "INFO_PAST_UNAVAILABLE_HINT" = "Derzeit nicht verfügbar";
 "INFO_PAST_FOOTER_BASE" = "Wie weit die Zeitleiste in die Vergangenheit reicht. Mehr Vergangenheit lädt mehr Bilder (Datenvolumen).";
 "INFO_PAST_FOOTER_DIRECT" = "Beim Abruf direkt vom DWD ist nur 1 Stunde Vergangenheit verfügbar.";
@@ -561,8 +561,6 @@
 "LAYER_RADAR_SOON" = "bald";
 "LAYER_CAPTION_ESTIMATE" = "Schätzung";
 "RADAR_MENU_GROUP_RAIN" = "Regen";
-"RADAR_MENU_GROUP_DISPLAY" = "Darstellung";
-"RADAR_MENU_FOREST" = "Wald anzeigen";
 "LEGEND_RADAR_EU_HINT" = "Niederschlag in Europa aus dem OPERA-Radarverbund von EUMETNET, alle 5 Minuten. Die Daten sind umprojiziert und eingefärbt.";
 "LEGEND_RADAR_WORLD_HINT" = "Niederschlag weltweit von NOAA, aus Satellitendaten geschätzt und deshalb ungenauer als Radarmessungen. Es gibt Lücken, und Stärke und Ort können abweichen.";
 "LEGEND_TITLE_RADAR_EU" = "Niederschlag Europa";
@@ -573,3 +571,4 @@
 "LAYER_PRESSURE_EU_MENU" = "Europa";
 "LAYER_DEWPOINT_MENU" = "Taupunkt";
 "LAYER_HUMIDITY_MENU" = "Relativ";
+"RADAR_CREDIT_HINT" = "Vollständige Quellenangaben unter Datenquellen und Datenschutz";

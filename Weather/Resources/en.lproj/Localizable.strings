@@ -219,7 +219,7 @@
 "RADAR_SAVE_PLACE_MESSAGE" = "Name and coordinates stay on your iPhone and are also sent to your paired Apple Watch if Showers is installed there.";
 "RADAR_LAYER_SECTION" = "Map layer";
 "RADAR_LAYER_MENU_LABEL" = "Choose map layer";
-"RADAR_LAYER_MENU_HINT" = "Selects exactly one layer. Submenus: Rain (Germany, Europe, world), Pressure and Humidity; plus Temperature, Lightning, Clouds and Sun as well as Display. Also contains Reload data.";
+"RADAR_LAYER_MENU_HINT" = "Selects exactly one layer. Submenus: Rain (Germany, Europe, world), Pressure and Humidity; plus Temperature, Lightning, Clouds and Sun. Also contains Reload data.";
 "RADAR_LAYER_SELECTED_SUFFIX" = ", selected";
 "RADAR_RELOAD" = "Reload data";
 "RADAR_RELOAD_HINT" = "Reloads the latest map data";
@@ -450,7 +450,7 @@
 "INFO_PRIVACY_LOCATION" = "Location access is optional and is only requested when you use it. No background location tracking. Point requests are not stored in an on-disk network cache.";
 "INFO_PRIVACY_BETA" = "Forecasts may deviate. If data is missing or outdated, the app makes no up-to-date statement.";
 "INFO_SUPPORT_FOOTER" = "Showers";
-"INFO_LAYER_SOURCES_NOTE" = "The Showers radar service provides the additional layers (pressure, lightning, clouds, temperature, humidity). If they are not available there, they are greyed out. There is no direct retrieval from the DWD for them.";
+"INFO_LAYER_SOURCES_NOTE" = "The Showers radar service provides the rain layers Europe and world, pressure, lightning, clouds, sun, temperature and humidity. If they are not available there, they are greyed out. There is no direct retrieval from the DWD for them.";
 "INFO_PAST_UNAVAILABLE_HINT" = "Currently unavailable";
 "INFO_PAST_FOOTER_BASE" = "How far back the timeline reaches. More history loads more images (data usage).";
 "INFO_PAST_FOOTER_DIRECT" = "When fetching directly from the DWD, only 1 hour of history is available.";
@@ -561,8 +561,6 @@
 "LAYER_RADAR_SOON" = "soon";
 "LAYER_CAPTION_ESTIMATE" = "Estimate";
 "RADAR_MENU_GROUP_RAIN" = "Rain";
-"RADAR_MENU_GROUP_DISPLAY" = "Display";
-"RADAR_MENU_FOREST" = "Show forest";
 "LEGEND_RADAR_EU_HINT" = "Precipitation across Europe from the EUMETNET OPERA radar network, every 5 minutes. The data is re-projected and coloured.";
 "LEGEND_RADAR_WORLD_HINT" = "Worldwide precipitation from NOAA, estimated from satellite data and therefore less accurate than radar measurements. There are gaps, and intensity and position can be off.";
 "LEGEND_TITLE_RADAR_EU" = "Precipitation Europe";
@@ -573,3 +571,4 @@
 "LAYER_PRESSURE_EU_MENU" = "Europe";
 "LAYER_DEWPOINT_MENU" = "Dew point";
 "LAYER_HUMIDITY_MENU" = "Relative";
+"RADAR_CREDIT_HINT" = "Full credits under Data sources and privacy";

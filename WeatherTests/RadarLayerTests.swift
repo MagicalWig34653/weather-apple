@@ -28,7 +28,15 @@ final class RadarLayerTests: XCTestCase {
         return try JSONSerialization.data(withJSONObject: object)
     }
 
-    // MARK: Rain layers (menu "Regenebenen")
+    func testShortCreditPerLayerKeepsTheNameVisible() {
+        XCTAssertEqual(RadarLayer.radar.shortAttribution, "\u{00A9} DWD")
+        XCTAssertEqual(RadarLayer.radarEU.shortAttribution, "\u{00A9} EUMETNET")
+        XCTAssertEqual(RadarLayer.radarWorld.shortAttribution, "NOAA")
+        XCTAssertEqual(RadarLayer.clouds.shortAttribution, "\u{00A9} EUMETSAT")
+        for layer in RadarLayer.allCases { XCTAssertFalse(layer.shortAttribution.isEmpty, layer.rawValue) }
+    }
+
+    // MARK: Rain layers (menu "Regen")
 
     func testRainLayersEuropeAndWorldAreBackendLayersWithOwnSwitches() {
         XCTAssertEqual(RadarLayer.rainLayers, [.radar, .radarEU, .radarWorld])
@@ -479,7 +487,7 @@ final class RadarLayerTests: XCTestCase {
         weather.selectedFrame = 1
         XCTAssertEqual(weather.displayTimeline?.dates, radar.dates)
         XCTAssertEqual(weather.displayFrameDate, utc("2026-10-31T12:30:00Z"))
-        XCTAssertEqual(weather.displayAttributionLine, "Quelle: Deutscher Wetterdienst · über Showers")
+        XCTAssertEqual(weather.displayShortAttribution, "\u{00A9} DWD")
         weather.displayFrameIndex = 2
         XCTAssertEqual(weather.selectedFrame, 2, "radar index is written through")
         XCTAssertTrue(weather.displayIsForecastFrame)
@@ -493,7 +501,7 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertEqual(weather.selectedFrame, 2, "the radar selection is untouched by the layer")
         XCTAssertEqual(weather.timeline?.dates, radar.dates, "radar timeline untouched")
         XCTAssertFalse(weather.displayIsForecastFrame)
-        XCTAssertEqual(weather.displayAttributionLine, "Contains modified EUMETSAT Meteosat data 2026 · über Showers")
+        XCTAssertEqual(weather.displayShortAttribution, "\u{00A9} EUMETSAT")
         XCTAssertEqual(weather.displayFrameReference, utc("2026-10-31T11:50:00Z"))
     }
 
@@ -505,7 +513,7 @@ final class RadarLayerTests: XCTestCase {
         weather.timeline = RadarTimeline(referenceTime: utc("2026-10-31T12:30:00Z"), dates: [utc("2026-10-31T12:30:00Z")])
         XCTAssertTrue(layers.select(.pressure), "unknown/unreachable layers can be tried")
         XCTAssertNil(weather.displayTimeline, "no radar fallback for optional layers")
-        XCTAssertNil(weather.displayAttributionLine)
+        XCTAssertNil(weather.displayShortAttribution)
     }
 
     // MARK: Attribution strings

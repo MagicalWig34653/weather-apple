@@ -38,21 +38,32 @@ final class LayerMenuPrototypeTests: XCTestCase {
         entry.tap()
     }
 
-    /// Hauptliste, Untermenüs Regen, Luftdruck und Feuchtigkeit; dann Temperatur aktiv (Haken), Darstellung mit Wald, Legende.
-    private func run(_ appearance: XCUIDevice.Appearance, _ suffix: String) throws {
+    private func launchAll(_ suffix: String, _ appearance: XCUIDevice.Appearance) -> (XCUIApplication, XCUIElement) {
         XCUIDevice.shared.appearance = appearance
-        let app = UITestLaunch.app(language: .german, extra: ["-UITestLayers", "d2"])
+        let app = UITestLaunch.app(language: .german, extra: ["-UITestLayers", "all"])
         app.launch()
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 20))
         sleep(3)
-        // Layers appear once the server (fixture) reported them: the main list is shown after a re-open.
+        // Die Ebenen erscheinen, sobald die Fixture sie gemeldet hat: nach einmal Öffnen und Schließen ist die Liste vollständig.
         menu.tap(); closeMenu(app); sleep(2)
+        return (app, menu)
+    }
+
+    /// 6 Bilder je Erscheinungsbild: Hauptliste, Regen, Luftdruck, Feuchtigkeit, Karte mit Quellzeile, Karte mit Temperatur (echter Layer).
+    private func run(_ appearance: XCUIDevice.Appearance, _ suffix: String) throws {
+        let (app, menu) = launchAll(suffix, appearance)
         menu.tap()
-        attach("1-hauptliste-\(suffix)")
+        XCTAssertTrue(group(app, "Luftdruck").waitForExistence(timeout: 5))
+        XCTAssertTrue(group(app, "Feuchtigkeit").exists)
         XCTAssertFalse(app.buttons["radar-layer-quick-radar"].exists, "keine Symbolreihe")
+        XCTAssertFalse(group(app, "Darstellung").exists, "Darstellung entfällt")
+        XCTAssertTrue(app.buttons["Daten neu laden"].exists, "Daten neu laden am Ende des Menüs")
+        attach("1-hauptliste-\(suffix)")
         closeMenu(app)
         open(app, menu, group: "Regen")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Europa")).firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "nicht verfügbar")).firstMatch.exists, "alle Ebenen angeboten")
         attach("2-regen-\(suffix)")
         closeMenu(app)
         open(app, menu, group: "Luftdruck")
@@ -61,32 +72,63 @@ final class LayerMenuPrototypeTests: XCTestCase {
         open(app, menu, group: "Feuchtigkeit")
         attach("4-feuchtigkeit-\(suffix)")
         closeMenu(app)
+        let credit = app.staticTexts["radar-attribution"]
+        XCTAssertTrue(credit.waitForExistence(timeout: 10))
+        XCTAssertEqual(credit.label, "\u{00A9} DWD", "kurze Quellzeile statt Kapsel")
+        XCTAssertLessThanOrEqual(credit.frame.height, 20, "eine Zeile")
+        attach("5-karte-quellzeile-\(suffix)")
         let temperature = try XCTUnwrap(openLayerEntry(app, group: nil, entry: "Temperatur"), "Temperatur fehlt")
         temperature.tap()
         XCTAssertTrue(app.sliders["Zeitpunkt Temperatur"].waitForExistence(timeout: 10))
-        sleep(2)
-        menu.tap()
-        attach("5-hauptliste-temperatur-aktiv-\(suffix)")
-        let display = group(app, "Darstellung")
-        XCTAssertTrue(display.waitForExistence(timeout: 5), "Untermenü Darstellung fehlt")
-        display.tap()
-        attach("6-darstellung-\(suffix)")
-        let forest = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Wald")).firstMatch
-        XCTAssertTrue(forest.waitForExistence(timeout: 5), "Wald-Schalter fehlt")
-        forest.tap()
-        attach("7-darstellung-wald-an-\(suffix)")
-        closeMenu(app)
+        sleep(4)
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "fehlt")).firstMatch.exists, "kein Bild-fehlt-Hinweis")
+        attach("6-karte-temperatur-aktiv-\(suffix)")
+    }
+
+    /// Beleg: Wald ist im Legendenpanel bedienbar (Menü hat keine Darstellung mehr), die Quellzeile nennt ihn kurz,
+    /// der Info-Bildschirm hat die vollen Quellenangaben, und die Legende ist scrollbar (nichts nur abgeschnitten).
+    private func runForestAndInfo(_ appearance: XCUIDevice.Appearance, _ suffix: String) throws {
+        let (app, _) = launchAll(suffix, appearance)
+        let temperature = try XCTUnwrap(openLayerEntry(app, group: nil, entry: "Temperatur"), "Temperatur fehlt")
+        temperature.tap()
+        XCTAssertTrue(app.sliders["Zeitpunkt Temperatur"].waitForExistence(timeout: 10))
         let legend = app.buttons["radar-legend-toggle"]
-        if legend.waitForExistence(timeout: 5) {
-            legend.tap()
-            XCTAssertTrue(app.descendants(matching: .any)["radar-legend"].waitForExistence(timeout: 5))
-            XCTAssertEqual(app.switches["forest-toggle"].value as? String, "1", "Wald-Schalter im Menü hat den Wald eingeschaltet")
-            attach("8-legende-wald-\(suffix)")
-            // Wald zurücksetzen (die Einstellung bleibt sonst auf dem Gerät und verfälscht andere Tests).
-            app.switches["forest-toggle"].tap()
-        }
+        XCTAssertTrue(legend.waitForExistence(timeout: 5))
+        legend.tap()
+        let panel = app.descendants(matching: .any)["radar-legend"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 5))
+        let toggle = app.switches["forest-toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Wald-Schalter im Legendenpanel")
+        if toggle.value as? String != "0" { toggle.tap(); sleep(1) }
+        toggle.tap()
+        XCTAssertEqual(toggle.value as? String, "1")
+        sleep(2)
+        let credit = app.staticTexts["radar-attribution"]
+        XCTAssertEqual(credit.label, "\u{00A9} DWD \u{00B7} \u{00A9} ESA WorldCover", "Waldquelle kurz auf der Karte")
+        attach("7-legende-wald-\(suffix)")
+        panel.swipeUp()
+        sleep(1)
+        let source = app.staticTexts["forest-attribution"]
+        XCTAssertTrue(source.waitForExistence(timeout: 3) && source.isHittable, "Waldquelle in der Legende nach dem Scrollen erreichbar")
+        attach("7b-legende-gescrollt-\(suffix)")
+        panel.swipeDown()
+        toggle.tap()
+        XCTAssertEqual(toggle.value as? String, "0", "Wald wieder aus")
+        legend.tap()
+        // Info-Bildschirm: volle Quellenangaben.
+        app.buttons["Datenquellen und Datenschutz"].tap()
+        // Row of the information list (not the map button of the same name behind the sheet).
+        let sources = app.collectionViews.staticTexts["Datenquellen"].firstMatch
+        XCTAssertTrue(sources.waitForExistence(timeout: 8), "Zeile Datenquellen")
+        sources.tap()
+        let full = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Quelle: Deutscher Wetterdienst")).firstMatch
+        XCTAssertTrue(full.waitForExistence(timeout: 5), "volle Quellenangabe im Info-Bildschirm")
+        XCTAssertTrue(app.descendants(matching: .any)["layer-source-radar_eu"].waitForExistence(timeout: 3), "Quelle Regen Europa (Manifest-Text)")
+        attach("8-info-quellen-\(suffix)")
     }
 
     func testMenuScreenshotsLight() throws { try run(.light, "hell") }
     func testMenuScreenshotsDark() throws { try run(.dark, "dunkel") }
+    func testForestAndInfoLight() throws { try runForestAndInfo(.light, "hell") }
+    func testForestAndInfoDark() throws { try runForestAndInfo(.dark, "dunkel") }
 }

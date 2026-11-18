@@ -48,11 +48,11 @@ enum ForestPreference {
     /// Forest is drawn only with the switch on, over a 2 m field, and when the bundled data is intact.
     static func isShown(layer: RadarLayer, visible: Bool, info: ForestInfo?) -> Bool { layer.isAirField && visible && info != nil }
 
-    /// Bottom source line: the layer's own line, extended by the forest source only while the forest is shown.
-    static func sourceLine(base: String?, layer: RadarLayer, visible: Bool, info: ForestInfo?) -> String? {
+    /// Short credit under the map: the layer's own credit, plus the forest credit only while the forest is shown.
+    static func shortSourceLine(base: String?, layer: RadarLayer, visible: Bool, info: ForestInfo?) -> String? {
         guard let base else { return nil }
-        guard isShown(layer: layer, visible: visible, info: info), let info else { return base }
-        return "\(base) · \(info.sourceLine)"
+        guard isShown(layer: layer, visible: visible, info: info) else { return base }
+        return "\(base) · \u{00A9} ESA WorldCover"
     }
 }
 

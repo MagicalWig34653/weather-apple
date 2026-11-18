@@ -197,6 +197,16 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     }
 
     var backendPathComponent: String { rawValue }
+
+    /// Short credit on the map (licence-relevant name stays visible, the full text is in the information screen).
+    var shortAttribution: String {
+        switch self {
+        case .radar, .pressure, .pressureEU, .lightning, .temperature, .dewpoint, .humidity: "\u{00A9} DWD"
+        case .radarEU: "\u{00A9} EUMETNET"
+        case .radarWorld: "NOAA"
+        case .clouds, .cloudmask, .cloudmaskVis: "\u{00A9} EUMETSAT"
+        }
+    }
 }
 
 enum LayerAvailability: Equatable, Sendable {
@@ -636,15 +646,15 @@ extension WeatherStore {
         return date > timeline.referenceTime
     }
 
-    /// Source line of the active layer: the manifest's own attribution for layers, the radar's for the radar.
-    var displayAttributionLine: String? {
+    /// Short credit line of the active layer under the map; `nil` while there is no data to credit.
+    var displayShortAttribution: String? {
         if layers.active == .radar {
             guard timeline != nil else { return nil }
-            return "\(radarAttribution.attribution) · \(radarSource.label)"
+            return layers.active.shortAttribution
                 + (historyStatus == .unavailable && radarSource == .cache
                    ? NSLocalizedString("RADAR_HISTORY_UNAVAILABLE_SUFFIX", value: " · Historie nicht verfügbar", comment: "Source line suffix") : "")
         }
-        guard let manifest = layers.activeManifest else { return nil }
-        return "\(manifest.attribution) · \(RadarSource.cache.label)"
+        guard layers.activeManifest != nil else { return nil }
+        return layers.active.shortAttribution
     }
 }

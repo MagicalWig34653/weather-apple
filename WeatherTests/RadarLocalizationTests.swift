@@ -77,7 +77,7 @@ final class RadarLocalizationTests: XCTestCase {
         let en = try table("en"), deTable = try table("de")
         let keys = ["LAYER_RADAR_EU_TITLE", "LAYER_RADAR_EU_SPOKEN", "LAYER_RADAR_WORLD_TITLE", "LAYER_RADAR_WORLD_SPOKEN",
                     "LAYER_RADAR_DE_MENU", "LAYER_RADAR_EU_MENU", "LAYER_RADAR_WORLD_MENU", "LAYER_RADAR_SOON", "RADAR_MENU_GROUP_RAIN", "RADAR_MENU_GROUP_PRESSURE", "RADAR_MENU_GROUP_HUMIDITY", "LAYER_PRESSURE_MENU", "LAYER_PRESSURE_EU_MENU", "LAYER_DEWPOINT_MENU", "LAYER_HUMIDITY_MENU",
-                    "RADAR_MENU_GROUP_DISPLAY", "RADAR_MENU_FOREST", 
+                    "RADAR_CREDIT_HINT", 
                     "LEGEND_RADAR_EU_HINT", "LEGEND_RADAR_WORLD_HINT", "LEGEND_TITLE_RADAR_EU", "LEGEND_TITLE_RADAR_WORLD"]
         for key in keys {
             XCTAssertNotNil(en[key], "en \(key)")

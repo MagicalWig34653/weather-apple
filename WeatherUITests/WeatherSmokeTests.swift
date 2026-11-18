@@ -135,11 +135,12 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertEqual(menu.value as? String, "Regenradar")
         XCTAssertFalse(app.buttons["Wetterdaten aktualisieren"].exists, "Kein eigener Neuladen-Knopf mehr.")
         menu.tap()
-        for entry in ["Regen", "Luftdruck", "Darstellung"] {
+        for entry in ["Regen", "Luftdruck", "Feuchtigkeit"] {
             XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", entry)).firstMatch.waitForExistence(timeout: 5), "Untermenü \(entry)")
         }
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Zusatzebenen")).firstMatch.exists, "Gruppe Zusatzebenen entfällt")
         XCTAssertFalse(app.buttons["radar-layer-quick-radar"].exists, "keine Symbolreihe mehr")
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Darstellung")).firstMatch.exists, "Darstellung entfällt")
         XCTAssertTrue(app.buttons["Daten neu laden"].exists)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "layer-menu-open"

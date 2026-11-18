@@ -260,6 +260,8 @@ struct RadarLayerLegendPanel: View {
         Group {
             ScrollView { content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 } }
                 .scrollBounceBehavior(.basedOnSize)
+                // Taller than the panel: the text below scrolls; the indicator flashes so that this is visible.
+                .scrollIndicatorsFlash(onAppear: true)
                 .frame(height: scrollHeight)
         }
         .padding(10)

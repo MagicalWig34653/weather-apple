@@ -42,7 +42,10 @@ final class PseudoLocalizationTests: XCTestCase {
         menu.tap()
         sleep(1)
         attach(app, "\(prefix)-layer-menu")
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.62)).tap()
+        // Nested menu: open the rain submenu too (German "Regen", English "Rain"; a pseudo-localised label may differ).
+        let rain = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Regen' OR label CONTAINS 'Rain'")).firstMatch
+        if rain.waitForExistence(timeout: 3) { rain.tap(); sleep(1); attach(app, "\(prefix)-layer-submenu-rain") }
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
         sleep(1)
 
         let details = app.buttons["forecast-details"]

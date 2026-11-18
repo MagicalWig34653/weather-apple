@@ -217,6 +217,11 @@ final class BackendRadarLoader: @unchecked Sendable {
         configuration.httpMaximumConnectionsPerHost = RadarBackendPolicy.prefetchParallelism + 2
         let session = URLSession(configuration: configuration)
         return { url in
+            #if DEBUG
+            // UI tests with stubbed layers: images come from `UITestLayerImage`, not from the network.
+            if RadarLayerStore.uiTestMode == "all", let layer = url.pathComponents.drop(while: { $0 != "layers" }).dropFirst().first,
+               let data = UITestLayerImage.data(forLayer: layer) { return data }
+            #endif
             var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
             request.httpShouldHandleCookies = false
             let (data, response) = try await session.data(for: request)

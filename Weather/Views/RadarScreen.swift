@@ -105,15 +105,18 @@ struct RadarScreen: View {
                 VStack(spacing: 6) {
                 timePill
                 Group {
-                    if let line = ForestPreference.sourceLine(base: store.displayAttributionLine, layer: store.activeLayer,
-                                                              visible: forestVisible, info: ForestInfo.bundled) {
+                    // Short credit in the size and style of Apple Maps' legal text, no capsule. The full source text,
+                    // licences and modification notices are in the information screen (Datenquellen).
+                    if let line = ForestPreference.shortSourceLine(base: store.displayShortAttribution, layer: store.activeLayer,
+                                                                   visible: forestVisible, info: ForestInfo.bundled) {
                         Text(line)
-                            .font(.caption2).foregroundStyle(.secondary)
-                            .lineLimit(ForestPreference.isShown(layer: store.activeLayer, visible: forestVisible, info: ForestInfo.bundled) ? 6 : 2)
+                            .font(.caption2).foregroundStyle(.primary.opacity(0.75))
+                            .lineLimit(1).minimumScaleFactor(0.8)
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 8).padding(.vertical, 3)
-                            .glassEffect(.regular, in: Capsule())
+                            .shadow(color: Color(.systemBackground).opacity(0.9), radius: 1.5)
+                            .padding(.horizontal, 8)
+                            .accessibilityLabel(line)
+                            .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
                             .accessibilityIdentifier("radar-attribution")
                     }
                 }
@@ -355,18 +358,6 @@ struct RadarScreen: View {
                        symbol: "humidity", layers: store.layers.offered(RadarLayer.humidityLayers), id: "radar-layer-group-humidity")
             ForEach(store.layers.offered(RadarLayer.singleMenuLayers)) { layer in layerButton(layer) }
             Divider()
-            // Submenu "Darstellung": switches that keep the menu open.
-            Menu {
-                Toggle(isOn: $forestVisible) {
-                    Label(NSLocalizedString("RADAR_MENU_FOREST", value: "Wald anzeigen", comment: "Radar menu"), systemImage: "tree")
-                }
-                .menuActionDismissBehavior(.disabled)
-                .disabled(!store.activeLayer.isAirField)
-                .accessibilityIdentifier("radar-menu-forest")
-            } label: {
-                Label(NSLocalizedString("RADAR_MENU_GROUP_DISPLAY", value: "Darstellung", comment: "Radar menu group"), systemImage: "paintpalette")
-            }
-            .accessibilityIdentifier("radar-layer-group-display")
             Section {
                 Button {
                     store.isPlaying = false
@@ -402,7 +393,7 @@ struct RadarScreen: View {
         .accessibilityValue(store.activeLayer.spokenName)
         .accessibilityInputLabels([NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"), store.activeLayer.title,
                                    NSLocalizedString("VC_LAYER", value: "Kartenebene", comment: "Voice Control")])
-        .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene. Untermenüs: Regen (Deutschland, Europa, Welt), Luftdruck und Feuchtigkeit; dazu Temperatur, Blitze, Wolken und Sonne sowie Darstellung. Enthält auch Daten neu laden.", comment: "Radar"))
+        .accessibilityHint(NSLocalizedString("RADAR_LAYER_MENU_HINT", value: "Wählt genau eine Ebene. Untermenüs: Regen (Deutschland, Europa, Welt), Luftdruck und Feuchtigkeit; dazu Temperatur, Blitze, Wolken und Sonne. Enthält auch Daten neu laden.", comment: "Radar"))
         .accessibilityIdentifier("radar-layer-menu")
     }
 
