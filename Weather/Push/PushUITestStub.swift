@@ -8,6 +8,8 @@ import MapKit
 /// - `fake`: the iOS permission prompt is replaced by an automatic "allowed".
 /// - `fakedeny`: the permission prompt is replaced by an automatic "not allowed".
 /// - `system`: the real iOS permission prompt is shown (answered by the test); everything else stays fake.
+/// - `fakehang`: the permission status never answers (as seen on a freshly erased simulator); nothing is ever allowed.
+/// - `fakelate`: the permission status answers "allowed" only after 6 s (late system answer; must not enable anything).
 /// `-UITestSetupClean` deletes all saved places before the wizard starts (so the places step is open); typing "Teststadt" into
 /// the wizard's search then offers one fixed result (Berlin) without MapKit or network.
 enum PushUITestStub {
@@ -23,7 +25,12 @@ enum PushUITestStub {
         let suite = "de.linolaske.showernow.uitest.push"
         UserDefaults().removePersistentDomain(forName: suite)
         let registrar = FakeRegistrar()
-        let authorizer: PushAuthorizing = mode == "system" ? SystemPushAuthorizing() : FakeAuthorizer(allow: mode != "fakedeny")
+        let authorizer: PushAuthorizing = switch mode {
+        case "system": SystemPushAuthorizing()
+        case "fakehang": SilentAuthorizer(answer: nil)
+        case "fakelate": SilentAuthorizer(answer: .authorized)
+        default: FakeAuthorizer(allow: mode != "fakedeny")
+        }
         let manager = PushManager(gateway: FakeGateway(), secrets: FakeSecrets(), authorizer: authorizer, registrar: registrar,
                                   defaults: UserDefaults(suiteName: suite) ?? .standard)
         registrar.manager = manager
@@ -52,7 +59,7 @@ final class PushStubLog: @unchecked Sendable {
     func bump(_ key: String) { lock.lock(); counts[key, default: 0] += 1; lock.unlock() }
     func count(_ key: String) -> Int { lock.lock(); defer { lock.unlock() }; return counts[key, default: 0] }
     var summary: String {
-        "enable=\(count("enable")) installs=\(count("installation")) subs=\(count("subscription")) authRequests=\(count("authRequest"))"
+        "enable=\(count("enable")) registers=\(count("register")) installs=\(count("installation")) subs=\(count("subscription")) authRequests=\(count("authRequest"))"
     }
 }
 
@@ -71,9 +78,23 @@ private final class FakeAuthorizer: PushAuthorizing, @unchecked Sendable {
     }
 }
 
+/// Status answers never (`answer == nil`) or only after 6 s; a prompt is never shown and never counts as allowed.
+private struct SilentAuthorizer: PushAuthorizing {
+    let answer: PushAuthorization?
+    func status() async -> PushAuthorization {
+        guard let answer else {
+            try? await Task.sleep(for: .seconds(86_400))
+            return .unknown
+        }
+        try? await Task.sleep(for: .seconds(6))
+        return answer
+    }
+    func requestAuthorization() async -> Bool { PushStubLog.shared.bump("authRequest"); return false }
+}
+
 @MainActor private final class FakeRegistrar: RemoteNotificationRegistering {
     weak var manager: PushManager?
-    func register() { Task { await manager?.didRegister(deviceToken: Data(repeating: 0xAB, count: 32)) } }
+    func register() { PushStubLog.shared.bump("register"); Task { await manager?.didRegister(deviceToken: Data(repeating: 0xAB, count: 32)) } }
     func unregister() {}
 }
 

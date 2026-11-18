@@ -122,6 +122,26 @@ class SetupWizardTests: XCTestCase {
         if selected { XCTAssertEqual(text, "Der Regenhinweis wird erst nach deiner Bestätigung eingeschaltet.") }
     }
 
+    /// Notification state as the app sees it (`auth=` in the `setup-debug` label: unknown, notDetermined, denied, authorized).
+    private func authState(_ app: XCUIApplication) -> String {
+        let label = app.descendants(matching: .any)["setup-debug"].label
+        return label.split(separator: " ").first { $0.hasPrefix("auth=") }.map { String($0.dropFirst(5)) } ?? "?"
+    }
+
+    /// Denied state: only the denial message, neither the pending nor the "nothing preselected" note.
+    private func assertOnlyDeniedMessage(_ app: XCUIApplication) {
+        XCTAssertFalse(app.staticTexts["setup-alert-note-pending"].exists, "no pending note after denial")
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'erst nach deiner Bestätigung'")).firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["setup-alert-note-none"].exists, "no 'nothing preselected' note after denial")
+    }
+
+    private func assertNothingRegistered(_ app: XCUIApplication, _ context: String) {
+        let c = counters(app)
+        for key in ["enable", "registers", "installs", "subs", "authRequests", "enabled"] {
+            XCTAssertEqual(c[key], 0, "\(key) must stay 0 (\(context)): \(c)")
+        }
+    }
+
     private func requestConsentDialog(_ app: XCUIApplication) -> XCUIElement {
         app.buttons["setup-primary"].tap()
         let dialog = app.alerts["Regenhinweis aktivieren?"]
@@ -264,12 +284,74 @@ class SetupWizardTests: XCTestCase {
         requestConsentDialog(app).buttons["Weiter"].tap()
         XCTAssertTrue(app.staticTexts["Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet."].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Regenhinweis"].exists, "denied: stays on the step")
+        assertOnlyDeniedMessage(app)
         shot(app, "04e-verweigert")
         let c = counters(app)
         XCTAssertEqual(c["enable"], 1)
         XCTAssertEqual(c["enabled"], 0)
         XCTAssertEqual(c["subs"], 0, "denied permission: nothing registered")
         XCTAssertEqual(c["installs"], 0)
+    }
+
+    // MARK: First start without a system answer (notificationSettings() never or only late answers)
+
+    /// The coordinator waits at most 2 s for the notification state; the wizard must appear although the status never
+    /// answers. Unknown is not consent: the rain alert step is shown, nothing preselected, nothing registered.
+    func testFirstStartWithoutSystemAnswerShowsWizard() {
+        let app = launch(push: "fakehang")
+        let launched = Date()
+        XCTAssertTrue(app.staticTexts["Willkommen bei Showers"].waitForExistence(timeout: 6), "wizard within the 2 s deadline (+ margin)")
+        let elapsed = Date().timeIntervalSince(launched)
+        add(XCTAttachment(string: String(format: "welcome after %.1f s", elapsed)))
+        shot(app, "09a-erststart-ohne-systemantwort")
+        XCTAssertEqual(authState(app), "unknown")
+        toPlaces(app)
+        addTestPlaceAndContinue(app)
+        XCTAssertEqual(app.switches.matching(identifier: "setup-alert-place").firstMatch.value as? String, "0", "nothing preselected")
+        XCTAssertFalse(app.buttons["setup-primary"].isEnabled)
+        assertNote(app, selected: false)
+        shot(app, "09b-regenhinweis-ohne-systemantwort")
+        XCTAssertEqual(authState(app), "unknown")
+        assertNothingRegistered(app, "no system answer")
+    }
+
+    /// The status answers "allowed" only after 6 s (after the deadline): the state updates, but nothing is ticked or enabled.
+    func testLateSystemAnswerKeepsNoConsent() {
+        let app = launch(push: "fakelate")
+        XCTAssertTrue(app.staticTexts["Willkommen bei Showers"].waitForExistence(timeout: 5), "wizard before the late answer")
+        toPlaces(app)
+        addTestPlaceAndContinue(app)
+        let deadline = Date().addingTimeInterval(15)
+        while authState(app) != "authorized", Date() < deadline { Thread.sleep(forTimeInterval: 0.5) }
+        XCTAssertEqual(authState(app), "authorized", "late answer arrived")
+        XCTAssertTrue(app.staticTexts["Regenhinweis"].exists)
+        XCTAssertEqual(app.switches.matching(identifier: "setup-alert-place").firstMatch.value as? String, "0", "late answer ticks nothing")
+        XCTAssertFalse(app.buttons["setup-primary"].isEnabled)
+        assertNote(app, selected: false)
+        assertNothingRegistered(app, "late answer")
+    }
+
+    /// Real `UNUserNotificationCenter` on the first launch of a fresh install (run first after `simctl erase`): the wizard
+    /// must appear without a relaunch. Attaches when (if at all) the real status answered, as evidence for the cause.
+    func testSystemFirstLaunchShowsWizardWithoutRelaunch() {
+        let app = launch(push: "system")
+        let launched = Date()
+        XCTAssertTrue(app.staticTexts["Willkommen bei Showers"].waitForExistence(timeout: 8), "wizard on the first launch without relaunch")
+        var log = [String(format: "welcome after %.1f s, auth=%@", Date().timeIntervalSince(launched), authState(app))]
+        var last = authState(app)
+        while Date().timeIntervalSince(launched) < 30 {
+            let now = authState(app)
+            if now != last { log.append(String(format: "%.1f s: auth=%@", Date().timeIntervalSince(launched), now)); last = now }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        log.append("after 30 s: auth=\(last)")
+        let text = log.joined(separator: "\n")
+        let attachment = XCTAttachment(string: text)
+        attachment.name = "system-auth-timeline"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        print("SYSTEM-AUTH-TIMELINE\n\(text)")
+        assertNothingRegistered(app, "system first launch")
     }
 
     // MARK: E2E with the real iOS permission dialogs (fake backend, real system prompts)
@@ -318,6 +400,7 @@ class SetupWizardTests: XCTestCase {
         requestConsentDialog(app).buttons["Weiter"].tap()
         answerSystemAlert(preferring: ["Don’t Allow", "Don't Allow", "Nicht erlauben"], exact: true, name: "08a-system-mitteilungen-nein")
         XCTAssertTrue(app.staticTexts["Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet."].waitForExistence(timeout: 10))
+        assertOnlyDeniedMessage(app)
         let c = counters(app)
         XCTAssertEqual(c["enabled"], 0)
         XCTAssertEqual(c["subs"], 0)

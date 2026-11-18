@@ -24,16 +24,21 @@ final class SetupCoordinator {
         #endif
     }
 
+    /// The status is a local query that normally answers within a fraction of a second; 2 s keeps the first screen quick
+    /// while leaving room for a slow cold start. On timeout the state stays unknown (rain alert step shown, nothing assumed).
+    static let authorizationDeadline: @Sendable () async -> Void = { try? await Task.sleep(for: .seconds(2)) }
+
     static func snapshot(store: WeatherStore, push: PushManager) -> SetupSnapshot {
         SetupSnapshot(location: SetupLocationState(CLLocationManager().authorizationStatus), notifications: push.authorization,
                       savedPlaceCount: store.places.count, rainAlertCount: push.enabledCount)
     }
 
     /// Once per launch, after the notification state is known.
-    func evaluate(store: WeatherStore, push: PushManager) async {
+    func evaluate(store: WeatherStore, push: PushManager, deadline: @escaping @Sendable () async -> Void = SetupCoordinator.authorizationDeadline) async {
         guard !evaluated, !Self.suppressedForUITests else { return }
         evaluated = true
-        await push.refreshAuthorization()
+        // At most `deadline` (2 s): a missing system answer must not keep the wizard away (unknown is shown, not consent).
+        await push.refreshAuthorization(until: deadline)
         #if DEBUG
         PushUITestStub.cleanPlaces(store)
         #endif

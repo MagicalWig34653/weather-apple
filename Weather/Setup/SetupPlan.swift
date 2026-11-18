@@ -55,7 +55,8 @@ enum SetupPlan {
         case .welcome, .done: false
         case .location: snapshot.location == .notDetermined
         case .places: snapshot.savedPlaceCount == 0
-        case .rainAlert: (snapshot.notifications == .notDetermined || snapshot.notifications == .authorized) && snapshot.rainAlertCount == 0
+        // Unknown (the system did not answer in time) is not a refusal: the step stays, nothing is assumed.
+        case .rainAlert: snapshot.notifications != .denied && snapshot.rainAlertCount == 0
         }
     }
 

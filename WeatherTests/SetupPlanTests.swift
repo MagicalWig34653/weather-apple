@@ -50,9 +50,10 @@ final class SetupPlanTests: XCTestCase {
         XCTAssertEqual(decision, .show(mode: .migration, steps: [.rainAlert]))
     }
 
-    func testDeniedOrUnknownNotificationsCloseRainAlertStep() {
+    /// „Unbekannt“ (Systemabfrage hat nicht rechtzeitig geantwortet) ist keine Ablehnung: der Schritt bleibt offen.
+    func testDeniedClosesButUnknownKeepsRainAlertStep() {
         XCTAssertFalse(SetupPlan.isOpen(.rainAlert, snapshot: snapshot(notifications: .denied, places: 1)))
-        XCTAssertFalse(SetupPlan.isOpen(.rainAlert, snapshot: snapshot(notifications: .unknown, places: 1)))
+        XCTAssertTrue(SetupPlan.isOpen(.rainAlert, snapshot: snapshot(notifications: .unknown, places: 1)))
         XCTAssertTrue(SetupPlan.isOpen(.rainAlert, snapshot: snapshot(notifications: .notDetermined, places: 1)))
     }
 
@@ -96,7 +97,8 @@ final class SetupPlanTests: XCTestCase {
                         XCTAssertEqual(steps.last, .done)
                         XCTAssertEqual(steps.contains(.location), location == .notDetermined)
                         XCTAssertEqual(steps.contains(.places), places == 0)
-                        XCTAssertEqual(steps.contains(.rainAlert), (notifications == .notDetermined || notifications == .authorized) && alerts == 0)
+                        // Unknown (no system answer in time) keeps the step; only a refusal closes it.
+                        XCTAssertEqual(steps.contains(.rainAlert), notifications != .denied && alerts == 0)
                     }
                 }
             }
@@ -267,5 +269,108 @@ final class SetupPlanTests: XCTestCase {
                 XCTAssertFalse(value.contains("Regenwarnung") || value.localizedCaseInsensitiveContains("rain warning"), "\(key) \(lang)")
             }
         }
+    }
+}
+
+// MARK: Erststart ohne Systemantwort (notificationSettings antwortet nicht)
+
+/// One-shot gate: `wait()` suspends until `open()` (controlled time instead of real sleeping).
+private actor Gate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+    func open() { isOpen = true; waiters.forEach { $0.resume() }; waiters = [] }
+}
+
+/// Status answers only when the test says so (or never); a prompt is never allowed.
+private final class SilentAuthorizer: PushAuthorizing, @unchecked Sendable {
+    let gate = Gate()
+    private let lock = NSLock()
+    private var answer: PushAuthorization = .unknown
+    private(set) var prompts = 0
+    func status() async -> PushAuthorization {
+        await gate.wait()
+        return lock.withLock { answer }
+    }
+    func requestAuthorization() async -> Bool { lock.withLock { prompts += 1 }; return false }
+    func answerLate(_ value: PushAuthorization) async {
+        lock.withLock { answer = value }
+        await gate.open()
+    }
+}
+
+@MainActor
+final class SetupCoordinatorStartTests: XCTestCase {
+    private var suite = ""
+
+    override func setUp() { suite = "setup-start-\(UUID().uuidString)" }
+    override func tearDown() { UserDefaults().removePersistentDomain(forName: suite) }
+
+    private func make() -> (SetupCoordinator, WeatherStore, PushManager, SilentAuthorizer, FakeRegistrar, FakeGateway) {
+        let defaults = UserDefaults(suiteName: suite)!
+        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
+                                 defaults: defaults, reloadWidgets: {})
+        let authorizer = SilentAuthorizer(), registrar = FakeRegistrar(), gateway = FakeGateway()
+        let push = PushManager(gateway: gateway, secrets: FakeSecrets(), authorizer: authorizer, registrar: registrar,
+                               defaults: defaults, environment: .sandbox, locale: "de")
+        return (SetupCoordinator(progress: SetupProgress(defaults: defaults)), store, push, authorizer, registrar, gateway)
+    }
+
+    private func waitUntil(_ condition: @MainActor () -> Bool, seconds: Double = 5) async -> Bool {
+        let end = Date().addingTimeInterval(seconds)
+        while Date() < end {
+            if condition() { return true }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return condition()
+    }
+
+    /// Echter Startpfad: `evaluate` wartet auf die Systemabfrage höchstens bis zur Frist; danach erscheint der Assistent
+    /// mit Regenhinweis-Schritt, ohne Zustimmung anzunehmen und ohne irgendetwas zu registrieren.
+    func testWizardAppearsAtDeadlineWhenNotificationStatusNeverAnswers() async {
+        let (coordinator, store, push, authorizer, registrar, gateway) = make()
+        let deadline = Gate()
+        let run = Task { await coordinator.evaluate(store: store, push: push, deadline: { await deadline.wait() }) }
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(coordinator.isPresented, "before the deadline the wizard waits for the system answer")
+        await deadline.open()
+        let shown = await waitUntil({ coordinator.isPresented })
+        XCTAssertTrue(shown, "wizard appears once the deadline passed although the system never answered")
+        XCTAssertTrue(coordinator.steps.contains(.rainAlert), "unknown state keeps the rain alert step")
+        XCTAssertEqual(push.authorization, .unknown, "no consent assumed")
+        XCTAssertEqual(registrar.registered, 0)
+        XCTAssertEqual(push.enabledCount, 0)
+        XCTAssertEqual(authorizer.prompts, 0)
+        XCTAssertTrue(gateway.calls.isEmpty, "nothing registered on the server: \(gateway.calls)")
+        run.cancel()
+        await authorizer.answerLate(.notDetermined)
+    }
+
+    /// Verspätete Systemantwort („erlaubt“) nach der Frist: Zustand wird aktualisiert, aber nichts eingeschaltet oder registriert.
+    func testLateSystemAnswerEnablesNothing() async {
+        let (coordinator, store, push, authorizer, registrar, gateway) = make()
+        await coordinator.evaluate(store: store, push: push, deadline: {})
+        XCTAssertTrue(coordinator.isPresented)
+        let steps = coordinator.steps
+        await authorizer.answerLate(.authorized)
+        let updated = await waitUntil({ push.authorization == .authorized })
+        XCTAssertTrue(updated, "late answer still lands in the state")
+        XCTAssertEqual(coordinator.steps, steps, "late answer does not rebuild the shown wizard")
+        XCTAssertEqual(registrar.registered, 0, "late answer registers nothing")
+        XCTAssertEqual(push.enabledCount, 0)
+        XCTAssertEqual(authorizer.prompts, 0)
+        XCTAssertTrue(gateway.calls.isEmpty, "\(gateway.calls)")
+    }
+
+    /// Antwortet das System rechtzeitig, gilt seine Antwort (kein Warten bis zur Frist).
+    func testTimelyAnswerIsUsedWithoutWaitingForDeadline() async {
+        let (coordinator, store, push, authorizer, _, _) = make()
+        await authorizer.answerLate(.denied)
+        await coordinator.evaluate(store: store, push: push, deadline: { try? await Task.sleep(for: .seconds(3600)) })
+        XCTAssertEqual(push.authorization, .denied)
+        XCTAssertFalse(coordinator.steps.contains(.rainAlert), "denied closes the rain alert step")
     }
 }

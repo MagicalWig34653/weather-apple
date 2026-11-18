@@ -54,7 +54,7 @@ struct SetupWizardView: View {
             // UI tests only: counters of the fake push backend (nothing is shown to people).
             if PushUITestStub.isActive {
                 Color.clear.frame(width: 1, height: 1).accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(PushStubLog.shared.summary) enabled=\(push.enabledCount) working=\(working)").accessibilityIdentifier("setup-debug")
+                    .accessibilityLabel("\(PushStubLog.shared.summary) enabled=\(push.enabledCount) working=\(working) auth=\(String(describing: push.authorization))").accessibilityIdentifier("setup-debug")
             }
         }
         #endif
@@ -229,15 +229,19 @@ struct SetupWizardView: View {
             }
             if let alertMessage { Label(alertMessage, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange) }
             // "Nothing preselected" only before a choice; once a place is ticked the note is about the pending confirmation.
-            if consent.canRequest {
+            // After a refusal only the denial message above stays (nothing is pending any more).
+            if consent.canRequest, !permissionRefused {
                 Text(NSLocalizedString("SETUP_ALERT_PENDING_NOTE", value: "Der Regenhinweis wird erst nach deiner Bestätigung eingeschaltet.", comment: "Setup"))
                     .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("setup-alert-note-pending")
-            } else {
+            } else if !consent.canRequest {
                 Text(NSLocalizedString("SETUP_ALERT_PROMPT_NOTE", value: "Nichts ist vorgewählt. Erst nach deiner Zustimmung fragt iOS, ob Showers Mitteilungen senden darf.", comment: "Setup"))
                     .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("setup-alert-note-none")
             }
         }
     }
+
+    /// The enable attempt ended with "not allowed" in iOS (the denial message is shown).
+    private var permissionRefused: Bool { alertMessage != nil && push.authorization == .denied }
 
     private var doneCard: some View {
         VStack(alignment: .leading, spacing: 14) {
