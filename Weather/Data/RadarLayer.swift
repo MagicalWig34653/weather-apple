@@ -417,6 +417,8 @@ actor RadarLayerClient {
         case unreachable
         case invalid
         case stale
+        /// The fetch was cancelled (layer switch, task or scene change): says nothing about the server, changes no state.
+        case cancelled
     }
 
     private struct Cached { var etag: String?; var manifest: RadarLayerManifest }
@@ -433,6 +435,10 @@ actor RadarLayerClient {
         self.clock = clock
     }
 
+    private static func isCancellation(_ error: Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled || Task.isCancelled
+    }
+
     func latest(_ layer: RadarLayer) async -> Outcome {
         guard layer.isBackendLayer else { return .invalid }
         let base = RadarBackendConfig.layersBaseURL(for: layer, radarBaseURL: radarBaseURL)
@@ -442,7 +448,10 @@ actor RadarLayerClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let etag = cache[layer]?.etag { request.setValue(etag, forHTTPHeaderField: "If-None-Match") }
         let data: Data, response: HTTPURLResponse
-        do { (data, response) = try await transport(request) } catch { return .unreachable }
+        do { (data, response) = try await transport(request) } catch {
+            if Self.isCancellation(error) { return .cancelled }
+            return .unreachable
+        }
         let manifest: RadarLayerManifest
         switch response.statusCode {
         case 304:
@@ -559,6 +568,7 @@ final class RadarLayerStore {
         loading.insert(layer)
         let outcome = await client.latest(layer)
         loading.remove(layer)
+        if outcome == .cancelled { return }   // not a server answer: state and notes stay as they are
         apply(outcome, to: layer, now: clock())
         // The sun layer's visible-channel helper follows its parent; a 404 there is silent (mask only).
         if layer == .cloudmask, availability(.cloudmask) == .available { await refresh(.cloudmaskVis) }
@@ -567,6 +577,8 @@ final class RadarLayerStore {
     func apply(_ outcome: RadarLayerClient.Outcome, to layer: RadarLayer, now: Date) {
         var value = snapshots[layer] ?? LayerSnapshot()
         switch outcome {
+        case .cancelled:
+            return
         case .fresh(let manifest):
             let timeline = manifest.timeline(at: now)
             if value.manifest != manifest || value.timeline != timeline {
