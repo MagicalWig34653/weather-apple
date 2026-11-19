@@ -68,12 +68,13 @@ final class RadarWorldWidthUITests: XCTestCase {
         let text = world.frame, capsule = menu.frame
         print("WIDTH \(config.name): screen=\(app.frame.width) capsule=\(capsule.minX)...\(capsule.maxX) (\(capsule.width)) "
               + "world=\(text.minX)...\(text.maxX) (\(text.width) x \(text.height)) europe=\(europeWidth)")
-        // Truncation check: the capsule text may shrink to 0.7 of its natural width (`minimumScaleFactor`). A rendered width
-        // below that means SwiftUI cut it off with "…" (seen on the iPhone SE 19.11.: "Regenradar W…" at 83.5 pt).
+        // Truncation check: the capsule text may shrink to 0.7 of its natural width (`minimumScaleFactor`), but SwiftUI already
+        // cut "Regenradar Welt" to "Regenradar W…" at 83.5 pt with 0.7 x natural = 83.3 pt (iPhone SE, 19.11.): the width
+        // alone cannot tell truncated from scaled near 0.7. So the title must keep at least 0.75 of its natural width.
         let natural = Self.naturalWidth(config.worldTitle, category: config.size)
-        print("WIDTH \(config.name): natural=\(natural) minimum=\(natural * 0.7)")
+        print("WIDTH \(config.name): natural=\(natural) required=\(natural * 0.75)")
         if config.checksTruncation {
-            XCTAssertGreaterThanOrEqual(text.width, natural * 0.7, "\(config.name): \(config.worldTitle) nicht abgeschnitten")
+            XCTAssertGreaterThanOrEqual(text.width, natural * 0.75, "\(config.name): \(config.worldTitle) nicht abgeschnitten (mindestens 0,75)")
         }
         XCTAssertGreaterThanOrEqual(text.minX, capsule.minX, config.name)
         XCTAssertLessThanOrEqual(text.maxX, capsule.maxX, "\(config.name): Name ragt nicht aus der Kapsel")
