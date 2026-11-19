@@ -43,7 +43,10 @@ extension RadarLayerStore {
     }
 
     private nonisolated static let stubStart = Date()
-    private nonisolated static var worldOutageAfter: TimeInterval? { argument("-UITestWorldOutageAfter") }
+    private nonisolated static var outageLayer: String {
+        guard let index = CommandLine.arguments.firstIndex(of: "-UITestOutageLayer"), CommandLine.arguments.indices.contains(index + 1) else { return "radar_world" }
+        return CommandLine.arguments[index + 1]
+    }
     private nonisolated static func argument(_ name: String) -> TimeInterval? {
         guard let index = CommandLine.arguments.firstIndex(of: name), CommandLine.arguments.indices.contains(index + 1) else { return nil }
         return TimeInterval(CommandLine.arguments[index + 1])
@@ -64,11 +67,11 @@ extension RadarLayerStore {
                    "humidity": ("Relative Feuchte 2 m (ICON-D2)", "Datenbasis: Deutscher Wetterdienst (ICON-D2), relative Feuchte 2 m bildlich wiedergegeben",
                                 ["source": "icon_d2", "scale": "rh-d2-v1"])]
             guard let entry = known[id], id != "humidity" || mode == "d2rh" || mode == "all", request.url?.lastPathComponent == "latest.json" else { return (Data(), response(404)) }
-            // `-UITestWorldOutageAfter <s>`: the world layer disappears (404) that many seconds after the first request;
-            // with `-UITestWorldOutageFor <s>` it comes back after that long (outage, then recovery).
-            if id == "radar_world", let limit = worldOutageAfter {
+            // `-UITestOutageAfter <s>`: the layer `-UITestOutageLayer` (default `radar_world`) disappears (404) that many seconds
+            // after the first request; with `-UITestOutageFor <s>` it comes back after that long (outage, then recovery).
+            if id == outageLayer, let limit = argument("-UITestOutageAfter") {
                 let elapsed = Date().timeIntervalSince(stubStart)
-                if elapsed > limit, elapsed <= limit + (argument("-UITestWorldOutageFor") ?? .infinity) { return (Data(), response(404)) }
+                if elapsed > limit, elapsed <= limit + (argument("-UITestOutageFor") ?? .infinity) { return (Data(), response(404)) }
             }
             let now = Date()
             let observation = (entry.extra["kind"] as? String) == "observation"

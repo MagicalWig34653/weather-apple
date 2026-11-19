@@ -62,7 +62,7 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertEqual(RadarLayer.radarEU.symbolName, "globe.europe.africa")
         XCTAssertEqual(RadarLayer.radarWorld.symbolName, "globe")
         XCTAssertEqual(RadarLayer.radarEU.title, "Regenradar Europa")
-        XCTAssertEqual(RadarLayer.radarWorld.title, "Regenradar Welt")
+        XCTAssertEqual(RadarLayer.radarWorld.title, "Regen Welt")
         XCTAssertEqual(RadarLayer.radarEU.menuTitle, "Europa (OPERA)")
         XCTAssertEqual(RadarLayer.radarWorld.menuTitle, "Welt (NOAA)")
         XCTAssertEqual(RadarLayer.radar.menuTitle, "Deutschland (DWD)")

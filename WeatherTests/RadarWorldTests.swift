@@ -56,46 +56,46 @@ final class RadarWorldTests: XCTestCase {
     // MARK: Coverage
 
     func testCoverageByLatitude() {
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: 50), .full)
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: -59.9), .full)
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: 60), .full)
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: 60.1), .degraded)
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: 70), .degraded)
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: 70.1), .outside)
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: -60.1), .outside)
-        XCTAssertEqual(RadarWorldNotice.coverage(latitude: .nan), .full, "unknown map centre: no coverage note")
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: 50), .full)
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: -59.9), .full)
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: 60), .full)
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: 60.1), .degraded)
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: 70), .degraded)
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: 70.1), .outside)
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: -60.1), .outside)
+        XCTAssertEqual(RainLayerNotice.coverage(latitude: .nan), .full, "unknown map centre: no coverage note")
     }
 
     // MARK: Notices (appear and disappear)
 
     func testEstimateNoticeOnlyWhileWorldIsActive() {
-        let world = RadarWorldNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 50)
+        let world = RainLayerNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 50)
         XCTAssertEqual(world.map(\.kind), [.estimate])
         XCTAssertTrue(world[0].text.contains("Satellit"))
         XCTAssertTrue(world[0].text.contains("ungenauer"))
         XCTAssertFalse(world[0].text.contains("NOAA"), "no endorsement wording in the hint")
         for layer in [RadarLayer.radar, .radarEU, .pressure] {
-            XCTAssertEqual(RadarWorldNotice.notices(active: layer, availability: .available, centerLatitude: 80), [], "\(layer)")
+            XCTAssertEqual(RainLayerNotice.notices(active: layer, availability: .available, centerLatitude: 80), [], "\(layer)")
         }
     }
 
     func testCoverageNoticeAppearsOutsideAndDisappearsInside() {
-        let north = RadarWorldNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 78)
+        let north = RainLayerNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 78)
         XCTAssertEqual(north.map(\.kind), [.estimate, .outside])
         XCTAssertTrue(north[1].text.contains("70"))
-        let fringe = RadarWorldNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 65)
+        let fringe = RainLayerNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 65)
         XCTAssertEqual(fringe.map(\.kind), [.estimate, .degraded])
-        let back = RadarWorldNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 48)
+        let back = RainLayerNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 48)
         XCTAssertEqual(back.map(\.kind), [.estimate])
     }
 
     func testUnavailableNoticeNamesTheStateAndNoCoverageNoteWithoutData() {
         for state in [LayerAvailability.notPublished, .unreachable, .invalid, .stale] {
-            let notices = RadarWorldNotice.notices(active: .radarWorld, availability: state, centerLatitude: 80)
+            let notices = RainLayerNotice.notices(active: .radarWorld, availability: state, centerLatitude: 80)
             XCTAssertEqual(notices.map(\.kind), [.estimate, .unavailable], "\(state)")
             XCTAssertFalse(notices[1].text.isEmpty)
         }
-        XCTAssertEqual(RadarWorldNotice.notices(active: .radarWorld, availability: .unknown, centerLatitude: 50).map(\.kind), [.estimate],
+        XCTAssertEqual(RainLayerNotice.notices(active: .radarWorld, availability: .unknown, centerLatitude: 50).map(\.kind), [.estimate],
                        "still loading: no error yet")
     }
 
@@ -122,14 +122,56 @@ final class RadarWorldTests: XCTestCase {
         }
     }
 
+    /// Europe (19.11., Lino): like the world map, no silent switch to Germany; one note, then recovery on the next refresh.
     @MainActor
-    func testEuropeKeepsItsFallbackBehaviour() {
+    func testEuropeStaysActiveWhenItDisappearsAndRecovers() throws {
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture()) as? [String: Any])
+        object["layer"] = "radar_eu"
+        let europe = try RadarLayerManifest.parse(JSONSerialization.data(withJSONObject: object), expected: .radarEU,
+                                                  layersBaseURL: RadarBackendConfig.layersBaseURL(for: .radarEU, radarBaseURL: radarBase))
+        let now = europe.slots.last!.time.addingTimeInterval(120)
         let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { request in
             (Data(), HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!)
-        }), clock: { Date() })
+        }), clock: { now })
+        store.apply(.fresh(europe), to: .radarEU, now: now)
         XCTAssertTrue(store.select(.radarEU))
-        store.apply(.notPublished, to: .radarEU, now: Date())
-        XCTAssertEqual(store.active, .radar, "Europe unchanged")
+        for outcome in [RadarLayerClient.Outcome.notPublished, .stale, .invalid, .unreachable] {
+            store.apply(outcome, to: .radarEU, now: now.addingTimeInterval(7200))
+            XCTAssertEqual(store.active, .radarEU, "Europe stays chosen (\(outcome))")
+            XCTAssertNil(store.activeManifest)
+            let notices = RainLayerNotice.notices(active: .radarEU, availability: store.availability(.radarEU), centerLatitude: 80)
+            XCTAssertEqual(notices.map(\.kind), [.unavailable], "exactly one note, no estimate/coverage note for Europe")
+            guard notices.count == 1 else { continue }
+            XCTAssertTrue(notices[0].text.contains("Europa"), notices[0].text)
+            XCTAssertEqual(notices[0].identifier, "radar-eu-note-unavailable")
+            store.apply(.fresh(europe), to: .radarEU, now: now)
+            XCTAssertEqual(store.active, .radarEU)
+            XCTAssertEqual(RainLayerNotice.notices(active: .radarEU, availability: store.availability(.radarEU), centerLatitude: 50), [],
+                           "note disappears once data is back")
+        }
+    }
+
+    @MainActor
+    func testGermanyAndOtherLayersKeepTheirBehaviour() {
+        XCTAssertEqual(RainLayerNotice.notices(active: .radar, availability: .notPublished, centerLatitude: 50), [])
+        XCTAssertEqual(RainLayerNotice.notices(active: .pressureEU, availability: .notPublished, centerLatitude: 50), [])
+        XCTAssertFalse(RadarLayer.pressureEU.staysActiveWhenUnavailable, "Europe pressure keeps its quiet fallback")
+        XCTAssertFalse(RadarLayer.lightning.staysActiveWhenUnavailable)
+        XCTAssertEqual(RainLayerNotice.notices(active: .radarWorld, availability: .available, centerLatitude: 50).first?.identifier,
+                       "radar-world-note-estimate", "world identifiers unchanged")
+    }
+
+    // MARK: Name
+
+    func testVisibleWorldNameIsRegenWelt() throws {
+        XCTAssertEqual(RadarLayer.radarWorld.title, "Regen Welt")
+        XCTAssertTrue(RadarLayer.radarWorld.spokenName.hasPrefix("Regen Welt, "), RadarLayer.radarWorld.spokenName)
+        XCTAssertEqual(RadarLayer.radarWorld.menuTitle, "Welt (NOAA)", "menu entry unchanged")
+        XCTAssertEqual(RadarLayer.radarEU.title, "Regenradar Europa", "Europe name unchanged")
+        let path = try XCTUnwrap(Bundle.main.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: "en"))
+        let en = try XCTUnwrap(NSDictionary(contentsOfFile: path) as? [String: String])
+        XCTAssertEqual(en["LAYER_RADAR_WORLD_TITLE"], "Rain world")
+        XCTAssertEqual(en["LAYER_RADAR_WORLD_SPOKEN"]?.hasPrefix("Rain world, "), true)
     }
 
     // MARK: Attribution

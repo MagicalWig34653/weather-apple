@@ -551,9 +551,9 @@
 "PLACES_ALERT_FOR" = "Rain alert for %@";
 /* Kartenwahl: verschachteltes Menü, Regenebenen Europa/Welt */
 "LAYER_RADAR_EU_TITLE" = "Rain radar Europe";
-"LAYER_RADAR_WORLD_TITLE" = "Rain radar world";
+"LAYER_RADAR_WORLD_TITLE" = "Rain world";
 "LAYER_RADAR_EU_SPOKEN" = "Rain radar Europe, OPERA";
-"LAYER_RADAR_WORLD_SPOKEN" = "Rain radar world, estimated from satellite data, less accurate";
+"LAYER_RADAR_WORLD_SPOKEN" = "Rain world, estimated from satellite data, less accurate";
 "LAYER_RADAR_DE_MENU" = "Germany (DWD)";
 "LAYER_RADAR_EU_MENU" = "Europe (OPERA)";
 "LAYER_RADAR_WORLD_MENU" = "World (NOAA)";
@@ -569,6 +569,10 @@
 "RADAR_WORLD_UNREACHABLE_NOTE" = "World rain: server not reachable, so the map shows no rain.";
 "RADAR_WORLD_INVALID_NOTE" = "World rain: data not readable, so the map shows no rain.";
 "RADAR_WORLD_UNAVAILABLE_NOTE" = "World rain is currently unavailable, so the map shows no rain.";
+"RADAR_EU_STALE_NOTE" = "Europe rain: no current data, so the map shows no rain.";
+"RADAR_EU_UNREACHABLE_NOTE" = "Europe rain: server not reachable, so the map shows no rain.";
+"RADAR_EU_INVALID_NOTE" = "Europe rain: data not readable, so the map shows no rain.";
+"RADAR_EU_UNAVAILABLE_NOTE" = "Europe rain is currently unavailable, so the map shows no rain.";
 "LEGEND_TITLE_RADAR_EU" = "Precipitation Europe";
 "LEGEND_TITLE_RADAR_WORLD" = "Precipitation world (estimate)";
 "RADAR_MENU_GROUP_PRESSURE" = "Pressure";

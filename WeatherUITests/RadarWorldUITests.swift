@@ -84,25 +84,41 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertEqual(credit.label, "NOAA", "kurze Quellzeile ohne Logo")
         let missingImage = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "fehlt")).firstMatch
         XCTAssertFalse(missingImage.exists, "kein Bild-fehlt-Hinweis: \(missingImage.exists ? missingImage.label : "")")
-        XCTAssertTrue((menu.value as? String ?? "").contains("Welt"), "Kapsel nennt die Weltkarte")
+        XCTAssertTrue((menu.value as? String ?? "").hasPrefix("Regen Welt"), "Kapsel/VoiceOver: Regen Welt, \(menu.value ?? "")")
+        XCTAssertTrue(menu.staticTexts["Regen Welt"].exists, "sichtbarer Kartenname Regen Welt")
+        XCTAssertFalse(app.staticTexts["Regenradar Welt"].exists, "alter Name weg")
         attach("welt-2-karte-schaetzhinweis")
+        legend(app, "legende-welt")
 
         try choose(app, "Europa (OPERA)")
         XCTAssertTrue(estimate.waitForNonExistence(timeout: 5), "Hinweis verschwindet bei Europa")
         XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Quellzeile Europa")
         attach("welt-3-europa-unveraendert")
+        legend(app, "legende-europa")
 
         try choose(app, "Deutschland (DWD)")
         XCTAssertFalse(estimate.exists)
         XCTAssertTrue(app.staticTexts["radar-attribution"].waitForExistence(timeout: 10))
         XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} DWD"), "Quellzeile Deutschland")
         attach("welt-4-deutschland-unveraendert")
+        legend(app, "legende-deutschland")
+    }
+
+    /// Opens the legend of the active layer for a screenshot (legends unchanged by decision 19.11.) and closes it again.
+    private func legend(_ app: XCUIApplication, _ name: String) {
+        let toggle = app.buttons["radar-legend-toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        toggle.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["radar-legend"].waitForExistence(timeout: 5), name)
+        attach(name)
+        toggle.tap()
+        sleep(1)
     }
 
     func testMissingWorldDataShowsNoteInsteadOfSilentFallbackThenRecoversAndNoteDisappears() throws {
         executionTimeAllowance = 170
         let start = Date()
-        let app = launch(["-UITestWorldOutageAfter", "60", "-UITestWorldOutageFor", "25"])
+        let app = launch(["-UITestOutageLayer", "radar_world", "-UITestOutageAfter", "60", "-UITestOutageFor", "25"])
         try choose(app, "Welt (NOAA)")
         XCTAssertTrue(note(app, "estimate").waitForExistence(timeout: 5))
         XCTAssertFalse(note(app, "unavailable").exists, "Daten vorhanden: kein Fehlerhinweis")
@@ -127,7 +143,7 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertEqual(texts.count, 1, "genau ein Fehlerhinweis: \(texts)")
         XCTAssertFalse(app.descendants(matching: .any)["radar-slot-status"].exists, "keine zweite Pille über der Zeitachse")
         XCTAssertTrue(app.descendants(matching: .any)["radar-timeline"].exists, "Zeitachse bleibt als leere Leiste")
-        XCTAssertTrue(app.staticTexts["Keine Zeiten für Regenradar Welt"].exists, "leerer Zeitachsen-Zustand")
+        XCTAssertTrue(app.staticTexts["Keine Zeiten für Regen Welt"].exists, "leerer Zeitachsen-Zustand")
         attach("welt-5-fehlt-hinweis")
 
         // Way back WITHOUT a layer change: once the stub serves the world again, the next reload brings the picture back.
@@ -151,5 +167,46 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertTrue(missing.waitForNonExistence(timeout: 5), "Hinweis verschwindet nach Wechsel")
         XCTAssertFalse(note(app, "estimate").exists)
         attach("welt-6-hinweis-weg")
+    }
+
+    func testMissingEuropeDataKeepsEuropeWithOneNoteThenRecovers() throws {
+        executionTimeAllowance = 170
+        let start = Date()
+        let app = launch(["-UITestOutageLayer", "radar_eu", "-UITestOutageAfter", "60", "-UITestOutageFor", "25"])
+        try choose(app, "Europa (OPERA)")
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Europa mit Daten")
+        let missing = app.descendants(matching: .any)["radar-eu-note-unavailable"]
+        XCTAssertFalse(missing.exists, "Daten vorhanden: kein Fehlerhinweis")
+        XCTAssertFalse(note(app, "estimate").exists, "kein Schätzhinweis bei Europa")
+        XCTAssertLessThan(Date().timeIntervalSince(start), 55, "Europa vor dem Ausfall gewählt")
+        attach("europa-1-vorher")
+        let wait = 65 - Date().timeIntervalSince(start)
+        if wait > 0 { Thread.sleep(forTimeInterval: wait) }
+        menu.tap()
+        let reload = app.buttons["Daten neu laden"]
+        XCTAssertTrue(reload.waitForExistence(timeout: 5))
+        reload.tap()
+        XCTAssertTrue(missing.waitForExistence(timeout: 15), "Hinweis statt stillem Rückfall")
+        XCTAssertTrue(missing.label.contains("Europa"), missing.label)
+        XCTAssertTrue((menu.value as? String ?? "").contains("Europa"), "Europa bleibt gewählt: \(menu.value ?? "")")
+        XCTAssertFalse(app.staticTexts["radar-attribution"].exists, "keine Quellzeile ohne Bild")
+        let texts = Set(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "nicht verfügbar"))
+            .allElementsBoundByIndex.map(\.label))
+        XCTAssertEqual(texts.count, 1, "genau ein Fehlerhinweis: \(texts)")
+        XCTAssertFalse(app.descendants(matching: .any)["radar-slot-status"].exists, "keine zweite Pille über der Zeitachse")
+        XCTAssertTrue(app.staticTexts["Keine Zeiten für Regenradar Europa"].exists, "Zeitachse bleibt als leere Leiste")
+        attach("europa-2-ausfall")
+
+        let back = 100 - Date().timeIntervalSince(start)
+        if back > 0 { Thread.sleep(forTimeInterval: back) }
+        menu.tap()
+        XCTAssertTrue(reload.waitForExistence(timeout: 5))
+        reload.tap()
+        XCTAssertTrue(missing.waitForNonExistence(timeout: 15), "Hinweis verschwindet nach Erholung")
+        XCTAssertTrue((menu.value as? String ?? "").contains("Europa"), "ohne Ebenenwechsel")
+        XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Quellzeile wieder da")
+        XCTAssertTrue(app.sliders["Radarzeitpunkt"].waitForExistence(timeout: 10), "Zeitachse wieder da")
+        attach("europa-3-erholt")
     }
 }

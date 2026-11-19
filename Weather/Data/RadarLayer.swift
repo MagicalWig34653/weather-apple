@@ -30,8 +30,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// (404, not yet asked, unreachable) they are not shown in the menu at all instead of greyed out.
     var isOfferedWhenUnavailable: Bool { self != .pressureEU && self != .radarWorld && !isAirField }
 
-    /// While active and without data, the layer keeps the map and shows a notice instead of falling back to the radar.
-    var staysActiveWhenUnavailable: Bool { self == .radarWorld }
+    /// While active and without data, the rain map keeps the map and shows a notice instead of falling back to the
+    /// Germany radar (world 19.11., Europe 19.11. on Lino's decision). The other layers keep their quiet fallback.
+    var staysActiveWhenUnavailable: Bool { self == .radarWorld || self == .radarEU }
 
     /// Menu group "Regenebenen" (nested submenu): DWD Germany, OPERA Europe, NOAA world.
     static let rainLayers: [RadarLayer] = [.radar, .radarEU, .radarWorld]
@@ -69,7 +70,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .radar: NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Layer name or caption")
         case .radarEU: NSLocalizedString("LAYER_RADAR_EU_TITLE", value: "Regenradar Europa", comment: "Layer name or caption")
-        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_TITLE", value: "Regenradar Welt", comment: "Layer name or caption")
+        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_TITLE", value: "Regen Welt", comment: "Layer name or caption")
         case .pressure: NSLocalizedString("LAYER_PRESSURE_TITLE", value: "Luftdruck", comment: "Layer name or caption")
         case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_TITLE", value: "Luftdruck Europa", comment: "Layer name or caption")
         case .lightning: NSLocalizedString("LAYER_LIGHTNING_TITLE", value: "Blitze", comment: "Layer name or caption")
@@ -87,7 +88,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .radar: NSLocalizedString("LAYER_RADAR_SPOKEN", value: "Regenradar", comment: "Layer name or caption")
         case .radarEU: NSLocalizedString("LAYER_RADAR_EU_SPOKEN", value: "Regenradar Europa, OPERA", comment: "Layer name or caption")
-        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_SPOKEN", value: "Regenradar Welt, aus Satellitendaten geschätzt, ungenauer", comment: "Layer name or caption")
+        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_SPOKEN", value: "Regen Welt, aus Satellitendaten geschätzt, ungenauer", comment: "Layer name or caption")
         case .pressure: NSLocalizedString("LAYER_PRESSURE_SPOKEN", value: "Luftdruck, Isobaren", comment: "Layer name or caption")
         case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_SPOKEN", value: "Luftdruck Europa, Isobaren", comment: "Layer name or caption")
         case .lightning: NSLocalizedString("LAYER_LIGHTNING_SPOKEN", value: "Blitze", comment: "Layer name or caption")
@@ -594,8 +595,8 @@ final class RadarLayerStore {
             }
         }
         if snapshots[layer] != value { snapshots[layer] = value }
-        // The world map stays chosen and says why it shows nothing (`RadarWorldNotice`): a silent switch to the DWD radar
-        // would pass another source off as the chosen one. The other layers keep their quiet fallback.
+        // The world and Europe rain maps stay chosen and say why they show nothing (`RainLayerNotice`): a silent switch to
+        // the DWD radar would pass another source off as the chosen one. The other layers keep their quiet fallback.
         if active == layer, !value.availability.isSelectable, !layer.staysActiveWhenUnavailable { active = .radar }
     }
 

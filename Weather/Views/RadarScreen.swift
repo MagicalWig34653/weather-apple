@@ -133,14 +133,14 @@ struct RadarScreen: View {
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                ForEach(worldNotices) { notice in
+                ForEach(rainLayerNotices) { notice in
                     Label(notice.text, systemImage: notice.kind == .estimate ? "info.circle" : "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, notice.kind == .estimate ? 8 : 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityElement(children: .combine)
-                        .accessibilityIdentifier("radar-world-note-\(notice.kind.rawValue)")
+                        .accessibilityIdentifier(notice.identifier)
                 }
                 HStack(alignment: .top, spacing: 10) {
                     Spacer()
@@ -481,7 +481,7 @@ struct RadarScreen: View {
         if layer != .radar, store.displayTimeline == nil {
             // No data for the chosen layer (outage): a quiet hint instead of an error banner.
             if store.layers.isLoading { return (String(format: NSLocalizedString("TIMELINE_LOADING_LAYER", value: "%@ lädt …", comment: "Radar"), layer.title), false) }
-            // The world map already says why in its own note at the top (`RadarWorldNotice`): no second pill for the same state.
+            // World and Europe already say why in their own note at the top (`RainLayerNotice`): no second pill for the same state.
             if layer.staysActiveWhenUnavailable { return nil }
             return (String(format: NSLocalizedString("RADAR_LAYER_UNAVAILABLE", value: "%@ derzeit nicht verfügbar", comment: "Radar"), layer.title), true)
         }
@@ -814,13 +814,13 @@ struct RadarScreen: View {
         }
     }
 
-    /// Notices under the header (up to two): a forecast failure and a radar image problem are shown together.
-    /// World rain map: fixed estimate note, plus coverage or missing-data note while they apply.
-    private var worldNotices: [RadarWorldNotice.Notice] {
-        RadarWorldNotice.notices(active: store.activeLayer, availability: store.layers.availability(.radarWorld),
-                                 centerLatitude: mapCenterLatitude)
+    /// Rain maps beyond Germany: world estimate/coverage notes and the one missing-data note (world and Europe).
+    private var rainLayerNotices: [RainLayerNotice.Notice] {
+        RainLayerNotice.notices(active: store.activeLayer, availability: store.layers.availability(store.activeLayer),
+                                centerLatitude: mapCenterLatitude)
     }
 
+    /// Notices under the header (up to two): a forecast failure and a radar image problem are shown together.
     private var statusMessages: [String] {
         RadarStatusMessages.messages(RadarStatusInput(
             locationMessage: store.locationMessage, storageMessage: store.storageMessage,
