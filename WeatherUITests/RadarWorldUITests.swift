@@ -31,11 +31,17 @@ final class RadarWorldUITests: XCTestCase {
         return app
     }
 
+    /// Taps an entry of the rain submenu; retried when the system menu swallowed the tap (menu still open afterwards).
     private func choose(_ app: XCUIApplication, _ prefix: String) throws {
-        let entry = try XCTUnwrap(openLayerEntry(app, group: "Regen", entry: prefix), "\(prefix) fehlt im Regen-Untermenü")
-        XCTAssertTrue(entry.isEnabled, "\(prefix) wählbar")
-        entry.tap()
-        sleep(2)
+        for _ in 0..<3 {
+            let entry = try XCTUnwrap(openLayerEntry(app, group: "Regen", entry: prefix), "\(prefix) fehlt im Regen-Untermenü")
+            XCTAssertTrue(entry.isEnabled, "\(prefix) wählbar")
+            entry.tap()
+            if entry.waitForNonExistence(timeout: 3) { sleep(2); return }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+            sleep(1)
+        }
+        XCTFail("\(prefix) ließ sich nicht wählen")
     }
 
     /// The credit follows the layer switch with the manifest: wait for it instead of reading it once.
@@ -67,7 +73,7 @@ final class RadarWorldUITests: XCTestCase {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
         sleep(1)
 
-        try choose(app, "Welt")
+        try choose(app, "Welt (NOAA)")
         XCTAssertTrue(app.sliders["Radarzeitpunkt"].waitForExistence(timeout: 10), "Zeitachse der Weltkarte")
         let estimate = note(app, "estimate")
         XCTAssertTrue(estimate.waitForExistence(timeout: 5), "Schätzhinweis fest eingeblendet")
@@ -81,12 +87,12 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertTrue((menu.value as? String ?? "").contains("Welt"), "Kapsel nennt die Weltkarte")
         attach("welt-2-karte-schaetzhinweis")
 
-        try choose(app, "Europa")
+        try choose(app, "Europa (OPERA)")
         XCTAssertTrue(estimate.waitForNonExistence(timeout: 5), "Hinweis verschwindet bei Europa")
         XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Quellzeile Europa")
         attach("welt-3-europa-unveraendert")
 
-        try choose(app, "Deutschland")
+        try choose(app, "Deutschland (DWD)")
         XCTAssertFalse(estimate.exists)
         XCTAssertTrue(app.staticTexts["radar-attribution"].waitForExistence(timeout: 10))
         XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} DWD"), "Quellzeile Deutschland")
@@ -97,7 +103,7 @@ final class RadarWorldUITests: XCTestCase {
         executionTimeAllowance = 170
         let start = Date()
         let app = launch(["-UITestWorldOutageAfter", "60", "-UITestWorldOutageFor", "25"])
-        try choose(app, "Welt")
+        try choose(app, "Welt (NOAA)")
         XCTAssertTrue(note(app, "estimate").waitForExistence(timeout: 5))
         XCTAssertFalse(note(app, "unavailable").exists, "Daten vorhanden: kein Fehlerhinweis")
         XCTAssertLessThan(Date().timeIntervalSince(start), 55, "Welt vor dem Ausfall gewählt")
@@ -115,6 +121,13 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertTrue(note(app, "estimate").exists, "Schätzhinweis bleibt")
         XCTAssertTrue((menu.value as? String ?? "").contains("Welt"), "kein stilles Zurückfallen auf Deutschland")
         XCTAssertFalse(app.staticTexts["radar-attribution"].exists, "keine Quellzeile ohne Bild")
+        let unavailable = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "nicht verfügbar"))
+        // The note's container and its text expose the same label: count distinct texts.
+        let texts = Set(unavailable.allElementsBoundByIndex.map(\.label))
+        XCTAssertEqual(texts.count, 1, "genau ein Fehlerhinweis: \(texts)")
+        XCTAssertFalse(app.descendants(matching: .any)["radar-slot-status"].exists, "keine zweite Pille über der Zeitachse")
+        XCTAssertTrue(app.descendants(matching: .any)["radar-timeline"].exists, "Zeitachse bleibt als leere Leiste")
+        XCTAssertTrue(app.staticTexts["Keine Zeiten für Regenradar Welt"].exists, "leerer Zeitachsen-Zustand")
         attach("welt-5-fehlt-hinweis")
 
         // Way back WITHOUT a layer change: once the stub serves the world again, the next reload brings the picture back.
@@ -134,7 +147,7 @@ final class RadarWorldUITests: XCTestCase {
                        "kein Nicht-verfügbar-Hinweis mehr")
         attach("welt-5b-erholt")
 
-        try choose(app, "Deutschland")
+        try choose(app, "Deutschland (DWD)")
         XCTAssertTrue(missing.waitForNonExistence(timeout: 5), "Hinweis verschwindet nach Wechsel")
         XCTAssertFalse(note(app, "estimate").exists)
         attach("welt-6-hinweis-weg")
