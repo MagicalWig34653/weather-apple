@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 /// Width check of the capsule name "Regenradar Welt" / "Rain radar world" (Lino 19.11.: "Regenradar sollte von der Breite
@@ -11,6 +12,16 @@ final class RadarWorldWidthUITests: XCTestCase {
         let size: String?
         let group: String, world: String, europe: String
         let worldTitle: String, europeTitle: String
+        /// XXXL is recorded only: there the place capsule takes most of the row (known limit, also for Europe).
+        var checksTruncation: Bool { size != "UICTContentSizeCategoryXXXL" }
+    }
+
+    /// Natural width of the capsule title (`.subheadline`, semibold) at the given text size, as the app renders it unscaled.
+    static func naturalWidth(_ text: String, category: String?) -> CGFloat {
+        let size = category.map { UIContentSizeCategory(rawValue: $0) } ?? .large
+        let base = UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: UITraitCollection(preferredContentSizeCategory: size))
+        let font = UIFont.systemFont(ofSize: base.pointSize, weight: .semibold)
+        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
     }
 
     override func setUpWithError() throws {
@@ -57,6 +68,13 @@ final class RadarWorldWidthUITests: XCTestCase {
         let text = world.frame, capsule = menu.frame
         print("WIDTH \(config.name): screen=\(app.frame.width) capsule=\(capsule.minX)...\(capsule.maxX) (\(capsule.width)) "
               + "world=\(text.minX)...\(text.maxX) (\(text.width) x \(text.height)) europe=\(europeWidth)")
+        // Truncation check: the capsule text may shrink to 0.7 of its natural width (`minimumScaleFactor`). A rendered width
+        // below that means SwiftUI cut it off with "…" (seen on the iPhone SE 19.11.: "Regenradar W…" at 83.5 pt).
+        let natural = Self.naturalWidth(config.worldTitle, category: config.size)
+        print("WIDTH \(config.name): natural=\(natural) minimum=\(natural * 0.7)")
+        if config.checksTruncation {
+            XCTAssertGreaterThanOrEqual(text.width, natural * 0.7 - 1, "\(config.name): \(config.worldTitle) nicht abgeschnitten")
+        }
         XCTAssertGreaterThanOrEqual(text.minX, capsule.minX, config.name)
         XCTAssertLessThanOrEqual(text.maxX, capsule.maxX, "\(config.name): Name ragt nicht aus der Kapsel")
         XCTAssertLessThanOrEqual(capsule.maxX, app.frame.width, "\(config.name): Kapsel im Bildschirm")
