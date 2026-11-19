@@ -562,6 +562,13 @@
 "RADAR_MENU_GROUP_RAIN" = "Regen";
 "LEGEND_RADAR_EU_HINT" = "Niederschlag in Europa aus dem OPERA-Radarverbund von EUMETNET, alle 5 Minuten. Die Daten sind umprojiziert und eingefärbt.";
 "LEGEND_RADAR_WORLD_HINT" = "Niederschlag weltweit von NOAA, aus Satellitendaten geschätzt und deshalb ungenauer als Radarmessungen. Es gibt Lücken, und Stärke und Ort können abweichen.";
+"RADAR_WORLD_ESTIMATE_NOTE" = "Schätzung aus Satellitendaten, ungenauer als Radar. Keine Vorhersage.";
+"RADAR_WORLD_DEGRADED_NOTE" = "Nördlich von 60° N sind die Schätzwerte eingeschränkt und blasser dargestellt.";
+"RADAR_WORLD_OUTSIDE_NOTE" = "Hier gibt es keine Werte: Die Weltkarte reicht nur von 60° S bis 70° N.";
+"RADAR_WORLD_STALE_NOTE" = "Regen Welt: keine aktuellen Daten. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_WORLD_UNREACHABLE_NOTE" = "Regen Welt: Server nicht erreichbar. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_WORLD_INVALID_NOTE" = "Regen Welt: Daten nicht lesbar. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_WORLD_UNAVAILABLE_NOTE" = "Regen Welt ist derzeit nicht verfügbar. Die Karte zeigt deshalb keinen Regen.";
 "LEGEND_TITLE_RADAR_EU" = "Niederschlag Europa";
 "LEGEND_TITLE_RADAR_WORLD" = "Niederschlag Welt (Schätzung)";
 "RADAR_MENU_GROUP_PRESSURE" = "Luftdruck";

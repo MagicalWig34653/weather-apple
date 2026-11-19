@@ -6,7 +6,7 @@ import ImageIO
 /// UI tests only (Debug builds): `-UITestLayers wms|d2` simulates the layer manifests without network.
 /// `wms`: temperature from the WMS source (legend image); `d2`: temperature and dew point from ICON-D2 with scale ids
 /// (relative humidity stays unavailable, like with the server flag off); `d2rh`: like `d2` plus relative humidity.
-/// `all`: every layer of the menu is offered (rain Europe, both pressure layers, temperature, dew point, relative humidity,
+/// `all`: every layer of the menu is offered (rain Europe and world, both pressure layers, temperature, dew point, relative humidity,
 /// lightning, clouds, sun) and all slot images are generated locally (`UITestLayerImage`), so UI tests show real layers.
 /// All other layers answer 404.
 extension RadarLayerStore {
@@ -22,6 +22,12 @@ extension RadarLayerStore {
             "radar_eu": ("Regenradar Europa (OPERA)", "Daten umprojiziert und eingefärbt",
                          ["kind": "observation", "step": 300.0,
                           "attribution": "Radardaten Europa: EUMETNET OPERA (CIRRUS), CC BY 4.0, Quelle: MeteoGate"]),
+            // World map like the backend of PR #2 (2048 x 995, 60° S to 70° N, 10 min, observation only).
+            "radar_world": ("Regen Welt (NOAA RRQPE)", "Datenbasis: NOAA Enterprise Rainfall Rate (RRQPE, Blend), Daten umprojiziert, gefiltert und eingefärbt; aus Satellitendaten geschätzt",
+                            ["kind": "observation", "step": 600.0, "source": "noaa_rrqpe",
+                             "attribution": "Quelle: NOAA, von Showers verarbeitet; aus Satellitendaten geschätzt, ungenauer",
+                             "image": ["format": "image/webp", "width": 2048, "height": 995, "projection": "EPSG:3857",
+                                       "bbox": [-20037508.0, -8399738.0, 20037508.0, 11068716.0], "bbox_wgs84": [-180.0, -60.0, 180.0, 70.0]]]),
             "pressure": ("Luftdruck Deutschland", "\(dwd) (ICON), Isobaren berechnet", [:]),
             "pressure_eu": ("Luftdruck Europa", "\(dwd) (ICON), Isobaren berechnet", [:]),
             "lightning": ("Blitze", "\(dwd) (NowCastMIX), bildlich wiedergegeben", ["kind": "observation", "step": 300.0]),
@@ -34,6 +40,13 @@ extension RadarLayerStore {
             "humidity": ("Relative Feuchte 2 m (ICON-D2)", "\(dwd) (ICON-D2), relative Feuchte 2 m bildlich wiedergegeben",
                          ["source": "icon_d2", "scale": "rh-d2-v1"]),
         ]
+    }
+
+    private nonisolated static let stubStart = Date()
+    private nonisolated static var worldOutageAfter: TimeInterval? {
+        guard let index = CommandLine.arguments.firstIndex(of: "-UITestWorldOutageAfter"),
+              CommandLine.arguments.indices.contains(index + 1) else { return nil }
+        return TimeInterval(CommandLine.arguments[index + 1])
     }
 
     static func uiTestClient(mode: String, radarBaseURL: URL) -> RadarLayerClient {
@@ -51,6 +64,8 @@ extension RadarLayerStore {
                    "humidity": ("Relative Feuchte 2 m (ICON-D2)", "Datenbasis: Deutscher Wetterdienst (ICON-D2), relative Feuchte 2 m bildlich wiedergegeben",
                                 ["source": "icon_d2", "scale": "rh-d2-v1"])]
             guard let entry = known[id], id != "humidity" || mode == "d2rh" || mode == "all", request.url?.lastPathComponent == "latest.json" else { return (Data(), response(404)) }
+            // `-UITestWorldOutageAfter <s>`: the world layer disappears (404) that many seconds after the first request.
+            if id == "radar_world", let limit = worldOutageAfter, Date().timeIntervalSince(stubStart) > limit { return (Data(), response(404)) }
             let now = Date()
             let observation = (entry.extra["kind"] as? String) == "observation"
             let step = (entry.extra["step"] as? Double) ?? 3600
@@ -129,7 +144,7 @@ nonisolated enum UITestLayerImage {
         case "dewpoint", "humidity":
             let c = ramp(0.6 * wave + 0.4 * x, [(0.95, 0.9, 0.7), (0.5, 0.8, 0.6), (0.2, 0.6, 0.8), (0.1, 0.3, 0.6)])
             return (c.0, c.1, c.2, 0.85)
-        case "radar_eu":
+        case "radar_eu", "radar_world":
             let blob = sin(x * 14) * cos(y * 11)
             guard blob > 0.15 else { return (0, 0, 0, 0) }
             let c = ramp((blob - 0.15) / 0.85, [(0.4, 0.8, 0.95), (0.2, 0.7, 0.3), (0.95, 0.9, 0.2), (0.9, 0.2, 0.15)])

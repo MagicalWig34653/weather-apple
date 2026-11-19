@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "layer": "radar_world",
+  "title": "Regen Welt (Satellit, NOAA)",
+  "kind": "observation",
+  "run": "20261119T0610Z",
+  "reference_time": "2026-11-19T06:10:00Z",
+  "generated_at": "2026-11-19T06:31:46Z",
+  "step_minutes": 10,
+  "history_hours": 1,
+  "image": {
+    "format": "image/webp",
+    "width": 2048,
+    "height": 995,
+    "projection": "EPSG:3857",
+    "bbox": [
+      -20037508.0,
+      -8399738.0,
+      20037508.0,
+      11068716.0
+    ],
+    "bbox_wgs84": [
+      -180.0,
+      -60.0,
+      180.0,
+      70.0
+    ]
+  },
+  "slots": [
+    {
+      "time": "2026-11-19T05:10:00Z",
+      "kind": "observation",
+      "path": "20261119T0510Z/20261119T0510Z.webp"
+    },
+    {
+      "time": "2026-11-19T05:20:00Z",
+      "kind": "observation",
+      "path": "20261119T0520Z/20261119T0520Z.webp"
+    },
+    {
+      "time": "2026-11-19T05:30:00Z",
+      "kind": "observation",
+      "path": "20261119T0530Z/20261119T0530Z.webp"
+    },
+    {
+      "time": "2026-11-19T05:40:00Z",
+      "kind": "observation",
+      "path": "20261119T0540Z/20261119T0540Z.webp"
+    },
+    {
+      "time": "2026-11-19T05:50:00Z",
+      "kind": "observation",
+      "path": "20261119T0550Z/20261119T0550Z.webp"
+    },
+    {
+      "time": "2026-11-19T06:00:00Z",
+      "kind": "observation",
+      "path": "20261119T0600Z/20261119T0600Z.webp"
+    },
+    {
+      "time": "2026-11-19T06:10:00Z",
+      "kind": "observation",
+      "path": "20261119T0610Z/20261119T0610Z.webp"
+    }
+  ],
+  "attribution": "Quelle: NOAA, von Showers verarbeitet; aus Satellitendaten gesch\u00e4tzt, ungenauer",
+  "modification_notice": "Datenbasis: NOAA Enterprise Rainfall Rate (RRQPE, Blend), Daten umprojiziert, gefiltert und eingef\u00e4rbt; aus Satellitendaten gesch\u00e4tzt",
+  "source": "noaa_rrqpe"
+}

@@ -15,6 +15,8 @@ struct RadarScreen: View {
     /// Local value readout of the tapped point (2 m fields) and the "read centre value" request counter.
     @State private var readout: ReadoutState?
     @State private var readoutRevision = 0
+    /// Latitude of the map centre (world rain map coverage note only).
+    @State private var mapCenterLatitude: Double?
     @State private var placeName = ""
     @State private var radarLoadState: RadarLoadState?
     /// Calms the per-slot loading hint (see `SlotFeedbackGate`); `heldFeedback` is what is currently shown.
@@ -62,6 +64,11 @@ struct RadarScreen: View {
                          if let state, state.announce { UIAccessibility.post(notification: .announcement, argument: state.spoken) }
                      },
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
+                     onCenterLatitude: { latitude in
+                         // Only the world map uses it; rounded so that panning does not redraw the screen continuously.
+                         let rounded = (latitude * 10).rounded() / 10
+                         if mapCenterLatitude != rounded { mapCenterLatitude = rounded }
+                     },
                      onBackendFailure: { loaded in
                          // Optional layers have no fallback: a failed layer image never switches the radar source.
                          if loaded == 0, store.activeLayer == .radar { store.backendImagesUnavailable() }
@@ -125,6 +132,15 @@ struct RadarScreen: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityAddTraits(.updatesFrequently)
+                }
+                ForEach(worldNotices) { notice in
+                    Label(notice.text, systemImage: notice.kind == .estimate ? "info.circle" : "exclamationmark.triangle.fill")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, notice.kind == .estimate ? 8 : 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("radar-world-note-\(notice.kind.rawValue)")
                 }
                 HStack(alignment: .top, spacing: 10) {
                     Spacer()
@@ -797,6 +813,12 @@ struct RadarScreen: View {
     }
 
     /// Notices under the header (up to two): a forecast failure and a radar image problem are shown together.
+    /// World rain map: fixed estimate note, plus coverage or missing-data note while they apply.
+    private var worldNotices: [RadarWorldNotice.Notice] {
+        RadarWorldNotice.notices(active: store.activeLayer, availability: store.layers.availability(.radarWorld),
+                                 centerLatitude: mapCenterLatitude)
+    }
+
     private var statusMessages: [String] {
         RadarStatusMessages.messages(RadarStatusInput(
             locationMessage: store.locationMessage, storageMessage: store.storageMessage,

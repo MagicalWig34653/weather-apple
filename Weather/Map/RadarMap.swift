@@ -24,6 +24,8 @@ struct RadarMap: UIViewRepresentable {
     /// Local value readout of the tapped point (`nil` = none); never leaves the device.
     var onReadout: @MainActor (ReadoutState?) -> Void = { _ in }
     let onSelect: (CLLocationCoordinate2D) -> Void
+    /// Latitude of the map centre after each move (world rain map coverage note).
+    var onCenterLatitude: @MainActor (Double) -> Void = { _ in }
     /// Called when a backend image failed; the argument is the number of images loaded so far.
     var onBackendFailure: @MainActor (Int) -> Void = { _ in }
     let onLoadState: @MainActor @Sendable (RadarLoadState) -> Void
@@ -49,6 +51,8 @@ struct RadarMap: UIViewRepresentable {
         context.coordinator.map = map
         center(map, animated: false)
         context.coordinator.lastCenterRevision = centerRevision
+        let latitude = map.centerCoordinate.latitude
+        Task { @MainActor in onCenterLatitude(latitude) }
         return map
     }
 
@@ -463,6 +467,7 @@ struct RadarMap: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            parent.onCenterLatitude(mapView.centerCoordinate.latitude)
             guard let overlay, let activeContextID else { return }
             overlay.endViewportDemand(contextID: activeContextID)
         }

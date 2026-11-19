@@ -562,6 +562,13 @@
 "RADAR_MENU_GROUP_RAIN" = "Rain";
 "LEGEND_RADAR_EU_HINT" = "Precipitation across Europe from the EUMETNET OPERA radar network, every 5 minutes. The data is re-projected and coloured.";
 "LEGEND_RADAR_WORLD_HINT" = "Worldwide precipitation from NOAA, estimated from satellite data and therefore less accurate than radar measurements. There are gaps, and intensity and position can be off.";
+"RADAR_WORLD_ESTIMATE_NOTE" = "Estimated from satellite data, less accurate than radar. No forecast.";
+"RADAR_WORLD_DEGRADED_NOTE" = "North of 60° N the estimates are limited and drawn paler.";
+"RADAR_WORLD_OUTSIDE_NOTE" = "No values here: the world map only covers 60° S to 70° N.";
+"RADAR_WORLD_STALE_NOTE" = "World rain: no current data, so the map shows no rain.";
+"RADAR_WORLD_UNREACHABLE_NOTE" = "World rain: server not reachable, so the map shows no rain.";
+"RADAR_WORLD_INVALID_NOTE" = "World rain: data not readable, so the map shows no rain.";
+"RADAR_WORLD_UNAVAILABLE_NOTE" = "World rain is currently unavailable, so the map shows no rain.";
 "LEGEND_TITLE_RADAR_EU" = "Precipitation Europe";
 "LEGEND_TITLE_RADAR_WORLD" = "Precipitation world (estimate)";
 "RADAR_MENU_GROUP_PRESSURE" = "Pressure";

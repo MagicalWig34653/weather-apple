@@ -11,7 +11,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Public ids; the server resolves them to its active source. Only offered once the backend reports them.
     case temperature, dewpoint, humidity
     /// Rain radar beyond Germany: Europe (EUMETNET OPERA composite, re-projected and coloured by the backend) and the
-    /// world (NOAA, estimated from satellite data, not in the backend yet). Both are backend layers without DWD fallback.
+    /// world (NOAA RRQPE, estimated from satellite data, 60° S to 70° N). Both are backend layers without DWD fallback.
     case radarEU = "radar_eu", radarWorld = "radar_world"
     /// Visible channel (Germany grid): never chosen by the user, only refines the sun layer by day.
     case cloudmaskVis = "cloudmask_vis"
@@ -29,6 +29,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// `false` for layers newer than the first backend release: while the backend does not report them
     /// (404, not yet asked, unreachable) they are not shown in the menu at all instead of greyed out.
     var isOfferedWhenUnavailable: Bool { self != .pressureEU && self != .radarWorld && !isAirField }
+
+    /// While active and without data, the layer keeps the map and shows a notice instead of falling back to the radar.
+    var staysActiveWhenUnavailable: Bool { self == .radarWorld }
 
     /// Menu group "Regenebenen" (nested submenu): DWD Germany, OPERA Europe, NOAA world.
     static let rainLayers: [RadarLayer] = [.radar, .radarEU, .radarWorld]
@@ -511,7 +514,8 @@ final class RadarLayerStore {
         var isSoon: Bool
     }
     var rainMenuEntries: [RainMenuEntry] {
-        RadarLayer.rainLayers.map { RainMenuEntry(layer: $0, isSoon: !isOffered($0)) }
+        // The active world map that lost its data stays a normal entry (checkmark plus state), not "soon".
+        RadarLayer.rainLayers.map { RainMenuEntry(layer: $0, isSoon: !isOffered($0) && active != $0) }
     }
     /// The offered members of a menu group (an empty result hides the group).
     func offered(_ group: [RadarLayer]) -> [RadarLayer] { group.filter(isOffered) }
@@ -590,7 +594,9 @@ final class RadarLayerStore {
             }
         }
         if snapshots[layer] != value { snapshots[layer] = value }
-        if active == layer, !value.availability.isSelectable { active = .radar }
+        // The world map stays chosen and says why it shows nothing (`RadarWorldNotice`): a silent switch to the DWD radar
+        // would pass another source off as the chosen one. The other layers keep their quiet fallback.
+        if active == layer, !value.availability.isSelectable, !layer.staysActiveWhenUnavailable { active = .radar }
     }
 
     /// Asks all optional layers once whether they exist (404 -> greyed out). Throttled; with
