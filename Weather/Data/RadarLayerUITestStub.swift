@@ -47,6 +47,14 @@ extension RadarLayerStore {
         guard let index = CommandLine.arguments.firstIndex(of: "-UITestOutageLayer"), CommandLine.arguments.indices.contains(index + 1) else { return "radar_world" }
         return CommandLine.arguments[index + 1]
     }
+    private nonisolated static var faults: [(kind: String, from: TimeInterval, to: TimeInterval)] {
+        CommandLine.arguments.indices.compactMap { index -> (kind: String, from: TimeInterval, to: TimeInterval)? in
+            guard CommandLine.arguments[index] == "-UITestFault", CommandLine.arguments.indices.contains(index + 1) else { return nil }
+            let parts = CommandLine.arguments[index + 1].split(separator: ":").map(String.init)
+            guard parts.count == 3, let from = TimeInterval(parts[1]), let to = TimeInterval(parts[2]) else { return nil }
+            return (parts[0], from, to)
+        }
+    }
     private nonisolated static func argument(_ name: String) -> TimeInterval? {
         guard let index = CommandLine.arguments.firstIndex(of: name), CommandLine.arguments.indices.contains(index + 1) else { return nil }
         return TimeInterval(CommandLine.arguments[index + 1])
@@ -76,6 +84,27 @@ extension RadarLayerStore {
             if id == outageLayer, let limit = argument("-UITestOutageAfter") {
                 let elapsed = Date().timeIntervalSince(stubStart)
                 if elapsed > limit, elapsed <= limit + (argument("-UITestOutageFor") ?? .infinity) { return (Data(), response(404)) }
+            }
+            // `-UITestFault <kind>:<from>:<to>` (repeatable; seconds after the first request, layer `-UITestOutageLayer`):
+            // `404` layer not published, `offline` real network failure (URLError.notConnectedToInternet), `cancel` the fetch is
+            // cancelled (URLError.cancelled, like a layer switch or scene change). Outside every window the layer answers normally.
+            if id == outageLayer {
+                let elapsed = Date().timeIntervalSince(stubStart)
+                for fault in faults where elapsed > fault.from && elapsed <= fault.to {
+                    NSLog("UITEST-STUB \(id) fault=\(fault.kind) at \(Int(elapsed)) s")
+                    switch fault.kind {
+                    case "cancel": throw URLError(.cancelled)
+                    case "offline": throw URLError(.notConnectedToInternet)
+                    default: return (Data(), response(404))
+                    }
+                }
+            }
+            // `-UITestETag 1`: the manifest carries an ETag and a repeated request with `If-None-Match` gets `304` (unchanged status).
+            let etagMode = CommandLine.arguments.contains("-UITestETag")
+            let etag = "\"stub-\(id)\""
+            if etagMode, request.value(forHTTPHeaderField: "If-None-Match") == etag {
+                NSLog("UITEST-STUB \(id) 304")
+                return (Data(), HTTPURLResponse(url: url, statusCode: 304, httpVersion: nil, headerFields: ["ETag": etag])!)
             }
             let now = Date()
             let observation = (entry.extra["kind"] as? String) == "observation"
@@ -109,7 +138,9 @@ extension RadarLayerStore {
                                     "width": 88, "height": 505]
             }
             object.merge(entry.extra.filter { !["kind", "step", "attribution"].contains($0.key) }) { $1 }
-            return ((try? JSONSerialization.data(withJSONObject: object)) ?? Data(), response(200))
+            if etagMode { NSLog("UITEST-STUB \(id) 200") }
+            let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: etagMode ? ["ETag": etag] : nil)!
+            return ((try? JSONSerialization.data(withJSONObject: object)) ?? Data(), ok)
         })
     }
 }
