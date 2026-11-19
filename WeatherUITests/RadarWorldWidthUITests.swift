@@ -21,7 +21,7 @@ final class RadarWorldWidthUITests: XCTestCase {
         let size = category.map { UIContentSizeCategory(rawValue: $0) } ?? .large
         let base = UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: UITraitCollection(preferredContentSizeCategory: size))
         let font = UIFont.systemFont(ofSize: base.pointSize, weight: .semibold)
-        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
+        return (text as NSString).size(withAttributes: [.font: font]).width
     }
 
     override func setUpWithError() throws {
@@ -73,7 +73,7 @@ final class RadarWorldWidthUITests: XCTestCase {
         let natural = Self.naturalWidth(config.worldTitle, category: config.size)
         print("WIDTH \(config.name): natural=\(natural) minimum=\(natural * 0.7)")
         if config.checksTruncation {
-            XCTAssertGreaterThanOrEqual(text.width, natural * 0.7 - 1, "\(config.name): \(config.worldTitle) nicht abgeschnitten")
+            XCTAssertGreaterThanOrEqual(text.width, natural * 0.7, "\(config.name): \(config.worldTitle) nicht abgeschnitten")
         }
         XCTAssertGreaterThanOrEqual(text.minX, capsule.minX, config.name)
         XCTAssertLessThanOrEqual(text.maxX, capsule.maxX, "\(config.name): Name ragt nicht aus der Kapsel")
