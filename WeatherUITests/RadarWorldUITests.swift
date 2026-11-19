@@ -84,15 +84,22 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertEqual(credit.label, "NOAA", "kurze Quellzeile ohne Logo")
         let missingImage = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "fehlt")).firstMatch
         XCTAssertFalse(missingImage.exists, "kein Bild-fehlt-Hinweis: \(missingImage.exists ? missingImage.label : "")")
-        XCTAssertTrue((menu.value as? String ?? "").hasPrefix("Regen Welt"), "Kapsel/VoiceOver: Regen Welt, \(menu.value ?? "")")
-        XCTAssertTrue(menu.staticTexts["Regen Welt"].exists, "sichtbarer Kartenname Regen Welt")
-        XCTAssertFalse(app.staticTexts["Regenradar Welt"].exists, "alter Name weg")
+        XCTAssertEqual(menu.value as? String, "Regenradar Welt, aus Satellitendaten geschätzt, ungenauer", "VoiceOver-Name mit Schätzhinweis")
+        let worldName = menu.staticTexts["Regenradar Welt"]
+        XCTAssertTrue(worldName.exists, "sichtbarer Kartenname Regenradar Welt")
+        XCTAssertLessThanOrEqual(worldName.frame.maxX, menu.frame.maxX, "Name innerhalb der Kapsel")
+        let worldWidth = worldName.frame.width
         attach("welt-2-karte-schaetzhinweis")
         legend(app, "legende-welt")
 
         try choose(app, "Europa (OPERA)")
         XCTAssertTrue(estimate.waitForNonExistence(timeout: 5), "Hinweis verschwindet bei Europa")
         XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Quellzeile Europa")
+        // Width check (Lino: "Regenradar sollte von der Breite passen"): the world name needs no more room than Europe's.
+        let europeName = menu.staticTexts["Regenradar Europa"]
+        XCTAssertTrue(europeName.exists)
+        XCTAssertLessThanOrEqual(worldWidth, europeName.frame.width + 0.5, "Welt \(worldWidth) pt, Europa \(europeName.frame.width) pt")
+        print("WIDTH world=\(worldWidth) europe=\(europeName.frame.width) capsule=\(menu.frame.width) screen=\(app.frame.width)")
         attach("welt-3-europa-unveraendert")
         legend(app, "legende-europa")
 
@@ -143,7 +150,7 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertEqual(texts.count, 1, "genau ein Fehlerhinweis: \(texts)")
         XCTAssertFalse(app.descendants(matching: .any)["radar-slot-status"].exists, "keine zweite Pille über der Zeitachse")
         XCTAssertTrue(app.descendants(matching: .any)["radar-timeline"].exists, "Zeitachse bleibt als leere Leiste")
-        XCTAssertTrue(app.staticTexts["Keine Zeiten für Regen Welt"].exists, "leerer Zeitachsen-Zustand")
+        XCTAssertTrue(app.staticTexts["Keine Zeiten für Regenradar Welt"].exists, "leerer Zeitachsen-Zustand")
         attach("welt-5-fehlt-hinweis")
 
         // Way back WITHOUT a layer change: once the stub serves the world again, the next reload brings the picture back.

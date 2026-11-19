@@ -70,7 +70,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .radar: NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Layer name or caption")
         case .radarEU: NSLocalizedString("LAYER_RADAR_EU_TITLE", value: "Regenradar Europa", comment: "Layer name or caption")
-        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_TITLE", value: "Regen Welt", comment: "Layer name or caption")
+        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_TITLE", value: "Regenradar Welt", comment: "Layer name or caption")
         case .pressure: NSLocalizedString("LAYER_PRESSURE_TITLE", value: "Luftdruck", comment: "Layer name or caption")
         case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_TITLE", value: "Luftdruck Europa", comment: "Layer name or caption")
         case .lightning: NSLocalizedString("LAYER_LIGHTNING_TITLE", value: "Blitze", comment: "Layer name or caption")
@@ -88,7 +88,7 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .radar: NSLocalizedString("LAYER_RADAR_SPOKEN", value: "Regenradar", comment: "Layer name or caption")
         case .radarEU: NSLocalizedString("LAYER_RADAR_EU_SPOKEN", value: "Regenradar Europa, OPERA", comment: "Layer name or caption")
-        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_SPOKEN", value: "Regen Welt, aus Satellitendaten geschätzt, ungenauer", comment: "Layer name or caption")
+        case .radarWorld: NSLocalizedString("LAYER_RADAR_WORLD_SPOKEN", value: "Regenradar Welt, aus Satellitendaten geschätzt, ungenauer", comment: "Layer name or caption")
         case .pressure: NSLocalizedString("LAYER_PRESSURE_SPOKEN", value: "Luftdruck, Isobaren", comment: "Layer name or caption")
         case .pressureEU: NSLocalizedString("LAYER_PRESSURE_EU_SPOKEN", value: "Luftdruck Europa, Isobaren", comment: "Layer name or caption")
         case .lightning: NSLocalizedString("LAYER_LIGHTNING_SPOKEN", value: "Blitze", comment: "Layer name or caption")

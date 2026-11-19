@@ -163,15 +163,16 @@ final class RadarWorldTests: XCTestCase {
 
     // MARK: Name
 
-    func testVisibleWorldNameIsRegenWelt() throws {
-        XCTAssertEqual(RadarLayer.radarWorld.title, "Regen Welt")
-        XCTAssertTrue(RadarLayer.radarWorld.spokenName.hasPrefix("Regen Welt, "), RadarLayer.radarWorld.spokenName)
+    /// Lino 19.11.: the capsule says "Regenradar Welt" (fits like "Regenradar Europa"); the spoken name keeps the estimate.
+    func testVisibleWorldNameIsRegenradarWelt() throws {
+        XCTAssertEqual(RadarLayer.radarWorld.title, "Regenradar Welt")
+        XCTAssertEqual(RadarLayer.radarWorld.spokenName, "Regenradar Welt, aus Satellitendaten geschätzt, ungenauer")
         XCTAssertEqual(RadarLayer.radarWorld.menuTitle, "Welt (NOAA)", "menu entry unchanged")
         XCTAssertEqual(RadarLayer.radarEU.title, "Regenradar Europa", "Europe name unchanged")
         let path = try XCTUnwrap(Bundle.main.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: "en"))
         let en = try XCTUnwrap(NSDictionary(contentsOfFile: path) as? [String: String])
-        XCTAssertEqual(en["LAYER_RADAR_WORLD_TITLE"], "Rain world")
-        XCTAssertEqual(en["LAYER_RADAR_WORLD_SPOKEN"]?.hasPrefix("Rain world, "), true)
+        XCTAssertEqual(en["LAYER_RADAR_WORLD_TITLE"], "Rain radar world")
+        XCTAssertEqual(en["LAYER_RADAR_WORLD_SPOKEN"], "Rain radar world, estimated from satellite data, less accurate")
     }
 
     // MARK: Attribution

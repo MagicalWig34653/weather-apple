@@ -551,9 +551,9 @@
 "PLACES_ALERT_FOR" = "Regenhinweis für %@";
 /* Kartenwahl: verschachteltes Menü, Regenebenen Europa/Welt */
 "LAYER_RADAR_EU_TITLE" = "Regenradar Europa";
-"LAYER_RADAR_WORLD_TITLE" = "Regen Welt";
+"LAYER_RADAR_WORLD_TITLE" = "Regenradar Welt";
 "LAYER_RADAR_EU_SPOKEN" = "Regenradar Europa, OPERA";
-"LAYER_RADAR_WORLD_SPOKEN" = "Regen Welt, aus Satellitendaten geschätzt, ungenauer";
+"LAYER_RADAR_WORLD_SPOKEN" = "Regenradar Welt, aus Satellitendaten geschätzt, ungenauer";
 "LAYER_RADAR_DE_MENU" = "Deutschland (DWD)";
 "LAYER_RADAR_EU_MENU" = "Europa (OPERA)";
 "LAYER_RADAR_WORLD_MENU" = "Welt (NOAA)";
