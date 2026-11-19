@@ -33,13 +33,19 @@ final class RadarWorldUITests: XCTestCase {
 
     /// Taps an entry of the rain submenu; retried when the system menu swallowed the tap (menu still open afterwards).
     private func choose(_ app: XCUIApplication, _ prefix: String) throws {
-        for _ in 0..<3 {
-            let entry = try XCTUnwrap(openLayerEntry(app, group: "Regen", entry: prefix), "\(prefix) fehlt im Regen-Untermenü")
-            XCTAssertTrue(entry.isEnabled, "\(prefix) wählbar")
-            entry.tap()
-            if entry.waitForNonExistence(timeout: 3) { sleep(2); return }
+        let menu = app.buttons["radar-layer-menu"]
+        let rain = app.buttons.matching(NSPredicate(format: "label == %@", "Regen")).firstMatch
+        let entry = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
+        for _ in 0..<4 {
+            menu.tap()
+            // Exactly the group "Regen" (not "Luftdruck", whose entries are also called Deutschland/Europa).
+            if rain.waitForExistence(timeout: 3) { rain.tap() }
+            if entry.waitForExistence(timeout: 3), entry.isEnabled {
+                entry.tap()
+                if entry.waitForNonExistence(timeout: 3) { sleep(2); return }
+            }
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
-            sleep(1)
+            sleep(2)
         }
         XCTFail("\(prefix) ließ sich nicht wählen")
     }
