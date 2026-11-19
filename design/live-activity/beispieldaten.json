@@ -1,0 +1,97 @@
+{
+  "kennzeichnung": "Beispieldaten",
+  "hinweis": "Frei gewählte Beispielwerte für den Gestaltungsvergleich. Keine Messwerte, keine echten Orte oder Standorte, keine DWD-Daten. Die Felder entsprechen RainActivityAttributes.ContentState (Stand origin/main, Build 50). Uhrzeiten sind lokale Zeit (MEZ).",
+  "datum": "Donnerstag, 19. November",
+  "orte": {
+    "ort": { "name": "Zuhause", "quelle": "Vorschau-Name in RainLiveActivity.swift" },
+    "gebiet": { "name": "Umland", "radiusKm": 10, "quelle": "Vorschau-Name und -Radius in RainLiveActivity.swift" }
+  },
+  "intensitaetswoerter": {
+    "regel": "Wie RainActivityRegionPresentation.intensityText: Klasse 1-2 sehr leicht, 3-4 leicht, 5-7 mäßig, ab 8 stark",
+    "hinweis": "Für Orte zeigt die App heute keine Intensität an (Feld intensityClass ist im Payload vorhanden). Entwurf C zeigt sie dort probehalber und kennzeichnet das als neu."
+  },
+  "zustaende": [
+    {
+      "id": "kommt",
+      "titel": "Regen kommt in 8 Min.",
+      "ziel": "ort",
+      "phase": "startsIn",
+      "jetzt": "14:34",
+      "stand": "14:30",
+      "ereignis": "14:42",
+      "minuten": 8,
+      "intensityClass": 2,
+      "veraltet": false,
+      "belegt": "RainActivityPresentation: phase startsIn mit Countdown"
+    },
+    {
+      "id": "laeuft",
+      "titel": "Regen läuft gerade",
+      "ziel": "ort",
+      "phase": "raining",
+      "jetzt": "14:34",
+      "stand": "14:30",
+      "ereignis": null,
+      "minuten": null,
+      "intensityClass": 3,
+      "veraltet": false,
+      "belegt": "RainActivityPresentation: phase raining, Detail 'Ende nicht absehbar'"
+    },
+    {
+      "id": "endet",
+      "titel": "Regen endet bald",
+      "ziel": "ort",
+      "phase": "endsIn",
+      "jetzt": "15:06",
+      "stand": "15:05",
+      "ereignis": "15:11",
+      "minuten": 5,
+      "intensityClass": 3,
+      "veraltet": false,
+      "belegt": "RainActivityPresentation: phase endsIn mit Countdown, Detail 'Endet in'"
+    },
+    {
+      "id": "veraltet",
+      "titel": "Daten veraltet",
+      "ziel": "ort",
+      "phase": "raining",
+      "jetzt": "14:34",
+      "stand": "13:58",
+      "ereignis": null,
+      "minuten": null,
+      "intensityClass": 3,
+      "veraltet": true,
+      "belegt": "RainActivityPresentation: isStale, kein Countdown, 'Daten veraltet' / 'Keine verlässliche Aussage'"
+    },
+    {
+      "id": "gebiet-kommt",
+      "titel": "Gebiet: Regen kommt in 12 Min.",
+      "ziel": "gebiet",
+      "phase": "startsIn",
+      "jetzt": "14:34",
+      "stand": "14:30",
+      "ereignis": "14:46",
+      "minuten": 12,
+      "intensityClass": 4,
+      "wetSharePercent": 0,
+      "peakSharePercent": 34,
+      "veraltet": false,
+      "belegt": "RainActivityRegionPresentation: Anteil 'bis zu 34 % der Fläche nass' (peak), Stärkste Stufe, kein Balken"
+    },
+    {
+      "id": "gebiet-laeuft",
+      "titel": "Gebiet: Regen läuft",
+      "ziel": "gebiet",
+      "phase": "raining",
+      "jetzt": "14:34",
+      "stand": "14:30",
+      "ereignis": null,
+      "minuten": null,
+      "intensityClass": 4,
+      "wetSharePercent": 34,
+      "peakSharePercent": 60,
+      "veraltet": false,
+      "belegt": "RainActivityRegionPresentation: '34 % der Fläche nass' mit Anteilsbalken, Stärkste Stufe 4 (leicht)"
+    }
+  ]
+}
