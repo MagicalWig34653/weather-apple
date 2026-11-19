@@ -43,9 +43,9 @@ extension RadarLayerStore {
     }
 
     private nonisolated static let stubStart = Date()
-    private nonisolated static var worldOutageAfter: TimeInterval? {
-        guard let index = CommandLine.arguments.firstIndex(of: "-UITestWorldOutageAfter"),
-              CommandLine.arguments.indices.contains(index + 1) else { return nil }
+    private nonisolated static var worldOutageAfter: TimeInterval? { argument("-UITestWorldOutageAfter") }
+    private nonisolated static func argument(_ name: String) -> TimeInterval? {
+        guard let index = CommandLine.arguments.firstIndex(of: name), CommandLine.arguments.indices.contains(index + 1) else { return nil }
         return TimeInterval(CommandLine.arguments[index + 1])
     }
 
@@ -64,8 +64,12 @@ extension RadarLayerStore {
                    "humidity": ("Relative Feuchte 2 m (ICON-D2)", "Datenbasis: Deutscher Wetterdienst (ICON-D2), relative Feuchte 2 m bildlich wiedergegeben",
                                 ["source": "icon_d2", "scale": "rh-d2-v1"])]
             guard let entry = known[id], id != "humidity" || mode == "d2rh" || mode == "all", request.url?.lastPathComponent == "latest.json" else { return (Data(), response(404)) }
-            // `-UITestWorldOutageAfter <s>`: the world layer disappears (404) that many seconds after the first request.
-            if id == "radar_world", let limit = worldOutageAfter, Date().timeIntervalSince(stubStart) > limit { return (Data(), response(404)) }
+            // `-UITestWorldOutageAfter <s>`: the world layer disappears (404) that many seconds after the first request;
+            // with `-UITestWorldOutageFor <s>` it comes back after that long (outage, then recovery).
+            if id == "radar_world", let limit = worldOutageAfter {
+                let elapsed = Date().timeIntervalSince(stubStart)
+                if elapsed > limit, elapsed <= limit + (argument("-UITestWorldOutageFor") ?? .infinity) { return (Data(), response(404)) }
+            }
             let now = Date()
             let observation = (entry.extra["kind"] as? String) == "observation"
             let step = (entry.extra["step"] as? Double) ?? 3600
@@ -107,7 +111,8 @@ extension RadarLayerStore {
 /// shows a real overlay instead of "image missing". Colours follow each layer's family; no network.
 nonisolated enum UITestLayerImage {
     static func data(forLayer id: String) -> Data? {
-        let width = 1024, height = 1311
+        // The world stub follows the backend's world image (2048 x 995); the loader checks the manifest size.
+        let (width, height) = id == "radar_world" ? (2048, 995) : (1024, 1311)
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         for y in 0..<height {
             for x in 0..<width {

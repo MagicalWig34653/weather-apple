@@ -38,6 +38,12 @@ final class RadarWorldUITests: XCTestCase {
         sleep(2)
     }
 
+    /// The credit follows the layer switch with the manifest: wait for it instead of reading it once.
+    private func waitForLabel(_ element: XCUIElement, _ label: String, timeout: TimeInterval = 10) -> Bool {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND label == %@", label), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     private func note(_ app: XCUIApplication, _ kind: String) -> XCUIElement {
         app.descendants(matching: .any)["radar-world-note-\(kind)"]
     }
@@ -53,9 +59,10 @@ final class RadarWorldUITests: XCTestCase {
             let entry = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
             XCTAssertTrue(entry.waitForExistence(timeout: 5), prefix)
             XCTAssertTrue(entry.isEnabled, prefix)
-            XCTAssertGreaterThanOrEqual(entry.frame.height, 44, "Trefferfläche \(prefix)")
         }
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "bald")).firstMatch.exists, "Welt nicht mehr 'bald'")
+        // The rows are the system menu's own; the own control (capsule) keeps the 44 pt target.
+        XCTAssertGreaterThanOrEqual(menu.frame.height, 44, "Trefferfläche Kartenwahl")
         attach("welt-1-regen-menue")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
         sleep(1)
@@ -69,29 +76,34 @@ final class RadarWorldUITests: XCTestCase {
         let credit = app.staticTexts["radar-attribution"]
         XCTAssertTrue(credit.waitForExistence(timeout: 10))
         XCTAssertEqual(credit.label, "NOAA", "kurze Quellzeile ohne Logo")
-        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "fehlt")).firstMatch.exists, "kein Bild-fehlt-Hinweis")
+        let missingImage = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "fehlt")).firstMatch
+        XCTAssertFalse(missingImage.exists, "kein Bild-fehlt-Hinweis: \(missingImage.exists ? missingImage.label : "")")
         XCTAssertTrue((menu.value as? String ?? "").contains("Welt"), "Kapsel nennt die Weltkarte")
         attach("welt-2-karte-schaetzhinweis")
 
         try choose(app, "Europa")
         XCTAssertTrue(estimate.waitForNonExistence(timeout: 5), "Hinweis verschwindet bei Europa")
-        XCTAssertEqual(app.staticTexts["radar-attribution"].label, "\u{00A9} EUMETNET")
+        XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Quellzeile Europa")
         attach("welt-3-europa-unveraendert")
 
         try choose(app, "Deutschland")
         XCTAssertFalse(estimate.exists)
         XCTAssertTrue(app.staticTexts["radar-attribution"].waitForExistence(timeout: 10))
-        XCTAssertEqual(app.staticTexts["radar-attribution"].label, "\u{00A9} DWD")
+        XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} DWD"), "Quellzeile Deutschland")
         attach("welt-4-deutschland-unveraendert")
     }
 
-    func testMissingWorldDataShowsNoteInsteadOfSilentFallbackAndNoteDisappears() throws {
-        let app = launch(["-UITestWorldOutageAfter", "30"])
+    func testMissingWorldDataShowsNoteInsteadOfSilentFallbackThenRecoversAndNoteDisappears() throws {
+        executionTimeAllowance = 170
+        let start = Date()
+        let app = launch(["-UITestWorldOutageAfter", "60", "-UITestWorldOutageFor", "25"])
         try choose(app, "Welt")
         XCTAssertTrue(note(app, "estimate").waitForExistence(timeout: 5))
         XCTAssertFalse(note(app, "unavailable").exists, "Daten vorhanden: kein Fehlerhinweis")
-        // After the stub's outage the next reload gets a 404 for the world layer.
-        sleep(32)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 55, "Welt vor dem Ausfall gewählt")
+        // After the stub's outage (60 s after the first world request) the next reload gets a 404 for the world layer.
+        let wait = 65 - Date().timeIntervalSince(start)
+        if wait > 0 { Thread.sleep(forTimeInterval: wait) }
         let menu = app.buttons["radar-layer-menu"]
         menu.tap()
         let reload = app.buttons["Daten neu laden"]
@@ -104,6 +116,23 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertTrue((menu.value as? String ?? "").contains("Welt"), "kein stilles Zurückfallen auf Deutschland")
         XCTAssertFalse(app.staticTexts["radar-attribution"].exists, "keine Quellzeile ohne Bild")
         attach("welt-5-fehlt-hinweis")
+
+        // Way back WITHOUT a layer change: once the stub serves the world again, the next reload brings the picture back.
+        let back = 100 - Date().timeIntervalSince(start)
+        if back > 0 { Thread.sleep(forTimeInterval: back) }
+        menu.tap()
+        XCTAssertTrue(reload.waitForExistence(timeout: 5))
+        reload.tap()
+        XCTAssertTrue(missing.waitForNonExistence(timeout: 15), "Fehlerhinweis verschwindet nach Erholung")
+        XCTAssertTrue(note(app, "estimate").exists, "Schätzhinweis bleibt")
+        XCTAssertTrue((menu.value as? String ?? "").contains("Welt"), "Welt bleibt gewählt")
+        let credit = app.staticTexts["radar-attribution"]
+        XCTAssertTrue(credit.waitForExistence(timeout: 10), "Quellzeile wieder da")
+        XCTAssertEqual(credit.label, "NOAA")
+        XCTAssertTrue(app.sliders["Radarzeitpunkt"].waitForExistence(timeout: 10), "Zeitachse wieder da")
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "nicht verfügbar")).firstMatch.exists,
+                       "kein Nicht-verfügbar-Hinweis mehr")
+        attach("welt-5b-erholt")
 
         try choose(app, "Deutschland")
         XCTAssertTrue(missing.waitForNonExistence(timeout: 5), "Hinweis verschwindet nach Wechsel")
