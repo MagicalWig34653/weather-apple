@@ -223,4 +223,34 @@ final class RadarWorldUITests: XCTestCase {
         XCTAssertTrue(app.sliders["Radarzeitpunkt"].waitForExistence(timeout: 10), "Zeitachse wieder da")
         attach("europa-3-erholt")
     }
+
+    /// Today's production backend has no `radar_world`: the entry stays visible as "Welt (NOAA) (bald)", cannot be chosen,
+    /// the map keeps the chosen layer (no silent switch, no empty map), Europe and Germany stay selectable.
+    func testBackendWithoutWorldLayerShowsWorldAsSoonAndNotSelectable() throws {
+        let app = launch(["-UITestWithoutLayer", "radar_world"])
+        let menu = app.buttons["radar-layer-menu"]
+        menu.tap()
+        let rain = app.buttons.matching(NSPredicate(format: "label == %@", "Regen")).firstMatch
+        XCTAssertTrue(rain.waitForExistence(timeout: 5))
+        rain.tap()
+        // The row shows "Welt (NOAA) (bald)"; VoiceOver reads the spoken name plus ", bald".
+        let world = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Regenradar Welt")).firstMatch
+        XCTAssertTrue(world.waitForExistence(timeout: 5), "Eintrag bleibt sichtbar")
+        XCTAssertTrue(world.label.hasSuffix(", bald"), "klare Erklärung im Eintrag: \(world.label)")
+        XCTAssertFalse(world.isEnabled, "nicht wählbar")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Europa (OPERA)")).firstMatch.isEnabled)
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Deutschland (DWD)")).firstMatch.isEnabled)
+        attach("ohne-welt-1-menue")
+        world.tap()
+        sleep(1)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(1)
+        XCTAssertEqual(menu.value as? String, "Regenradar", "Deutschland bleibt aktiv, kein Wechsel")
+        XCTAssertFalse(app.descendants(matching: .any)["radar-world-note-unavailable"].exists, "kein Welt-Hinweis")
+        XCTAssertFalse(app.descendants(matching: .any)["radar-world-note-estimate"].exists)
+        XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} DWD"), "Deutschland-Karte mit Quelle, keine leere Karte")
+        try choose(app, "Europa (OPERA)")
+        XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Europa unverändert")
+        attach("ohne-welt-2-europa")
+    }
 }

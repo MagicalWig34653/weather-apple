@@ -67,6 +67,10 @@ extension RadarLayerStore {
                    "humidity": ("Relative Feuchte 2 m (ICON-D2)", "Datenbasis: Deutscher Wetterdienst (ICON-D2), relative Feuchte 2 m bildlich wiedergegeben",
                                 ["source": "icon_d2", "scale": "rh-d2-v1"])]
             guard let entry = known[id], id != "humidity" || mode == "d2rh" || mode == "all", request.url?.lastPathComponent == "latest.json" else { return (Data(), response(404)) }
+            // `-UITestWithoutLayer <id>`: the backend does not offer this layer at all (always 404), e.g. today's production
+            // backend without `radar_world`.
+            if let index = CommandLine.arguments.firstIndex(of: "-UITestWithoutLayer"), CommandLine.arguments.indices.contains(index + 1),
+               CommandLine.arguments[index + 1] == id { return (Data(), response(404)) }
             // `-UITestOutageAfter <s>`: the layer `-UITestOutageLayer` (default `radar_world`) disappears (404) that many seconds
             // after the first request; with `-UITestOutageFor <s>` it comes back after that long (outage, then recovery).
             if id == outageLayer, let limit = argument("-UITestOutageAfter") {
