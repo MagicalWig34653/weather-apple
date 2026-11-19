@@ -192,6 +192,32 @@ html,body{background:#f2f2f7;font-family:-apple-system,'SF Pro Text','Helvetica 
 .isub{font-size:13px;color:var(--fg2);margin-top:3px}
 .island .axis{margin-top:9px}
 .island .bar{height:5px}
+
+/* Smart Stack, Entwurf A (nur kompakte Live-Activity-Karte) */
+.sstack{width:162px;height:197px;border-radius:38px;background:#000;overflow:hidden;position:relative;color:#fff}
+.sstack .tm{position:absolute;top:8px;right:15px;font-size:14px;font-weight:600;color:#fff;z-index:3}
+.sstack .nb{position:absolute;left:6px;right:6px;border-radius:20px;background:#1d1d1f;overflow:hidden}
+.sstack.t-hell .nb{background:#e9e9ee}
+.sstack.t-hell .tm{color:#16161a}
+.nb .sk{position:absolute;left:12px;height:7px;border-radius:4px;background:rgba(235,235,245,.22)}
+.sstack.t-hell .nb .sk{background:rgba(60,60,67,.22)}
+.nb .pl{position:absolute;left:12px;font-size:10px;color:rgba(235,235,245,.5)}
+.sstack.t-hell .nb .pl{color:rgba(60,60,67,.55)}
+.sstack .main{position:absolute;left:5px;right:5px;top:42px;height:102px;border-radius:22px;padding:9px 11px 8px;z-index:2;box-shadow:0 0 0 .5px rgba(255,255,255,.12)}
+.sstack.t-dunkel .main{background:linear-gradient(140deg,rgba(var(--tint),.30),rgba(var(--tint),.08) 75%),#1d1d1f;--fg:#fff;--fg2:rgba(235,235,245,.7);--acc:#64d2ff;--warn:#ff9f0a;--accbg:100,210,255;--warnbg:255,159,10;color:#fff}
+.sstack.t-hell .main{background:linear-gradient(140deg,rgba(var(--tint),.24),rgba(var(--tint),.06) 75%),#f4f4f8;--fg:#16161a;--fg2:rgba(60,60,67,.74);--acc:#0079a3;--warn:#b85400;--accbg:0,129,167;--warnbg:255,149,0;color:#16161a}
+.main .r1{display:flex;align-items:center;gap:4px;justify-content:flex-start;font-size:11.5px;font-weight:600;color:var(--fg2);white-space:nowrap}
+.main .r1 .ic{color:var(--fg2);flex:none}
+.main .k{font-size:13px;font-weight:700;color:var(--acc);margin-top:3px;line-height:1.1}
+.main .k.warn{color:var(--warn)}
+.main .big{font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1;font-family:-apple-system-rounded,'SF Pro Rounded',-apple-system,sans-serif;margin-top:1px}
+.main .big.md{font-size:27px;margin-top:3px}
+.main .big.warn{color:var(--warn)}
+.main .sub{font-size:11.5px;color:var(--fg2);margin-top:2px}
+.main .st{position:absolute;left:11px;bottom:7px;font-size:11px;color:var(--fg2);display:flex;gap:3px;align-items:center}
+.main .st.warn{color:var(--warn)}
+.main .bd{position:absolute;right:10px;top:8px;width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(var(--tint),.22);color:var(--acc)}
+.main .bd.warn{color:var(--warn)}
 /* Watch */
 .wframe{width:186px;height:221px;border-radius:50px;background:#0a0a0a;padding:12px;box-shadow:0 0 0 2px #3a3a3e,0 14px 26px rgba(0,0,0,.4);position:relative}
 .wscr{width:162px;height:197px;border-radius:38px;background:#000;overflow:hidden;position:relative;color:#fff}
@@ -646,6 +672,55 @@ def overview(sid, theme_pair=("hell", "dunkel")):
                 "* hell nur Vergleichsvariante; Watch kennt kein Hell/Dunkel.")
 
 
+def stack_card(sid, theme):
+    p = pres(STATES[sid])
+    w = "warn" if p["stale"] else ""
+    top = f'<div class="r1">{icon("pin", 11)}{escape(p["name"])}</div>'
+    if p["stale"]:
+        body = '<div class="big md warn" style="line-height:1.02;margin-top:7px">Daten<br>veraltet</div>'
+        st = f'<div class="st warn">{icon("stale", 11)}{p["stand"]}</div>'
+    elif p["phase"] == "raining":
+        body = '<div class="big md" style="margin-top:9px">Es regnet</div><div class="sub">Ende nicht absehbar</div>'
+        st = f'<div class="st">{p["stand"]}</div>'
+    else:
+        k = "Regen in" if p["phase"] == "startsIn" else "Endet in"
+        body = f'<div class="k">{k}</div><div class="big">{p["cd"]}</div>'
+        st = f'<div class="st">{p["stand"]}</div>'
+    bd = f'<div class="bd {w}">{icon(p["kind"], 19)}</div>'
+    return f'<div class="main" {tint_style(p)}>{top}{body}{bd}{st}</div>'
+
+
+def stack_cell(sid, theme):
+    s = STATES[sid]
+    up = ('<div class="nb" style="top:-26px;height:60px"><div class="sk" style="bottom:7px;width:60px"></div></div>')
+    dn = ('<div class="nb" style="top:150px;height:70px"><div class="sk" style="top:9px;width:78px"></div>'
+          '<div class="sk" style="top:21px;width:52px"></div><div class="pl" style="top:32px">Platzhalter</div></div>')
+    return (f'<div class="wframe"><div class="sstack t-{theme}"><div class="tm">{s["jetzt"]}</div>{up}{stack_card(sid, theme)}{dn}</div></div>')
+
+
+STACK_IDS = ["kommt", "laeuft", "endet", "veraltet"]
+
+
+def stack_board(theme):
+    cells = "".join(f'<div><div>{stack_cell(i, theme)}</div><div class="cap" style="width:186px">{CAPS[i]}</div></div>' for i in STACK_IDS)
+    note = ("dunkel = Systemdarstellung (watchOS)" if theme == "dunkel" else "hell = nur Vergleich, watchOS kennt kein Hell/Dunkel")
+    body = f'<div class="grid" style="grid-template-columns:repeat(4,186px);gap:20px 34px">{cells}</div>'
+    return page(body, theme, f'A · Watch Smart Stack, kompakte Live-Activity-Karte · {theme}',
+                f"40/41 mm (162 × 197 pt). {note}. Nachbarkarten = Platzhalter. Kartengröße angenommen.")
+
+
+def gesamt():
+    p = pres(STATES["kommt"])
+    rows = ""
+    for th in ("hell", "dunkel"):
+        cell = (f'<div class="wp t-{th}" style="width:402px;padding:20px 21px"><div class="t-{th}">{lock_a(p, th)}</div></div>'
+                f'<div style="display:flex;flex-direction:column;gap:8px">{island_cell("A", "kommt", th, "compact")}{island_cell("A", "kommt", th, "expanded")}</div>'
+                f'<div class="t-{th}">{stack_cell("kommt", th)}</div>')
+        rows += f'<div style="font-size:12px;opacity:.65;margin-bottom:6px">{th}{" (Watch: nur Vergleich)" if th == "hell" else ""}</div><div style="display:grid;grid-template-columns:402px 402px 186px;gap:28px;align-items:start;margin-bottom:26px">{cell}</div>'
+    head = '<div style="display:grid;grid-template-columns:402px 402px 186px;gap:28px;font-size:12px;opacity:.65;margin-bottom:6px"><div>iPhone-Sperrbildschirm</div><div>Dynamic Island (kompakt, erweitert)</div><div>Watch Smart Stack</div></div>'
+    return page(head + rows, "hell", "Live Activity · Entwurf A (getöntes Glas) · Gesamtansicht · Regen kommt in 8 Min.", "Entscheidung Lino: A. Maße und Symbole wie in den Einzeltafeln.")
+
+
 def main(out):
     os.makedirs(out, exist_ok=True)
     jobs = {}
@@ -654,6 +729,9 @@ def main(out):
             jobs[f"{d.lower()}-iphone-{th}"] = iphone_board(d, th)
             jobs[f"{d.lower()}-island-{th}"] = island_board(d, th)
             jobs[f"{d.lower()}-watch-{th}"] = watch_board(d, th)
+    jobs["a-watch-stapel-dunkel"] = stack_board("dunkel")
+    jobs["a-watch-stapel-hell"] = stack_board("hell")
+    jobs["a-gesamt"] = gesamt()
     jobs["uebersicht"] = overview("kommt")
     jobs["uebersicht-gebiet"] = overview("gebiet-laeuft")
     for k, v in jobs.items():

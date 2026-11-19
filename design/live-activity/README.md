@@ -1,3 +1,22 @@
+# Entscheidung (19.11.2026): Entwurf A
+
+Lino hat **A (getöntes Glas)** gewählt. B und C bleiben als Archiv im Branch (nicht weiter ausgearbeitet); die älteren `a-watch-*.png`/`*-watch-*.png` (Vollkarte mit Pseudo-Rahmen) sind überholt.
+
+## Neu: Watch Smart Stack, nur kompakte Live-Activity-Karte (A)
+- `bilder/a-watch-stapel-dunkel.png` (Hauptansicht, watchOS) und `bilder/a-watch-stapel-hell.png` (nur Vergleich): 40/41 mm (162 x 197 pt), vier Zustände (kommt in 8 Min., läuft, endet in 5 Min., veraltet).
+- Keine App-Vollansicht, keine Zusatzseiten. Hierarchie: „Regen in“ klein, **„8 Min.“ groß (38 pt)**, darüber Ortsname, darunter „Stand HH:MM“; veraltet: „Daten veraltet“ orange, Uhr-Symbol, kein Countdown.
+- Karte sitzt mittig im Stapel (ca. 150 x 102 pt), oben und unten schauen neutrale Platzhalter-Nachbarkarten angeschnitten heraus (graue Balken, Beschriftung „Platzhalter“, kein Produkt, kein Logo).
+- `bilder/a-gesamt.png`: A in hell und dunkel mit iPhone-Sperrbildschirm, Dynamic Island (kompakt + erweitert) und Watch-Stapel; iPhone und Island unverändert.
+
+Annahmen/Grenzen: Kartengröße und Position im Stapel sind Schätzwerte (Smart-Stack-Karten wachsen je nach Inhalt); Zeit oben rechts, die obere Nachbarkarte liegt hinter der Uhrzeit. Neu gegenüber der App: eigene kompakte Watch-Fassung (`supplementalActivityFamilies` fehlt im Code), „8 Min.“ als Text statt Timer. Nicht geprüft: echte Uhr, watchOS-Simulator, ActivityKit, Dynamic Type.
+
+## Offene Punkte nach Entscheidung A
+1. Watch-Karte: echte Kartenhöhe/Position gegen Xcode-Preview (`supplementalActivityFamilies([.small])`) prüfen; ggf. Text kürzen.
+2. Countdown: Timer (heute) oder feste Minuten („8 Min.“ wie im Entwurf)?
+3. Gebietszustand (Umkreis/Anteil) auf der Watch-Karte: nicht entworfen; gewünscht? (Entwurf wäre „bis zu 34 % nass“ klein unter der Zeit.)
+4. „DWD“-Quellzeile auf der Watch-Karte (wie Komplikation) oder nur „Stand“?
+5. Erweiterte Island: Zeitsatz wie in A beibehalten, Ereignis-Uhrzeit nicht gezeigt (Teil von B).
+
 # Live Activity: Gestaltungsentwürfe A, B, C (19.11.2026)
 
 Reine Gestaltung für die Karte „Live Activities“. Kein Produktcode geändert, nichts gebaut oder getestet. Alle Tafeln zeigen dieselben **Beispieldaten** aus [beispieldaten.json](beispieldaten.json) (frei gewählt, keine Messwerte, keine echten Orte). Orts- und Gebietsname stammen aus den Vorschauen in `RainLiveActivity.swift` („Zuhause“, „Umland“, Umkreis 10 km).
