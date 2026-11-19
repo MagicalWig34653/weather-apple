@@ -38,3 +38,9 @@ Stand: 17.11.2026, von Lino freigegeben. Leitplanken aus `concept-v2.md`: Die Ap
 - Bestehende Abfragen nutzen: `WeatherStore.requestLocation()` und `PushManager.requestAuthorization()`.
 - Deutsch und Englisch, VoiceOver und Dynamic Type von Anfang an. Keine Statistik über Abbrüche (Datenschutz).
 - Die Watch bekommt keinen eigenen Wizard, sie übernimmt den Stand vom iPhone.
+
+## Textstatus (19.11.2026)
+
+- Von Lino freigegeben („Texte freigeben“, 19.11. 09:21, Quelle: Wizard-Karte), nur für die gezeigten Zustände: Regenhinweis ohne Vorauswahl, Zustimmungsdialog „Regenhinweis aktivieren?“, Ansicht nach Ablehnung nur mit Ablehnungshinweis (jeweils deutscher Wortlaut). Der Wortlaut ist durch `SetupPlanTests.testApprovedGermanWordingOfThreeShownStatesIsFrozen` festgeschrieben; Änderungen brauchen eine neue Freigabe.
+- Weiter Entwurf: englische Texte, `SETUP_LOCATION_BODY`, `REGION_EXPLANATION`, `PUSH_PLACE_CONFIRM_MESSAGE`, `SETUP_ALERT_PENDING_NOTE` und die übrigen Wizard-Texte.
+- Merge- und Upload-Tor bleibt: kein Merge in main, kein Build/Upload ohne Freigabe von Lino.

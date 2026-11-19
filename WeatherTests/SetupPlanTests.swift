@@ -270,6 +270,28 @@ final class SetupPlanTests: XCTestCase {
             }
         }
     }
+
+    /// Von Lino am 19.11.2026 freigegebener Wortlaut (de) der drei gezeigten Zustände: Regenhinweis ohne Vorauswahl,
+    /// Zustimmungsdialog „Regenhinweis aktivieren?“, Ansicht nach Ablehnung (Ablehnungshinweis). Eine Änderung macht den Test
+    /// rot und braucht eine neue Freigabe. Nicht eingefroren (nicht freigegeben): englische Texte, SETUP_LOCATION_BODY, REGION_EXPLANATION, PUSH_PLACE_CONFIRM_MESSAGE.
+    func testApprovedGermanWordingOfThreeShownStatesIsFrozen() throws {
+        let dict = try strings("de")
+        let approved: [String: String] = [
+            "SETUP_ALERT_TITLE": "Regenhinweis",
+            "SETUP_ALERT_BODY": "Wir melden dir, wenn an deinem Ort Regen beginnt. Dafür gehen an den Showers-Server das Gerätetoken, eine zufällige Installationskennung, die Rasterzelle des Radarbildes (etwa 0,7 km Kantenlänge) sowie Schwelle und Vorlaufzeit. Kein genauer Standort, kein Ortsname, kein Konto. Du kannst das jederzeit ausschalten; dann werden die Daten auf dem Server gelöscht.",
+            "SETUP_ALERT_GERMANY": "Bisher nur für Orte in Deutschland.",
+            "SETUP_ALERT_CHOOSE": "Für welche Orte?",
+            "SETUP_ALERT_PROMPT_NOTE": "Nichts ist vorgewählt. Erst nach deiner Zustimmung fragt iOS, ob Showers Mitteilungen senden darf.",
+            "SETUP_ALERT_ENABLE": "Regenhinweis einschalten",
+            "PUSH_PLACE_CONFIRM_TITLE": "Regenhinweis aktivieren?",
+            "SETUP_ALERT_CONFIRM_MESSAGE": "Showers meldet dir per Mitteilung, wenn es bei %@ bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine zufällige Installationskennung, die Rasterzelle des Radarbildes (Kantenlänge etwa 0,7 km, keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Mit „Weiter“ willigst du ein. Ausschalten widerruft das jederzeit und löscht die Daten auf dem Server. Danach fragt iOS, ob Mitteilungen erlaubt sind.",
+            "PUSH_CONTINUE": "Weiter",
+            "PUSH_READ_PRIVACY": "Datenschutzerklärung lesen",
+            "COMMON_CANCEL": "Abbrechen",
+            "PUSH_MSG_DENIED": "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.",
+        ]
+        for (key, text) in approved { XCTAssertEqual(dict[key], text, key) }
+    }
 }
 
 // MARK: Erststart ohne Systemantwort (notificationSettings antwortet nicht)
