@@ -233,10 +233,10 @@ final class RadarWorldUITests: XCTestCase {
         let rain = app.buttons.matching(NSPredicate(format: "label == %@", "Regen")).firstMatch
         XCTAssertTrue(rain.waitForExistence(timeout: 5))
         rain.tap()
-        // The row shows "Welt (NOAA) (bald)"; VoiceOver reads the spoken name plus ", bald".
-        let world = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Regenradar Welt")).firstMatch
+        // The native menu exposes the visible row text.
+        let world = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Welt (NOAA)")).firstMatch
         XCTAssertTrue(world.waitForExistence(timeout: 5), "Eintrag bleibt sichtbar")
-        XCTAssertTrue(world.label.hasSuffix(", bald"), "klare Erklärung im Eintrag: \(world.label)")
+        XCTAssertEqual(world.label, "Welt (NOAA) (bald)", "klare Erklärung im Eintrag")
         XCTAssertFalse(world.isEnabled, "nicht wählbar")
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Europa (OPERA)")).firstMatch.isEnabled)
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Deutschland (DWD)")).firstMatch.isEnabled)
