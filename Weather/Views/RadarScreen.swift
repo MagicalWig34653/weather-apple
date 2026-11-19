@@ -380,7 +380,9 @@ struct RadarScreen: View {
                 .accessibilityIdentifier("radar-refresh")
             }
         } label: {
-            HStack(spacing: 6) {
+            // Compact chrome (padding 10, spacing 4 instead of 14/6, 19.11.): on the iPhone SE (375 pt) "Regenradar Welt" was cut to
+            // "Regenradar W…"; the 12 pt gained let the title fit at about 0.8 of its size.
+            HStack(spacing: 4) {
                 if store.isRadarLoading || store.layers.isLoading {
                     ProgressView().controlSize(.small)
                 } else {
@@ -392,7 +394,7 @@ struct RadarScreen: View {
                 }
                 Image(systemName: "chevron.down").font(.caption.bold())
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 10)
             .frame(minHeight: 44)
             .glassControl(Capsule())
         }
