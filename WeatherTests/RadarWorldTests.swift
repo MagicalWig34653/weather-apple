@@ -142,7 +142,7 @@ final class RadarWorldTests: XCTestCase {
             let notices = RainLayerNotice.notices(active: .radarEU, availability: store.availability(.radarEU), centerLatitude: 80)
             XCTAssertEqual(notices.map(\.kind), [.unavailable], "exactly one note, no estimate/coverage note for Europe")
             guard notices.count == 1 else { continue }
-            XCTAssertTrue(notices[0].text.contains("Europa"), notices[0].text)
+            XCTAssertTrue(notices[0].text.hasPrefix("Regenradar Europa"), notices[0].text)
             XCTAssertEqual(notices[0].identifier, "radar-eu-note-unavailable")
             store.apply(.fresh(europe), to: .radarEU, now: now)
             XCTAssertEqual(store.active, .radarEU)

@@ -66,16 +66,16 @@ enum RainLayerNotice {
     static func unavailableText(_ availability: LayerAvailability) -> String {
         switch availability {
         case .stale:
-            NSLocalizedString("RADAR_WORLD_STALE_NOTE", value: "Regen Welt: keine aktuellen Daten. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_WORLD_STALE_NOTE", value: "Regenradar Welt: keine aktuellen Daten. Die Karte zeigt deshalb keinen Regen.",
                               comment: "World rain map: newest data too old")
         case .unreachable:
-            NSLocalizedString("RADAR_WORLD_UNREACHABLE_NOTE", value: "Regen Welt: Server nicht erreichbar. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_WORLD_UNREACHABLE_NOTE", value: "Regenradar Welt: Server nicht erreichbar. Die Karte zeigt deshalb keinen Regen.",
                               comment: "World rain map: server unreachable")
         case .invalid:
-            NSLocalizedString("RADAR_WORLD_INVALID_NOTE", value: "Regen Welt: Daten nicht lesbar. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_WORLD_INVALID_NOTE", value: "Regenradar Welt: Daten nicht lesbar. Die Karte zeigt deshalb keinen Regen.",
                               comment: "World rain map: unreadable manifest")
         default:
-            NSLocalizedString("RADAR_WORLD_UNAVAILABLE_NOTE", value: "Regen Welt ist derzeit nicht verfügbar. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_WORLD_UNAVAILABLE_NOTE", value: "Regenradar Welt ist derzeit nicht verfügbar. Die Karte zeigt deshalb keinen Regen.",
                               comment: "World rain map: layer not published")
         }
     }
@@ -83,16 +83,16 @@ enum RainLayerNotice {
     static func europeUnavailableText(_ availability: LayerAvailability) -> String {
         switch availability {
         case .stale:
-            NSLocalizedString("RADAR_EU_STALE_NOTE", value: "Regen Europa: keine aktuellen Daten. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_EU_STALE_NOTE", value: "Regenradar Europa: keine aktuellen Daten. Die Karte zeigt deshalb keinen Regen.",
                               comment: "Europe rain map: newest data too old")
         case .unreachable:
-            NSLocalizedString("RADAR_EU_UNREACHABLE_NOTE", value: "Regen Europa: Server nicht erreichbar. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_EU_UNREACHABLE_NOTE", value: "Regenradar Europa: Server nicht erreichbar. Die Karte zeigt deshalb keinen Regen.",
                               comment: "Europe rain map: server unreachable")
         case .invalid:
-            NSLocalizedString("RADAR_EU_INVALID_NOTE", value: "Regen Europa: Daten nicht lesbar. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_EU_INVALID_NOTE", value: "Regenradar Europa: Daten nicht lesbar. Die Karte zeigt deshalb keinen Regen.",
                               comment: "Europe rain map: unreadable manifest")
         default:
-            NSLocalizedString("RADAR_EU_UNAVAILABLE_NOTE", value: "Regen Europa ist derzeit nicht verfügbar. Die Karte zeigt deshalb keinen Regen.",
+            NSLocalizedString("RADAR_EU_UNAVAILABLE_NOTE", value: "Regenradar Europa ist derzeit nicht verfügbar. Die Karte zeigt deshalb keinen Regen.",
                               comment: "Europe rain map: layer not published")
         }
     }

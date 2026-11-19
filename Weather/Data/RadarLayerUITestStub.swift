@@ -23,7 +23,7 @@ extension RadarLayerStore {
                          ["kind": "observation", "step": 300.0,
                           "attribution": "Radardaten Europa: EUMETNET OPERA (CIRRUS), CC BY 4.0, Quelle: MeteoGate"]),
             // World map like the backend of PR #2 (2048 x 995, 60° S to 70° N, 10 min, observation only).
-            "radar_world": ("Regen Welt (NOAA RRQPE)", "Datenbasis: NOAA Enterprise Rainfall Rate (RRQPE, Blend), Daten umprojiziert, gefiltert und eingefärbt; aus Satellitendaten geschätzt",
+            "radar_world": ("Regenradar Welt (NOAA RRQPE)", "Datenbasis: NOAA Enterprise Rainfall Rate (RRQPE, Blend), Daten umprojiziert, gefiltert und eingefärbt; aus Satellitendaten geschätzt",
                             ["kind": "observation", "step": 600.0, "source": "noaa_rrqpe",
                              "attribution": "Quelle: NOAA, von Showers verarbeitet; aus Satellitendaten geschätzt, ungenauer",
                              "image": ["format": "image/webp", "width": 2048, "height": 995, "projection": "EPSG:3857",
