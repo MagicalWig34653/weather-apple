@@ -56,6 +56,21 @@ final class RadarWorldUITests: XCTestCase {
         return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
     }
 
+    /// "Daten neu laden" exactly once: the native menu sometimes swallows the tap and stays open (seen in the dark run
+    /// 19.11.: menu still open, no reload, no note). The entry is tapped again only while the menu is still open, i.e. the
+    /// action has not run yet; afterwards exactly one reload has been triggered.
+    private func reloadOnce(_ app: XCUIApplication) {
+        let menu = app.buttons["radar-layer-menu"]
+        let reload = app.buttons["Daten neu laden"]
+        for _ in 0..<3 {
+            if !reload.exists { menu.tap() }
+            guard reload.waitForExistence(timeout: 5) else { continue }
+            reload.tap()
+            if reload.waitForNonExistence(timeout: 3) { return }
+        }
+        XCTFail("Daten neu laden ließ sich nicht auslösen")
+    }
+
     private func note(_ app: XCUIApplication, _ kind: String) -> XCUIElement {
         app.descendants(matching: .any)["radar-world-note-\(kind)"]
     }
@@ -141,10 +156,7 @@ final class RadarWorldUITests: XCTestCase {
         let wait = 65 - Date().timeIntervalSince(start)
         if wait > 0 { Thread.sleep(forTimeInterval: wait) }
         let menu = app.buttons["radar-layer-menu"]
-        menu.tap()
-        let reload = app.buttons["Daten neu laden"]
-        XCTAssertTrue(reload.waitForExistence(timeout: 5))
-        reload.tap()
+        reloadOnce(app)
         let missing = note(app, "unavailable")
         XCTAssertTrue(missing.waitForExistence(timeout: 15), "Hinweis statt leerer Karte")
         XCTAssertTrue(missing.label.hasPrefix("Regenradar Welt ist derzeit nicht verfügbar"), missing.label)
@@ -163,9 +175,7 @@ final class RadarWorldUITests: XCTestCase {
         // Way back WITHOUT a layer change: once the stub serves the world again, the next reload brings the picture back.
         let back = 100 - Date().timeIntervalSince(start)
         if back > 0 { Thread.sleep(forTimeInterval: back) }
-        menu.tap()
-        XCTAssertTrue(reload.waitForExistence(timeout: 5))
-        reload.tap()
+        reloadOnce(app)
         XCTAssertTrue(missing.waitForNonExistence(timeout: 15), "Fehlerhinweis verschwindet nach Erholung")
         XCTAssertTrue(note(app, "estimate").exists, "Schätzhinweis bleibt")
         XCTAssertTrue((menu.value as? String ?? "").contains("Welt"), "Welt bleibt gewählt")
@@ -197,10 +207,7 @@ final class RadarWorldUITests: XCTestCase {
         attach("europa-1-vorher")
         let wait = 95 - Date().timeIntervalSince(start)
         if wait > 0 { Thread.sleep(forTimeInterval: wait) }
-        menu.tap()
-        let reload = app.buttons["Daten neu laden"]
-        XCTAssertTrue(reload.waitForExistence(timeout: 5))
-        reload.tap()
+        reloadOnce(app)
         XCTAssertTrue(missing.waitForExistence(timeout: 15), "Hinweis statt stillem Rückfall")
         XCTAssertTrue(missing.label.hasPrefix("Regenradar Europa ist derzeit nicht verfügbar"), missing.label)
         XCTAssertTrue((menu.value as? String ?? "").contains("Europa"), "Europa bleibt gewählt: \(menu.value ?? "")")
@@ -214,9 +221,7 @@ final class RadarWorldUITests: XCTestCase {
 
         let back = 135 - Date().timeIntervalSince(start)
         if back > 0 { Thread.sleep(forTimeInterval: back) }
-        menu.tap()
-        XCTAssertTrue(reload.waitForExistence(timeout: 5))
-        reload.tap()
+        reloadOnce(app)
         XCTAssertTrue(missing.waitForNonExistence(timeout: 15), "Hinweis verschwindet nach Erholung")
         XCTAssertTrue((menu.value as? String ?? "").contains("Europa"), "ohne Ebenenwechsel")
         XCTAssertTrue(waitForLabel(app.staticTexts["radar-attribution"], "\u{00A9} EUMETNET"), "Quellzeile wieder da")
