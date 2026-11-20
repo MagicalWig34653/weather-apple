@@ -6,6 +6,7 @@ struct InformationSheet: View {
     @Environment(PushManager.self) private var push
     @Environment(DeviceLinkManager.self) private var deviceLink
     @Environment(WarnManager.self) private var warn
+    @Environment(SetupCoordinator.self) private var setup
     @Environment(\.dismiss) private var dismiss
     @State private var sitePage: SitePage?
 
@@ -58,6 +59,7 @@ struct InformationSheet: View {
                     row("INFO_ROW_PAST", id: "past", symbol: "clock.arrow.circlepath")
                     row("INFO_ROW_SUPPORT", id: "support", symbol: "questionmark.circle")
                 }
+                SetupInfoSection(store: store, coordinator: setup)
                 if deviceLink.isAvailable { DeviceLinkSection(manager: deviceLink) }
             }
             .navigationTitle(NSLocalizedString("INFO_TITLE", value: "Über Showers", comment: "Info"))

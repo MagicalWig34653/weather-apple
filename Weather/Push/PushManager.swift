@@ -201,6 +201,9 @@ final class PushManager {
     }
 
     static func live() -> PushManager {
+        #if DEBUG
+        if let stub = PushUITestStub.manager() { return stub }
+        #endif
         let manager = PushManager(gateway: HTTPPushGateway(), secrets: KeychainPushSecretStore(),
                                   authorizer: SystemPushAuthorizing(), registrar: SystemRemoteRegistrar(),
                                   activityManager: SystemRainActivityManager(), activityDefaults: UserDefaults(suiteName: SharedConfig.appGroup))
@@ -278,6 +281,18 @@ final class PushManager {
 
     func refreshAuthorization() async { authorization = await authorizer.status() }
 
+    /// Like `refreshAuthorization()`, but returns once `deadline` has passed even if the system never answers (seen on the
+    /// first launch of a fresh install in the simulator). `authorization` then stays as it was (`.unknown` at launch, never
+    /// consent). The request keeps running: a late answer still updates `authorization`, but registers or enables nothing.
+    func refreshAuthorization(until deadline: @escaping @Sendable () async -> Void) async {
+        let (first, done) = AsyncStream<Void>.makeStream()
+        Task { await refreshAuthorization(); done.yield() }
+        let timer = Task { await deadline(); done.yield() }
+        for await _ in first { break }
+        done.finish()
+        timer.cancel()
+    }
+
     /// Token delivery from `UIApplicationDelegate`. Kept in memory only.
     func didRegister(deviceToken data: Data) async {
         deviceToken = data.map { String(format: "%02x", $0) }.joined()
@@ -293,6 +308,9 @@ final class PushManager {
     /// Opt-in. The explanation text has already been shown by the caller. Returns whether the opt-in is active.
     @discardableResult
     func enable(placeID: UUID, latitude: Double, longitude: Double) async -> Bool {
+        #if DEBUG
+        PushStubLog.shared.bump("enable")
+        #endif
         messages[placeID] = nil
         guard let cell = PushGrid.cell(latitude: latitude, longitude: longitude) else {
             messages[placeID] = NSLocalizedString("PUSH_MSG_OUT_OF_COVERAGE", value: "Dieser Ort liegt außerhalb des Radargebiets; Regenhinweise sind hier nicht möglich.", comment: "Push")
