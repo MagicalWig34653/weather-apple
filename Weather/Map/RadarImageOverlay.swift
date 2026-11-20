@@ -15,6 +15,8 @@ enum RadarBackendPolicy {
     /// Prefetch stops adding images once the compressed cache holds this much (80 % of the 50 MB
     /// limit). Far slots then never evict the near ones; demand for the visible slot still fits.
     static let prefetchCacheCeiling = 40_000_000
+    /// Most slots prefetched around the selected one, whatever the manifest holds (72 h at 5 minutes = 865 slots).
+    static let maximumPrefetchSlots = 61
 }
 
 enum RadarImageDecoder {
@@ -176,8 +178,9 @@ final class BackendRadarLoader: @unchecked Sendable {
     /// Alternating left/right from the selected slot with a few parallel requests.
     /// `limit` caps the number of slots around the selected one (large images); `nil` = all.
     func prefetch(selected: Int, limit: Int? = nil, allowed: @escaping @Sendable () -> Bool) {
-        let order = RadarPrefetchPolicy.order(selected: selected, count: manifest.slots.count)
-        let urls = (limit.map { Array(order.prefix(max(1, $0))) } ?? order).map { manifest.slots[$0].url }
+        // Never the whole catalogue: a 72 h manifest has 865 slots, only a window around the selection is loaded.
+        let window = min(max(1, limit ?? RadarBackendPolicy.maximumPrefetchSlots), RadarBackendPolicy.maximumPrefetchSlots)
+        let urls = RadarPrefetchPolicy.order(selected: selected, count: manifest.slots.count, limit: window).map { manifest.slots[$0].url }
         let queue = PrefetchQueue(urls)
         let task = Task { [self] in
             await withTaskGroup(of: Void.self) { group in
@@ -207,7 +210,14 @@ final class BackendRadarLoader: @unchecked Sendable {
 
     private static func defaultFetch() -> Fetch {
         #if DEBUG
-        if RadarUITestStub.isActive { return { url in try await RadarUITestStub.fetch(url) } }
+        if RadarUITestStub.isActive {
+            return { url in
+                // Stubbed layers next to the radar fixture (brightness measurement): their own generated images, not rain cells.
+                if RadarLayerStore.uiTestMode == "all", let layer = url.pathComponents.drop(while: { $0 != "layers" }).dropFirst().first,
+                   let data = UITestLayerImage.data(forLayer: layer, time: UITestSlotTime.parse(url.deletingPathExtension().lastPathComponent)) { return data }
+                return try await RadarUITestStub.fetch(url)
+            }
+        }
         #endif
         return makeFetch()
     }
@@ -227,7 +237,7 @@ final class BackendRadarLoader: @unchecked Sendable {
             #if DEBUG
             // UI tests with stubbed layers: images come from `UITestLayerImage`, not from the network.
             if RadarLayerStore.uiTestMode == "all", let layer = url.pathComponents.drop(while: { $0 != "layers" }).dropFirst().first,
-               let data = UITestLayerImage.data(forLayer: layer) { return data }
+               let data = UITestLayerImage.data(forLayer: layer, time: UITestSlotTime.parse(url.deletingPathExtension().lastPathComponent)) { return data }
             #endif
             var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
             request.httpShouldHandleCookies = false
@@ -319,3 +329,15 @@ final class RadarImageRenderer: MKOverlayRenderer {
         drawCropped(image, imageBounds: overlay.boundingMapRect, mapRect: mapRect, in: context, quality: .medium)
     }
 }
+
+#if DEBUG
+/// UI tests only: the time in a stub slot's file name (`yyyyMMdd'T'HHmm'Z'`).
+enum UITestSlotTime {
+    static func parse(_ stem: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyyMMdd'T'HHmm'Z'"
+        return formatter.date(from: stem)
+    }
+}
+#endif

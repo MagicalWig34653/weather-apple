@@ -75,7 +75,7 @@ struct RadarLegendPanel: View {
         // Accessibility sizes: a fixed panel width (like the layer legend) instead of the natural width, which ran off the screen
         // at the largest sizes (title and swatches clipped); the text wraps and the rows scroll.
         .modifier(LegendWidth(accessibility: dynamicTypeSize.isAccessibilitySize))
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+        .readableGlass(RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(format: NSLocalizedString("RADAR_LEGEND_LABEL", value: "Legende %@", comment: "Legend"),
                                    NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Layer name")))

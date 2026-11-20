@@ -54,15 +54,41 @@ enum RadarUITestStub {
         return Data(json.utf8)
     }
 
+    /// `-UITestRadarHistoryHours <48|72>`: `history.json` like the backend of PR #4 (that many hours, `history` block, one hole
+    /// of 6 times and one missing time); `-UITestRadarOldest <hours>`: the source reaches back only that far (leading hole).
+    /// Without the argument: today's stub (the hour before the manifest's first slot, no block).
+    private static func argument(_ name: String) -> Int? {
+        guard let index = CommandLine.arguments.firstIndex(of: name), CommandLine.arguments.indices.contains(index + 1) else { return nil }
+        return Int(CommandLine.arguments[index + 1])
+    }
+    static var historyHours: Int? { argument("-UITestRadarHistoryHours").flatMap { [48, 72].contains($0) ? $0 : nil } }
+
     /// `history.json`: the hour before the manifest's first slot (06:40 to 07:35 UTC), same image block as the manifest.
     static func historyJSON() -> Data {
         let iso = DWDRequest.timestamp
-        let slots = (0..<12).map { step -> String in
-            let time = firstSlot.addingTimeInterval(Double(step - 12) * 300)
-            return "{\"time\":\"\(iso(time))\",\"kind\":\"analysis\",\"path\":\"history/\(name(time)).webp\"}"
+        let hours = historyHours
+        // Window of PR #4: (reference - hours) up to the slot before latest's first one.
+        let expected = hours.map { ($0 - 1) * 12 } ?? 12
+        let oldestIndex = hours != nil ? (argument("-UITestRadarOldest").map { max(0, expected - ($0 - 1) * 12) } ?? 0) : 0
+        let holeStart = expected / 2, missingOne = expected / 5
+        let missing: Set<Int> = hours == nil ? [] : Set(holeStart..<(holeStart + 6)).union([missingOne])
+        func time(_ index: Int) -> Date { firstSlot.addingTimeInterval(Double(index - expected) * 300) }
+        let present = (oldestIndex..<expected).filter { !missing.contains($0) }
+        let slots = present.map { step -> String in
+            "{\"time\":\"\(iso(time(step)))\",\"kind\":\"analysis\",\"path\":\"history/\(name(time(step))).webp\"}"
+        }
+        var block = ""
+        if let hours {
+            var gaps: [String] = []
+            if oldestIndex > 0 { gaps.append("{\"from\":\"\(iso(time(0)))\",\"to\":\"\(iso(time(oldestIndex - 1)))\",\"slots\":\(oldestIndex)}") }
+            for (from, to) in [(missingOne, missingOne), (holeStart, holeStart + 5)] where from >= oldestIndex {
+                gaps.append("{\"from\":\"\(iso(time(from)))\",\"to\":\"\(iso(time(to)))\",\"slots\":\(to - from + 1)}")
+            }
+            block = "\"history\":{\"hours\":\(hours),\"oldest\":\"\(iso(time(oldestIndex)))\",\"expected\":\(expected),\"present\":\(present.count),"
+                + "\"complete\":false,\"gaps\":[\(gaps.joined(separator: ","))]},"
         }
         let json = "{\"schema\":1,\"run\":\"\(name(reference))\",\"generated_at\":\"\(iso(reference.addingTimeInterval(190)))\","
-            + "\"step_minutes\":5,\"history_hours\":48,\"image\":{\"format\":\"image/webp\",\"width\":\(width),\"height\":\(height),"
+            + "\"step_minutes\":5,\"history_hours\":\(hours ?? 48),\(block)\"image\":{\"format\":\"image/webp\",\"width\":\(width),\"height\":\(height),"
             + "\"projection\":\"EPSG:3857\",\"bbox\":\(bbox),\"bbox_wgs84\":[5.5,47.0,15.6,55.1]},"
             + "\"attribution\":\"Quelle: Deutscher Wetterdienst\",\"modification_notice\":\"Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben\","
             + "\"slots\":[\(slots.joined(separator: ","))]}"
@@ -76,7 +102,8 @@ enum RadarUITestStub {
         formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyyMMdd'T'HHmm'Z'"
         let time = formatter.date(from: stem) ?? reference
-        let step = Int(time.timeIntervalSince(firstSlot) / 300)
+        // Far-back history slots (72 h = 860 steps) would move the cells off the map: the pattern repeats every 60 steps.
+        let step = ((Int((time.timeIntervalSince(firstSlot) / 300).rounded()) % 60) + 60) % 60
         return render(step: step)
     }
 

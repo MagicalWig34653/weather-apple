@@ -267,7 +267,7 @@ struct RadarLayerLegendPanel: View {
         .padding(10)
         .frame(width: dynamicTypeSize.isAccessibilitySize ? 260 : (layer == .cloudmask ? 220 : 190), alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+        .readableGlass(RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(format: NSLocalizedString("RADAR_LEGEND_LABEL", value: "Legende %@", comment: "Radar"), layer.title))
         .accessibilityIdentifier("radar-legend")

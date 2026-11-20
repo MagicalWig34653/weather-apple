@@ -2,20 +2,47 @@ import Foundation
 
 /// User setting: how far back the radar timeline reaches. Local only (UserDefaults).
 enum RadarPastWindow {
-    static let options = [1, 2, 6, 12, 24, 48]
+    static let options = [1, 2, 6, 12, 24, 48, 72]
     static let defaultHours = 2
     static let defaultsKey = "radarPastHours"
     /// Past covered by the direct DWD path (12 analyses, about one hour), whatever the setting says.
     static let directHours = 1
 
-    static func load(_ defaults: UserDefaults) -> Int {
-        let stored = defaults.integer(forKey: defaultsKey)
-        return options.contains(stored) ? stored : defaultHours
+    /// Effective hours of a stored choice, else the fixed default (kept for callers without a backend window).
+    static func load(_ defaults: UserDefaults) -> Int { choice(defaults) ?? defaultHours }
+
+    /// The user's explicit choice; `nil` = never chosen. Builds 50 and 52 write `radarPastHours` only when the user picks a
+    /// step (the key is absent on a fresh install and after "never touched"), so a stored valid step IS a choice - also 2 -
+    /// and an absent, corrupt or unknown value means "never chosen" (such a value is left in place, not rewritten).
+    static func choice(_ defaults: UserDefaults) -> Int? {
+        // A launch argument (`-radarPastHours 48`, UI tests) arrives as text in the argument domain: accept both.
+        let stored: Int?
+        switch defaults.object(forKey: defaultsKey) {
+        case let number as NSNumber where CFGetTypeID(number) != CFBooleanGetTypeID(): stored = Int(exactly: number.doubleValue)
+        case let text as String: stored = Int(text)
+        default: stored = nil
+        }
+        guard let stored, options.contains(stored) else { return nil }
+        return stored
+    }
+    static func clear(_ defaults: UserDefaults) { defaults.removeObject(forKey: defaultsKey) }
+    /// Window of the radar without a choice: what the backend's `history.json` reports (`history.hours`, PR #4), else the
+    /// fixed default (today's backend has no block: nothing is guessed). Only the steps of the setting count.
+    static func standardHours(history: RadarHistory?) -> Int {
+        guard let hours = history?.info?.hours else { return defaultHours }
+        return options.contains(hours) ? hours : (options.filter { $0 <= hours }.max() ?? defaultHours)
     }
 
     static func save(_ hours: Int, to defaults: UserDefaults) {
         guard options.contains(hours) else { return }
         defaults.set(hours, forKey: defaultsKey)
+    }
+
+    /// Whether a step is greyed out: the direct DWD path has one hour; the cache backend offers what it reports.
+    static func isUnavailable(_ hours: Int, direct: Bool, serverHours: Int?) -> Bool {
+        if direct { return hours > directHours }
+        if let serverHours { return hours > max(serverHours, directHours) }
+        return false
     }
 
     static func label(_ hours: Int) -> String {
@@ -24,7 +51,8 @@ enum RadarPastWindow {
     }
 }
 
-/// Parsed `history.json`: analysis slots only (the past), ascending, 5-minute grid, gaps allowed.
+/// Parsed `history.json`: analysis slots only (the past), ascending, 5-minute grid, gaps allowed. Since backend PR #4 the
+/// duration is 48 or 72 hours and an additive `history` block (`info`) reports the oldest slot and the holes.
 /// Slot `path` values are opaque to the app (never rebuilt from `time`).
 struct RadarHistory: Equatable, Sendable {
     let run: String
@@ -35,6 +63,8 @@ struct RadarHistory: Equatable, Sendable {
     let imageHeight: Int
     let bounds: RadarBounds
     let slots: [RadarManifest.Slot]
+    /// Additive `history` block (PR #4); `nil` for today's backend or a malformed block.
+    var info: RadarHistoryInfo? = nil
 
     static let maximumSlots = 1000
     static let maximumHistoryHours = 168
@@ -75,7 +105,7 @@ struct RadarHistory: Equatable, Sendable {
         }
         return RadarHistory(run: raw.run, generatedAt: generated, stepMinutes: raw.stepMinutes,
                             historyHours: raw.historyHours, imageWidth: raw.image.width, imageHeight: raw.image.height,
-                            bounds: bounds, slots: slots)
+                            bounds: bounds, slots: slots, info: RadarHistoryInfo.parse(manifestData: data))
     }
 
     /// Relative `.webp` path below `/v1/radar/` (up to four plain segments): no scheme, traversal, query.
@@ -104,7 +134,9 @@ enum RadarTimelineComposer {
     static func compose(latest: RadarManifest, history: RadarHistory?, hours: Int) -> RadarManifest {
         let cutoff = latest.referenceTime.addingTimeInterval(-Double(hours) * 3600)
         var byTime: [Date: RadarManifest.Slot] = [:]
+        var info: RadarHistoryInfo?
         if let history, isCompatible(history, with: latest) {
+            info = history.info
             for slot in history.slots where slot.time >= cutoff && slot.time <= latest.referenceTime { byTime[slot.time] = slot }
         }
         for slot in latest.slots where slot.kind == .forecast || slot.time >= cutoff { byTime[slot.time] = slot }
@@ -112,7 +144,7 @@ enum RadarTimelineComposer {
         return RadarManifest(run: latest.run, referenceTime: latest.referenceTime, generatedAt: latest.generatedAt,
                              stepMinutes: latest.stepMinutes, imageWidth: latest.imageWidth, imageHeight: latest.imageHeight,
                              bounds: latest.bounds, slots: slots, attribution: latest.attribution,
-                             modificationNotice: latest.modificationNotice)
+                             modificationNotice: latest.modificationNotice, history: info, windowStart: cutoff)
     }
 }
 

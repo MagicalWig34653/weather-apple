@@ -94,14 +94,14 @@ struct RadarScreen: View {
                         Label(label, systemImage: "slider.horizontal.3")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .accessibilityHidden(true)
                     }
                     if let slot = heldFeedback {
                         Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .transition(.opacity)
                             .accessibilityIdentifier("radar-slot-status")
                     }
@@ -109,7 +109,7 @@ struct RadarScreen: View {
                         Label(readout.text, systemImage: "scope")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .accessibilityLabel(readout.spoken)
                             .accessibilityIdentifier("radar-readout")
                     }
@@ -132,7 +132,7 @@ struct RadarScreen: View {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
                         .accessibilityAddTraits(.updatesFrequently)
                 }
                 ForEach(rainLayerNotices) { notice in
@@ -140,9 +140,20 @@ struct RadarScreen: View {
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, notice.kind == .estimate ? 8 : 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier(notice.identifier)
+                }
+                // A hole in the data next to the shown slot: said plainly, never filled with a picture. In the top stack (like the
+                // other notes), so the lower strip with Apple's legal link stays free.
+                if !store.isPlaying, !displayedGapLines.isEmpty {
+                    Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("radar-gap-note")
                 }
                 HStack(alignment: .top, spacing: 10) {
                     Spacer()
@@ -235,6 +246,7 @@ struct RadarScreen: View {
             case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             }
         }
+        .environment(\.glassScrim, colorScheme == .dark && store.activeLayer.coversMapBrightly ? RadarLayer.brightLayerScrim : 0)
         .alert(NSLocalizedString("RADAR_SAVE_PLACE_TITLE", value: "Ort speichern", comment: "Radar"), isPresented: $showSave) {
             TextField(NSLocalizedString("COMMON_NAME", value: "Name", comment: "Text field"), text: $placeName)
             Button(NSLocalizedString("COMMON_SAVE", value: "Speichern", comment: "Common")) { store.saveSelection(name: placeName) }
@@ -244,7 +256,7 @@ struct RadarScreen: View {
             guard store.isPlaying else { return }
             // Playback covers only a window (at most 3 h of past); start there if the slider is further back.
             if let timeline = store.displayTimeline {
-                let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.pastHours)
+                let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.playbackPastHours)
                 if store.displayFrameIndex < start { store.displayFrameIndex = start }
             }
             var waitingFrame = store.displayFrameDate
@@ -265,7 +277,7 @@ struct RadarScreen: View {
                 let frameFinished = currentRadarLoadState.map { $0.requested > 0 && $0.pending == 0 } ?? false
                 guard frameFinished || Date().timeIntervalSince(waitingSince) >= 12 else { continue }
                 store.displayFrameIndex = PlaybackWindow.nextIndex(after: store.displayFrameIndex, dates: timeline.dates,
-                                                                   reference: timeline.referenceTime, pastHours: store.pastHours)
+                                                                   reference: timeline.referenceTime, pastHours: store.playbackPastHours)
                 waitingFrame = store.displayFrameDate
                 waitingSince = Date()
             }
@@ -407,7 +419,7 @@ struct RadarScreen: View {
             }
             .padding(.horizontal, 10)
             .frame(minHeight: 44)
-            .glassControl(Capsule())
+            .glassControl(Capsule(), floor: darkGlassFloor)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"))
@@ -455,13 +467,13 @@ struct RadarScreen: View {
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .fixedSize(horizontal: false, vertical: true)
                         if !dynamicTypeSize.isAccessibilitySize {
-                            Text(NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Radar")).font(.caption).foregroundStyle(.secondary)
+                            Text(NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Radar")).font(.caption).foregroundStyle(.primary.opacity(0.85))   // .secondary measured 2.3 to 3.6 : 1
                         }
                     }
                     Image(systemName: "chevron.down").font(.caption.bold())
                 }
                 .padding(.horizontal, 16).padding(.vertical, 11)
-                .glassControl(Capsule())
+                .glassControl(Capsule(), floor: darkGlassFloor)
             }
             .glassSheetSource(.places, in: glassNamespace)
             .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
@@ -486,6 +498,12 @@ struct RadarScreen: View {
     private var displayedDate: Date? {
         guard let dates = store.displayTimeline?.dates, dates.indices.contains(displayedIndex) else { return store.displayFrameDate }
         return dates[displayedIndex]
+    }
+
+    /// Holes in the data directly before and after the shown slot (empty without holes).
+    private var displayedGapLines: [String] {
+        guard let timeline = store.displayTimeline, !timeline.gaps.isEmpty else { return [] }
+        return TimelineGapText.lines(for: displayedIndex, gaps: timeline.gaps)
     }
 
     /// Honest per-slot hint: the map never shows another slot's image as this slot's state.
@@ -547,7 +565,7 @@ struct RadarScreen: View {
                 .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
                 .padding(.horizontal, 8)
                 // Rendering only (no layout space): a faint backdrop behind the text keeps it readable on any map colour.
-                .background { Capsule().fill(Color(.systemBackground).opacity(0.35)).blur(radius: 2) }
+                .background { Capsule().fill(Color(.systemBackground).opacity(colorScheme == .dark ? (store.activeLayer.coversMapBrightly ? 0.75 : 0.6) : 0.35)).blur(radius: 2) }
                 .allowsHitTesting(false)
                 .accessibilityLabel(line)
                 .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
@@ -569,7 +587,7 @@ struct RadarScreen: View {
         timeSlider
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
+            .readableGlass(RoundedRectangle(cornerRadius: 26), floor: darkGlassFloor)
             .accessibilityIdentifier("radar-timeline")
             // The credit hangs below the card without taking layout space: the slider keeps its position. It sits in the
             // free strip between the card and the home indicator (card bottom + 20 pt = text bottom, about 3 pt below the card).
@@ -683,13 +701,30 @@ struct RadarScreen: View {
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
-                        ScreenGlow.pastColor.frame(width: geometry.size.width * boundary)
-                        ScreenGlow.futureColor
+                        ScreenGlow.lineColor(forecast: false, dark: colorScheme == .dark).frame(width: geometry.size.width * boundary)
+                        ScreenGlow.lineColor(forecast: true, dark: colorScheme == .dark)
                     }
                     .clipShape(Capsule())
                     .frame(height: 2)
                     Rectangle().fill(.primary).frame(width: 2, height: 6)
                         .offset(x: max(0, geometry.size.width * boundary - 1), y: -2)
+                    // Holes in the data: a short red mark between the two slots around the hole (one Canvas, whatever the count).
+                    if !timeline.gaps.isEmpty {
+                        let count = timeline.dates.count
+                        let gaps = timeline.gaps.gaps
+                        Canvas { context, size in
+                            for gap in gaps {
+                                let fraction = gap.afterIndex < 0 ? 0 : (Double(gap.afterIndex) + 0.5) / Double(max(count - 1, 1))
+                                let x = size.width * fraction
+                                context.fill(Path(CGRect(x: min(max(x - 1.5, 0), size.width - 3), y: 0, width: 3, height: size.height)),
+                                             with: .color(Color(.systemRed).opacity(0.9)))
+                            }
+                        }
+                        .frame(width: geometry.size.width, height: 12)
+                        .position(x: geometry.size.width / 2, y: 1)
+                        .accessibilityHidden(true)
+                        .accessibilityIdentifier("radar-timeline-gap-marks")
+                    }
                 }
                 .frame(height: 2)
                 .offset(y: 7)
@@ -712,7 +747,8 @@ struct RadarScreen: View {
                     if store.displayFrameIndex != index { store.displayFrameIndex = index }
                 }
                 .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime,
-                                                                caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast)))
+                                                                caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast),
+                                                                gapLines: displayedGapLines))
                 .accessibilityHint(String(format: NSLocalizedString("TIMELINE_SLIDER_HINT", value: "Von %1$@ bis %2$@. Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.", comment: "Radar"), timeline.dates.first!.formatted(date: .abbreviated, time: .shortened), timeline.dates.last!.formatted(date: .omitted, time: .shortened)))
             }
         } else {
@@ -735,7 +771,7 @@ struct RadarScreen: View {
                     }
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                    .glassControl(RoundedRectangle(cornerRadius: 24))
+                    .glassControl(RoundedRectangle(cornerRadius: 24), floor: darkGlassFloor)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("forecast-details")
@@ -1005,8 +1041,8 @@ extension View {
     }
 
     /// Interactive Liquid Glass for a touchable control (press and bounce feedback); the whole shape is the touch target.
-    func glassControl<S: Shape>(_ shape: S) -> some View {
-        contentShape(shape).glassEffect(.regular.interactive(), in: shape)
+    func glassControl<S: Shape>(_ shape: S, floor: Double = 0) -> some View {
+        contentShape(shape).readableGlass(shape, interactive: true, floor: floor)
     }
 }
 

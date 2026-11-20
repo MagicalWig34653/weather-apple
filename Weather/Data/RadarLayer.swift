@@ -155,8 +155,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Forecast layer (pressure): run reference must not be older than this.
     static let maximumForecastRunAge: TimeInterval = 18 * 3600
 
-    /// Most slots prefetched around the selected one (`nil` = whole catalogue). Cloud images are
-    /// hundreds of KB each, so only a window is preloaded; pressure and lightning images are tiny.
+    /// Most slots prefetched around the selected one (`nil` = the catalogue, but never more than
+    /// `RadarBackendPolicy.maximumPrefetchSlots`: a 72 h manifest has 865 slots). Cloud images are
+    /// hundreds of KB each, so only a smaller window is preloaded.
     var prefetchSlotLimit: Int? {
         switch self {
         case .clouds, .cloudmask: 19
@@ -282,7 +283,10 @@ struct RadarLayerManifest: Equatable, Sendable {
     var slots: [RadarManifest.Slot] { backend.slots }
     var radarAttribution: RadarAttribution { RadarAttribution(attribution: attribution, modificationNotice: modificationNotice) }
 
+    /// 72 hours at 5 minutes are 865 times (plus the forecast part of a model layer): room for that, nothing more.
     static let maximumSlots = 1000
+    /// Past valid times of a model layer (`past_slots`): hourly, at most 72 hours; more is not plausible.
+    static let maximumPastSlots = 500
 
     /// Observation: newest slot not older than the layer's limit. Forecast: run young enough and not exhausted.
     func isFresh(at now: Date) -> Bool {
@@ -309,9 +313,35 @@ struct RadarLayerManifest: Equatable, Sendable {
         }
     }
 
-    func timeline(at now: Date) -> RadarTimeline {
-        RadarTimeline(referenceTime: nowSlotTime(at: now), dates: slots.map(\.time), backend: backend)
+    /// Hours of past the server reports for this layer (`history.hours`, else `history_hours`, else the span actually present).
+    var offeredHistoryHours: Int? {
+        if let hours = backend.history?.hours { return hours }
+        if let hours = historyHours { return hours }
+        guard let first = slots.first?.time else { return nil }
+        return max(0, Int(referenceTime.timeIntervalSince(first) / 3600))
     }
+
+    /// The timeline with the past cut to the user's choice (`pastHours`, the same for every layer); `nil` shows all slots.
+    /// The backend copy used by the overlay and the prefetch is cut the same way, so nothing outside the slider is loaded.
+    func timeline(at now: Date, pastHours: Int?) -> RadarTimeline {
+        let reference = nowSlotTime(at: now)
+        guard let pastHours else { return timeline(at: now) }
+        let start = reference.addingTimeInterval(-Double(pastHours) * 3600)
+        let cut = backend.cut(from: start)
+        guard !cut.slots.isEmpty else { return timeline(at: now) }
+        let dates = cut.slots.map(\.time)
+        return RadarTimeline(referenceTime: reference, dates: dates, backend: cut,
+                             gaps: RadarTimelineGaps(dates: dates, stepMinutes: stepMinutes, history: backend.history, windowStart: start))
+    }
+
+    func timeline(at now: Date) -> RadarTimeline {
+        let dates = slots.map(\.time)
+        return RadarTimeline(referenceTime: nowSlotTime(at: now), dates: dates, backend: backend,
+                             gaps: RadarTimelineGaps(dates: dates, stepMinutes: stepMinutes, history: backend.history))
+    }
+
+    /// The backend's `history` block (hours, oldest, gaps); `nil` when absent or malformed.
+    var historyInfo: RadarHistoryInfo? { backend.history }
 
     // MARK: Parsing
 
@@ -329,12 +359,39 @@ struct RadarLayerManifest: Equatable, Sendable {
         let legend: RawLegend?
         let source: String?, scale: String?
     }
+    /// `past_slots` of the model layers, decoded on its own: a broken list must not make the layer unusable.
+    private struct PastProbe: Decodable {
+        struct Item: Decodable { let time: String, kind: String, path: String }
+        let pastSlots: [Item]?
+    }
 
     /// Optional short ids only: empty, over-long or odd strings count as absent (never shown, never guessed).
     private static func cleaned(_ value: String?) -> String? {
         guard let value, (1...32).contains(value.count),
               value.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }) else { return nil }
         return value
+    }
+
+    /// Past valid times (`past_slots`) of a model layer, ascending and strictly before the latest run's first slot;
+    /// `nil` when absent or when anything in it is unusable (then the layer shows the latest run alone).
+    private static func pastSlots(from data: Data, layersBaseURL: URL, latest: [RadarManifest.Slot]) -> [RadarManifest.Slot]? {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        guard let items = (try? decoder.decode(PastProbe.self, from: data))?.pastSlots, !items.isEmpty,
+              items.count <= maximumPastSlots, let firstLatest = latest.first?.time else { return nil }
+        var result: [RadarManifest.Slot] = []
+        for item in items {
+            guard let time = DWDRequest.date(item.time), RadarManifest.isSafe(path: item.path),
+                  let kind = RadarManifest.Kind(rawValue: item.kind),
+                  let url = URL(string: item.path, relativeTo: layersBaseURL)?.absoluteURL,
+                  url.host == layersBaseURL.host, url.scheme == layersBaseURL.scheme,
+                  url.path.hasPrefix(layersBaseURL.path) else { return nil }
+            if let last = result.last, time <= last.time { return nil }
+            if time > firstLatest { return nil }
+            if time == firstLatest { continue }   // the latest run wins at the same time
+            result.append(RadarManifest.Slot(time: time, kind: kind, path: item.path, url: url))
+        }
+        return result.isEmpty ? nil : result
     }
 
     /// `layersBaseURL` is `…/v1/layers/<layer>/`; slot URLs must stay below it on the same origin.
@@ -375,6 +432,12 @@ struct RadarLayerManifest: Equatable, Sendable {
             slots.append(RadarManifest.Slot(time: time, kind: slotKind, path: item.path, url: url))
         }
 
+        // Model layers (kind forecast): the past valid times come first, the latest run follows. Any unusable entry drops
+        // the whole list (honest fallback to the latest run alone). A past time that the latest run also covers loses.
+        if kind == .forecast, let past = pastSlots(from: data, layersBaseURL: layersBaseURL, latest: slots) {
+            slots = past + slots
+        }
+
         var legend: RadarLayerLegendRef?
         if let rawLegend = raw.legend {
             // A malformed legend reference only drops the legend; the layer itself stays usable.
@@ -388,7 +451,8 @@ struct RadarLayerManifest: Equatable, Sendable {
         let backend = RadarManifest(run: raw.run, referenceTime: reference, generatedAt: generated,
                                     stepMinutes: raw.stepMinutes, imageWidth: raw.image.width,
                                     imageHeight: raw.image.height, bounds: bounds, slots: slots,
-                                    attribution: raw.attribution, modificationNotice: raw.modificationNotice)
+                                    attribution: raw.attribution, modificationNotice: raw.modificationNotice,
+                                    history: RadarHistoryInfo.parse(manifestData: data))
         return RadarLayerManifest(layer: expected, title: raw.title, kind: kind, run: raw.run, referenceTime: reference,
                                   generatedAt: generated, stepMinutes: raw.stepMinutes,
                                   forecastHorizonMinutes: raw.forecastHorizonMinutes, historyHours: raw.historyHours,
@@ -483,7 +547,7 @@ struct LayerSnapshot: Equatable {
 
 extension RadarTimeline: Equatable {
     static func == (lhs: RadarTimeline, rhs: RadarTimeline) -> Bool {
-        lhs.referenceTime == rhs.referenceTime && lhs.dates == rhs.dates && lhs.backend == rhs.backend
+        lhs.referenceTime == rhs.referenceTime && lhs.dates == rhs.dates && lhs.backend == rhs.backend && lhs.gaps == rhs.gaps
     }
 }
 
@@ -494,6 +558,32 @@ final class RadarLayerStore {
     private(set) var active: RadarLayer = .radar
     private(set) var snapshots: [RadarLayer: LayerSnapshot] = [:]
     private(set) var loading: Set<RadarLayer> = []
+    /// The user's chosen maximum past (hours), the same setting for every layer (`nil`: never chosen).
+    /// `nil` = no choice: every layer shows what its own server window offers.
+    private(set) var pastHours: Int? = nil
+    /// Changes the setting for every layer: the timelines are cut again; each layer keeps the instant it shows when that
+    /// instant is still inside the window, else it goes to its oldest slot.
+    func setPastHours(_ hours: Int?) {
+        guard hours != pastHours else { return }
+        pastHours = hours
+        for layer in Array(snapshots.keys) { reapply(layer) }
+    }
+    /// Hours of past the layer's own server data offers; `nil` while nothing is loaded (never guessed).
+    func offeredHistoryHours(_ layer: RadarLayer) -> Int? { snapshot(layer).manifest?.offeredHistoryHours }
+
+    /// The instant each layer's timeline was last built for (a change of the setting rebuilds it for the same instant).
+    @ObservationIgnored private var appliedAt: [RadarLayer: Date] = [:]
+
+    private func reapply(_ layer: RadarLayer) {
+        guard var value = snapshots[layer], let manifest = value.manifest else { return }
+        let timeline = manifest.timeline(at: appliedAt[layer] ?? clock(), pastHours: pastHours)
+        let previousDate = value.timeline.flatMap { $0.dates.indices.contains(value.selectedFrame) ? $0.dates[value.selectedFrame] : nil }
+        value.selectedFrame = RadarTimelineSelection.index(
+            previous: previousDate, previousReference: value.timeline?.referenceTime,
+            dates: timeline.dates, reference: timeline.referenceTime)
+        value.timeline = timeline
+        snapshots[layer] = value
+    }
 
     @ObservationIgnored private let client: RadarLayerClient
     @ObservationIgnored private let clock: () -> Date
@@ -580,7 +670,8 @@ final class RadarLayerStore {
         case .cancelled:
             return
         case .fresh(let manifest):
-            let timeline = manifest.timeline(at: now)
+            let timeline = manifest.timeline(at: now, pastHours: pastHours)
+            appliedAt[layer] = now
             if value.manifest != manifest || value.timeline != timeline {
                 let previousDate = value.timeline.flatMap { $0.dates.indices.contains(value.selectedFrame) ? $0.dates[value.selectedFrame] : nil }
                 value.selectedFrame = RadarTimelineSelection.index(
