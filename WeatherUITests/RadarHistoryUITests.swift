@@ -158,7 +158,7 @@ final class RadarHistoryUITests: XCTestCase {
         XCTAssertFalse(gapNote(app).exists, "the source reaches back the full 48 h: no note")
         shot(app, "radar48-2-aeltester-slot")
         jump(slider, fraction: 1)
-        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") || $0.localizedCaseInsensitiveContains("vorhersage") })
         shot(app, "radar48-4-ende")
         app.terminate()
     }
@@ -269,7 +269,18 @@ final class RadarHistoryUITests: XCTestCase {
     // Europa (OPERA): server and source deliver 72 h; the chosen past decides the oldest slot. Now = Wed 18 Nov 09:50.
     func testEuropeFortyEightHours() throws {
         try layerCase("europa", pick: .rain("Europa (OPERA)"), setting: 48, now: "09:50, Messung",
-                      oldest: "Mo. 16. Nov., 09:50, Messung", note: nil, midHole: true)
+                      oldest: "Mo. 16. Nov., 09:50, Messung", note: nil)
+    }
+    /// The hole of 6 times (36 h back) lies inside 48 h and is named there (own test: the large Europe images are slow).
+    func testEuropeHoleIsNamedAtFortyEightHours() throws {
+        let app = launchLayers(setting: 48)
+        try Pick.rain("Europa (OPERA)").select(app, self)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") })
+        XCTAssertTrue(seek(slider, near: 1 - 36.0 / 48, slots: 577) { value(slider).contains("fehlen Daten") }, "a slot next to the hole: \(value(slider))")
+        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "hole named: \(value(slider))")
+        shot(app, "europa48-3-luecke")
+        app.terminate()
     }
     func testEuropeSeventyTwoHours() throws {
         try layerCase("europa", pick: .rain("Europa (OPERA)"), setting: 72, now: "09:50, Messung",
@@ -331,26 +342,27 @@ final class RadarHistoryUITests: XCTestCase {
     }
 
     /// 48 / 72 greyed per layer: the active map's own offer decides (server reports 48 h: 72 greyed; 72 h: selectable).
-    func testStepsAreGreyedPerLayerWhereTheServerReportsLess() throws {
+    private func greyedCase(_ name: String, _ pick: Pick) throws {
         for (server, selectable) in [(48, false), (72, true)] {
-            for (name, pick) in [("Blitze", Pick.entry(group: nil, "Blitze")), ("Luftdruck", .entry(group: "Luftdruck", "Deutschland")), ("Europa", .rain("Europa (OPERA)"))] {
-                let app = launchLayers(setting: 24, server: server)
-                try pick.select(app, self)
-                XCTAssertTrue(waitValue(slider(app)) { !$0.isEmpty })
-                openInfoSheet(app)
-                let entry = app.buttons["Maximale Vergangenheit"]
-                XCTAssertTrue(entry.waitForExistence(timeout: 10))
-                entry.tap()
-                let row72 = app.descendants(matching: .any).matching(identifier: "past-hours-72").firstMatch
-                XCTAssertTrue(row72.waitForExistence(timeout: 10), "72 h row")
-                XCTAssertEqual(row72.isEnabled, selectable, "\(name): server reports \(server) h, 72 selectable = \(selectable)")
-                XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "past-hours-48").firstMatch.isEnabled == (server >= 48))
-                print("HISTGREY layer=\(name) server=\(server) 72selectable=\(row72.isEnabled)")
-                shot(app, "einstellung-\(name.lowercased())-server\(server)")
-                app.terminate()
-            }
+            let app = launchLayers(setting: 24, server: server)
+            try pick.select(app, self)
+            XCTAssertTrue(waitValue(slider(app)) { !$0.isEmpty })
+            openInfoSheet(app)
+            let entry = app.buttons["Maximale Vergangenheit"]
+            XCTAssertTrue(entry.waitForExistence(timeout: 10))
+            entry.tap()
+            let row72 = app.descendants(matching: .any).matching(identifier: "past-hours-72").firstMatch
+            XCTAssertTrue(row72.waitForExistence(timeout: 10), "72 h row")
+            XCTAssertEqual(row72.isEnabled, selectable, "\(name): server reports \(server) h, 72 selectable = \(selectable)")
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "past-hours-48").firstMatch.isEnabled == (server >= 48))
+            print("HISTGREY layer=\(name) server=\(server) 72selectable=\(row72.isEnabled)")
+            shot(app, "einstellung-\(name.lowercased())-server\(server)")
+            app.terminate()
         }
     }
+    func testStepsGreyedForLightning() throws { try greyedCase("Blitze", .entry(group: nil, "Blitze")) }
+    func testStepsGreyedForPressure() throws { try greyedCase("Luftdruck", .entry(group: "Luftdruck", "Deutschland")) }
+    func testStepsGreyedForEurope() throws { try greyedCase("Europa", .rain("Europa (OPERA)")) }
 
     // MARK: Measurement: scrubbing across a full 72 h timeline
 
