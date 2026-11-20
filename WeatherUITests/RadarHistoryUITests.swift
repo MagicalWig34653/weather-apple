@@ -156,11 +156,15 @@ final class RadarHistoryUITests: XCTestCase {
             let app = launchRadar(hours: serverHours)
             XCTAssertTrue(waitValue(slider(app)) { $0.contains("Messung") })
             openInfoSheet(app)
-            let row = app.buttons["past-hours-72"]
-            for _ in 0..<6 where !row.exists { app.swipeUp() }
-            XCTAssertTrue(row.waitForExistence(timeout: 10), "72 h row exists")
+            let entry = app.buttons["Maximale Vergangenheit"]
+            XCTAssertTrue(entry.waitForExistence(timeout: 10), "entry Maximale Vergangenheit")
+            entry.tap()
+            let row = app.descendants(matching: .any).matching(identifier: "past-hours-72").firstMatch
+            _ = row.waitForExistence(timeout: 5)
+            if !row.exists { shot(app, "einstellung-fehlt-server\(serverHours)") }
+            XCTAssertTrue(row.waitForExistence(timeout: 10), "72 h row exists: \(app.debugDescription.prefix(1500))")
             XCTAssertEqual(row.isEnabled, selectable, "server delivers \(serverHours) h: 72 selectable = \(selectable)")
-            XCTAssertTrue(app.buttons["past-hours-48"].isEnabled)
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "past-hours-48").firstMatch.isEnabled)
             shot(app, "einstellung-server\(serverHours)")
             app.terminate()
         }
