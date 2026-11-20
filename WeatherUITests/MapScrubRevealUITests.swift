@@ -191,10 +191,15 @@ final class MapScrubRevealUITests: XCTestCase {
         executionTimeAllowance = 180
         let app = launch()
         let slider = slider(app)
+        assertChromeVisible(app, "vorher")
+        shot(app, "tipp-1-vorher")
         slider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         assertChromeVisible(app, "direkt nach Tipp")
-        dragAndHold(app, from: 0.4, to: 0.4, hold: 3, probes: [(1.5, { [self] in assertChromeVisible(app, "stillen Berührung") })])
+        dragAndHold(app, from: 0.4, to: 0.4, hold: 3, probes: [(1.5, { [self] in
+            assertChromeVisible(app, "stillen Berührung")
+            shot(app, "tipp-2-waehrend-stille-beruehrung")
+        })])
         assertChromeVisible(app, "nach stiller Berührung")
-        shot(app, "tipp-nachher")
+        shot(app, "tipp-3-nachher")
     }
 }
