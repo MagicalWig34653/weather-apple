@@ -559,11 +559,11 @@ final class RadarLayerStore {
     private(set) var snapshots: [RadarLayer: LayerSnapshot] = [:]
     private(set) var loading: Set<RadarLayer> = []
     /// The user's chosen maximum past (hours), the same setting for every layer.
-    private(set) var pastHours = RadarPastWindow.defaultHours
+    private(set) var pastHours: Int? = RadarPastWindow.defaultHours
     /// Changes the setting for every layer: the timelines are cut again; each layer keeps the instant it shows when that
     /// instant is still inside the window, else it goes to its oldest slot.
-    func setPastHours(_ hours: Int) {
-        guard hours != pastHours else { return }
+    func setPastHours(_ hours: Int?) {
+        guard let hours, hours != pastHours else { return }
         pastHours = hours
         for layer in Array(snapshots.keys) { reapply(layer) }
     }

@@ -13,6 +13,12 @@ enum RadarPastWindow {
         return options.contains(stored) ? stored : defaultHours
     }
 
+    /// The user's explicit choice; `nil` = never chosen (scaffold: always `nil`).
+    static func choice(_ defaults: UserDefaults) -> Int? { nil }
+    static func clear(_ defaults: UserDefaults) {}
+    /// Default window of the radar without a choice (scaffold: the fixed default).
+    static func standardHours(history: RadarHistory?) -> Int { defaultHours }
+
     static func save(_ hours: Int, to defaults: UserDefaults) {
         guard options.contains(hours) else { return }
         defaults.set(hours, forKey: defaultsKey)

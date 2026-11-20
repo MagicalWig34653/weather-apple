@@ -700,14 +700,14 @@ final class RadarHistoryHoursTests: XCTestCase {
 
     @MainActor func testLayerStoreAppliesTheSettingToEveryLayerAndKeepsTheInstant() throws {
         let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
-        XCTAssertEqual(store.pastHours, 2, "default stays 2 h")
+        XCTAssertNil(store.pastHours, "no choice: every layer shows what its own server window offers")
         let now = reference.addingTimeInterval(100)
         store.apply(.fresh(try parse(observationObject(hours: 72))), to: .radarEU, now: now)
         store.apply(.fresh(try parse(observationObject(hours: 72, step: 5, layer: "lightning"), layer: .lightning)), to: .lightning, now: now)
         store.apply(.fresh(try parse(modelObject(pastHours: 72, layer: "pressure"), layer: .pressure)), to: .pressure, now: now)
-        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 2 * 12 + 1)
-        XCTAssertEqual(store.snapshot(.lightning).timeline?.dates.count, 2 * 12 + 1)
-        XCTAssertEqual(store.snapshot(.pressure).timeline?.dates.count, 2 + 49)
+        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 865)
+        XCTAssertEqual(store.snapshot(.lightning).timeline?.dates.count, 865)
+        XCTAssertEqual(store.snapshot(.pressure).timeline?.dates.count, 72 + 49)
         store.setPastHours(48)
         XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 577)
         XCTAssertEqual(store.snapshot(.lightning).timeline?.dates.count, 577)
@@ -737,5 +737,151 @@ final class RadarHistoryHoursTests: XCTestCase {
         XCTAssertEqual(store.activeServerHistoryHours, 48, "the active layer's own offer")
         XCTAssertTrue(RadarPastWindow.isUnavailable(72, direct: false, serverHours: store.activeServerHistoryHours))
         XCTAssertFalse(RadarPastWindow.isUnavailable(48, direct: false, serverHours: store.activeServerHistoryHours))
+    }
+
+    // MARK: Default window from the backend (no stored choice), explicit choice wins, old backends
+
+    @MainActor func testLayerWithoutChoiceReachesTheOldestSlotOfThe48Or72HourBackend() throws {
+        for hours in [48, 72] {
+            for (layer, step) in Self.observationLayers {
+                let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+                store.apply(.fresh(try parse(observationObject(hours: hours, step: step, layer: layer.rawValue), layer: layer)), to: layer, now: reference.addingTimeInterval(100))
+                let timeline = try XCTUnwrap(store.snapshot(layer).timeline)
+                XCTAssertEqual(timeline.dates.first, reference.addingTimeInterval(-Double(hours) * 3600), "\(layer.rawValue) \(hours) h: first open reaches the oldest slot")
+                XCTAssertEqual(timeline.dates.count, hours * 60 / step + 1, "\(layer.rawValue) \(hours) h")
+            }
+            for layer in Self.modelLayers {
+                let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+                store.apply(.fresh(try parse(modelObject(pastHours: hours, layer: layer.rawValue), layer: layer)), to: layer, now: reference.addingTimeInterval(1800))
+                XCTAssertEqual(store.snapshot(layer).timeline?.dates.first, reference.addingTimeInterval(-Double(hours) * 3600), "\(layer.rawValue) \(hours) h")
+            }
+        }
+    }
+
+    @MainActor func testExplicitChoiceWinsOverTheLayersOwnWindowAndStandardComesBack() throws {
+        let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+        store.apply(.fresh(try parse(observationObject(hours: 72))), to: .radarEU, now: reference.addingTimeInterval(100))
+        store.setPastHours(2)
+        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 25, "an explicit 2 h is not the same as no choice")
+        store.setPastHours(48)
+        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 577)
+        store.setPastHours(nil)
+        XCTAssertNil(store.pastHours)
+        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 865, "back to the standard: the layer's own window")
+    }
+
+    @MainActor func testOldBackendManifestsShowTheirActualSpanWithoutAChoice() throws {
+        // Today's production: radar_eu 3 h, radar_world 24 h (10 min grid), model layer without past slots, no history block.
+        let cases: [(RadarLayer, [String: Any], Int)] = [
+            (.radarEU, observationObject(hours: 3, withHistory: false), 37),
+            (.radarWorld, observationObject(hours: 24, step: 10, withHistory: false, layer: "radar_world"), 145),
+            (.temperature, modelObject(pastHours: 0, withPast: false), 49)]
+        for (layer, object, count) in cases {
+            let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+            store.apply(.fresh(try parse(object, layer: layer)), to: layer, now: reference.addingTimeInterval(100))
+            XCTAssertEqual(store.snapshot(layer).timeline?.dates.count, count, "\(layer.rawValue): the span that exists, neither cut nor stretched")
+            XCTAssertNil(store.snapshot(layer).timeline?.gaps.before(index: 0), "no invented hint")
+        }
+    }
+
+    // Radar Deutschland through the store: history.json decides the standard window.
+
+    @MainActor private func radarStore(storedChoice: Int? = nil, historyHours: Int?, withBlock: Bool = true, oldestAvailableHours: Int? = nil,
+                            rawDefaults: [String: Any] = [:]) throws -> (WeatherStore, RadarBackendTests.Script, UserDefaults) {
+        let name = "ShowerNowTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        addTeardownBlock { UserDefaults(suiteName: name)?.removePersistentDomain(forName: name) }
+        if let storedChoice { RadarPastWindow.save(storedChoice, to: defaults) }
+        for (key, value) in rawDefaults { defaults.set(value, forKey: key) }
+        let history: RadarBackendTests.Script.Reply = historyHours.map {
+            .init(status: 200, body: (try? data(historyObject(hours: $0, oldestAvailableHours: oldestAvailableHours, withBlock: withBlock))) ?? Data(), etag: "\"h\"")
+        } ?? .init(status: 404)
+        let script = RadarBackendTests.Script([.init(status: 200, body: try data(latestRadarObject()), etag: "\"a\"")], history: [history])
+        let backend = RadarBackendClient(baseURL: radarBase, transport: { try script.next($0) }, clock: { [reference] in reference.addingTimeInterval(300) })
+        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), backend: backend, defaults: defaults)
+        return (store, script, defaults)
+    }
+
+    @MainActor private func settle(_ store: WeatherStore, until condition: @MainActor () -> Bool) async {
+        for _ in 0..<500 where !condition() { try? await Task.sleep(for: .milliseconds(10)) }
+    }
+
+    @MainActor func testFreshInstallReachesTheOldestSlotOfA48Or72HourRadarHistory() async throws {
+        for hours in [48, 72] {
+            let (store, script, _) = try radarStore(historyHours: hours)
+            await store.refresh()
+            XCTAssertNil(store.pastChoice, "nothing chosen yet")
+            XCTAssertEqual(store.radarSource, .cache)
+            XCTAssertEqual(store.timeline?.dates.first, reference.addingTimeInterval(-Double(hours) * 3600), "\(hours) h: first open reaches the oldest slot")
+            XCTAssertEqual(store.pastHours, hours, "the effective window is the backend's")
+            XCTAssertEqual(store.historyStatus, .loaded(hours: hours))
+            XCTAssertEqual(script.historyRequests.count, 1, "one history request, as before")
+            XCTAssertEqual(store.frameDate, reference, "still starts at now")
+        }
+    }
+
+    @MainActor func testStoredChoiceWinsOverTheBackendWindowAlsoTwoHours() async throws {
+        for (choice, history, expectedFirst) in [(2, 72, -2.0), (48, 72, -48.0), (72, 48, -48.0), (6, 48, -6.0)] {
+            let (store, _, _) = try radarStore(storedChoice: choice, historyHours: history)
+            await store.refresh()
+            XCTAssertEqual(store.pastChoice, choice)
+            XCTAssertEqual(store.pastHours, choice)
+            XCTAssertEqual(store.timeline?.dates.first, reference.addingTimeInterval(expectedFirst * 3600),
+                           "choice \(choice) h with a \(history) h backend: the choice decides (shows what exists)")
+        }
+    }
+
+    @MainActor func testOldRadarBackendKeepsTodaysTwoHoursAndNeverGuessesMore() async throws {
+        // history.json without the block (today's production), and no history.json at all.
+        for historyHours in [48 as Int?, nil] {
+            let (store, _, _) = try radarStore(historyHours: historyHours, withBlock: false)
+            await store.refresh()
+            XCTAssertNil(store.pastChoice)
+            XCTAssertEqual(store.pastHours, RadarPastWindow.defaultHours, "without a block the standard stays 2 h")
+            let first = try XCTUnwrap(store.timeline?.dates.first)
+            XCTAssertEqual(first, reference.addingTimeInterval(historyHours == nil ? -55 * 60 : -2 * 3600), "history \(String(describing: historyHours))")
+        }
+    }
+
+    @MainActor func testMigrationOnlyAStoredValidValueCountsAsAChoice() async throws {
+        // Build 50/52 write radarPastHours only when the user picks a step: a stored value IS a choice (also 2).
+        for (raw, expected) in [(2, 2 as Int?), (24, 24), (72, 72), (5, nil), (0, nil), (-1, nil)] {
+            let (store, _, defaults) = try radarStore(historyHours: 72, rawDefaults: [RadarPastWindow.defaultsKey: raw])
+            XCTAssertEqual(store.pastChoice, expected, "stored \(raw)")
+            XCTAssertEqual(RadarPastWindow.choice(defaults), expected, "stored \(raw)")
+            if expected == nil { XCTAssertEqual(defaults.integer(forKey: RadarPastWindow.defaultsKey), raw, "an unusable value is left alone, not rewritten") }
+        }
+        let (corrupt, _, defaults) = try radarStore(historyHours: 72, rawDefaults: [RadarPastWindow.defaultsKey: "abc"])
+        XCTAssertNil(corrupt.pastChoice)
+        XCTAssertNil(RadarPastWindow.choice(defaults))
+        let (never, _, none) = try radarStore(historyHours: 72)
+        XCTAssertNil(never.pastChoice)
+        XCTAssertNil(none.object(forKey: RadarPastWindow.defaultsKey), "starting the app writes nothing")
+    }
+
+    @MainActor func testPickingTheStepThatEqualsTheStandardStillStoresAChoiceAndStandardClearsIt() async throws {
+        let (store, _, defaults) = try radarStore(historyHours: 72)
+        await store.refresh()
+        store.setPastHours(72)   // equals the effective window, but is now an explicit choice
+        XCTAssertEqual(store.pastChoice, 72)
+        XCTAssertEqual(defaults.integer(forKey: RadarPastWindow.defaultsKey), 72)
+        XCTAssertEqual(store.layers.pastHours, 72)
+        store.setPastHours(2)
+        await settle(store) { store.timeline?.dates.first == self.reference.addingTimeInterval(-2 * 3600) }
+        XCTAssertEqual(store.timeline?.dates.first, reference.addingTimeInterval(-2 * 3600))
+        store.usePastDefault()
+        XCTAssertNil(store.pastChoice)
+        XCTAssertNil(defaults.object(forKey: RadarPastWindow.defaultsKey), "back to the standard: nothing stored")
+        XCTAssertNil(store.layers.pastHours)
+        await settle(store) { store.timeline?.dates.first == self.reference.addingTimeInterval(-72 * 3600) }
+        XCTAssertEqual(store.timeline?.dates.first, reference.addingTimeInterval(-72 * 3600), "the 72 h of the backend again")
+        XCTAssertEqual(store.pastHours, 72)
+    }
+
+    @MainActor func testStoreHandsAStoredChoiceToTheLayersAndNoChoiceAsStandard() throws {
+        let (stored, _, _) = try radarStore(storedChoice: 24, historyHours: 72)
+        XCTAssertEqual(stored.layers.pastHours, 24)
+        let (fresh, _, _) = try radarStore(historyHours: 72)
+        XCTAssertNil(fresh.layers.pastHours)
     }
 }

@@ -54,6 +54,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     var radarAttribution = RadarAttribution.default
     /// Chosen maximum past of the timeline (hours); only the cache backend can deliver more than one hour.
     private(set) var pastHours = RadarPastWindow.defaultHours
+    /// The user's explicit choice; `nil` = never chosen (the maps' own window applies).
+    private(set) var pastChoice: Int? = nil
+    func usePastDefault() {}
     private(set) var historyStatus = RadarHistoryStatus.notNeeded
     /// Longest past the server currently offers (`history_hours`), if known.
     var serverHistoryHours: Int? { if case .loaded(let hours) = historyStatus { hours } else { nil } }
