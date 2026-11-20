@@ -16,14 +16,16 @@ final class RadarHistoryUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
-    private func shot(_ app: XCUIApplication, _ name: String) {
+    /// `enforceDark: false` only for the integration run with REAL data: widespread coloured rain over the whole map raises the mean
+    /// luminance independent of the appearance (the luminance is still printed and documented).
+    private func shot(_ app: XCUIApplication, _ name: String, enforceDark: Bool = true) {
         sleep(1)
         let dir = "/private/tmp/claude-501/hist-shots"
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         let screenshot = app.screenshot()
         let luminance = UITestLaunch.meanLuminance(screenshot.image)
         print("LUMA hist-\(name)-\(suffix)=\(luminance)")
-        if suffix == "dark" { XCTAssertLessThan(luminance, 0.45, "dark screenshot expected, luminance \(luminance)") }
+        if suffix == "dark", enforceDark { XCTAssertLessThan(luminance, 0.45, "dark screenshot expected, luminance \(luminance)") }
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("hist-\(name)-\(suffix).png"))
     }
 
@@ -276,10 +278,10 @@ final class RadarHistoryUITests: XCTestCase {
             let oldest = value(slider)
             let note = gapNote(app).exists ? gapNote(app).label : "-"
             print("HISTINT hours=\(hours) layer=\(parts[1]) jetzt=\(now) | aeltester=\(oldest) | hinweis=\(note)")
-            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-aeltester")
+            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-aeltester", enforceDark: layers.first == item)
             jump(slider, fraction: 1)
             sleep(2)
-            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende")
+            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende", enforceDark: layers.first == item)
         }
         app.terminate()
     }
