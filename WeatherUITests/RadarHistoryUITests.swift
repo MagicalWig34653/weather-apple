@@ -32,11 +32,11 @@ final class RadarHistoryUITests: XCTestCase {
         let screenshot = app.screenshot()
         let luminance = UITestLaunch.meanLuminance(screenshot.image)
         print("LUMA hist-\(name)-\(suffix)=\(luminance)")
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("hist-\(name)-\(suffix).png"))
         if suffix == "dark", enforceDark {
             let limit = Self.isBrightData(name) ? Self.brightDataLimit : 0.45
             XCTAssertLessThan(luminance, limit, "dark screenshot expected, luminance \(luminance) (limit \(limit))")
         }
-        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("hist-\(name)-\(suffix).png"))
     }
 
     /// `hours`: what the stubbed `history.json` delivers; `setting`: the chosen "Maximale Vergangenheit" (default: the same).
@@ -420,6 +420,10 @@ final class RadarHistoryUITests: XCTestCase {
                 guard let entry = openLayerEntry(app, group: group, entry: parts[1]) else { print("HISTINT layer=\(parts[1]) nicht angeboten"); continue }
                 entry.tap()
             }
+            // Dark check per layer. REAL rain data colours a variable share of the map (measured 0.49 for Deutschland at a rainy
+            // slot), so for the rain layers the luminance is recorded and saved but not enforced here; their 0.45 check runs on the fixed
+            // data of `testBrightness*`. The sparse overlays (lightning, pressure lines) leave the surface visible: 0.45 is enforced.
+            let enforce = parts[1].hasPrefix("Blitze") || group == "Luftdruck"
             let slider = slider(app)
             sleep(3)
             let now = value(slider)
@@ -428,10 +432,10 @@ final class RadarHistoryUITests: XCTestCase {
             let oldest = value(slider)
             let note = gapNote(app).exists ? gapNote(app).label : "-"
             print("HISTINT hours=\(hours) layer=\(parts[1]) jetzt=\(now) | aeltester=\(oldest) | hinweis=\(note)")
-            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-aeltester")
+            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-aeltester", enforceDark: enforce)
             jump(slider, fraction: 1)
             sleep(2)
-            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende")
+            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende", enforceDark: enforce)
         }
         app.terminate()
     }
