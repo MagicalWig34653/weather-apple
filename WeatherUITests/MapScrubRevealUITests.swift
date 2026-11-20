@@ -164,17 +164,20 @@ final class MapScrubRevealUITests: XCTestCase {
 
     func testDragHidesChromeInEuropeRadar() { dragCase(backendURL == nil ? "europa" : "backend-europa", prepare: { [self] app in choose(app, "Europa (OPERA)") }) }
 
-    /// Cancel: the app goes to the background in the middle of the drag (the system cancels the touch, no lift event).
+    /// Cancel: the app goes to the background in the middle of the drag (no lift event reaches the slider). XCUITest cannot press Home
+    /// while its own gesture runs ("only one gesture can be performed at a time"), so the host script (`B53_SYNC`) brings Settings to
+    /// the front on request (`abbruch.req` -> `abbruch.ack`) while the finger is still down. Skipped without the host script.
     func testBackgroundMidDragRestoresEverything() throws {
         try XCTSkipIf(backendURL != nil, "Backend-Lauf: nur Welt und Europa")
+        guard let sync = ProcessInfo.processInfo.environment["B53_SYNC"] else { throw XCTSkip("Nur mit Host-Skript (B53_SYNC)") }
         executionTimeAllowance = 180
         let app = launch()
         assertChromeVisible(app, "vorher")
         shot(app, "abbruch-1-vorher")
-        dragAndHold(app, hold: 8, probes: [
+        dragAndHold(app, hold: 9, probes: [
             (3.0, { [self] in assertChromeGone(app, "während des Ziehens"); shot(app, "abbruch-2-waehrend") }),
-            (4.5, { XCUIDevice.shared.press(.home) })])
-        sleep(1)
+            (4.5, { FileManager.default.createFile(atPath: "\(sync)/abbruch.req", contents: Data()) })])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: "\(sync)/abbruch.ack"), "Host hat die App in den Hintergrund geschickt")
         app.activate()
         XCTAssertTrue(app.buttons["radar-layer-menu"].waitForExistence(timeout: 10), "Kartenwahl nach der Rückkehr")
         sleep(1)
