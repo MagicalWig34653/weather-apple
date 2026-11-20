@@ -143,7 +143,7 @@ final class RadarHistoryUITests: XCTestCase {
 
     func testObservationLayerSeventyTwoHoursHoleAndOldestSlot() throws {
         let app = launchLayers(hours: 72)
-        let entry = try XCTUnwrap(openLayerEntry(app, group: "Regen", entry: "Europa"), "Europa wählbar")
+        let entry = try XCTUnwrap(openLayerEntry(app, group: "Regen", entry: "Europa (OPERA)"), "Europa wählbar")
         entry.tap()
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, value(slider))
