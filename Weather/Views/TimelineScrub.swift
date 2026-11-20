@@ -170,6 +170,7 @@ struct TimelineScrubSlider: View {
     @ScaledMetric(relativeTo: .body) private var distanceScale: CGFloat = 1
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     /// Pill thumb: wide enough to read as a pill, the touch target is the whole 44 pt high slider area.
     static let thumbWidth: CGFloat = 40
@@ -182,7 +183,7 @@ struct TimelineScrubSlider: View {
             let trackWidth = max(geometry.size.width - thumb, 1)
             let fraction = count > 1 ? CGFloat(min(max(displayedIndex, 0), count - 1)) / CGFloat(count - 1) : 0
             ZStack(alignment: .leading) {
-                Capsule().fill(.secondary.opacity(0.3)).frame(height: 4).padding(.horizontal, thumb / 2)
+                Capsule().fill(colorScheme == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.6)).frame(height: 4).padding(.horizontal, thumb / 2)   // .secondary 0.3 measured 1.1 : 1 to the glass
                 Capsule().fill(Color.accentColor).frame(width: trackWidth * fraction, height: 4).padding(.leading, thumb / 2)
                 Capsule().fill(.clear)
                     .frame(width: thumb, height: thumbHeight)

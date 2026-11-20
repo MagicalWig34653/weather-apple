@@ -130,7 +130,7 @@ struct RadarScreen: View {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .readableGlass(RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
                         .accessibilityAddTraits(.updatesFrequently)
                 }
                 ForEach(rainLayerNotices) { notice in
@@ -138,7 +138,7 @@ struct RadarScreen: View {
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, notice.kind == .estimate ? 8 : 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .readableGlass(RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier(notice.identifier)
                 }
@@ -149,7 +149,7 @@ struct RadarScreen: View {
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .readableGlass(RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("radar-gap-note")
                 }
@@ -408,7 +408,7 @@ struct RadarScreen: View {
             }
             .padding(.horizontal, 10)
             .frame(minHeight: 44)
-            .glassControl(Capsule())
+            .glassControl(Capsule(), floor: darkGlassFloor)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"))
@@ -456,13 +456,13 @@ struct RadarScreen: View {
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .fixedSize(horizontal: false, vertical: true)
                         if !dynamicTypeSize.isAccessibilitySize {
-                            Text(NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Radar")).font(.caption).foregroundStyle(.secondary)
+                            Text(NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Radar")).font(.caption).foregroundStyle(.primary.opacity(0.85))   // .secondary measured 2.3 to 3.6 : 1
                         }
                     }
                     Image(systemName: "chevron.down").font(.caption.bold())
                 }
                 .padding(.horizontal, 16).padding(.vertical, 11)
-                .glassControl(Capsule())
+                .glassControl(Capsule(), floor: darkGlassFloor)
             }
             .glassSheetSource(.places, in: glassNamespace)
             .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
@@ -554,7 +554,7 @@ struct RadarScreen: View {
                 .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
                 .padding(.horizontal, 8)
                 // Rendering only (no layout space): a faint backdrop behind the text keeps it readable on any map colour.
-                .background { Capsule().fill(Color(.systemBackground).opacity(colorScheme == .dark && store.activeLayer.coversMapBrightly ? 0.75 : 0.35)).blur(radius: 2) }
+                .background { Capsule().fill(Color(.systemBackground).opacity(colorScheme == .dark ? (store.activeLayer.coversMapBrightly ? 0.75 : 0.6) : 0.35)).blur(radius: 2) }
                 .allowsHitTesting(false)
                 .accessibilityLabel(line)
                 .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
@@ -576,7 +576,7 @@ struct RadarScreen: View {
         timeSlider
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
-            .readableGlass(RoundedRectangle(cornerRadius: 26))
+            .readableGlass(RoundedRectangle(cornerRadius: 26), floor: darkGlassFloor)
             .accessibilityIdentifier("radar-timeline")
             // The credit hangs below the card without taking layout space: the slider keeps its position. It sits in the
             // free strip between the card and the home indicator (card bottom + 20 pt = text bottom, about 3 pt below the card).
@@ -689,8 +689,8 @@ struct RadarScreen: View {
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
-                        ScreenGlow.pastColor.frame(width: geometry.size.width * boundary)
-                        ScreenGlow.futureColor
+                        ScreenGlow.lineColor(forecast: false, dark: colorScheme == .dark).frame(width: geometry.size.width * boundary)
+                        ScreenGlow.lineColor(forecast: true, dark: colorScheme == .dark)
                     }
                     .clipShape(Capsule())
                     .frame(height: 2)
@@ -759,7 +759,7 @@ struct RadarScreen: View {
                     }
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                    .glassControl(RoundedRectangle(cornerRadius: 24))
+                    .glassControl(RoundedRectangle(cornerRadius: 24), floor: darkGlassFloor)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("forecast-details")
@@ -1029,8 +1029,8 @@ extension View {
     }
 
     /// Interactive Liquid Glass for a touchable control (press and bounce feedback); the whole shape is the touch target.
-    func glassControl<S: Shape>(_ shape: S) -> some View {
-        contentShape(shape).readableGlass(shape, interactive: true)
+    func glassControl<S: Shape>(_ shape: S, floor: Double = 0) -> some View {
+        contentShape(shape).readableGlass(shape, interactive: true, floor: floor)
     }
 }
 

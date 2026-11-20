@@ -12,6 +12,17 @@ enum ScreenGlow {
     static let pastColor = Color(red: 0.10, green: 0.45, blue: 1.00)
     static let futureColor = Color.orange
 
+    /// The 2 pt past/future line under the slider: the same blue and orange, in a lighter shade on dark glass and a darker one on light glass
+    /// so that it stays at 3 : 1 or more against the glass (measured directly; the thin line cannot carry the glow's colours on every map).
+    static func lineColor(forecast: Bool, dark: Bool) -> Color {
+        switch (forecast, dark) {
+        case (false, true): Color(red: 0.50, green: 0.72, blue: 1.00)
+        case (false, false): Color(red: 0.00, green: 0.25, blue: 0.80)
+        case (true, true): Color(red: 1.00, green: 0.62, blue: 0.18)
+        case (true, false): Color(red: 0.70, green: 0.25, blue: 0.00)
+        }
+    }
+
     static let breathPeriod: TimeInterval = 3.6
     static let orbitPeriod: TimeInterval = 14
 
