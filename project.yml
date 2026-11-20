@@ -154,6 +154,8 @@ targets:
         buildPhase: resources
         type: folder
       - path: WeatherWidgets/Logic
+      - path: WeatherWidgets/LiveActivity
+        excludes: [RainLiveActivity.swift]
     dependencies:
       - target: Weather
     settings:

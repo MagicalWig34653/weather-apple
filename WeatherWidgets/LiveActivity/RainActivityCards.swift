@@ -1,0 +1,245 @@
+#if WIDGET_LOGIC_TESTS
+@testable import Weather
+#endif
+import SwiftUI
+
+/// Design A "tinted glass": a tone gradient over the system background, one large time sentence, symbol in a tinted tile.
+/// No ActivityKit here, so the cards can be rendered in unit tests (`LiveActivityImageTests`).
+
+// MARK: Tone colors
+
+extension RainActivityPresentation.Tone {
+    /// Text/symbol tint. Light uses darker values so that the tint stays readable on the light glass (contrast, not decoration).
+    func tint(_ scheme: ColorScheme) -> Color {
+        switch (self, scheme) {
+        case (.rain, .dark): return Color(red: 0.35, green: 0.78, blue: 0.98)
+        case (.rain, _): return Color(red: 0.04, green: 0.48, blue: 0.66)
+        case (.dry, .dark): return Color(red: 0.35, green: 0.85, blue: 0.5)
+        case (.dry, _): return Color(red: 0.1, green: 0.5, blue: 0.2)
+        case (.stale, .dark): return Color(red: 1.0, green: 0.7, blue: 0.2)
+        case (.stale, _): return Color(red: 0.74, green: 0.38, blue: 0.0)
+        }
+    }
+}
+
+/// Soft tone wash over the system background; stronger when the user turned transparency off.
+struct RainGlassTint: View {
+    let tint: Color
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        LinearGradient(colors: [tint.opacity(reduceTransparency ? 0.30 : 0.24), tint.opacity(reduceTransparency ? 0.16 : 0.06)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+}
+
+/// Symbol in a rounded tinted tile.
+struct RainSymbolTile: View {
+    let symbol: String
+    let tint: Color
+    var side: CGFloat = 44
+    @ScaledMetric(relativeTo: .title) private var scale: CGFloat = 1
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: side * 0.46 * scale, weight: .semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .frame(width: side * scale, height: side * scale)
+            .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: side * 0.3 * scale, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
+
+/// "Zuhause" with a pin (for areas: "Umland · Umkreis 10 km").
+struct RainTitleRow: View {
+    let title: String
+    let isRegion: Bool
+
+    var body: some View {
+        Label {
+            Text(title).lineLimit(1)
+        } icon: {
+            Image(systemName: isRegion ? "mappin.and.ellipse" : "mappin")
+        }
+        .labelStyle(.titleAndIcon)
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.secondary)
+    }
+}
+
+/// The large element: "Regen in 8:00" (label plus countdown in the tint) or one statement ("Es regnet").
+struct RainHeroView: View {
+    enum Size { case lock, island, watch }
+    let p: RainActivityPresentation
+    let size: Size
+    @Environment(\.colorScheme) private var scheme
+
+    private var tint: Color { p.tone.tint(scheme) }
+
+    var body: some View {
+        switch p.hero {
+        case .countdown(let label, let target):
+            let countdown = Text(timerInterval: RainActivityTiming.countdownInterval(now: .now, target: target),
+                                 countsDown: true, showsHours: false)
+                .monospacedDigit()
+            if size == .watch {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(label).font(.footnote.weight(.semibold)).foregroundStyle(tint)
+                    countdown.font(.system(size: 36, weight: .bold)).minimumScaleFactor(0.5).lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(label).font(font).lineLimit(1).minimumScaleFactor(0.6)
+                    countdown.font(font).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        case .statement(let text):
+            VStack(alignment: .leading, spacing: 2) {
+                Text(text).font(size == .watch ? .system(.title3, weight: .bold) : font)
+                    .foregroundStyle(p.tone == .stale ? tint : .primary)
+                    .lineLimit(size == .watch ? 2 : 1).minimumScaleFactor(0.6)
+                if let detail = p.heroDetail, !(size == .watch && p.tone == .stale) {
+                    Text(detail).font(size == .watch ? .caption : .subheadline).foregroundStyle(.secondary).lineLimit(2)
+                }
+            }
+        }
+    }
+
+    private var font: Font {
+        switch size {
+        case .lock: return .system(.largeTitle, weight: .bold)
+        case .island: return .system(.title, weight: .bold)
+        case .watch: return .system(.title3, weight: .bold)
+        }
+    }
+}
+
+/// Thin share bar (custom, so it renders in `ImageRenderer` and takes the tone).
+struct RainShareBar: View {
+    let fraction: Double
+    let tint: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(tint.opacity(0.22))
+                Capsule().fill(tint).frame(width: geo.size.width * min(1, max(0, fraction)))
+            }
+        }
+        .frame(height: 6)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Area share, bar and strongest level (areas only).
+struct RainRegionDetails: View {
+    let p: RainActivityPresentation
+    let tint: Color
+
+    var body: some View {
+        if let region = p.region, region.shareText != nil || region.intensityText != nil {
+            VStack(alignment: .leading, spacing: 3) {
+                if let share = region.shareText { Text(share).font(.subheadline.weight(.semibold)) }
+                if let fraction = region.barFraction {
+                    RainShareBar(fraction: fraction, tint: tint)
+                }
+                if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
+            }
+        }
+    }
+}
+
+// MARK: Lock screen (iPhone, iPad) and Dynamic Island expanded
+
+struct RainLockScreenView: View {
+    let p: RainActivityPresentation
+    let title: String?
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        let tint = p.tone.tint(scheme)
+        VStack(alignment: .leading, spacing: 8) {
+            // Accessibility sizes: name and "Stand" stack instead of cutting the name.
+            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout())
+            layout {
+                if let title { RainTitleRow(title: title, isRegion: p.region != nil) }
+                if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).foregroundStyle(.secondary)
+            }
+            HStack(alignment: .center, spacing: 12) {
+                RainHeroView(p: p, size: .lock)
+                Spacer(minLength: 0)
+                RainSymbolTile(symbol: p.symbol, tint: tint)
+            }
+            RainRegionDetails(p: p, tint: tint)
+        }
+        .padding(16)
+        .background { RainGlassTint(tint: tint) }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Body of the expanded Dynamic Island (below the leading/trailing title row).
+struct RainIslandBottom: View {
+    let p: RainActivityPresentation
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            RainHeroView(p: p, size: .island)
+            RainRegionDetails(p: p, tint: p.tone.tint(scheme))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: Watch Smart Stack (ActivityFamily.small)
+
+/// Compact card for the Smart Stack. Short texts only: name, one large element, "Stand HH:MM"; areas add the short share.
+struct RainWatchCardView: View {
+    let p: RainActivityPresentation
+    let title: String?
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let tint = p.tone.tint(scheme)
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(alignment: .top) {
+                if let title { RainTitleRow(title: title, isRegion: p.region != nil).font(.footnote.weight(.medium)) }
+                Spacer(minLength: 4)
+                RainSymbolTile(symbol: p.symbol, tint: tint, side: 24)
+            }
+            RainHeroView(p: p, size: .watch)
+            ViewThatFits(in: .horizontal) {
+                footer(tint: tint, stacked: false).fixedSize(horizontal: true, vertical: false)
+                footer(tint: tint, stacked: true)
+            }
+            .font(.caption)
+            .foregroundStyle(p.tone == .stale ? tint : Color.secondary)
+        }
+        .padding(8)
+        .background { RainGlassTint(tint: tint) }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// "Stand 13:30 · bis zu 34 % nass" on one line, or the share on its own line when that does not fit.
+    @ViewBuilder private func footer(tint: Color, stacked: Bool) -> some View {
+        let asOf = HStack(spacing: 4) {
+            if p.tone == .stale { Image(systemName: "clock").accessibilityHidden(true) }
+            Text(WidgetAsOfText.string(for: p.referenceTime))
+        }
+        if let share = p.watchShareText {
+            if stacked {
+                VStack(alignment: .leading, spacing: 0) { asOf; Text(share) }
+            } else {
+                HStack(spacing: 4) { asOf; Text("·").accessibilityHidden(true); Text(share) }
+            }
+        } else {
+            asOf
+        }
+    }
+}

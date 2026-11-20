@@ -84,6 +84,22 @@ struct RainActivityRegionPresentation: Equatable, Sendable {
         return String(format: text("REGION_ACTIVITY_INTENSITY", value: "Stärkste Stufe %1$d (%2$@)"), maxClass, word)
     }
 
+    /// Watch card: "34 % nass" / "bis zu 34 % nass".
+    var shortShareText: String? {
+        guard let share else { return nil }
+        switch share.kind {
+        case .now: return String(format: text("REGION_ACTIVITY_SHARE_NOW_SHORT", value: "%d %% nass"), share.percent)
+        case .peak: return String(format: text("REGION_ACTIVITY_SHARE_PEAK_SHORT", value: "bis zu %d %% nass"), share.percent)
+        }
+    }
+
+    /// Watch card title: name only; radius only when there is no name.
+    func watchTitle(name: String?) -> String? {
+        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, !trimmed.isEmpty { return trimmed }
+        return radiusText
+    }
+
     /// Fraction for the share bar (0...1); only for a currently wet share.
     var barFraction: Double? {
         guard let share, share.kind == .now else { return nil }
