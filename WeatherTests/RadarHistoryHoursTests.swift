@@ -25,9 +25,9 @@ final class RadarHistoryHoursTests: XCTestCase {
 
     private static func iso(_ date: Date) -> String { DWDRequest.timestamp(date) }
 
-    private static let imageBlock: [String: Any] = [
+    private static var imageBlock: [String: Any] { [
         "format": "image/webp", "width": 1024, "height": 1311, "projection": "EPSG:3857",
-        "bbox": [612257.0, 5942074.0, 1736584.0, 7381298.0], "bbox_wgs84": [5.5, 47.0, 15.6, 55.1]]
+        "bbox": [612257.0, 5942074.0, 1736584.0, 7381298.0], "bbox_wgs84": [5.5, 47.0, 15.6, 55.1]] }
 
     /// Reported `history` block for the grid `hours` back from the reference (observation: `hours * 60 / step + 1` times).
     private func historyBlock(hours: Int, step: Int, present: Set<Int>, expected: Int, oldestIndex: Int?, gapsFrom first: Int = 0) -> [String: Any] {
