@@ -20,9 +20,12 @@ final class MapScrubRevealUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
+    /// Stub run (default) or, with `B53_BACKEND_URL`, a run against a LOCAL backend (no layer/radar stub; only the forecast
+    /// comes from the real DWD like in the Build 52 backend run).
     private func launch(extra: [String] = []) -> XCUIApplication {
-        let app = UITestLaunch.app(language: .german, extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light,
-            extra: ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestLayers", "all"] + extra))
+        let arguments = backendURL.map { ["-radar-backend-url", $0] }
+            ?? ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestLayers", "all"]
+        let app = UITestLaunch.app(language: .german, extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: arguments + extra))
         app.launch()
         XCTAssertTrue(app.buttons["radar-layer-menu"].waitForExistence(timeout: 25))
         XCTAssertTrue(app.sliders["Radarzeitpunkt"].waitForExistence(timeout: 25), "Zeitachse")
@@ -116,7 +119,7 @@ final class MapScrubRevealUITests: XCTestCase {
     /// Drag, hold, lift: before / during (controls gone, slider and time stay) / after (everything back).
     private func dragCase(_ name: String, prepare: (XCUIApplication) -> Void = { _ in }, legendOpen: Bool = false) {
         executionTimeAllowance = 180
-        let app = launch(extra: backendURL.map { ["-radar-backend-url", $0] } ?? [])
+        let app = launch()
         prepare(app)
         if legendOpen {
             app.buttons["radar-legend-toggle"].tap()
@@ -142,21 +145,28 @@ final class MapScrubRevealUITests: XCTestCase {
         shot(app, "\(name)-3-nachher")
     }
 
-    func testDragHidesChromeInGermanyRadarAndLiftRestoresIt() { dragCase("deutschland") }
+    func testDragHidesChromeInGermanyRadarAndLiftRestoresIt() throws {
+        try XCTSkipIf(backendURL != nil, "Backend-Lauf: nur Welt und Europa")
+        dragCase("deutschland")
+    }
 
     func testDragHidesChromeInWorldRadarWithNoteAndLiftRestoresIt() {
-        dragCase("welt", prepare: { [self] app in
+        dragCase(backendURL == nil ? "welt" : "backend-welt", prepare: { [self] app in
             choose(app, "Welt (NOAA)")
             XCTAssertTrue(app.descendants(matching: .any)["radar-world-note-estimate"].waitForExistence(timeout: 8), "Schätzhinweis vorher")
         })
     }
 
-    func testDragHidesOpenLegendAndLiftRestoresIt() { dragCase("legende", legendOpen: true) }
+    func testDragHidesOpenLegendAndLiftRestoresIt() throws {
+        try XCTSkipIf(backendURL != nil, "Backend-Lauf: nur Welt und Europa")
+        dragCase("legende", legendOpen: true)
+    }
 
-    func testDragHidesChromeInEuropeRadar() { dragCase("europa", prepare: { [self] app in choose(app, "Europa (OPERA)") }) }
+    func testDragHidesChromeInEuropeRadar() { dragCase(backendURL == nil ? "europa" : "backend-europa", prepare: { [self] app in choose(app, "Europa (OPERA)") }) }
 
     /// Cancel: the app goes to the background in the middle of the drag (the system cancels the touch, no lift event).
-    func testBackgroundMidDragRestoresEverything() {
+    func testBackgroundMidDragRestoresEverything() throws {
+        try XCTSkipIf(backendURL != nil, "Backend-Lauf: nur Welt und Europa")
         executionTimeAllowance = 180
         let app = launch()
         assertChromeVisible(app, "vorher")
@@ -173,7 +183,8 @@ final class MapScrubRevealUITests: XCTestCase {
     }
 
     /// A tap, and a still touch without movement, hide nothing (no flicker) and leave nothing hidden.
-    func testTapAndStillTouchHideNothing() {
+    func testTapAndStillTouchHideNothing() throws {
+        try XCTSkipIf(backendURL != nil, "Backend-Lauf: nur Welt und Europa")
         executionTimeAllowance = 180
         let app = launch()
         let slider = slider(app)

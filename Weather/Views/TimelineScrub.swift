@@ -164,8 +164,13 @@ struct TimelineScrubSlider: View {
     let displayedIndex: Int
     let onScrub: (Int) -> Void
     let onEnd: () -> Void
+    /// Total finger travel since touch-down (points), for every drag event; drives hiding the controls above the map.
+    var onTravel: (CGFloat) -> Void = { _ in }
     @Binding var stage: ScrubStage?
     @State private var session: ScrubSession?
+    /// True exactly while a touch is on the slider. A `GestureState` resets itself when the system cancels the touch
+    /// (interruption, app to the background), where `onEnded` is never called.
+    @GestureState private var touching = false
     @ScaledMetric(relativeTo: .body) private var distanceScale: CGFloat = 1
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -194,6 +199,7 @@ struct TimelineScrubSlider: View {
             .frame(width: geometry.size.width, height: height)
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                .updating($touching) { _, state, _ in state = true }
                 .onChanged { value in
                     if session == nil {
                         session = ScrubSession(touchX: value.startLocation.x, currentIndex: displayedIndex,
@@ -203,15 +209,21 @@ struct TimelineScrubSlider: View {
                     let index = session?.update(x: value.location.x, verticalDistance: distance,
                                                 trackWidth: trackWidth, scale: distanceScale) ?? displayedIndex
                     stage = session?.stage
+                    onTravel(hypot(value.translation.width, value.translation.height))
                     onScrub(index)
                 }
-                .onEnded { _ in
-                    session = nil
-                    stage = nil
-                    onEnd()
-                })
+                .onEnded { _ in finish() })
+            .onChange(of: touching) { _, isTouching in if !isTouching { finish() } }
         }
         .frame(minWidth: 50, minHeight: height, maxHeight: height)
+        .onDisappear { finish() }
+    }
+
+    /// Every end of a touch (lift, system cancel, slider leaves the screen) ends here; harmless when nothing is running.
+    private func finish() {
+        session = nil
+        stage = nil
+        onEnd()
     }
 }
 

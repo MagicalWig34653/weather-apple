@@ -27,6 +27,8 @@ struct RadarScreen: View {
     @State private var scrubIndex: Int?
     /// Fine-scrubbing stage while the finger is down (`nil` when not dragging).
     @State private var scrubStage: ScrubStage?
+    /// Build 53: controls above the map are hidden while the slider is dragged (map, slider, time value and credit stay).
+    @State private var chrome = MapChromeVisibility()
     @State private var mapBottomInset: CGFloat = 70
     @State private var screenWidth: CGFloat?
     /// Legend space: top of the legend row and top of the time pill block, in the screen's own coordinate space.
@@ -206,6 +208,13 @@ struct RadarScreen: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
+            // While the slider is dragged the whole top block (header, forecast, notices, legend, map buttons) fades out. Only
+            // opacity changes, so no layout moves and the finger on the slider is never disturbed; hidden controls can neither be
+            // tapped nor reached by VoiceOver. Reduce Motion: switches instantly.
+            .opacity(chrome.isChromeHidden ? 0 : 1)
+            .allowsHitTesting(!chrome.isChromeHidden)
+            .accessibilityHidden(chrome.isChromeHidden)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: chrome.isChromeHidden)
         }
         .coordinateSpace(name: "radarScreen")
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
@@ -291,13 +300,15 @@ struct RadarScreen: View {
             store.isPlaying = false
             radarLoadState = nil
             scrubIndex = nil
+            chrome.dragEnded()
         }
         .onChange(of: sheet) { _, value in
-            if value != nil { store.isPlaying = false }
+            if value != nil { store.isPlaying = false; chrome.dragEnded() }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { store.isPlaying = false }
+            if phase != .active { store.isPlaying = false; scrubIndex = nil; chrome.dragEnded() }
         }
+        .onDisappear { chrome.dragEnded() }
     }
 
     private struct LayerPollKey: Equatable { let layer: RadarLayer; let active: Bool }
@@ -647,7 +658,8 @@ struct RadarScreen: View {
                 store.isPlaying = false
                 if scrubIndex != index { scrubIndex = index }
                 if store.displayFrameIndex != index { store.displayFrameIndex = index }
-            }, onEnd: { scrubIndex = nil }, stage: $scrubStage)
+            }, onEnd: { scrubIndex = nil; chrome.dragEnded() },
+               onTravel: { chrome.dragMoved(distance: $0) }, stage: $scrubStage)
             .onChange(of: scrubGlowState) { _, state in
                 if let state { ScreenGlowPresenter.updateScrub(isForecast: state, reduceMotion: reduceMotion) }
                 else { ScreenGlowPresenter.endScrub() }
