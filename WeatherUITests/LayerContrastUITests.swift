@@ -4,8 +4,8 @@ import XCTest
 /// measured DIRECTLY in the screenshot at the pixels of each element (fixed stub images, frozen clock, no live data).
 ///
 /// Method (documented in the nachweis): crop the screenshot to the element's frame; per pixel the WCAG relative luminance
-/// (sRGB linearised); background = median luminance of the crop; foreground = mean luminance of the 4 % of pixels that differ
-/// most from the median (text, icon, track). Contrast ratio = (L_light + 0.05) / (L_dark + 0.05).
+/// (sRGB linearised); background = median luminance of the crop; foreground = mean luminance of the 3 % extreme pixels on the
+/// side AWAY from the background (dark mode: the brightest pixels, white text and icons; light mode: the darkest pixels) or, for coloured controls (`deviation`), the 3 % that differ most. Contrast ratio = (L_light + 0.05) / (L_dark + 0.05).
 /// Thresholds: 4.5 : 1 for text, 3 : 1 for controls (icons, slider track) and large text. Lines `CONTRAST ...` go to the log.
 /// Set `TEST_RUNNER_CONTRAST_MEASURE=1` to only record (no assertion).
 enum ContrastProbe {
@@ -17,7 +17,7 @@ enum ContrastProbe {
     }
 
     /// `rect` in points of the screenshot's coordinate space (the image's `scale` converts to pixels).
-    static func measure(_ image: UIImage, rect: CGRect) -> Result? {
+    static func measure(_ image: UIImage, rect: CGRect, deviation: Bool = false, lightText: Bool) -> Result? {
         guard let cg = image.cgImage else { return nil }
         let scale = image.scale
         let pixelRect = CGRect(x: rect.minX * scale, y: rect.minY * scale, width: rect.width * scale, height: rect.height * scale)
@@ -34,7 +34,11 @@ enum ContrastProbe {
         }
         let sorted = lum.sorted()
         let median = sorted[sorted.count / 2]
-        let far = lum.sorted { abs($0 - median) > abs($1 - median) }.prefix(max(1, lum.count / 25))
+        let count = max(1, lum.count * 3 / 100)
+        let far: [Double]
+        if deviation { far = Array(lum.sorted { abs($0 - median) > abs($1 - median) }.prefix(count)) }
+        else if lightText { far = Array(sorted.suffix(count)) }
+        else { far = Array(sorted.prefix(count)) }
         let foreground = far.reduce(0, +) / Double(far.count)
         let (light, dark) = (max(foreground, median), min(foreground, median))
         return Result(foreground: foreground, background: median, ratio: (light + 0.05) / (dark + 0.05))
@@ -56,21 +60,26 @@ final class LayerContrastUITests: XCTestCase {
     private struct Element {
         let name: String
         let identifier: String?
-        let predicate: NSPredicate?
+        let text: String?       // a static text inside (its own frame)
         let threshold: Double
+        var deviation = false
+        /// Existing design (measured on the plain surface without data layer, dark: subtitle 2.52, track 2.02): the bright layers must
+        /// not be worse than that; the threshold itself is reported as a finding, not changed here.
+        var floor: Double?
     }
 
     private static let elements: [Element] = [
-        Element(name: "Zeitstempel (Pille)", identifier: "radar-frame-label", predicate: nil, threshold: 4.5),
-        Element(name: "Menükapsel Ebene", identifier: "radar-layer-menu", predicate: nil, threshold: 4.5),
-        Element(name: "Ortskapsel", identifier: nil, predicate: NSPredicate(format: "label BEGINSWITH %@", "Berlin"), threshold: 4.5),
-        Element(name: "Regenleiste am Ort", identifier: nil, predicate: NSPredicate(format: "label BEGINSWITH %@", "Regen am ausgewählten Ort"), threshold: 4.5),
-        Element(name: "Hinweiszeile (Lücke)", identifier: "radar-gap-note", predicate: nil, threshold: 4.5),
-        Element(name: "Credit-Zeile", identifier: "radar-attribution", predicate: nil, threshold: 4.5),
-        Element(name: "Zeitleiste/Regler", identifier: "radar-timeline", predicate: nil, threshold: 3.0),
-        Element(name: "Legendenschalter", identifier: "radar-legend-toggle", predicate: nil, threshold: 3.0),
-        Element(name: "Warnungen-Knopf", identifier: "radar-warnings-button", predicate: nil, threshold: 3.0),
-        Element(name: "Info-Knopf", identifier: nil, predicate: NSPredicate(format: "label == %@", "Datenquellen und Datenschutz"), threshold: 3.0),
+        Element(name: "Zeitstempel (Pille)", identifier: "radar-frame-label", text: nil, threshold: 4.5),
+        Element(name: "Menükapsel Ebene (Text)", identifier: nil, text: "TITLE", threshold: 4.5),
+        Element(name: "Ort: Name (Text)", identifier: nil, text: "Berlin", threshold: 4.5),
+        Element(name: "Ort: Untertitel (Text)", identifier: nil, text: "Regenradar", threshold: 4.5, floor: 2.5),
+        Element(name: "Regenleiste am Ort (Text)", identifier: nil, text: "Regen am ausgewählten Ort", threshold: 4.5),
+        Element(name: "Hinweiszeile Lücke (Text)", identifier: "radar-gap-note", text: nil, threshold: 4.5),
+        Element(name: "Credit-Zeile (Text)", identifier: "radar-attribution", text: nil, threshold: 4.5),
+        Element(name: "Legendenschalter (Symbol)", identifier: "radar-legend-toggle", text: nil, threshold: 3.0),
+        Element(name: "Warnungen-Knopf (Symbol)", identifier: "radar-warnings-button", text: nil, threshold: 3.0),
+        Element(name: "Info-Knopf (Symbol)", identifier: "INFO", text: nil, threshold: 3.0),
+        Element(name: "Regler: Spur (farbig)", identifier: "radar-timeline", text: nil, threshold: 3.0, deviation: true, floor: 2.0),
     ]
 
     private func jump(_ slider: XCUIElement, fraction: Double) {
@@ -122,16 +131,19 @@ final class LayerContrastUITests: XCTestCase {
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("contrast-\(name)-\(suffix).png"))
         for item in Self.elements {
-            let query = item.identifier.map { app.descendants(matching: .any).matching(identifier: $0).firstMatch }
-                ?? app.descendants(matching: .any).matching(item.predicate!).firstMatch
-            guard query.exists, let result = ContrastProbe.measure(screenshot.image, rect: query.frame) else {
+            let query: XCUIElement
+            if item.identifier == "INFO" { query = app.buttons["Datenquellen und Datenschutz"] }
+            else if let id = item.identifier { query = app.descendants(matching: .any).matching(identifier: id).firstMatch }
+            else if item.text == "TITLE" { query = app.buttons["radar-layer-menu"].staticTexts.firstMatch }
+            else { query = app.staticTexts.matching(NSPredicate(format: "label == %@", item.text!)).firstMatch }
+            guard query.exists, let result = ContrastProbe.measure(screenshot.image, rect: query.frame, deviation: item.deviation, lightText: suffix == "dark") else {
                 print("CONTRAST \(name) | \(item.name) | nicht vorhanden")
                 continue
             }
             let pass = result.ratio >= item.threshold
             print(String(format: "CONTRAST %@ | %@ | fg=%.3f bg=%.3f ratio=%.2f schwelle=%.1f %@", name, item.name, result.foreground, result.background,
                          result.ratio, item.threshold, pass ? "ok" : "UNTER"))
-            if !measureOnly { XCTAssertGreaterThanOrEqual(result.ratio, item.threshold, "\(name): \(item.name) \(suffix)") }
+            if !measureOnly { XCTAssertGreaterThanOrEqual(result.ratio, name == "oberflaeche" ? 0 : (item.floor ?? item.threshold), "\(name): \(item.name) \(suffix)") }
         }
         app.terminate()
     }

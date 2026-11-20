@@ -186,7 +186,7 @@ struct TimelineScrubSlider: View {
                 Capsule().fill(Color.accentColor).frame(width: trackWidth * fraction, height: 4).padding(.leading, thumb / 2)
                 Capsule().fill(.clear)
                     .frame(width: thumb, height: thumbHeight)
-                    .glassEffect(.regular.interactive(), in: Capsule())
+                    .readableGlass(Capsule(), interactive: true)
                     .shadow(color: .black.opacity(0.18), radius: session == nil ? 3 : 6, y: 1)
                     .scaleEffect(session == nil ? 1 : 1.2)
                     .animation(reduceMotion ? nil : .bouncy(duration: 0.35), value: session == nil)

@@ -92,14 +92,14 @@ struct RadarScreen: View {
                         Label(label, systemImage: "slider.horizontal.3")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .accessibilityHidden(true)
                     }
                     if let slot = heldFeedback {
                         Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .transition(.opacity)
                             .accessibilityIdentifier("radar-slot-status")
                     }
@@ -107,7 +107,7 @@ struct RadarScreen: View {
                         Label(readout.text, systemImage: "scope")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .accessibilityLabel(readout.spoken)
                             .accessibilityIdentifier("radar-readout")
                     }
@@ -130,7 +130,7 @@ struct RadarScreen: View {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16))
                         .accessibilityAddTraits(.updatesFrequently)
                 }
                 ForEach(rainLayerNotices) { notice in
@@ -138,7 +138,7 @@ struct RadarScreen: View {
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, notice.kind == .estimate ? 8 : 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16))
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier(notice.identifier)
                 }
@@ -149,7 +149,7 @@ struct RadarScreen: View {
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16))
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("radar-gap-note")
                 }
@@ -237,6 +237,7 @@ struct RadarScreen: View {
             case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             }
         }
+        .environment(\.glassScrim, colorScheme == .dark && store.activeLayer.coversMapBrightly ? RadarLayer.brightLayerScrim : 0)
         .alert(NSLocalizedString("RADAR_SAVE_PLACE_TITLE", value: "Ort speichern", comment: "Radar"), isPresented: $showSave) {
             TextField(NSLocalizedString("COMMON_NAME", value: "Name", comment: "Text field"), text: $placeName)
             Button(NSLocalizedString("COMMON_SAVE", value: "Speichern", comment: "Common")) { store.saveSelection(name: placeName) }
@@ -553,7 +554,7 @@ struct RadarScreen: View {
                 .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
                 .padding(.horizontal, 8)
                 // Rendering only (no layout space): a faint backdrop behind the text keeps it readable on any map colour.
-                .background { Capsule().fill(Color(.systemBackground).opacity(0.35)).blur(radius: 2) }
+                .background { Capsule().fill(Color(.systemBackground).opacity(colorScheme == .dark && store.activeLayer.coversMapBrightly ? 0.75 : 0.35)).blur(radius: 2) }
                 .allowsHitTesting(false)
                 .accessibilityLabel(line)
                 .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
@@ -575,7 +576,7 @@ struct RadarScreen: View {
         timeSlider
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
+            .readableGlass(RoundedRectangle(cornerRadius: 26))
             .accessibilityIdentifier("radar-timeline")
             // The credit hangs below the card without taking layout space: the slider keeps its position. It sits in the
             // free strip between the card and the home indicator (card bottom + 20 pt = text bottom, about 3 pt below the card).
@@ -1029,7 +1030,7 @@ extension View {
 
     /// Interactive Liquid Glass for a touchable control (press and bounce feedback); the whole shape is the touch target.
     func glassControl<S: Shape>(_ shape: S) -> some View {
-        contentShape(shape).glassEffect(.regular.interactive(), in: shape)
+        contentShape(shape).readableGlass(shape, interactive: true)
     }
 }
 
