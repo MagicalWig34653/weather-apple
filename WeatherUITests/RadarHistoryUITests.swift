@@ -238,7 +238,7 @@ final class RadarHistoryUITests: XCTestCase {
     /// (`oldest` is its VoiceOver value prefix), the "Davor fehlen Daten" note is there exactly when the source gives less
     /// than chosen (`note` = start of its text), and 48 and 72 produce different oldest slots or texts (checked by the callers).
     private func layerCase(_ name: String, pick: Pick, setting: Int, now: String, oldest: String, note: String?,
-                           midHole: Bool = false) throws {
+                           midHole: Bool = false) throws {   // the stub's hole of 6 times lies 36 h back
         let app = launchLayers(setting: setting)
         try pick.select(app, self)
         let slider = slider(app)
@@ -256,7 +256,7 @@ final class RadarHistoryUITests: XCTestCase {
         }
         shot(app, "\(name)\(setting)-2-aeltester-slot")
         if midHole {
-            XCTAssertTrue(seek(slider, near: 0.5, slots: setting * 12 + 1) { value(slider).contains("fehlen Daten") }, "a slot next to the hole: \(value(slider))")
+            XCTAssertTrue(seek(slider, near: 1 - 36.0 / Double(setting), slots: setting * 12 + 1) { value(slider).contains("fehlen Daten") }, "a slot next to the hole: \(value(slider))")
             XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "hole named: \(value(slider))")
             shot(app, "\(name)\(setting)-3-luecke")
         }
