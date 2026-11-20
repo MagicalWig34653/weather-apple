@@ -278,6 +278,87 @@ final class ForecastRefreshUITests: XCTestCase {
         app.terminate()
     }
 
+    // MARK: Build 53: not ready run is no failure, real failure shows and recovers (fix 5d0c741)
+
+    /// Before / during / after pictures of the refresh fix (`B53_SHOT_DIR`, default `/private/tmp/claude-501/b53-refresh-shots`).
+    private func refreshShot(_ app: XCUIApplication, _ name: String) {
+        let dir = ProcessInfo.processInfo.environment["B53_SHOT_DIR"] ?? "/private/tmp/claude-501/b53-refresh-shots"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let screenshot = app.screenshot()
+        let luminance = UITestLaunch.meanLuminance(screenshot.image)
+        print("LUMA b53-refresh-\(name)-\(suffix)=\(luminance)")
+        if suffix == "dark" { XCTAssertLessThan(luminance, 0.45, "dark screenshot expected, luminance \(luminance)") }
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("b53-refresh-\(name)-\(suffix).png"))
+    }
+
+    /// Case 1 (stub `rununavailable`): the index lists a newer run, its first two loads answer "InvalidDimensionValue" (HTTP 200,
+    /// run not ready), the third delivers it. With the fix no failure text may appear at any time; the header recovers to the
+    /// normal state. On Build 52 code the second load confirms a failure and "Aktualisierung fehlgeschlagen" appears.
+    func testNotReadyRunShowsNoFailureAndRecoversToNewRun() throws {
+        executionTimeAllowance = 180
+        let app = launch("rununavailable")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        refreshShot(app, "nicht-bereit-1-vorher")
+        backgroundAndReturn(app)
+        var history: [String] = []
+        var failureSeen: String?
+        var shotDuring = false
+        let start = Date()
+        while Date().timeIntervalSince(start) < 80 {
+            let label = header.label
+            if history.last != label { history.append(label) }
+            if label.contains("fehlgeschlagen") || label.contains("Ältere Prognose") { failureSeen = label }
+            // 35 s after the return: on old code the confirmed failure is on screen, with the fix the quiet state.
+            if !shotDuring, Date().timeIntervalSince(start) >= 35 { shotDuring = true; refreshShot(app, "nicht-bereit-2-waehrend") }
+            sleep(1)
+        }
+        print("HEADER-HISTORY nicht-bereit: \(history)")
+        XCTAssertNil(failureSeen, "no failure text for a not ready run, labels seen: \(history)")
+        XCTAssertFalse(header.label.contains("fehlgeschlagen") || header.label.contains("keinen neueren Stand") || header.label.contains("Aktualisiere"),
+                       "recovered to the new run: \(header.label), labels seen: \(history)")
+        assertNoAge(header)
+        refreshShot(app, "nicht-bereit-3-nachher")
+        app.terminate()
+    }
+
+    /// Case 2 (stub `failrecover`): two failing loads confirm the failure ("Aktualisierung fehlgeschlagen"); the third load
+    /// succeeds with the newer run and the failure text is gone again.
+    func testConfirmedFailureShowsMessageThenRecoveryClearsIt() throws {
+        executionTimeAllowance = 180
+        let app = launch("failrecover")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        refreshShot(app, "fehler-1-vorher")
+        backgroundAndReturn(app)
+        var history: [String] = []
+        var found = false
+        for _ in 0..<90 {
+            let label = header.label
+            if history.last != label { history.append(label) }
+            if label.contains("fehlgeschlagen") { found = true; break }
+            sleep(1)
+        }
+        XCTAssertTrue(found, "failure after the repeat, labels seen: \(history)")
+        refreshShot(app, "fehler-2-waehrend")
+        assertNoAge(header)
+        // Recovery: the next load succeeds, the failure text goes away.
+        XCTAssertTrue(waitForLabelWithout(header, "fehlgeschlagen", timeout: 90), "failure text must go after recovery: \(header.label)")
+        sleep(2)
+        XCTAssertFalse(header.label.contains("fehlgeschlagen") || header.label.contains("keinen neueren Stand") || header.label.contains("Aktualisiere"), header.label)
+        assertNoAge(header)
+        refreshShot(app, "fehler-3-nachher")
+        print("HEADER-HISTORY fehler: \(history)")
+        app.terminate()
+    }
+
+    private func waitForLabelWithout(_ element: XCUIElement, _ text: String, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "NOT (label CONTAINS %@)", text)
+        return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: element)], timeout: timeout) == .completed
+    }
+
     func testServerBehindScreenshot() throws {
         // The stub's frozen clock sits 300 s after the expected run, so the check is always late enough.
         do {
