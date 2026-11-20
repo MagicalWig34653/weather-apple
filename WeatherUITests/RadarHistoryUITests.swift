@@ -271,7 +271,7 @@ final class RadarHistoryUITests: XCTestCase {
             sleep(3)
             let now = value(slider)
             jump(slider, fraction: 0)
-            sleep(3)
+            sleep(8)   // large images (Europe 2048 px) are drawn progressively: wait for the full overlay before the screenshot
             let oldest = value(slider)
             let note = gapNote(app).exists ? gapNote(app).label : "-"
             print("HISTINT hours=\(hours) layer=\(parts[1]) jetzt=\(now) | aeltester=\(oldest) | hinweis=\(note)")
