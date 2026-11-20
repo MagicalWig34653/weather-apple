@@ -90,6 +90,24 @@ final class RadarHistoryUITests: XCTestCase {
         return false
     }
 
+    /// Entry of the nested "Regen" submenu (exact group label: "Regen am ausgewählten Ort" is another button).
+    private func chooseRain(_ app: XCUIApplication, _ prefix: String) throws {
+        let menu = app.buttons["radar-layer-menu"]
+        let rain = app.buttons.matching(NSPredicate(format: "label == %@", "Regen")).firstMatch
+        let entry = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
+        for _ in 0..<4 {
+            menu.tap()
+            if rain.waitForExistence(timeout: 3) { rain.tap() }
+            if entry.waitForExistence(timeout: 3), entry.isEnabled {
+                entry.tap()
+                if entry.waitForNonExistence(timeout: 3) { sleep(2); return }
+            }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+            sleep(2)
+        }
+        XCTFail("\(prefix) ließ sich nicht wählen")
+    }
+
     private func gapNote(_ app: XCUIApplication) -> XCUIElement { app.descendants(matching: .any).matching(identifier: "radar-gap-note").firstMatch }
 
     // MARK: Radar Deutschland, 72 hours
@@ -143,8 +161,7 @@ final class RadarHistoryUITests: XCTestCase {
 
     func testObservationLayerSeventyTwoHoursHoleAndOldestSlot() throws {
         let app = launchLayers(hours: 72)
-        let entry = try XCTUnwrap(openLayerEntry(app, group: "Regen", entry: "Europa (OPERA)"), "Europa wählbar")
-        entry.tap()
+        try chooseRain(app, "Europa (OPERA)")
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, value(slider))
         shot(app, "europa72-1-jetzt")
