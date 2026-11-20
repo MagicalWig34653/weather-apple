@@ -39,7 +39,7 @@ final class WatchStore: ObservableObject {
     }
 
     static func live() -> WatchStore {
-        let client = DWDClient()
+        let client = DWDClient(timeouts: .background)
         return WatchStore(placeStore: try? PlaceStore(), cache: try? ForecastCache()) {
             try await client.forecast(at: $0)
         }
