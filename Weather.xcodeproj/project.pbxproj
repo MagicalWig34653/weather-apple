@@ -163,6 +163,7 @@
 		8BD2D565C99AF9A2752D6AF7 /* SavedPlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C611C7CE40C6A89732B8A51 /* SavedPlace.swift */; };
 		8C7BBCD870C4F17524FA6DC4 /* WidgetDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F3EDD496FC77265F0FDADD /* WidgetDeepLink.swift */; };
 		8C841CAE839A94657CA0DF81 /* TimelineScrubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4827954D52F77A48BBCA9437 /* TimelineScrubTests.swift */; };
+		8CFAA7B19DB79170A1142E62 /* PastWindowLimitUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCCE4596C76EED7F8826BDB /* PastWindowLimitUITests.swift */; };
 		8DB2F04FB89363D08357AE37 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 304B59ABF3BAE5D974A66F1D /* Localizable.strings */; };
 		8EBC20C2295012EC612AC604 /* WeatherWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76851ECD739C44BE2CE272CD /* WeatherWidgetViews.swift */; };
 		8FF76F651DDDF661D9578CCD /* WeatherWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 14E1A3DD2764CE203F4A8008 /* WeatherWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -532,6 +533,7 @@
 		B920639E02C1140F70C713AE /* PushGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushGateway.swift; sourceTree = "<group>"; };
 		B9952910B477FF2C7B3DFAA1 /* PlacePushSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacePushSettingsView.swift; sourceTree = "<group>"; };
 		BB99AABCDFCF1959BFA442D8 /* PhoneSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSession.swift; sourceTree = "<group>"; };
+		BBCCE4596C76EED7F8826BDB /* PastWindowLimitUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastWindowLimitUITests.swift; sourceTree = "<group>"; };
 		BBD25F97DD9C3DA5FF879401 /* WarnCellMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnCellMatcher.swift; sourceTree = "<group>"; };
 		BC719A482AF0E1B8A2B1423A /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		BCB2C1112479F903D8978745 /* PushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushManager.swift; sourceTree = "<group>"; };
@@ -630,6 +632,7 @@
 				420DD5AAE9E397BDE7500B5A /* ForecastRefreshUITests.swift */,
 				D8CE5884029C41C4CEA414DC /* LayerContrastUITests.swift */,
 				F0A76C723F5D7B064629F385 /* LayerMenuPrototypeTests.swift */,
+				BBCCE4596C76EED7F8826BDB /* PastWindowLimitUITests.swift */,
 				059FF384C55ED1C200B2EC8F /* PlacesEnglishTests.swift */,
 				F17A801DDF8BA00FDED07D0D /* PlacesLayoutTests.swift */,
 				37D6D537707721F2AA930F4D /* PseudoLocalizationTests.swift */,
@@ -1650,6 +1653,7 @@
 				326ED4FBD2A1D414754F25E7 /* ForecastRefreshUITests.swift in Sources */,
 				422672D34F60D095975E5A39 /* LayerContrastUITests.swift in Sources */,
 				CF959FAC75551254C2A4DDE8 /* LayerMenuPrototypeTests.swift in Sources */,
+				8CFAA7B19DB79170A1142E62 /* PastWindowLimitUITests.swift in Sources */,
 				9963072DC7159D8962A455DA /* PlacesEnglishTests.swift in Sources */,
 				C580F02D92AC66E88CFEC153 /* PlacesLayoutTests.swift in Sources */,
 				BE8347722C02D4FB43AD148B /* PseudoLocalizationTests.swift in Sources */,
