@@ -49,7 +49,7 @@ final class RadarHistoryHoursTests: XCTestCase {
 
     /// Observation layer (`radar_eu`: 5 minutes) with `hours` of past, grid index 0 = oldest. `missing` are grid indexes without image.
     func observationObject(hours: Int, step: Int = 5, missing: Set<Int> = [], oldestAvailableHours: Int? = nil,
-                           withHistory: Bool = true) -> [String: Any] {
+                           withHistory: Bool = true, layer: String = "radar_eu") -> [String: Any] {
         let expected = hours * 60 / step + 1
         let start = reference.addingTimeInterval(-Double(hours) * 3600)
         let firstIndex = oldestAvailableHours.map { (hours - $0) * 60 / step } ?? 0
@@ -60,7 +60,7 @@ final class RadarHistoryHoursTests: XCTestCase {
             return ["time": Self.iso(time), "kind": "observation", "path": "\(Self.compact(time.addingTimeInterval(300)))/\(Self.compact(time)).webp"]
         }
         var object: [String: Any] = [
-            "schema": 1, "layer": "radar_eu", "title": "Regenradar Europa", "kind": "observation", "run": run,
+            "schema": 1, "layer": layer, "title": "Karte", "kind": "observation", "run": run,
             "reference_time": Self.iso(reference), "generated_at": Self.iso(reference.addingTimeInterval(120)),
             "step_minutes": step, "history_hours": hours, "image": Self.imageBlock, "slots": slots,
             "attribution": "Quelle: EUMETNET", "modification_notice": "umprojiziert"]
@@ -72,7 +72,8 @@ final class RadarHistoryHoursTests: XCTestCase {
 
     /// Model layer (`temperature`: hourly): `slots` = latest run (reference plus `forecastHours`), `past_slots` = one slot per
     /// past hour (`pastHours` back, up to one hour before the reference), the run start hours as `analysis`.
-    func modelObject(pastHours: Int, forecastHours: Int = 48, missingPast: Set<Int> = [], withPast: Bool = true) -> [String: Any] {
+    func modelObject(pastHours: Int, forecastHours: Int = 48, missingPast: Set<Int> = [], withPast: Bool = true,
+                     layer: String = "temperature") -> [String: Any] {
         let run = Self.compact(reference)
         let slots = (0...forecastHours).map { index -> [String: Any] in
             let time = reference.addingTimeInterval(Double(index) * 3600)
@@ -86,11 +87,12 @@ final class RadarHistoryHoursTests: XCTestCase {
             return ["time": Self.iso(time), "kind": index % 3 == 0 ? "analysis" : "forecast", "path": "\(Self.compact(runStart))/\(Self.compact(time)).webp"]
         }
         var object: [String: Any] = [
-            "schema": 1, "layer": "temperature", "title": "Temperatur 2 m", "kind": "forecast", "run": run,
+            "schema": 1, "layer": layer, "title": "Modell", "kind": "forecast", "run": run,
             "reference_time": Self.iso(reference), "generated_at": Self.iso(reference.addingTimeInterval(120)),
-            "step_minutes": 60, "forecast_horizon_minutes": forecastHours * 60, "history_hours": pastHours, "image": Self.imageBlock,
+            "step_minutes": 60, "forecast_horizon_minutes": forecastHours * 60, "image": Self.imageBlock,
             "slots": slots, "attribution": "Quelle: DWD", "modification_notice": "bildlich wiedergegeben", "source": "icon_d2", "scale": "t2m-d2-v1"]
         if withPast {
+            object["history_hours"] = pastHours
             object["past_slots"] = past
             object["history"] = historyBlock(hours: pastHours, step: 60, present: Set(presentIndexes), expected: pastHours, oldestIndex: presentIndexes.min())
         }
@@ -610,5 +612,129 @@ final class RadarHistoryHoursTests: XCTestCase {
         XCTAssertLessThan(ms(parseTime), 500, "one parse per poll")
         XCTAssertLessThan(ms(timelineTime), 100)
         XCTAssertLessThan(perStep, 2.0, "well below a 16 ms frame at 60 Hz")
+    }
+    // MARK: One setting "Maximale Vergangenheit" for EVERY layer (Lino: applies to all maps)
+
+    private static let observationLayers: [(RadarLayer, Int)] = [(.radarEU, 5), (.radarWorld, 10), (.lightning, 5), (.clouds, 10), (.cloudmask, 15), (.cloudmaskVis, 10)]
+    private static let modelLayers: [RadarLayer] = [.pressure, .pressureEU, .temperature, .dewpoint, .humidity]
+    private static let steps = [1, 2, 6, 12, 24, 48, 72]
+
+    func testChosenPastCutsEveryObservationLayer() throws {
+        for (layer, step) in Self.observationLayers {
+            let manifest = try parse(observationObject(hours: 72, step: step, layer: layer.rawValue), layer: layer)
+            for hours in Self.steps {
+                let timeline = manifest.timeline(at: reference, pastHours: hours)
+                XCTAssertEqual(timeline.dates.first, reference.addingTimeInterval(-Double(hours) * 3600), "\(layer.rawValue) \(hours) h: oldest = chosen past")
+                XCTAssertEqual(timeline.dates.count, hours * 60 / step + 1, "\(layer.rawValue) \(hours) h")
+                XCTAssertEqual(timeline.dates.last, reference)
+                XCTAssertEqual(timeline.backend?.slots.map(\.time), timeline.dates, "overlay and prefetch see only the reachable slots (\(layer.rawValue) \(hours) h)")
+            }
+            XCTAssertEqual(manifest.timeline(at: reference).dates.count, 72 * 60 / step + 1, "without a choice nothing is cut")
+        }
+    }
+
+    func testChosenPastCutsEveryModelLayerAndKeepsTheForecastHorizon() throws {
+        for layer in Self.modelLayers {
+            let manifest = try parse(modelObject(pastHours: 72, layer: layer.rawValue), layer: layer)
+            for hours in Self.steps {
+                let timeline = manifest.timeline(at: reference.addingTimeInterval(1800), pastHours: hours)
+                XCTAssertEqual(timeline.dates.first, reference.addingTimeInterval(-Double(hours) * 3600), "\(layer.rawValue) \(hours) h")
+                XCTAssertEqual(timeline.dates.count, hours + 49, "\(layer.rawValue) \(hours) h: past + latest run")
+                XCTAssertEqual(timeline.dates.last, reference.addingTimeInterval(48 * 3600), "forecast horizon untouched")
+                XCTAssertEqual(timeline.referenceTime, reference)
+            }
+        }
+    }
+
+    func testLeadingGapIsClippedToTheChosenPast() throws {
+        // The source reaches back 24 h of the 72 h the server reports (lightning style).
+        let manifest = try parse(observationObject(hours: 72, oldestAvailableHours: 24, layer: "lightning"), layer: .lightning)
+        let oldest = reference.addingTimeInterval(-24 * 3600)
+        for (hours, from, slots) in [(72, -72, 576), (48, -48, 288)] {
+            let timeline = manifest.timeline(at: reference, pastHours: hours)
+            XCTAssertEqual(timeline.dates.first, oldest, "\(hours) h: the oldest slot that exists")
+            let gap = try XCTUnwrap(timeline.gaps.before(index: 0), "\(hours) h: the shortfall is named")
+            XCTAssertEqual(gap.from, reference.addingTimeInterval(Double(from) * 3600), "\(hours) h: starts at the chosen past, not at the server window")
+            XCTAssertEqual(gap.to, oldest.addingTimeInterval(-300))
+            XCTAssertEqual(gap.slots, slots)
+        }
+        for hours in [24, 12, 2] {
+            XCTAssertNil(manifest.timeline(at: reference, pastHours: hours).gaps.before(index: 0), "\(hours) h: the source delivers all that was chosen")
+        }
+        XCTAssertNotEqual(manifest.timeline(at: reference, pastHours: 72).gaps.gaps.first,
+                          manifest.timeline(at: reference, pastHours: 48).gaps.gaps.first, "48 and 72 differ in the result")
+    }
+
+    func testModelLayerBuildUpGapFollowsTheChosenPast() throws {
+        let manifest = try parse(modelObject(pastHours: 72, missingPast: Set(0..<62), layer: "temperature"), layer: .temperature)   // 10 hours exist
+        for (hours, slots) in [(72, 62), (48, 38), (24, 14)] {
+            let timeline = manifest.timeline(at: reference, pastHours: hours)
+            XCTAssertEqual(timeline.dates.first, reference.addingTimeInterval(-10 * 3600), "\(hours) h")
+            XCTAssertEqual(timeline.gaps.before(index: 0)?.slots, slots, "\(hours) h")
+        }
+        let six = manifest.timeline(at: reference, pastHours: 6)
+        XCTAssertEqual(six.dates.first, reference.addingTimeInterval(-6 * 3600))
+        XCTAssertNil(six.gaps.before(index: 0), "6 h are all there")
+    }
+
+    func testRadarGermanyHistoryGapIsClippedToo() throws {
+        let latest = try RadarManifest.parse(data(latestRadarObject()), baseURL: radarBase)
+        let history = try RadarHistory.parse(data(historyObject(hours: 72, oldestAvailableHours: 30)), baseURL: radarBase, now: reference.addingTimeInterval(200))
+        let seventyTwo = RadarTimelineComposer.compose(latest: latest, history: history, hours: 72).timeline
+        let fortyEight = RadarTimelineComposer.compose(latest: latest, history: history, hours: 48).timeline
+        XCTAssertEqual(seventyTwo.gaps.before(index: 0)?.from, reference.addingTimeInterval(-72 * 3600))
+        XCTAssertEqual(fortyEight.gaps.before(index: 0)?.from, reference.addingTimeInterval(-48 * 3600), "clipped to the chosen 48 h")
+        XCTAssertEqual(fortyEight.dates.first, seventyTwo.dates.first, "same oldest slot: the source has 30 h")
+    }
+
+    func testOfferedHistoryHoursComeFromTheLayerNotFromAGuess() throws {
+        XCTAssertEqual(try parse(observationObject(hours: 72)).offeredHistoryHours, 72, "history.hours")
+        var old = observationObject(hours: 3, withHistory: false)   // today's backend: only history_hours
+        XCTAssertEqual(try parse(old).offeredHistoryHours, 3)
+        old.removeValue(forKey: "history_hours")                      // not even that: the span actually present
+        XCTAssertEqual(try parse(old).offeredHistoryHours, 3)
+        XCTAssertEqual(try parse(modelObject(pastHours: 72, withPast: false), layer: .temperature).offeredHistoryHours, 0, "nothing of the past yet")
+        XCTAssertEqual(try parse(modelObject(pastHours: 72), layer: .temperature).offeredHistoryHours, 72)
+    }
+
+    @MainActor func testLayerStoreAppliesTheSettingToEveryLayerAndKeepsTheInstant() throws {
+        let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+        XCTAssertEqual(store.pastHours, 2, "default stays 2 h")
+        let now = reference.addingTimeInterval(100)
+        store.apply(.fresh(try parse(observationObject(hours: 72))), to: .radarEU, now: now)
+        store.apply(.fresh(try parse(observationObject(hours: 72, step: 5, layer: "lightning"), layer: .lightning)), to: .lightning, now: now)
+        store.apply(.fresh(try parse(modelObject(pastHours: 72, layer: "pressure"), layer: .pressure)), to: .pressure, now: now)
+        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 2 * 12 + 1)
+        XCTAssertEqual(store.snapshot(.lightning).timeline?.dates.count, 2 * 12 + 1)
+        XCTAssertEqual(store.snapshot(.pressure).timeline?.dates.count, 2 + 49)
+        store.setPastHours(48)
+        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates.count, 577)
+        XCTAssertEqual(store.snapshot(.lightning).timeline?.dates.count, 577)
+        XCTAssertEqual(store.snapshot(.pressure).timeline?.dates.count, 48 + 49)
+        XCTAssertEqual(store.snapshot(.radarEU).timeline?.dates[store.snapshot(.radarEU).selectedFrame], reference, "stays on now")
+        store.setFrame(0, for: .radarEU)   // oldest slot of 48 h
+        store.setPastHours(72)
+        let wide = try XCTUnwrap(store.snapshot(.radarEU).timeline)
+        XCTAssertEqual(wide.dates.count, 865)
+        XCTAssertEqual(wide.dates[store.snapshot(.radarEU).selectedFrame], reference.addingTimeInterval(-48 * 3600), "the chosen instant is kept when the window grows")
+        store.setPastHours(24)
+        XCTAssertEqual(store.snapshot(.radarEU).selectedFrame, 0, "an instant outside the narrower window goes to its oldest slot")
+        XCTAssertEqual(store.offeredHistoryHours(.radarEU), 72)
+        XCTAssertNil(store.offeredHistoryHours(.clouds), "no data: not guessed")
+    }
+
+    @MainActor func testWeatherStoreHandsTheSettingToTheLayersAndReportsTheActiveMapsOffer() throws {
+        let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+        let defaults = UserDefaults(suiteName: "ShowerNowTests-\(UUID().uuidString)")!
+        defaults.set(48, forKey: RadarPastWindow.defaultsKey)
+        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
+        XCTAssertEqual(layers.pastHours, 48, "the stored choice reaches the layers at start")
+        store.setPastHours(72)
+        XCTAssertEqual(layers.pastHours, 72)
+        layers.apply(.fresh(try parse(observationObject(hours: 48, layer: "lightning"), layer: .lightning)), to: .lightning, now: reference.addingTimeInterval(100))
+        XCTAssertTrue(layers.select(.lightning))
+        XCTAssertEqual(store.activeServerHistoryHours, 48, "the active layer's own offer")
+        XCTAssertTrue(RadarPastWindow.isUnavailable(72, direct: false, serverHours: store.activeServerHistoryHours))
+        XCTAssertFalse(RadarPastWindow.isUnavailable(48, direct: false, serverHours: store.activeServerHistoryHours))
     }
 }

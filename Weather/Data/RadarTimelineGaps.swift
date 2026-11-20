@@ -92,7 +92,7 @@ struct RadarTimelineGaps: Equatable, Sendable {
     /// A spacing larger than this many steps counts as a hole (tolerates small jitter of slot times).
     static let tolerance = 1.5
 
-    init(dates: [Date], stepMinutes: Int, history: RadarHistoryInfo?) {
+    init(dates: [Date], stepMinutes: Int, history: RadarHistoryInfo?, windowStart: Date? = nil) {
         let step = Double(max(stepMinutes, 1)) * 60
         var result: [TimelineGap] = []
         // The source reaches back less far than the window: only when the oldest slot shown IS the oldest that exists

@@ -57,6 +57,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     private(set) var historyStatus = RadarHistoryStatus.notNeeded
     /// Longest past the server currently offers (`history_hours`), if known.
     var serverHistoryHours: Int? { if case .loaded(let hours) = historyStatus { hours } else { nil } }
+    /// Longest past the ACTIVE map offers: the radar's `history.json`, else the layer's own manifest.
+    var activeServerHistoryHours: Int? { serverHistoryHours }
 
     @ObservationIgnored private let reloadWidgets: () -> Void
     @ObservationIgnored private let client: DWDClient

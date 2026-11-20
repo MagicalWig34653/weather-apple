@@ -313,6 +313,11 @@ struct RadarLayerManifest: Equatable, Sendable {
         }
     }
 
+    /// Hours of past the server reports for this layer (`history.hours`, else `history_hours`, else the span actually present).
+    var offeredHistoryHours: Int? { nil }
+
+    func timeline(at now: Date, pastHours: Int?) -> RadarTimeline { timeline(at: now) }
+
     func timeline(at now: Date) -> RadarTimeline {
         let dates = slots.map(\.time)
         return RadarTimeline(referenceTime: nowSlotTime(at: now), dates: dates, backend: backend,
@@ -537,6 +542,10 @@ final class RadarLayerStore {
     private(set) var active: RadarLayer = .radar
     private(set) var snapshots: [RadarLayer: LayerSnapshot] = [:]
     private(set) var loading: Set<RadarLayer> = []
+    /// The user's chosen maximum past (hours), the same setting for every layer.
+    private(set) var pastHours = RadarPastWindow.defaultHours
+    func setPastHours(_ hours: Int) { pastHours = hours }
+    func offeredHistoryHours(_ layer: RadarLayer) -> Int? { nil }
 
     @ObservationIgnored private let client: RadarLayerClient
     @ObservationIgnored private let clock: () -> Date

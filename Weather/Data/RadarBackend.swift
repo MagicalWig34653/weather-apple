@@ -84,6 +84,8 @@ struct RadarManifest: Equatable, Sendable {
     let modificationNotice: String
     /// Additive `history` block of the backend (PR #4); `nil` for older backends or a malformed block.
     var history: RadarHistoryInfo? = nil
+    /// The user's chosen past (hours), when the slots were cut to it.
+    var chosenHours: Int? = nil
 
     /// Data age is measured from the nominal run time (as for the direct DWD path);
     /// `generated_at` is only a plausibility bound.
