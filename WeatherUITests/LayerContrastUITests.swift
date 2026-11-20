@@ -1,0 +1,144 @@
+import XCTest
+
+/// Contrast of the controls over a data field that colours the whole map brightly (temperature, clouds, dew point, humidity),
+/// measured DIRECTLY in the screenshot at the pixels of each element (fixed stub images, frozen clock, no live data).
+///
+/// Method (documented in the nachweis): crop the screenshot to the element's frame; per pixel the WCAG relative luminance
+/// (sRGB linearised); background = median luminance of the crop; foreground = mean luminance of the 4 % of pixels that differ
+/// most from the median (text, icon, track). Contrast ratio = (L_light + 0.05) / (L_dark + 0.05).
+/// Thresholds: 4.5 : 1 for text, 3 : 1 for controls (icons, slider track) and large text. Lines `CONTRAST ...` go to the log.
+/// Set `TEST_RUNNER_CONTRAST_MEASURE=1` to only record (no assertion).
+enum ContrastProbe {
+    struct Result { let foreground: Double, background: Double, ratio: Double }
+
+    private static func linear(_ value: UInt8) -> Double {
+        let c = Double(value) / 255
+        return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+
+    /// `rect` in points of the screenshot's coordinate space (the image's `scale` converts to pixels).
+    static func measure(_ image: UIImage, rect: CGRect) -> Result? {
+        guard let cg = image.cgImage else { return nil }
+        let scale = image.scale
+        let pixelRect = CGRect(x: rect.minX * scale, y: rect.minY * scale, width: rect.width * scale, height: rect.height * scale)
+            .integral.intersection(CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+        guard pixelRect.width >= 2, pixelRect.height >= 2, let crop = cg.cropping(to: pixelRect) else { return nil }
+        let width = crop.width, height = crop.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        guard let context = CGContext(data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.draw(crop, in: CGRect(x: 0, y: 0, width: width, height: height))
+        var lum = [Double](); lum.reserveCapacity(width * height)
+        for i in stride(from: 0, to: pixels.count, by: 4) {
+            lum.append(0.2126 * linear(pixels[i]) + 0.7152 * linear(pixels[i + 1]) + 0.0722 * linear(pixels[i + 2]))
+        }
+        let sorted = lum.sorted()
+        let median = sorted[sorted.count / 2]
+        let far = lum.sorted { abs($0 - median) > abs($1 - median) }.prefix(max(1, lum.count / 25))
+        let foreground = far.reduce(0, +) / Double(far.count)
+        let (light, dark) = (max(foreground, median), min(foreground, median))
+        return Result(foreground: foreground, background: median, ratio: (light + 0.05) / (dark + 0.05))
+    }
+}
+
+@MainActor
+final class LayerContrastUITests: XCTestCase {
+    private var suffix: String {
+        ProcessInfo.processInfo.environment["SHOT_SUFFIX"] ?? (XCUIDevice.shared.appearance == .dark ? "dark" : "light")
+    }
+    private var measureOnly: Bool { ProcessInfo.processInfo.environment["CONTRAST_MEASURE"] != nil }
+
+    override func setUpWithError() throws {
+        continueAfterFailure = true
+        XCUIDevice.shared.orientation = .portrait
+    }
+
+    private struct Element {
+        let name: String
+        let identifier: String?
+        let predicate: NSPredicate?
+        let threshold: Double
+    }
+
+    private static let elements: [Element] = [
+        Element(name: "Zeitstempel (Pille)", identifier: "radar-frame-label", predicate: nil, threshold: 4.5),
+        Element(name: "Menükapsel Ebene", identifier: "radar-layer-menu", predicate: nil, threshold: 4.5),
+        Element(name: "Ortskapsel", identifier: nil, predicate: NSPredicate(format: "label BEGINSWITH %@", "Berlin"), threshold: 4.5),
+        Element(name: "Regenleiste am Ort", identifier: nil, predicate: NSPredicate(format: "label BEGINSWITH %@", "Regen am ausgewählten Ort"), threshold: 4.5),
+        Element(name: "Hinweiszeile (Lücke)", identifier: "radar-gap-note", predicate: nil, threshold: 4.5),
+        Element(name: "Credit-Zeile", identifier: "radar-attribution", predicate: nil, threshold: 4.5),
+        Element(name: "Zeitleiste/Regler", identifier: "radar-timeline", predicate: nil, threshold: 3.0),
+        Element(name: "Legendenschalter", identifier: "radar-legend-toggle", predicate: nil, threshold: 3.0),
+        Element(name: "Warnungen-Knopf", identifier: "radar-warnings-button", predicate: nil, threshold: 3.0),
+        Element(name: "Info-Knopf", identifier: nil, predicate: NSPredicate(format: "label == %@", "Datenquellen und Datenschutz"), threshold: 3.0),
+    ]
+
+    private func jump(_ slider: XCUIElement, fraction: Double) {
+        let width = Double(slider.frame.width)
+        let x = min(max((20 + fraction * (width - 40)) / width, 0.004), 0.996)
+        slider.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.5)).press(forDuration: 0.05)
+        usleep(500_000)
+    }
+
+    private func chooseRain(_ app: XCUIApplication, _ prefix: String) throws {
+        let menu = app.buttons["radar-layer-menu"]
+        let rain = app.buttons.matching(NSPredicate(format: "label == %@", "Regen")).firstMatch
+        let entry = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
+        for _ in 0..<4 {
+            menu.tap()
+            if rain.waitForExistence(timeout: 3) { rain.tap() }
+            if entry.waitForExistence(timeout: 3), entry.isEnabled {
+                entry.tap()
+                if entry.waitForNonExistence(timeout: 3) { sleep(2); return }
+            }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+            sleep(2)
+        }
+        XCTFail("\(prefix) ließ sich nicht wählen")
+    }
+
+    /// One layer in the current appearance: every element measured on the same screenshot. The oldest slot of the 72 h history is
+    /// shown so that the hole note ("Davor fehlen Daten") exists wherever the source reaches back less far.
+    private func measureLayer(_ name: String, group: String?, entry prefix: String?) throws {
+        let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
+            "-UITestForecast", "current", "-UITestLayers", "all", "-UITestHistoryHours", "72", "-radarPastHours", "72"]))
+        app.launch()
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 30))
+        sleep(2)
+        menu.tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(1)
+        if let prefix {
+            let entry = try XCTUnwrap(openLayerEntry(app, group: group, entry: prefix), "\(prefix) wählbar")
+            entry.tap()
+        }
+        let slider = app.sliders.firstMatch
+        XCTAssertTrue(slider.waitForExistence(timeout: 40))
+        jump(slider, fraction: 0)
+        sleep(4)
+        let screenshot = app.screenshot()
+        let dir = "/private/tmp/claude-501/hist-shots"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("contrast-\(name)-\(suffix).png"))
+        for item in Self.elements {
+            let query = item.identifier.map { app.descendants(matching: .any).matching(identifier: $0).firstMatch }
+                ?? app.descendants(matching: .any).matching(item.predicate!).firstMatch
+            guard query.exists, let result = ContrastProbe.measure(screenshot.image, rect: query.frame) else {
+                print("CONTRAST \(name) | \(item.name) | nicht vorhanden")
+                continue
+            }
+            let pass = result.ratio >= item.threshold
+            print(String(format: "CONTRAST %@ | %@ | fg=%.3f bg=%.3f ratio=%.2f schwelle=%.1f %@", name, item.name, result.foreground, result.background,
+                         result.ratio, item.threshold, pass ? "ok" : "UNTER"))
+            if !measureOnly { XCTAssertGreaterThanOrEqual(result.ratio, item.threshold, "\(name): \(item.name) \(suffix)") }
+        }
+        app.terminate()
+    }
+
+    func testContrastSurfaceWithoutDataLayer() throws { try measureLayer("oberflaeche", group: nil, entry: nil) }
+    func testContrastTemperature() throws { try measureLayer("temperatur", group: nil, entry: "Temperatur") }
+    func testContrastClouds() throws { try measureLayer("wolken", group: nil, entry: "Wolken") }
+    func testContrastDewpoint() throws { try measureLayer("taupunkt", group: "Feuchtigkeit", entry: "Taupunkt") }
+    func testContrastHumidity() throws { try measureLayer("feuchte", group: "Feuchtigkeit", entry: "Relativ") }
+}
