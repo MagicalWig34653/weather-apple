@@ -334,6 +334,7 @@ final class RadarHistoryHoursTests: XCTestCase {
 
     @MainActor func testLayerStoreOffersTheOldestSlotAndKeepsTheSelectionAcrossRefresh() throws {
         let store = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+        store.setPastHours(72)
         let manifest = try parse(observationObject(hours: 72, missing: [5]))
         store.apply(.fresh(manifest), to: .radarEU, now: reference.addingTimeInterval(100))
         let snapshot = store.snapshot(.radarEU)

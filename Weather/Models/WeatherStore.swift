@@ -58,7 +58,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// Longest past the server currently offers (`history_hours`), if known.
     var serverHistoryHours: Int? { if case .loaded(let hours) = historyStatus { hours } else { nil } }
     /// Longest past the ACTIVE map offers: the radar's `history.json`, else the layer's own manifest.
-    var activeServerHistoryHours: Int? { serverHistoryHours }
+    /// What the server offers for the map in view: the radar's `history.json`, else the layer's own manifest.
+    var activeServerHistoryHours: Int? { layers.active == .radar ? serverHistoryHours : layers.offeredHistoryHours(layers.active) }
 
     @ObservationIgnored private let reloadWidgets: () -> Void
     @ObservationIgnored private let client: DWDClient
@@ -120,6 +121,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         super.init()
         pastHours = RadarPastWindow.load(defaults)
         composedHours = pastHours
+        self.layers.setPastHours(pastHours)
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         do {
@@ -519,6 +521,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func setPastHours(_ hours: Int) {
         guard RadarPastWindow.options.contains(hours), hours != pastHours else { return }
         pastHours = hours
+        layers.setPastHours(hours)
         RadarPastWindow.save(hours, to: defaults)
         guard radarSource == .cache, latestManifest != nil, !isRadarLoading else { return }
         Task { await recomposeTimeline() }

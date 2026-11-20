@@ -222,21 +222,26 @@ struct InformationSheet: View {
 
     /// Steps beyond what the server offers are disabled; the direct DWD path has no longer past at all.
     private func isUnavailable(_ hours: Int) -> Bool {
-        RadarPastWindow.isUnavailable(hours, direct: store.radarSource == .direct, serverHours: store.serverHistoryHours)
+        RadarPastWindow.isUnavailable(hours, direct: store.radarSource == .direct && store.layers.active == .radar, serverHours: store.activeServerHistoryHours)
     }
 
     private var pastFooter: String {
         let base = NSLocalizedString("INFO_PAST_FOOTER_BASE", value: "Wie weit die Zeitleiste in die Vergangenheit reicht. Mehr Vergangenheit lädt mehr Bilder (Datenvolumen).", comment: "Info")
+        let all = base + " " + NSLocalizedString("INFO_PAST_FOOTER_ALL", value: "Gilt für alle Karten. Hat eine Karte weniger Vergangenheit, steht an ihrem ältesten Bild „Davor fehlen Daten“.", comment: "Info")
+        if store.layers.active != .radar {
+            guard let hours = store.activeServerHistoryHours, hours < RadarPastWindow.options.last! else { return all }
+            return all + " " + String(format: NSLocalizedString("INFO_PAST_FOOTER_LAYER", value: "Diese Karte reicht derzeit höchstens %@ zurück.", comment: "Info"), RadarPastWindow.label(max(hours, RadarPastWindow.directHours)))
+        }
         if store.radarSource == .direct {
-            return base + " " + NSLocalizedString("INFO_PAST_FOOTER_DIRECT", value: "Beim Abruf direkt vom DWD ist nur 1 Stunde Vergangenheit verfügbar.", comment: "Info")
+            return all + " " + NSLocalizedString("INFO_PAST_FOOTER_DIRECT", value: "Beim Abruf direkt vom DWD ist nur 1 Stunde Vergangenheit verfügbar.", comment: "Info")
         }
         switch store.historyStatus {
         case .unavailable:
-            return base + " " + NSLocalizedString("INFO_PAST_FOOTER_UNAVAILABLE", value: "Historie nicht verfügbar: Die Zeitleiste zeigt derzeit nur etwa die letzte Stunde.", comment: "Info")
+            return all + " " + NSLocalizedString("INFO_PAST_FOOTER_UNAVAILABLE", value: "Historie nicht verfügbar: Die Zeitleiste zeigt derzeit nur etwa die letzte Stunde.", comment: "Info")
         case .loaded(let hours) where hours < RadarPastWindow.options.last!:
-            return base + " " + String(format: NSLocalizedString("INFO_PAST_FOOTER_SERVER_MAX", value: "Der Server liefert derzeit höchstens %@.", comment: "Info"), RadarPastWindow.label(hours))
+            return all + " " + String(format: NSLocalizedString("INFO_PAST_FOOTER_SERVER_MAX", value: "Der Server liefert derzeit höchstens %@.", comment: "Info"), RadarPastWindow.label(hours))
         default:
-            return base
+            return all
         }
     }
 }

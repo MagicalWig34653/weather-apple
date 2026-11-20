@@ -99,7 +99,13 @@ struct RadarTimelineGaps: Equatable, Sendable {
         // (a shorter user choice hides the shortfall, so it is not claimed).
         if let history, let oldest = history.oldest, let first = dates.first, abs(first.timeIntervalSince(oldest)) < 1,
            let lead = history.gaps.first(where: { abs($0.to.addingTimeInterval(step).timeIntervalSince(oldest)) < 1 }) {
-            result.append(TimelineGap(afterIndex: -1, from: lead.from, to: lead.to, slots: lead.slots))
+            // Only the part inside the chosen past counts: 48 h chosen, 72 h reported by the server -> from 48 h back.
+            if let windowStart, windowStart > lead.from {
+                let slots = Int((lead.to.timeIntervalSince(windowStart) / step).rounded()) + 1
+                if slots >= 1 { result.append(TimelineGap(afterIndex: -1, from: windowStart, to: lead.to, slots: slots)) }
+            } else {
+                result.append(TimelineGap(afterIndex: -1, from: lead.from, to: lead.to, slots: lead.slots))
+            }
         }
         if dates.count > 1 {
             for index in 0..<(dates.count - 1) {

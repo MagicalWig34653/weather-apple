@@ -124,7 +124,7 @@ enum RadarTimelineComposer {
         return RadarManifest(run: latest.run, referenceTime: latest.referenceTime, generatedAt: latest.generatedAt,
                              stepMinutes: latest.stepMinutes, imageWidth: latest.imageWidth, imageHeight: latest.imageHeight,
                              bounds: latest.bounds, slots: slots, attribution: latest.attribution,
-                             modificationNotice: latest.modificationNotice, history: info)
+                             modificationNotice: latest.modificationNotice, history: info, windowStart: cutoff)
     }
 }
 

@@ -314,9 +314,25 @@ struct RadarLayerManifest: Equatable, Sendable {
     }
 
     /// Hours of past the server reports for this layer (`history.hours`, else `history_hours`, else the span actually present).
-    var offeredHistoryHours: Int? { nil }
+    var offeredHistoryHours: Int? {
+        if let hours = backend.history?.hours { return hours }
+        if let hours = historyHours { return hours }
+        guard let first = slots.first?.time else { return nil }
+        return max(0, Int(referenceTime.timeIntervalSince(first) / 3600))
+    }
 
-    func timeline(at now: Date, pastHours: Int?) -> RadarTimeline { timeline(at: now) }
+    /// The timeline with the past cut to the user's choice (`pastHours`, the same for every layer); `nil` shows all slots.
+    /// The backend copy used by the overlay and the prefetch is cut the same way, so nothing outside the slider is loaded.
+    func timeline(at now: Date, pastHours: Int?) -> RadarTimeline {
+        let reference = nowSlotTime(at: now)
+        guard let pastHours else { return timeline(at: now) }
+        let start = reference.addingTimeInterval(-Double(pastHours) * 3600)
+        let cut = backend.cut(from: start)
+        guard !cut.slots.isEmpty else { return timeline(at: now) }
+        let dates = cut.slots.map(\.time)
+        return RadarTimeline(referenceTime: reference, dates: dates, backend: cut,
+                             gaps: RadarTimelineGaps(dates: dates, stepMinutes: stepMinutes, history: backend.history, windowStart: start))
+    }
 
     func timeline(at now: Date) -> RadarTimeline {
         let dates = slots.map(\.time)
@@ -544,8 +560,29 @@ final class RadarLayerStore {
     private(set) var loading: Set<RadarLayer> = []
     /// The user's chosen maximum past (hours), the same setting for every layer.
     private(set) var pastHours = RadarPastWindow.defaultHours
-    func setPastHours(_ hours: Int) { pastHours = hours }
-    func offeredHistoryHours(_ layer: RadarLayer) -> Int? { nil }
+    /// Changes the setting for every layer: the timelines are cut again; each layer keeps the instant it shows when that
+    /// instant is still inside the window, else it goes to its oldest slot.
+    func setPastHours(_ hours: Int) {
+        guard hours != pastHours else { return }
+        pastHours = hours
+        for layer in Array(snapshots.keys) { reapply(layer) }
+    }
+    /// Hours of past the layer's own server data offers; `nil` while nothing is loaded (never guessed).
+    func offeredHistoryHours(_ layer: RadarLayer) -> Int? { snapshot(layer).manifest?.offeredHistoryHours }
+
+    /// The instant each layer's timeline was last built for (a change of the setting rebuilds it for the same instant).
+    @ObservationIgnored private var appliedAt: [RadarLayer: Date] = [:]
+
+    private func reapply(_ layer: RadarLayer) {
+        guard var value = snapshots[layer], let manifest = value.manifest else { return }
+        let timeline = manifest.timeline(at: appliedAt[layer] ?? clock(), pastHours: pastHours)
+        let previousDate = value.timeline.flatMap { $0.dates.indices.contains(value.selectedFrame) ? $0.dates[value.selectedFrame] : nil }
+        value.selectedFrame = RadarTimelineSelection.index(
+            previous: previousDate, previousReference: value.timeline?.referenceTime,
+            dates: timeline.dates, reference: timeline.referenceTime)
+        value.timeline = timeline
+        snapshots[layer] = value
+    }
 
     @ObservationIgnored private let client: RadarLayerClient
     @ObservationIgnored private let clock: () -> Date
@@ -632,7 +669,8 @@ final class RadarLayerStore {
         case .cancelled:
             return
         case .fresh(let manifest):
-            let timeline = manifest.timeline(at: now)
+            let timeline = manifest.timeline(at: now, pastHours: pastHours)
+            appliedAt[layer] = now
             if value.manifest != manifest || value.timeline != timeline {
                 let previousDate = value.timeline.flatMap { $0.dates.indices.contains(value.selectedFrame) ? $0.dates[value.selectedFrame] : nil }
                 value.selectedFrame = RadarTimelineSelection.index(
