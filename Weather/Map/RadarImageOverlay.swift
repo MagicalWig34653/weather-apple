@@ -15,6 +15,8 @@ enum RadarBackendPolicy {
     /// Prefetch stops adding images once the compressed cache holds this much (80 % of the 50 MB
     /// limit). Far slots then never evict the near ones; demand for the visible slot still fits.
     static let prefetchCacheCeiling = 40_000_000
+    /// Most slots prefetched around the selected one, whatever the manifest holds (72 h at 5 minutes = 865 slots).
+    static let maximumPrefetchSlots = 61
 }
 
 enum RadarImageDecoder {

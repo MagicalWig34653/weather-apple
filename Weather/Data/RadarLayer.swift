@@ -310,8 +310,13 @@ struct RadarLayerManifest: Equatable, Sendable {
     }
 
     func timeline(at now: Date) -> RadarTimeline {
-        RadarTimeline(referenceTime: nowSlotTime(at: now), dates: slots.map(\.time), backend: backend)
+        let dates = slots.map(\.time)
+        return RadarTimeline(referenceTime: nowSlotTime(at: now), dates: dates, backend: backend,
+                             gaps: RadarTimelineGaps(dates: dates, stepMinutes: stepMinutes, history: backend.history))
     }
+
+    /// The backend's `history` block (hours, oldest, gaps); `nil` when absent or malformed.
+    var historyInfo: RadarHistoryInfo? { backend.history }
 
     // MARK: Parsing
 
@@ -483,7 +488,7 @@ struct LayerSnapshot: Equatable {
 
 extension RadarTimeline: Equatable {
     static func == (lhs: RadarTimeline, rhs: RadarTimeline) -> Bool {
-        lhs.referenceTime == rhs.referenceTime && lhs.dates == rhs.dates && lhs.backend == rhs.backend
+        lhs.referenceTime == rhs.referenceTime && lhs.dates == rhs.dates && lhs.backend == rhs.backend && lhs.gaps == rhs.gaps
     }
 }
 

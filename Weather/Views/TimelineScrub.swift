@@ -117,7 +117,7 @@ enum PlaybackWindow {
 enum TimelineAccessibility {
     /// "HH:mm, Messung" / "Vorhersage"; names the day (e.g. "Fr., 30. Okt., 23:55, Messung") when it is not the reference day.
     static func value(date: Date?, isForecast: Bool, reference: Date?, calendar: Calendar = .current,
-                      locale: Locale = .current, caption: String? = nil) -> String {
+                      locale: Locale = .current, caption: String? = nil, gapLines: [String] = []) -> String {
         guard let date else { return NSLocalizedString("TIMELINE_UNKNOWN", value: "Unbekannt", comment: "Timeline value") }
         var text = date.formatted(.dateTime.hour().minute().locale(locale))
         if let reference, !calendar.isDate(date, inSameDayAs: reference) {

@@ -18,6 +18,9 @@ enum RadarPastWindow {
         defaults.set(hours, forKey: defaultsKey)
     }
 
+    /// Whether a step is greyed out: the direct DWD path has one hour; the cache backend offers what it reports.
+    static func isUnavailable(_ hours: Int, direct: Bool, serverHours: Int?) -> Bool { false }
+
     static func label(_ hours: Int) -> String {
         hours == 1 ? NSLocalizedString("RADAR_PAST_WINDOW_ONE", value: "1 Stunde", comment: "History window")
             : String(format: NSLocalizedString("RADAR_PAST_WINDOW_MANY", value: "%d Stunden", comment: "History window"), hours)
@@ -35,6 +38,8 @@ struct RadarHistory: Equatable, Sendable {
     let imageHeight: Int
     let bounds: RadarBounds
     let slots: [RadarManifest.Slot]
+    /// Additive `history` block (PR #4); `nil` for today's backend or a malformed block.
+    var info: RadarHistoryInfo? = nil
 
     static let maximumSlots = 1000
     static let maximumHistoryHours = 168

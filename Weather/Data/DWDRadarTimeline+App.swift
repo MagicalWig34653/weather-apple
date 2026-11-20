@@ -5,6 +5,8 @@ struct RadarTimeline: Sendable {
     let dates: [Date]
     /// Set when the frames come from the radar cache backend; `nil` means direct DWD tiles.
     var backend: RadarManifest?
+    /// Holes in the frames (never filled with placeholders); empty for the direct DWD path.
+    var gaps: RadarTimelineGaps = .empty
 }
 
 extension DWDClient {
