@@ -7,8 +7,17 @@ import SwiftUI
 struct RainActivityPresentation: Equatable {
     let phase: RainActivityAttributes.Phase
     let isStale: Bool
-    /// Countdown target; nil when stale, absent, or already in the past.
+    /// Remaining time below which no countdown is shown (seconds). The system marks an activity stale (the only re-render at the event
+    /// time) at the earliest about 117 to 120 s after the update (measured 20.11.2026), so a countdown of less than that would stand at
+    /// "0:00"; 150 s adds a reserve.
+    static let minimumCountdown: TimeInterval = 150
+
+    /// Countdown target. Only while the system is guaranteed to re-render at the event (`ContentState.staleAtEvent`) and at least
+    /// `minimumCountdown` remain; nil when stale, absent, imminent, in the past, or when the stale date is not the event time.
     let countdownTarget: Date?
+    /// Event time shown as a clock time instead of a countdown: the event is far enough away but nothing re-renders the card at the
+    /// event (remote update with `stale-date` = reference + 20 min), so a ticking timer would stand at "0:00". A clock time never stands.
+    let clockTarget: Date?
     let referenceTime: Date
     /// Set for region payloads (area share, maximum class, radius); nil for places.
     let region: RainActivityRegionPresentation?
@@ -22,10 +31,12 @@ struct RainActivityPresentation: Equatable {
         isStale = state.isStale(at: now) || (contextIsStale && !eventReached)
         region = state.isRegion ? RainActivityRegionPresentation(state: state, isStale: isStale, localRadiusKm: localRadiusKm) : nil
         if !isStale, state.phase == .startsIn || state.phase == .endsIn,
-           let date = state.eventDate, date > now {
-            countdownTarget = date
+           let date = state.eventDate, date.timeIntervalSince(now) >= Self.minimumCountdown {
+            countdownTarget = state.staleAtEvent ? date : nil
+            clockTarget = state.staleAtEvent ? nil : date
         } else {
             countdownTarget = nil
+            clockTarget = nil
         }
     }
 
@@ -37,6 +48,7 @@ struct RainActivityPresentation: Equatable {
     /// Large element of the card: a countdown with a small label, or one statement.
     enum Hero: Equatable {
         case countdown(label: String, target: Date)
+        case clock(label: String, date: Date)
         case statement(String)
     }
 
@@ -54,9 +66,15 @@ struct RainActivityPresentation: Equatable {
                 return .countdown(label: NSLocalizedString("ACTIVITY_RAIN_IN", value: "Regen in", comment: "Live Activity, followed by a countdown"),
                                   target: target)
             }
+            if let date = clockTarget {
+                return .clock(label: NSLocalizedString("ACTIVITY_RAIN_AT", value: "Regen ab", comment: "Live Activity, followed by a clock time"), date: date)
+            }
             return .statement(NSLocalizedString("ACTIVITY_RAIN_IMMINENT", value: "Regen gleich", comment: "Live Activity"))
         case .endsIn:
             if let target = countdownTarget { return .countdown(label: Self.endsInLabel, target: target) }
+            if let date = clockTarget {
+                return .clock(label: NSLocalizedString("ACTIVITY_ENDS_AT", value: "Endet um", comment: "Live Activity, followed by a clock time"), date: date)
+            }
             return .statement(NSLocalizedString("ACTIVITY_ENDS_IMMINENT", value: "Endet gleich", comment: "Live Activity"))
         case .raining: return .statement(NSLocalizedString("WIDGET_RAINING", value: "Es regnet", comment: "Live Activity"))
         case .dry: return .statement(NSLocalizedString("WIDGET_DRY", value: "Trocken", comment: "Live Activity"))

@@ -54,7 +54,10 @@ enum LiveActivityUITestStub {
         }
         // `-UITestLiveActivityStale event|age`: stale date = event time (what the app/server should send) or the old 20 minutes.
         let eventStale = args.firstIndex(of: "-UITestLiveActivityStale").map { $0 + 1 < args.count && args[$0 + 1] == "event" } ?? false
+        // `event`: like the app's own start (state.staleDate and the activity stale date = event time, countdown allowed). `age` (default):
+        // like a remote update (`stale-date` = reference + 20 min, state.staleDate = reference + 20 min): no event-time re-render.
         let stale = eventStale ? content.activityStaleDate(now: now) : now.addingTimeInterval(1_200)
+        if eventStale { content = content.markingStaleAtEvent(now: now) }
         Task {
             for old in Activity<RainActivityAttributes>.activities { await old.end(nil, dismissalPolicy: .immediate) }
             do {

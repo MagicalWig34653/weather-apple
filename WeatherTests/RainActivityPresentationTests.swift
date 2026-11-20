@@ -14,6 +14,16 @@ final class RainActivityPresentationTests: XCTestCase {
               regionRadiusKm: radius)
     }
 
+    /// Event `seconds` from now. `trusted` = the content declares `staleDate` = event time (what the app sets when it starts an activity).
+    private func timed(_ phase: RainActivityAttributes.Phase, seconds: Double, trusted: Bool, wet: Int? = nil, peak: Int? = nil,
+                       radius: Int? = nil) -> RainActivityAttributes.ContentState {
+        var s = RainActivityAttributes.ContentState(phase: phase, eventDate: now.addingTimeInterval(seconds), intensityClass: 2,
+                                                    referenceTime: now.addingTimeInterval(-60), wetSharePercent: wet,
+                                                    peakSharePercent: peak, regionRadiusKm: radius)
+        if trusted { s.staleDate = s.eventDate }
+        return s
+    }
+
     private func p(_ s: RainActivityAttributes.ContentState, stale: Bool = false, at: Date? = nil, local: Int? = nil) -> RainActivityPresentation {
         RainActivityPresentation(state: s, contextIsStale: stale, now: at ?? now, localRadiusKm: local)
     }
@@ -21,7 +31,7 @@ final class RainActivityPresentationTests: XCTestCase {
     // MARK: Hero
 
     func testStartsInWithFutureEventIsCountdownWithSmallLabel() {
-        let pr = p(state(.startsIn, in: 8))
+        let pr = p(timed(.startsIn, seconds: 480, trusted: true))
         XCTAssertEqual(pr.hero, .countdown(label: "Regen in", target: now.addingTimeInterval(480)))
         XCTAssertNil(pr.heroDetail)
         XCTAssertEqual(pr.tone, .rain)
@@ -34,7 +44,7 @@ final class RainActivityPresentationTests: XCTestCase {
     }
 
     func testEndsInUsesEndsLabelNotHeadline() {
-        let pr = p(state(.endsIn, in: 5))
+        let pr = p(timed(.endsIn, seconds: 300, trusted: true))
         XCTAssertEqual(pr.hero, .countdown(label: "Endet in", target: now.addingTimeInterval(300)))
         XCTAssertEqual(p(state(.endsIn, in: 0)).hero, .statement("Endet gleich"))
     }
@@ -97,15 +107,77 @@ final class RainActivityPresentationTests: XCTestCase {
     }
 
     func testCountdownTurnsIntoStatementAfterTheEvent() {
-        let s = state(.startsIn, in: 8)
-        XCTAssertEqual(p(s, at: now.addingTimeInterval(7 * 60)).hero, .countdown(label: "Regen in", target: now.addingTimeInterval(480)))
+        let s = timed(.startsIn, seconds: 480, trusted: true)
+        XCTAssertEqual(p(s, at: now.addingTimeInterval(5 * 60)).hero, .countdown(label: "Regen in", target: now.addingTimeInterval(480)))
+        XCTAssertEqual(p(s, at: now.addingTimeInterval(6 * 60)).hero, .statement("Regen gleich"), "120 s left: below the minimum, no countdown")
         XCTAssertEqual(p(s, at: now.addingTimeInterval(8 * 60)).hero, .statement("Regen gleich"))
+    }
+
+    // MARK: Never a frozen "0:00" (Brain 20.11.2026: lock screen still showed "Endet in 0:00" 78 s after the event)
+
+    func testClockTargetForAllRemainingTimes() {
+        for phase in [RainActivityAttributes.Phase.startsIn, .endsIn] {
+            for seconds in [-3_600.0, -1, 0, 30, 90, 119, 121, 149] {
+                for trusted in [true, false] {
+                    XCTAssertNil(p(timed(phase, seconds: seconds, trusted: trusted)).clockTarget, "\(phase) \(seconds) s trusted=\(trusted)")
+                }
+            }
+            for seconds in [150.0, 151, 300, 1_000] {
+                let target = now.addingTimeInterval(seconds)
+                XCTAssertNil(p(timed(phase, seconds: seconds, trusted: true)).clockTarget)
+                let clock = p(timed(phase, seconds: seconds, trusted: false))
+                XCTAssertEqual(clock.clockTarget, target)
+                if case .clock(_, let d) = clock.hero { XCTAssertEqual(d, target) } else { XCTFail("clock expected at \(seconds) s") }
+            }
+        }
+    }
+
+    func testClockLabelsAndNoTimerForRemoteUpdates() {
+        XCTAssertEqual(p(timed(.startsIn, seconds: 600, trusted: false)).hero.clockLabel, "Regen ab")
+        XCTAssertEqual(p(timed(.endsIn, seconds: 600, trusted: false)).hero.clockLabel, "Endet um")
+        XCTAssertNil(p(timed(.startsIn, seconds: 600, trusted: true)).hero.clockLabel)
+    }
+
+    /// Event far away but not trusted, then the clock passes the event without any re-render: a clock time stays valid text.
+    func testClockTimeStaysTheSameAfterTheEvent() {
+        let s = timed(.startsIn, seconds: 600, trusted: false)
+        let target = now.addingTimeInterval(600)
+        XCTAssertEqual(p(s, at: now).hero, .clock(label: "Regen ab", date: target))
+        XCTAssertEqual(p(s, at: now.addingTimeInterval(601)).hero, .statement("Regen gleich"), "if the view is re-run after the event")
+    }
+
+    func testStaleAtEventDoesNotMeanOutdatedAndKeepsTwentyMinuteAgeLimit() {
+        let s = timed(.startsIn, seconds: 300, trusted: true)
+        XCTAssertTrue(s.staleAtEvent)
+        XCTAssertFalse(s.isStale(at: now.addingTimeInterval(301)), "the event-time stale date is no age limit")
+        XCTAssertEqual(s.effectiveStaleDate, s.referenceTime.addingTimeInterval(1_200))
+        XCTAssertTrue(s.isStale(at: s.referenceTime.addingTimeInterval(1_200)))
+        var other = timed(.startsIn, seconds: 300, trusted: false); other.staleDate = now.addingTimeInterval(100)
+        XCTAssertFalse(other.staleAtEvent, "an earlier server stale date is an age limit")
+        XCTAssertTrue(other.isStale(at: now.addingTimeInterval(101)))
+    }
+
+    func testMarkingStaleAtEventOnlyForARunningCountdown() {
+        let running = timed(.startsIn, seconds: 300, trusted: false)
+        let marked = running.markingStaleAtEvent(now: now)
+        XCTAssertEqual(marked.staleDate, running.eventDate); XCTAssertTrue(marked.staleAtEvent)
+        XCTAssertEqual(marked.markingStaleAtEvent(now: now), marked, "idempotent")
+        for s in [state(.raining), state(.dry), timed(.endsIn, seconds: -5, trusted: false), state(.startsIn, in: 30)] {
+            XCTAssertNil(s.markingStaleAtEvent(now: now).staleDate, "no running countdown within the 20 minutes: unchanged")
+        }
+    }
+
+    func testRegionAndStaleCasesKeepTheNewRule() {
+        XCTAssertEqual(p(timed(.startsIn, seconds: 90, trusted: true, wet: 0, peak: 34, radius: 10)).hero, .statement("Regen gleich"))
+        XCTAssertEqual(p(timed(.startsIn, seconds: 900, trusted: false, wet: 0, peak: 34, radius: 10)).clockTarget, now.addingTimeInterval(900))
+        XCTAssertNil(p(timed(.startsIn, seconds: 900, trusted: false), stale: true).clockTarget, "stale: orange statement, no clock")
+        XCTAssertEqual(p(timed(.startsIn, seconds: 900, trusted: false), stale: true).tone, .stale)
     }
 
     // MARK: Region on the Watch card
 
     func testRegionKeepsPointHeroAndAddsShortShare() {
-        let pr = p(state(.startsIn, in: 12, wet: 0, peak: 34, radius: 10))
+        let pr = p(timed(.startsIn, seconds: 720, trusted: true, wet: 0, peak: 34, radius: 10))
         XCTAssertEqual(pr.hero, .countdown(label: "Regen in", target: now.addingTimeInterval(720)))
         XCTAssertEqual(pr.watchShareText, "bis zu 34 % nass")
         XCTAssertEqual(p(state(.raining, wet: 34, peak: 60, radius: 10)).watchShareText, "34 % nass")
@@ -151,4 +223,8 @@ final class RainActivityPresentationTests: XCTestCase {
         XCTAssertEqual(p(state(.raining), stale: true).compactLabel, "Veraltet")
         XCTAssertEqual(p(state(.dry), stale: true).symbol, "clock.badge.exclamationmark")
     }
+}
+
+private extension RainActivityPresentation.Hero {
+    var clockLabel: String? { if case .clock(let label, _) = self { return label } else { return nil } }
 }

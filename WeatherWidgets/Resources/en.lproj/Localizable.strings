@@ -31,6 +31,8 @@
 "ACTIVITY_RAIN_IMMINENT" = "Rain imminent";
 "ACTIVITY_ENDS_IN" = "Ends in";
 "ACTIVITY_ENDS_IMMINENT" = "Ends imminently";
+"ACTIVITY_RAIN_AT" = "Rain from";
+"ACTIVITY_ENDS_AT" = "Ends at";
 "WIDGET_ENTITY_TYPE" = "Saved place";
 "WIDGET_INTENT_TITLE" = "Rain forecast";
 "WIDGET_INTENT_DESCRIPTION" = "Shows the forecast for a place saved in Showers.";

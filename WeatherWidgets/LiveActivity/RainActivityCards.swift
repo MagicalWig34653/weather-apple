@@ -82,22 +82,10 @@ struct RainHeroView: View {
     var body: some View {
         switch p.hero {
         case .countdown(let label, let target):
-            let countdown = Text(timerInterval: RainActivityTiming.countdownInterval(now: .now, target: target),
-                                 countsDown: true, showsHours: false)
-                .monospacedDigit()
-            if size == .watch {
-                // Smart Stack card is only 69.5 to 80.5 pt high: label and countdown share one line.
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.7)
-                    countdown.font(.system(size: 26, weight: .bold)).minimumScaleFactor(0.6).lineLimit(1)
-                }
-            } else {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(label).font(font).lineLimit(1).minimumScaleFactor(0.6)
-                    countdown.font(font).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
+            labelAndValue(label, Text(timerInterval: RainActivityTiming.countdownInterval(now: .now, target: target),
+                                      countsDown: true, showsHours: false))
+        case .clock(let label, let date):
+            labelAndValue(label, Text(date, style: .time))
         case .statement(let text):
             VStack(alignment: .leading, spacing: 2) {
                 Text(text).font(size == .watch ? .system(size: 20, weight: .bold) : font)
@@ -107,6 +95,24 @@ struct RainHeroView: View {
                     Text(detail).font(size == .watch ? .system(size: 11) : size == .lock ? .caption : .subheadline)
                         .foregroundStyle(.secondary).lineLimit(size == .watch ? 1 : 2).minimumScaleFactor(size == .watch ? 0.75 : 1)
                 }
+            }
+        }
+    }
+
+    /// "Regen in" + value (countdown or clock time); the Smart Stack card shares one line.
+    @ViewBuilder private func labelAndValue(_ label: String, _ value: Text) -> some View {
+        let value = value.monospacedDigit()
+        if size == .watch {
+            // Smart Stack card is only 69.5 to 80.5 pt high: label and value share one line.
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.7)
+                value.font(.system(size: 26, weight: .bold)).minimumScaleFactor(0.6).lineLimit(1)
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(label).font(font).lineLimit(1).minimumScaleFactor(0.6)
+                value.font(font).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
