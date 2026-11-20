@@ -851,6 +851,9 @@ final class RadarHistoryHoursTests: XCTestCase {
             XCTAssertEqual(RadarPastWindow.choice(defaults), expected, "stored \(raw)")
             if expected == nil { XCTAssertEqual(defaults.integer(forKey: RadarPastWindow.defaultsKey), raw, "an unusable value is left alone, not rewritten") }
         }
+        let (text, _, textDefaults) = try radarStore(historyHours: 72, rawDefaults: [RadarPastWindow.defaultsKey: "48"])
+        XCTAssertEqual(text.pastChoice, 48, "a launch argument arrives as text")
+        XCTAssertEqual(RadarPastWindow.choice(textDefaults), 48)
         let (corrupt, _, defaults) = try radarStore(historyHours: 72, rawDefaults: [RadarPastWindow.defaultsKey: "abc"])
         XCTAssertNil(corrupt.pastChoice)
         XCTAssertNil(RadarPastWindow.choice(defaults))

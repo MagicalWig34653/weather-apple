@@ -246,7 +246,7 @@ struct RadarScreen: View {
             guard store.isPlaying else { return }
             // Playback covers only a window (at most 3 h of past); start there if the slider is further back.
             if let timeline = store.displayTimeline {
-                let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.pastHours)
+                let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.playbackPastHours)
                 if store.displayFrameIndex < start { store.displayFrameIndex = start }
             }
             var waitingFrame = store.displayFrameDate
@@ -267,7 +267,7 @@ struct RadarScreen: View {
                 let frameFinished = currentRadarLoadState.map { $0.requested > 0 && $0.pending == 0 } ?? false
                 guard frameFinished || Date().timeIntervalSince(waitingSince) >= 12 else { continue }
                 store.displayFrameIndex = PlaybackWindow.nextIndex(after: store.displayFrameIndex, dates: timeline.dates,
-                                                                   reference: timeline.referenceTime, pastHours: store.pastHours)
+                                                                   reference: timeline.referenceTime, pastHours: store.playbackPastHours)
                 waitingFrame = store.displayFrameDate
                 waitingSince = Date()
             }

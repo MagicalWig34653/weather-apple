@@ -203,13 +203,13 @@ struct InformationSheet: View {
                     HStack {
                         Text(RadarPastWindow.label(hours))
                         Spacer()
-                        if store.pastHours == hours { Image(systemName: "checkmark").accessibilityHidden(true) }
+                        if store.shownPastHours == hours { Image(systemName: "checkmark").accessibilityHidden(true) }
                     }
                     .contentShape(Rectangle())
                 }
                 .foregroundStyle(unavailable ? .secondary : .primary)
                 .disabled(unavailable)
-                .accessibilityAddTraits(store.pastHours == hours ? .isSelected : [])
+                .accessibilityAddTraits(store.shownPastHours == hours ? .isSelected : [])
                 .accessibilityHint(unavailable ? NSLocalizedString("INFO_PAST_UNAVAILABLE_HINT", value: "Derzeit nicht verfügbar", comment: "Info") : "")
                 .accessibilityIdentifier("past-hours-\(hours)")
             }

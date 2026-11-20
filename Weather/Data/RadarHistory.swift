@@ -8,16 +8,30 @@ enum RadarPastWindow {
     /// Past covered by the direct DWD path (12 analyses, about one hour), whatever the setting says.
     static let directHours = 1
 
-    static func load(_ defaults: UserDefaults) -> Int {
-        let stored = defaults.integer(forKey: defaultsKey)
-        return options.contains(stored) ? stored : defaultHours
-    }
+    /// Effective hours of a stored choice, else the fixed default (kept for callers without a backend window).
+    static func load(_ defaults: UserDefaults) -> Int { choice(defaults) ?? defaultHours }
 
-    /// The user's explicit choice; `nil` = never chosen (scaffold: always `nil`).
-    static func choice(_ defaults: UserDefaults) -> Int? { nil }
-    static func clear(_ defaults: UserDefaults) {}
-    /// Default window of the radar without a choice (scaffold: the fixed default).
-    static func standardHours(history: RadarHistory?) -> Int { defaultHours }
+    /// The user's explicit choice; `nil` = never chosen. Builds 50 and 52 write `radarPastHours` only when the user picks a
+    /// step (the key is absent on a fresh install and after "never touched"), so a stored valid step IS a choice - also 2 -
+    /// and an absent, corrupt or unknown value means "never chosen" (such a value is left in place, not rewritten).
+    static func choice(_ defaults: UserDefaults) -> Int? {
+        // A launch argument (`-radarPastHours 48`, UI tests) arrives as text in the argument domain: accept both.
+        let stored: Int?
+        switch defaults.object(forKey: defaultsKey) {
+        case let number as NSNumber where CFGetTypeID(number) != CFBooleanGetTypeID(): stored = Int(exactly: number.doubleValue)
+        case let text as String: stored = Int(text)
+        default: stored = nil
+        }
+        guard let stored, options.contains(stored) else { return nil }
+        return stored
+    }
+    static func clear(_ defaults: UserDefaults) { defaults.removeObject(forKey: defaultsKey) }
+    /// Window of the radar without a choice: what the backend's `history.json` reports (`history.hours`, PR #4), else the
+    /// fixed default (today's backend has no block: nothing is guessed). Only the steps of the setting count.
+    static func standardHours(history: RadarHistory?) -> Int {
+        guard let hours = history?.info?.hours else { return defaultHours }
+        return options.contains(hours) ? hours : (options.filter { $0 <= hours }.max() ?? defaultHours)
+    }
 
     static func save(_ hours: Int, to defaults: UserDefaults) {
         guard options.contains(hours) else { return }

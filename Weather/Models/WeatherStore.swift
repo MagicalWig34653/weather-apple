@@ -52,11 +52,19 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// Where the currently shown radar images come from (honest source display).
     var radarSource: RadarSource = .cache
     var radarAttribution = RadarAttribution.default
-    /// Chosen maximum past of the timeline (hours); only the cache backend can deliver more than one hour.
+    /// Effective maximum past of the radar timeline (hours): the user's choice, else the backend's window; only the cache
+    /// backend can deliver more than one hour.
     private(set) var pastHours = RadarPastWindow.defaultHours
-    /// The user's explicit choice; `nil` = never chosen (the maps' own window applies).
-    private(set) var pastChoice: Int? = nil
-    func usePastDefault() {}
+    /// The user's explicit choice; `nil` = never chosen (each map's own server window applies).
+    private(set) var pastChoice: Int?
+    /// The step shown as selected: the choice, else the active map's window (largest step not above it).
+    var shownPastHours: Int {
+        if let pastChoice { return pastChoice }
+        guard layers.active != .radar, let offered = layers.offeredHistoryHours(layers.active) else { return pastHours }
+        return RadarPastWindow.options.filter { $0 <= max(offered, RadarPastWindow.directHours) }.max() ?? RadarPastWindow.defaultHours
+    }
+    /// Past used for the play window: the choice, else the fixed default (the window never grows with the backend's 72 h).
+    var playbackPastHours: Int { pastChoice ?? RadarPastWindow.defaultHours }
     private(set) var historyStatus = RadarHistoryStatus.notNeeded
     /// Longest past the server currently offers (`history_hours`), if known.
     var serverHistoryHours: Int? { if case .loaded(let hours) = historyStatus { hours } else { nil } }
@@ -123,9 +131,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
 #endif
         self.defaults = defaults
         super.init()
-        pastHours = RadarPastWindow.load(defaults)
+        pastChoice = RadarPastWindow.choice(defaults)
+        pastHours = pastChoice ?? RadarPastWindow.defaultHours
         composedHours = pastHours
-        self.layers.setPastHours(pastHours)
+        self.layers.setPastHours(pastChoice)
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         do {
@@ -495,8 +504,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// choice exceeds what latest covers, and only for a new run (or when a manual refresh retries a miss).
     private func resolveBackendTimeline(_ latest: RadarManifest, retryHistory: Bool, requestID: UUID) async -> RadarManifest? {
         guard radarGeneration == requestID, !Task.isCancelled else { return nil }
-        let hours = pastHours
-        if RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
+        var hours = pastChoice ?? RadarPastWindow.defaultHours
+        // Without a choice the backend's window decides, so `history.json` is read once per run to learn it.
+        if pastChoice == nil || RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
             if latest.run != historyCheckedRun || (retryHistory && history == nil) {
                 let result = await backend.history()
                 guard radarGeneration == requestID, !Task.isCancelled else { return nil }
@@ -510,6 +520,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
                     historyCheckedRun = latest.run
                 }
             }
+        }
+        if pastChoice == nil {
+            hours = RadarPastWindow.standardHours(history: history.flatMap { RadarTimelineComposer.isCompatible($0, with: latest) ? $0 : nil })
+        }
+        if RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
             if let history, RadarTimelineComposer.isCompatible(history, with: latest) {
                 historyStatus = .loaded(hours: history.historyHours)
             } else { historyStatus = .unavailable }
@@ -517,13 +532,15 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             historyStatus = .notNeeded
         }
         latestManifest = latest
+        pastHours = hours
         composedHours = hours
         return RadarTimelineComposer.compose(latest: latest, history: history, hours: hours)
     }
 
     /// Changes the maximum past and persists it. The current instant stays selected where possible.
     func setPastHours(_ hours: Int) {
-        guard RadarPastWindow.options.contains(hours), hours != pastHours else { return }
+        guard RadarPastWindow.options.contains(hours), hours != pastChoice else { return }
+        pastChoice = hours
         pastHours = hours
         layers.setPastHours(hours)
         RadarPastWindow.save(hours, to: defaults)
@@ -531,13 +548,23 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         Task { await recomposeTimeline() }
     }
 
+    /// Forgets the choice: every map shows its own server window again (nothing stored).
+    func usePastDefault() {
+        guard pastChoice != nil else { return }
+        pastChoice = nil
+        RadarPastWindow.clear(defaults)
+        layers.setPastHours(nil)
+        guard radarSource == .cache, latestManifest != nil, !isRadarLoading else { return }
+        Task { await recomposeTimeline() }
+    }
+
     private func recomposeTimeline() async {
         guard radarSource == .cache, !isRadarLoading, let latest = latestManifest else { return }
-        let hours = pastHours
+        let choice = pastChoice
         let requestID = UUID()
         radarGeneration = requestID
         guard let merged = await resolveBackendTimeline(latest, retryHistory: true, requestID: requestID) else { return }
-        guard radarGeneration == requestID, hours == pastHours, !isRadarLoading, !Task.isCancelled, radarSource == .cache else { return }
+        guard radarGeneration == requestID, choice == pastChoice, !isRadarLoading, !Task.isCancelled, radarSource == .cache else { return }
         apply(merged.timeline, source: .cache, attribution: RadarAttribution(latest), keepSelection: true)
     }
 
