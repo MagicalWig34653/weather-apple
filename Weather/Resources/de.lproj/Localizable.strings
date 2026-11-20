@@ -458,6 +458,7 @@
 "INFO_PAST_FOOTER_UNAVAILABLE" = "Historie nicht verfügbar: Die Zeitleiste zeigt derzeit nur etwa die letzte Stunde.";
 "INFO_PAST_FOOTER_SERVER_MAX" = "Der Server liefert derzeit höchstens %@.";
 "INFO_PAST_FOOTER_ALL" = "Gilt für alle Karten. Hat eine Karte weniger Vergangenheit, steht an ihrem ältesten Bild „Davor fehlen Daten“.";
+"INFO_PAST_DEFAULT" = "Standard (%@)";
 "INFO_PAST_FOOTER_LAYER" = "Diese Karte reicht derzeit höchstens %@ zurück.";
 "INFO_MODEL_ICON" = "Temperatur-, Taupunkt- und Feuchtekarten: DWD ICON-D2/ICON-EU Modelldaten (CC BY 4.0, Quelle: Deutscher Wetterdienst), bildlich wiedergegeben und aufbereitet (verändert). Modellprognosen, keine Messwerte.";
 "INFO_MODEL_FOREST" = "Optionale Waldfläche: %1$@ (CC BY 4.0); %2$@.";

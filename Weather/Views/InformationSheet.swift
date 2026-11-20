@@ -195,6 +195,20 @@ struct InformationSheet: View {
 
     private var pastSection: some View {
         Section {
+            Button {
+                store.usePastDefault()
+            } label: {
+                HStack {
+                    Text(String(format: NSLocalizedString("INFO_PAST_DEFAULT", value: "Standard (%@)", comment: "Info: the maps' own window, no explicit choice"),
+                                RadarPastWindow.label(store.shownPastHours)))
+                    Spacer()
+                    if store.pastChoice == nil { Image(systemName: "checkmark").accessibilityHidden(true) }
+                }
+                .contentShape(Rectangle())
+            }
+            .foregroundStyle(.primary)
+            .accessibilityAddTraits(store.pastChoice == nil ? .isSelected : [])
+            .accessibilityIdentifier("past-hours-default")
             ForEach(RadarPastWindow.options, id: \.self) { hours in
                 let unavailable = isUnavailable(hours)
                 Button {
@@ -203,13 +217,13 @@ struct InformationSheet: View {
                     HStack {
                         Text(RadarPastWindow.label(hours))
                         Spacer()
-                        if store.shownPastHours == hours { Image(systemName: "checkmark").accessibilityHidden(true) }
+                        if store.pastChoice == hours { Image(systemName: "checkmark").accessibilityHidden(true) }
                     }
                     .contentShape(Rectangle())
                 }
                 .foregroundStyle(unavailable ? .secondary : .primary)
                 .disabled(unavailable)
-                .accessibilityAddTraits(store.shownPastHours == hours ? .isSelected : [])
+                .accessibilityAddTraits(store.pastChoice == hours ? .isSelected : [])
                 .accessibilityHint(unavailable ? NSLocalizedString("INFO_PAST_UNAVAILABLE_HINT", value: "Derzeit nicht verfügbar", comment: "Info") : "")
                 .accessibilityIdentifier("past-hours-\(hours)")
             }

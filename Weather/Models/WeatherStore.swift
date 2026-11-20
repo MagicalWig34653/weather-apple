@@ -131,6 +131,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
 #endif
         self.defaults = defaults
         super.init()
+        #if DEBUG
+        if CommandLine.arguments.contains("-UITestResetPastChoice") { RadarPastWindow.clear(defaults) }   // UI tests: a fresh install
+        #endif
         pastChoice = RadarPastWindow.choice(defaults)
         pastHours = pastChoice ?? RadarPastWindow.defaultHours
         composedHours = pastHours

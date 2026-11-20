@@ -40,19 +40,21 @@ final class RadarHistoryUITests: XCTestCase {
     }
 
     /// `hours`: what the stubbed `history.json` delivers; `setting`: the chosen "Maximale Vergangenheit" (default: the same).
-    private func launchRadar(hours: Int, setting: Int? = nil, extra: [String] = []) -> XCUIApplication {
+    /// `fresh`: no stored choice at all (a fresh install): neither the launch argument nor a value from an earlier launch.
+    private func launchRadar(hours: Int, setting: Int? = nil, fresh: Bool = false, extra: [String] = []) -> XCUIApplication {
         let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
-            "-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestRadarHistoryHours", "\(hours)",
-            "-radarPastHours", "\(setting ?? hours)"] + extra))
+            "-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestRadarHistoryHours", "\(hours)"]
+            + (fresh ? ["-UITestResetPastChoice"] : ["-radarPastHours", "\(setting ?? hours)"]) + extra))
         app.launch()
         return app
     }
 
     /// `setting`: the user's "Maximale Vergangenheit" (shared by every layer); `server`: what the stubbed backend delivers
     /// (`-UITestHistoryHours`). Time is frozen (now 08:50 UTC = 09:50 Berlin on Wednesday 18 Nov 2026).
-    private func launchLayers(setting: Int, server: Int = 72) -> XCUIApplication {
+    private func launchLayers(setting: Int?, server: Int = 72, keepStored: Bool = false) -> XCUIApplication {
         let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
-            "-UITestForecast", "current", "-UITestLayers", "all", "-UITestHistoryHours", "\(server)", "-radarPastHours", "\(setting)"]))
+            "-UITestForecast", "current", "-UITestLayers", "all", "-UITestHistoryHours", "\(server)"]
+            + (setting.map { ["-radarPastHours", "\($0)"] } ?? (keepStored ? [] : ["-UITestResetPastChoice"]))))
         app.launch()
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 30))
@@ -437,6 +439,88 @@ final class RadarHistoryUITests: XCTestCase {
             sleep(2)
             shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende", enforceDark: enforce)
         }
+        app.terminate()
+    }
+
+    // MARK: Default window from the backend (a fresh install has no stored choice)
+
+    /// Fresh install: nothing stored. The first open reaches the oldest slot the backend window offers, without touching the setting.
+    private func freshCase(_ name: String, layers: Pick?, server: Int, now: String, oldest: String, note: String?) throws {
+        let app = layers == nil ? launchRadar(hours: server, fresh: true) : launchLayers(setting: nil, server: server)
+        try layers?.select(app, self)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(now) }, "starts at now (\(now)): \(value(slider))")
+        shot(app, "frisch-\(name)\(server)-1-jetzt")
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(oldest) }, "fresh install, \(server) h backend: oldest slot \(oldest): \(value(slider))")
+        if let note {
+            XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "shortfall named: \(value(slider))")
+            XCTAssertTrue(gapNote(app).label.hasPrefix(note), gapNote(app).label)
+        } else { XCTAssertFalse(gapNote(app).exists, "no hint: \(gapNote(app).label)") }
+        shot(app, "frisch-\(name)\(server)-2-aeltester-slot")
+        jump(slider, fraction: 1)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(now) || $0.localizedCaseInsensitiveContains("vorhersage") }, "way back: \(value(slider))")
+        shot(app, "frisch-\(name)\(server)-3-zurueck")
+        app.terminate()
+    }
+
+    func testFreshInstallEurope48() throws {
+        try freshCase("europa", layers: .rain("Europa (OPERA)"), server: 48, now: "09:50, Messung", oldest: "Mo. 16. Nov., 09:50, Messung", note: nil)
+    }
+    func testFreshInstallEurope72() throws {
+        try freshCase("europa", layers: .rain("Europa (OPERA)"), server: 72, now: "09:50, Messung", oldest: "So. 15. Nov., 09:50, Messung", note: nil)
+    }
+    func testFreshInstallTemperature72() throws {
+        try freshCase("temperatur", layers: .entry(group: nil, "Temperatur"), server: 72, now: "09:00, Modell", oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 09:00")
+    }
+    func testFreshInstallRadarGermany48() throws {
+        try freshCase("radar", layers: nil, server: 48, now: "09:40, Messung", oldest: "Mo. 16. Nov., 09:40, Messung", note: nil)
+    }
+    func testFreshInstallRadarGermany72() throws {
+        try freshCase("radar", layers: nil, server: 72, now: "09:40, Messung", oldest: "So. 15. Nov., 09:40, Messung", note: nil)
+    }
+
+    private func pickStep(_ app: XCUIApplication, _ identifier: String) {
+        openInfoSheet(app)
+        let entry = app.buttons["Maximale Vergangenheit"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        entry.tap()
+        let row = app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), identifier)
+        row.tap()
+        sleep(1)
+    }
+
+    /// Restart: a chosen "2 h" survives the restart and wins over the 72 h window; "Standard" clears it again (the 72 h are back).
+    func testStoredTwoHoursWinsAfterRestartAndStandardBringsTheBackendWindowBack() throws {
+        var app = launchLayers(setting: nil, server: 72)
+        try Pick.rain("Europa (OPERA)").select(app, self)
+        var slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") })
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:50") }, "fresh: 72 h: \(value(slider))")
+        shot(app, "neustart-1-frisch-72")
+        pickStep(app, "past-hours-2")
+        app.terminate()
+
+        // Restart without any argument for the setting: the stored 2 h (an explicit choice) decide.
+        app = launchLayers(setting: nil, server: 72, keepStored: true)
+        try Pick.rain("Europa (OPERA)").select(app, self)
+        slider = self.slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") })
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("07:50, Messung") }, "stored 2 h wins over the 72 h window: \(value(slider))")
+        shot(app, "neustart-2-gespeichert-2h")
+        pickStep(app, "past-hours-default")
+        app.terminate()
+
+        app = launchLayers(setting: nil, server: 72, keepStored: true)
+        try Pick.rain("Europa (OPERA)").select(app, self)
+        slider = self.slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") })
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:50") }, "Standard: the backend's 72 h are back: \(value(slider))")
+        shot(app, "neustart-3-standard-72")
         app.terminate()
     }
 
