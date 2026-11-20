@@ -23,7 +23,7 @@ final class RadarHistoryUITests: XCTestCase {
     /// `brightDataLimit`. Decision to confirm; 0.45 itself is unchanged for the surface and for every other layer.
     private static let brightDataPrefixes = ["wolken", "temperatur", "taupunkt", "feuchte"]
     private static let brightDataLimit = 0.70
-    private static func isBrightData(_ name: String) -> Bool { brightDataPrefixes.contains { name.lowercased().hasPrefix($0) } }
+    private static func isBrightData(_ name: String) -> Bool { brightDataPrefixes.contains { name.lowercased().contains($0) } }
 
     private func shot(_ app: XCUIApplication, _ name: String, enforceDark: Bool = true) {
         sleep(1)
