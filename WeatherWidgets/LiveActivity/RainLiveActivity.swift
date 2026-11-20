@@ -13,17 +13,19 @@ struct RainLiveActivity: Widget {
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     RainActivityTimeline(context: context) { p, _ in
-                        HStack(spacing: 6) {
-                            Image(systemName: p.symbol).foregroundStyle(p.color).accessibilityHidden(true)
-                            if let title = p.watchTitle(name: RainActivityPlace.resolve(context.attributes).name) { Text(title).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
-                        }
-                        .padding(.leading, 8)
+                        // One text run (symbol glyph + place) in the same font as "Stand": both top regions then have the same line
+                        // height and share one baseline (Lino 20.11.: "Stand" stood higher than the place).
+                        let title = p.watchTitle(name: RainActivityPlace.resolve(context.attributes).name)
+                        (Text(Image(systemName: p.symbol)).foregroundColor(p.color)
+                            + Text(title.map { "  " + $0 } ?? "").foregroundColor(.secondary))
+                            .font(.subheadline).lineLimit(1)
+                            .padding(.leading, 8)
                     }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     RainActivityTimeline(context: context) { p, _ in
-                        Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).foregroundStyle(.secondary)
-                            .lineLimit(1).padding(.trailing, 6)   // the island corner clipped the last digit
+                        Text(WidgetAsOfText.string(for: p.referenceTime)).font(.subheadline).foregroundStyle(.secondary)
+                            .lineLimit(1).padding(.trailing, 8)   // the island corner clipped the last digit
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {

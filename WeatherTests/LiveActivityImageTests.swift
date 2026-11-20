@@ -40,10 +40,10 @@ final class LiveActivityImageTests: XCTestCase {
     /// Flat stand-in for the system glass behind a lock screen card.
     private func glass(_ scheme: ColorScheme) -> Color { scheme == .dark ? Color.black.opacity(0.35) : Color.white.opacity(0.55) }
 
-    private func render<V: View>(_ view: V, size: CGSize, scheme: ColorScheme, name: String) throws -> CGSize {
+    private func render<V: View>(_ view: V, size: CGSize, scheme: ColorScheme, name: String, scale: CGFloat = 3) throws -> CGSize {
         let framed = view.frame(width: size.width).environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, .large)
         let renderer = ImageRenderer(content: framed)
-        renderer.scale = 3
+        renderer.scale = scale
         let image = try XCTUnwrap(renderer.uiImage, "no image for \(name)")
         if let dir = ProcessInfo.processInfo.environment["LA_IMAGE_DIR"], let data = image.pngData() {
             try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
@@ -52,20 +52,34 @@ final class LiveActivityImageTests: XCTestCase {
         return image.size
     }
 
+    /// Card heights in pt (the card alone, no wallpaper margin). Lino 20.11.: "viel zu gross"; before the compaction a place card
+    /// was 103 to 119 pt (area 148 to 173 pt) in the render and about 118 pt in the real system (place, raining).
+    static let maxLockHeightPlace: CGFloat = 88
+    static let maxLockHeightRegion: CGFloat = 116
+
     func testLockScreenCardsRenderForAllStatesLightAndDark() throws {
+        var heights: [String: Double] = [:]
+        var failures: [String] = []
         for scheme in [ColorScheme.light, .dark] {
             for sample in samples() {
                 let (p, title) = presentation(sample)
                 let card = RainLockScreenView(p: p, title: title)
                     .background(glass(scheme)).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .padding(16).background(wallpaper(scheme))
-                let size = try render(card, size: CGSize(width: 402, height: 0), scheme: scheme,
-                                      name: "lock-\(scheme == .dark ? "dunkel" : "hell")-\(sample.id)")
-                XCTAssertEqual(size.width, 402, accuracy: 0.5)
-                XCTAssertGreaterThan(size.height, 90, "\(sample.id)")
-                XCTAssertLessThan(size.height, 260, "\(sample.id) must stay a compact lock screen card")
+                let name = "lock-\(scheme == .dark ? "dunkel" : "hell")-\(sample.id)"
+                let size = try render(card, size: CGSize(width: 370, height: 0), scheme: scheme, name: name)
+                heights[name] = Double(size.height)
+                let limit = sample.radius == nil ? Self.maxLockHeightPlace : Self.maxLockHeightRegion
+                if size.height > limit { failures.append("\(name) \(size.height) pt > \(limit) pt") }
+                XCTAssertEqual(size.width, 370, accuracy: 0.5)
+                XCTAssertGreaterThan(size.height, 60, name)
             }
         }
+        if let dir = ProcessInfo.processInfo.environment["LA_IMAGE_DIR"] {
+            try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            try JSONSerialization.data(withJSONObject: heights, options: [.prettyPrinted, .sortedKeys])
+                .write(to: URL(fileURLWithPath: dir).appendingPathComponent("lock-heights.json"))
+        }
+        XCTAssertTrue(failures.isEmpty, "lock screen card too tall: \(failures.joined(separator: "; "))")
     }
 
     func testExpandedIslandRendersForAllStatesLightAndDark() throws {
@@ -94,20 +108,51 @@ final class LiveActivityImageTests: XCTestCase {
         }
     }
 
-    func testWatchCardFitsAndRendersForAllStates() throws {
-        // watchOS has no light mode; the light render is only a comparison. 40/41 mm card width about 150 pt.
-        for scheme in [ColorScheme.dark, .light] {
+    /// Smart Stack Live Activity sizes in pt, Apple HIG "Live Activities" > Specifications (checked 20.11.2026):
+    /// 40 mm 152 x 69.5, 46 mm 194 x 80.5. Lino 20.11.: the preview card was about twice as high as expected (earlier phase: 139 to 159 pt).
+    static let watchSizes: [(name: String, size: CGSize)] = [("40mm", CGSize(width: 152, height: 69.5)), ("46mm", CGSize(width: 194, height: 80.5))]
+
+    func testWatchCardFitsSystemSizeForAllStates() throws {
+        // watchOS has no light mode; the light render is only a comparison.
+        var failures: [String] = []
+        for (watch, size) in Self.watchSizes {
+            for scheme in [ColorScheme.dark, .light] {
+                for sample in samples() {
+                    let (p, _) = presentation(sample)
+                    let fill = scheme == .dark ? Color(white: 0.11) : Color.white.opacity(0.7)
+                    let card = RainWatchCardView(p: p, title: p.watchTitle(name: sample.name)).background(fill)
+                    // Ideal height at the system width must not exceed the system height.
+                    let rendered = try render(card, size: CGSize(width: size.width, height: 0), scheme: scheme,
+                                              name: "watch-ideal-\(watch)-\(scheme == .dark ? "dunkel" : "hell")-\(sample.id)", scale: 2)
+                    if rendered.height > size.height { failures.append("\(watch) \(sample.id) \(scheme): \(rendered.height) pt > \(size.height) pt") }
+                    // File in the exact system size (render, no system proof): 152 x 69.5 pt = 304 x 139 px @2x, 194 x 80.5 pt = 388 x 161 px @2x.
+                    let exact = RainWatchCardView(p: p, title: p.watchTitle(name: sample.name))
+                        .frame(width: size.width, height: size.height, alignment: .topLeading)
+                        .background(fill)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    _ = try render(exact, size: CGSize(width: size.width, height: size.height), scheme: scheme,
+                                   name: "watch-render-\(watch)-\(size.width)x\(size.height)pt-2x-\(scheme == .dark ? "dunkel" : "hell")-\(sample.id)", scale: 2)
+                    XCTAssertEqual(rendered.width, size.width, accuracy: 0.5)
+                }
+            }
+        }
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
+    }
+
+    func testWatchCardDoesNotGrowWithDynamicType() throws {
+        var failures: [String] = []
+        for (watch, size) in Self.watchSizes {
             for sample in samples() {
                 let (p, _) = presentation(sample)
                 let card = RainWatchCardView(p: p, title: p.watchTitle(name: sample.name))
-                    .background(scheme == .dark ? Color(white: 0.11) : Color.white.opacity(0.7))
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                let size = try render(card, size: CGSize(width: 150, height: 0), scheme: scheme,
-                                      name: "watch-\(scheme == .dark ? "dunkel" : "hell")-\(sample.id)")
-                XCTAssertGreaterThan(size.height, 80, "\(sample.id)")
-                XCTAssertLessThan(size.height, sample.radius == nil ? 125 : 140, "\(sample.id) must stay a compact card (design A: about 102 pt, never more than 125 pt, areas 140 pt) so a neighbor card still shows in a 197 pt screen")
+                    .frame(width: size.width).environment(\.dynamicTypeSize, .accessibility3).environment(\.colorScheme, .dark)
+                let renderer = ImageRenderer(content: card)
+                renderer.scale = 3
+                let image = try XCTUnwrap(renderer.uiImage)
+                if image.size.height > size.height { failures.append("\(watch) \(sample.id): \(image.size.height) pt > \(size.height) pt") }
             }
         }
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
     }
 
     func testLargeDynamicTypeStaysRenderable() throws {

@@ -55,6 +55,8 @@ struct RainSymbolTile: View {
 struct RainTitleRow: View {
     let title: String
     let isRegion: Bool
+    var compact = false
+    var font: Font?
 
     var body: some View {
         Label {
@@ -63,7 +65,7 @@ struct RainTitleRow: View {
             Image(systemName: isRegion ? "mappin.and.ellipse" : "mappin")
         }
         .labelStyle(.titleAndIcon)
-        .font(.subheadline.weight(.medium))
+        .font(font ?? (compact ? Font.footnote : .subheadline).weight(.medium))
         .foregroundStyle(.secondary)
     }
 }
@@ -84,10 +86,10 @@ struct RainHeroView: View {
                                  countsDown: true, showsHours: false)
                 .monospacedDigit()
             if size == .watch {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(label).font(.footnote.weight(.semibold)).foregroundStyle(tint)
-                    countdown.font(.system(size: 36, weight: .bold)).minimumScaleFactor(0.5).lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                // Smart Stack card is only 69.5 to 80.5 pt high: label and countdown share one line.
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.7)
+                    countdown.font(.system(size: 26, weight: .bold)).minimumScaleFactor(0.6).lineLimit(1)
                 }
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -98,11 +100,12 @@ struct RainHeroView: View {
             }
         case .statement(let text):
             VStack(alignment: .leading, spacing: 2) {
-                Text(text).font(size == .watch ? .system(.title3, weight: .bold) : font)
+                Text(text).font(size == .watch ? .system(size: 20, weight: .bold) : font)
                     .foregroundStyle(p.tone == .stale ? tint : .primary)
-                    .lineLimit(size == .watch ? 2 : 1).minimumScaleFactor(0.6)
+                    .lineLimit(1).minimumScaleFactor(0.6)
                 if let detail = p.heroDetail, !(size == .watch && p.tone == .stale) {
-                    Text(detail).font(size == .watch ? .caption : .subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    Text(detail).font(size == .watch ? .system(size: 11) : size == .lock ? .caption : .subheadline)
+                        .foregroundStyle(.secondary).lineLimit(size == .watch ? 1 : 2).minimumScaleFactor(size == .watch ? 0.75 : 1)
                 }
             }
         }
@@ -110,7 +113,7 @@ struct RainHeroView: View {
 
     private var font: Font {
         switch size {
-        case .lock: return .system(.largeTitle, weight: .bold)
+        case .lock: return .system(.title2, weight: .bold)
         case .island: return .system(.title, weight: .bold)
         case .watch: return .system(.title3, weight: .bold)
         }
@@ -121,6 +124,7 @@ struct RainHeroView: View {
 struct RainShareBar: View {
     let fraction: Double
     let tint: Color
+    var height: CGFloat = 6
 
     var body: some View {
         GeometryReader { geo in
@@ -129,7 +133,7 @@ struct RainShareBar: View {
                 Capsule().fill(tint).frame(width: geo.size.width * min(1, max(0, fraction)))
             }
         }
-        .frame(height: 6)
+        .frame(height: height)
         .accessibilityHidden(true)
     }
 }
@@ -155,6 +159,35 @@ struct RainRegionDetails: View {
     }
 }
 
+/// Lock screen area details in as few lines as possible: "34 % nass · Stärkste Stufe 4 (leicht)" (two lines if it does not fit), thin bar.
+struct RainLockRegionDetails: View {
+    let p: RainActivityPresentation
+    let tint: Color
+
+    var body: some View {
+        if let region = p.region, region.shortShareText != nil || region.intensityText != nil {
+            VStack(alignment: .leading, spacing: 3) {
+                let share = region.shortShareText, level = region.intensityText
+                ViewThatFits(in: .horizontal) {
+                    line(share, level).lineLimit(1)
+                    VStack(alignment: .leading, spacing: 0) { if let share { Text(share).fontWeight(.semibold) }; if let level { Text(level).foregroundStyle(.secondary) } }
+                }
+                .font(.footnote)
+                if let fraction = region.barFraction { RainShareBar(fraction: fraction, tint: tint, height: 4) }
+            }
+        }
+    }
+
+    private func line(_ share: String?, _ level: String?) -> Text {
+        switch (share, level) {
+        case let (share?, level?): return Text(share).fontWeight(.semibold) + Text(" · ").foregroundStyle(.secondary) + Text(level).foregroundStyle(.secondary)
+        case let (share?, nil): return Text(share).fontWeight(.semibold)
+        case let (nil, level?): return Text(level).foregroundStyle(.secondary)
+        default: return Text("")
+        }
+    }
+}
+
 // MARK: Lock screen (iPhone, iPad) and Dynamic Island expanded
 
 struct RainLockScreenView: View {
@@ -165,22 +198,22 @@ struct RainLockScreenView: View {
 
     var body: some View {
         let tint = p.tone.tint(scheme)
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
             // Accessibility sizes: name and "Stand" stack instead of cutting the name.
             let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout())
             layout {
-                if let title { RainTitleRow(title: title, isRegion: p.region != nil) }
+                if let title { RainTitleRow(title: title, isRegion: p.region != nil, compact: true) }
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
                 Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).foregroundStyle(.secondary)
             }
-            HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
                 RainHeroView(p: p, size: .lock)
                 Spacer(minLength: 0)
-                RainSymbolTile(symbol: p.symbol, tint: tint)
+                RainSymbolTile(symbol: p.symbol, tint: tint, side: 36)
             }
-            RainRegionDetails(p: p, tint: tint)
+            RainLockRegionDetails(p: p, tint: tint)
         }
-        .padding(16)
+        .padding(.horizontal, 14).padding(.vertical, 10)
         .background { RainGlassTint(tint: tint) }
         .accessibilityElement(children: .combine)
     }
@@ -202,7 +235,9 @@ struct RainIslandBottom: View {
 
 // MARK: Watch Smart Stack (ActivityFamily.small)
 
-/// Compact card for the Smart Stack. Short texts only: name, one large element, "Stand HH:MM"; areas add the short share.
+/// Compact card for the Smart Stack. Apple specifies 152 x 69.5 pt (40 mm) to 198 x 81.5 pt (Ultra 3/4) for a Live Activity there
+/// (HIG "Live Activities", Specifications, checked 20.11.2026), so: no bar, no extra lines, fixed (not scaling) type.
+/// Priorities: countdown or statement, place/area, "Stand" or the area share only when the title row has room.
 struct RainWatchCardView: View {
     let p: RainActivityPresentation
     let title: String?
@@ -211,38 +246,41 @@ struct RainWatchCardView: View {
     var body: some View {
         let tint = p.tone.tint(scheme)
         VStack(alignment: .leading, spacing: 1) {
-            HStack(alignment: .top) {
-                if let title { RainTitleRow(title: title, isRegion: p.region != nil).font(.footnote.weight(.medium)) }
-                Spacer(minLength: 4)
-                RainSymbolTile(symbol: p.symbol, tint: tint, side: 24)
+            titleRow(tint: tint)
+            HStack(alignment: .center, spacing: 6) {
+                RainHeroView(p: p, size: .watch)
+                Spacer(minLength: 0)
+                RainSymbolTile(symbol: p.symbol, tint: tint, side: 22)
             }
-            RainHeroView(p: p, size: .watch)
-            ViewThatFits(in: .horizontal) {
-                footer(tint: tint, stacked: false).fixedSize(horizontal: true, vertical: false)
-                footer(tint: tint, stacked: true)
-            }
-            .font(.caption)
-            .foregroundStyle(p.tone == .stale ? tint : Color.secondary)
         }
-        .padding(8)
+        .padding(.horizontal, 8).padding(.vertical, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)   // centered in the system card (69.5 to 81.5 pt high)
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .background { RainGlassTint(tint: tint) }
         .accessibilityElement(children: .combine)
     }
 
-    /// "Stand 13:30 · bis zu 34 % nass" on one line, or the share on its own line when that does not fit.
-    @ViewBuilder private func footer(tint: Color, stacked: Bool) -> some View {
-        let asOf = HStack(spacing: 4) {
+    private var stand: some View {
+        HStack(spacing: 3) {
             if p.tone == .stale { Image(systemName: "clock").accessibilityHidden(true) }
             Text(WidgetAsOfText.string(for: p.referenceTime))
         }
-        if let share = p.watchShareText {
-            if stacked {
-                VStack(alignment: .leading, spacing: 0) { asOf; Text(share) }
-            } else {
-                HStack(spacing: 4) { asOf; Text("·").accessibilityHidden(true); Text(share) }
+    }
+
+    /// Title, then the first of "share" (areas) and "Stand" that still fits next to it.
+    @ViewBuilder private func titleRow(tint: Color) -> some View {
+        let name = Group {
+            if let title { RainTitleRow(title: title, isRegion: p.region != nil, font: .system(size: 12, weight: .medium)) }
+        }
+        let secondary = Color.secondary
+        ViewThatFits(in: .horizontal) {
+            if let share = p.watchShareText, p.tone != .stale {
+                HStack(spacing: 6) { name; Spacer(minLength: 2); Text(share).lineLimit(1) }
+                    .font(.system(size: 11)).foregroundStyle(secondary).fixedSize(horizontal: true, vertical: false)
             }
-        } else {
-            asOf
+            HStack(spacing: 6) { name; Spacer(minLength: 2); stand }
+                .font(.system(size: 11)).foregroundStyle(p.tone == .stale ? tint : secondary).fixedSize(horizontal: true, vertical: false)
+            HStack { name; Spacer(minLength: 0) }
         }
     }
 }
