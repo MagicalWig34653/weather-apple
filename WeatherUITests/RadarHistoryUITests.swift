@@ -142,6 +142,30 @@ final class RadarHistoryUITests: XCTestCase {
         app.terminate()
     }
 
+    // MARK: Setting "Maximale Vergangenheit": 72 hours
+
+    private func openInfoSheet(_ app: XCUIApplication) {
+        let info = app.buttons["Datenquellen und Datenschutz"]
+        XCTAssertTrue(info.waitForExistence(timeout: 30))
+        info.tap()
+    }
+
+    /// The step 72 is offered; it is selectable when the server reports 72 hours (history.json) and greyed out when it reports 48.
+    func testSeventyTwoHoursSelectableOnlyWhereTheServerDeliversThem() throws {
+        for (serverHours, selectable) in [(72, true), (48, false)] {
+            let app = launchRadar(hours: serverHours)
+            XCTAssertTrue(waitValue(slider(app)) { $0.contains("Messung") })
+            openInfoSheet(app)
+            let row = app.buttons["past-hours-72"]
+            for _ in 0..<6 where !row.exists { app.swipeUp() }
+            XCTAssertTrue(row.waitForExistence(timeout: 10), "72 h row exists")
+            XCTAssertEqual(row.isEnabled, selectable, "server delivers \(serverHours) h: 72 selectable = \(selectable)")
+            XCTAssertTrue(app.buttons["past-hours-48"].isEnabled)
+            shot(app, "einstellung-server\(serverHours)")
+            app.terminate()
+        }
+    }
+
     // MARK: A source that reaches back less far
 
     func testRadarShorterSourceShowsTheOldestRealSlotAndNamesWhatIsMissing() throws {
