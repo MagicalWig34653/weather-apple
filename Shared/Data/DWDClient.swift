@@ -5,6 +5,7 @@ actor DWDClient {
     private let transport: Transport
     private let clock: @Sendable () -> Date
     private let retryDelay: @Sendable (Int) -> TimeInterval
+    private let requestTimeout: TimeInterval
     private var cachedRuns: (fetchedAt: Date, dates: [Date])?
     private var pendingRuns: Task<[Date], Error>?
     private struct PointKey: Hashable {
@@ -14,17 +15,28 @@ actor DWDClient {
     private var pendingPoints: [PointKey: Task<RainForecast, Error>] = [:]
     private var pointCache: [WeatherCoordinate: (fetchedAt: Date, forecast: RainForecast)] = [:]
 
+    /// Request and whole-resource limit in seconds. The DWD WMS point query measurably needs 0.1 to 15 s (20.11.2026),
+    /// so the visible app waits longer than widget and watch, which have a short time budget of their own.
+    struct Timeouts: Sendable {
+        let request: TimeInterval
+        let resource: TimeInterval
+        static let interactive = Timeouts(request: 25, resource: 30)
+        static let background = Timeouts(request: 10, resource: 15)
+    }
+
     init(transport: Transport? = nil, clock: @escaping @Sendable () -> Date = { Date() },
-         retryDelay: @escaping @Sendable (Int) -> TimeInterval = { DWDRetryPolicy.delay(afterAttempt: $0) }) {
+         retryDelay: @escaping @Sendable (Int) -> TimeInterval = { DWDRetryPolicy.delay(afterAttempt: $0) },
+         timeouts: Timeouts = .interactive) {
         self.clock = clock
         self.retryDelay = retryDelay
+        self.requestTimeout = timeouts.request
         if let transport { self.transport = transport }
         else {
             let configuration = URLSessionConfiguration.ephemeral
             configuration.urlCache = nil
             configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-            configuration.timeoutIntervalForRequest = 10
-            configuration.timeoutIntervalForResource = 15
+            configuration.timeoutIntervalForRequest = timeouts.request
+            configuration.timeoutIntervalForResource = timeouts.resource
             configuration.httpMaximumConnectionsPerHost = 4
             let session = URLSession(configuration: configuration)
             self.transport = { request in
@@ -118,7 +130,7 @@ actor DWDClient {
     /// `InvalidDimensionValue` answer, HTTP 502/503/504 and transient `URLError`s only.
     private func fetch(_ url: URL, attempt: Int = 1) async throws -> Data {
         try Task.checkCancellation()
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: requestTimeout)
         request.setValue("Showers (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
         let canRetry = attempt < DWDRetryPolicy.maxAttempts
         let (data, response): (Data, HTTPURLResponse)

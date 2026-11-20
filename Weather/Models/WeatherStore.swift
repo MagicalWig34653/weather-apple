@@ -402,12 +402,21 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             forecastCheckedAt = clock()
             rememberForecast(value, for: place.id)
             reloadWidgets()
+        case .failure(let error) where isRunNotReady(error):
+            // The index lists a new run, but the service still answers "not available" for it (measured 10 to 30 s,
+            // 20.11.2026): the shown forecast is valid and nothing failed. The loop asks again within seconds.
+            forecastCheckedAt = clock()
         case .failure(let error):
             forecastFailures += 1
             // Keep (or restore) this place's last valid forecast; the view marks it as not confirmed.
             forecast = lastValidForecast(for: place.id)
             forecastError = error.localizedDescription
         }
+    }
+
+    private func isRunNotReady(_ error: Error) -> Bool {
+        guard (error as? DWDDataError) == .runUnavailable, let forecast else { return false }
+        return !forecast.isStale(at: clock())
     }
 
     func lastValidForecast(for placeID: UUID) -> RainForecast? {
