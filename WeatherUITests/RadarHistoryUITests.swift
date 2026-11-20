@@ -395,6 +395,22 @@ final class RadarHistoryUITests: XCTestCase {
         app.terminate()
     }
 
+    /// Same measurement with an explicit stored 72 h (the way of the previous review): isolates the default logic from the simulator state.
+    func testScrubbingAcrossFullSeventyTwoHourTimelineWithStoredChoiceIsMeasured() throws {
+        let app = launchRadar(hours: 72)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+        let options = XCTMeasureOptions(); options.iterationCount = 5
+        measure(metrics: [XCTClockMetric(), XCTCPUMetric(application: app), XCTMemoryMetric(application: app)], options: options) {
+            slider.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5))
+                .press(forDuration: 0.05, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: 0.5)))
+            slider.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: 0.5))
+                .press(forDuration: 0.05, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)))
+        }
+        XCTAssertTrue(app.state == .runningForeground, "the app is still running after scrubbing 10 full passes")
+        app.terminate()
+    }
+
     // MARK: Integration against a LOCAL backend on the state of PR #4 (skipped unless the host script gives the URL)
 
     /// Runs only with `TEST_RUNNER_HIST_BACKEND_URL=http://127.0.0.1:<port>/v1/radar/` (and `TEST_RUNNER_HIST_HOURS=48|72`):
