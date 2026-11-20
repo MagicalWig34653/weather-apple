@@ -5,7 +5,7 @@ import Foundation
 /// Debug builds only (`-UITestLiveActivity <state>`): starts one local Live Activity with sample data so the real system
 /// presentation (lock screen, Dynamic Island) can be looked at in the simulator. No server, no push token, no place data.
 /// States: startsIn, raining, endsIn, stale, regionStartsIn, regionRaining, dry (shown as a normal state), startsInSoon and
-/// endsInSoon (event in 25 s, to watch the countdown run out). `-UITestLiveActivityName` sets the title.
+/// endsInSoon (event in 25 s, to watch the countdown run out). `-UITestLiveActivityName` sets the title, `-UITestLiveActivityEventSeconds <n>` the event time, `-UITestLiveActivityStale event|age` the stale date.
 /// `-UITestLiveActivityEnd default|immediate` ends the running sample activity with a dry final state instead of starting one
 /// (a local stand-in for a server `event: end`; no APNs involved).
 @MainActor
@@ -34,7 +34,7 @@ enum LiveActivityUITestStub {
                   referenceTime: now.addingTimeInterval(-ageMinutes * 60), staleDate: nil,
                   wetSharePercent: wet, peakSharePercent: peak, regionRadiusKm: radius)
         }
-        let content: RainActivityAttributes.ContentState
+        var content: RainActivityAttributes.ContentState
         switch args[i + 1] {
         case "startsIn": content = state(.startsIn, in: 8.5, maxClass: 2)
         case "raining": content = state(.raining)
@@ -46,6 +46,11 @@ enum LiveActivityUITestStub {
         case "endsInSoon": content = state(.endsIn, in: 0.4, ageMinutes: 1)
         case "regionRaining": content = state(.raining, maxClass: 4, wet: 34, peak: 60, radius: 10)
         default: return
+        }
+        // `-UITestLiveActivityEventSeconds <n>`: event of a startsIn/endsIn state n seconds from now (negative: already reached at the start).
+        if let k = args.firstIndex(of: "-UITestLiveActivityEventSeconds"), k + 1 < args.count, let seconds = Double(args[k + 1]),
+           content.phase == .startsIn || content.phase == .endsIn {
+            content.eventDate = now.addingTimeInterval(seconds)
         }
         // `-UITestLiveActivityStale event|age`: stale date = event time (what the app/server should send) or the old 20 minutes.
         let eventStale = args.firstIndex(of: "-UITestLiveActivityStale").map { $0 + 1 < args.count && args[$0 + 1] == "event" } ?? false
