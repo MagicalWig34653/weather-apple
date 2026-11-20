@@ -234,6 +234,7 @@
 		CE9C7455F028DB5AC30829AA /* RadarLocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 644477897CAB2CA1D4977AD7 /* RadarLocalizationTests.swift */; };
 		CF959FAC75551254C2A4DDE8 /* LayerMenuPrototypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A76C723F5D7B064629F385 /* LayerMenuPrototypeTests.swift */; };
 		CFF6185C499996B91BB926F6 /* SharedStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE612EC61757EC43E7C452B /* SharedStorageTests.swift */; };
+		D23E8E80A80951290D288F3B /* RadarHistoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C273FD109B5F5625046559A /* RadarHistoryUITests.swift */; };
 		D2A91364788C1F526A607365 /* PlacesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36810EBB689143D24E645BAD /* PlacesSheet.swift */; };
 		D3780BCBAD82DB83E7CEE7FC /* AppWidgetIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3689859954B0D5427E9040 /* AppWidgetIntegrationTests.swift */; };
 		D38FAC7702DE3A5C0B2EB57E /* WeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E378685B6423E6A54BB754 /* WeatherApp.swift */; };
@@ -494,6 +495,7 @@
 		89A927AD9D5E06A1D7852CE8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		89C6E818DA20B198D44B2860 /* RainActivityContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainActivityContractTests.swift; sourceTree = "<group>"; };
 		89E7BD6E7A6DC9EB1DDAE5AF /* WatchWidgetPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWidgetPreviews.swift; sourceTree = "<group>"; };
+		8C273FD109B5F5625046559A /* RadarHistoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistoryUITests.swift; sourceTree = "<group>"; };
 		8F27F89DDD1461C52CB7D8C3 /* SharedDWDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDWDTests.swift; sourceTree = "<group>"; };
 		9215A2DF2F8F4720E6E8DA68 /* WatchMapBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMapBackdrop.swift; sourceTree = "<group>"; };
 		93CC3534C43A60FAD5186B36 /* SharedDeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDeepLinkTests.swift; sourceTree = "<group>"; };
@@ -621,6 +623,7 @@
 				F17A801DDF8BA00FDED07D0D /* PlacesLayoutTests.swift */,
 				37D6D537707721F2AA930F4D /* PseudoLocalizationTests.swift */,
 				6C15E85470A90E23A2F92CB7 /* RadarEnglishTests.swift */,
+				8C273FD109B5F5625046559A /* RadarHistoryUITests.swift */,
 				C7F77743C855FDB0375CE1B0 /* RadarWorldUITests.swift */,
 				BFAC332DFEAAFB8F4401D129 /* RadarWorldWidthUITests.swift */,
 				8937CBAA8908C4993B3CCFC4 /* UITestLaunch.swift */,
@@ -1615,6 +1618,7 @@
 				C580F02D92AC66E88CFEC153 /* PlacesLayoutTests.swift in Sources */,
 				BE8347722C02D4FB43AD148B /* PseudoLocalizationTests.swift in Sources */,
 				2D2396336B5A33F83F839249 /* RadarEnglishTests.swift in Sources */,
+				D23E8E80A80951290D288F3B /* RadarHistoryUITests.swift in Sources */,
 				DC5E87F353E68115FC83ACF6 /* RadarWorldUITests.swift in Sources */,
 				1707209911B1530C6CF9DAD4 /* RadarWorldWidthUITests.swift in Sources */,
 				6CA759BB4928578FA47BBF7C /* UITestLaunch.swift in Sources */,

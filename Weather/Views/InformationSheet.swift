@@ -222,9 +222,7 @@ struct InformationSheet: View {
 
     /// Steps beyond what the server offers are disabled; the direct DWD path has no longer past at all.
     private func isUnavailable(_ hours: Int) -> Bool {
-        if store.radarSource == .direct { return hours > RadarPastWindow.directHours }
-        if let offered = store.serverHistoryHours { return hours > max(offered, RadarPastWindow.directHours) }
-        return false
+        RadarPastWindow.isUnavailable(hours, direct: store.radarSource == .direct, serverHours: store.serverHistoryHours)
     }
 
     private var pastFooter: String {

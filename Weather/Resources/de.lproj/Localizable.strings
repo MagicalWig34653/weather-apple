@@ -197,6 +197,8 @@
 "TIMELINE_SCRUB_FINE" = "Feinsteuerung";
 "TIMELINE_UNKNOWN" = "Unbekannt";
 "TIMELINE_SLIDER_HINT" = "Von %1$@ bis %2$@. Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.";
+"TIMELINE_GAP_BEFORE" = "Davor fehlen Daten: %@";
+"TIMELINE_GAP_AFTER" = "Danach fehlen Daten: %@";
 "TIMELINE_PAUSE" = "Animation pausieren";
 "TIMELINE_PLAY" = "Animation abspielen";
 "TIMELINE_PILL_HINT" = "Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen";

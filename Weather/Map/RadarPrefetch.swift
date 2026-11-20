@@ -56,7 +56,18 @@ enum RadarPrefetchPolicy {
         return result
     }
     /// The first `limit` entries of `order(selected:count:)` without building the whole list.
-    static func order(selected: Int, count: Int, limit: Int) -> [Int] { order(selected: selected, count: count) }
+    static func order(selected: Int, count: Int, limit: Int) -> [Int] {
+        guard (0..<count).contains(selected), limit > 0 else { return [] }
+        var result = [selected]
+        result.reserveCapacity(min(limit, count))
+        var distance = 1
+        while result.count < limit, distance < count {
+            if selected - distance >= 0 { result.append(selected - distance) }
+            if result.count < limit, selected + distance < count { result.append(selected + distance) }
+            distance += 1
+        }
+        return result
+    }
     struct Item: Equatable, Sendable { let slot: Int; let path: RadarTileCoordinate }
     // Slot-major plan: the viewport's tile coordinates are identical for every time
     // slot, so slots never visited still get the full coordinate set.

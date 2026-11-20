@@ -366,10 +366,10 @@ final class RadarHistoryHoursTests: XCTestCase {
         let oldest = reference.addingTimeInterval(-72 * 3600)   // Tue 2026-11-17 11:00 in Berlin
         let german = TimelineAccessibility.value(date: oldest, isForecast: false, reference: reference, calendar: berlin,
                                                   locale: Locale(identifier: "de_DE"), caption: RadarLayer.radarEU.frameCaption(isForecast: false))
-        XCTAssertEqual(german, "Di., 17. Nov., 11:00, Messung")
+        XCTAssertEqual(german, "Di. 17. Nov., 11:00, Messung")
         let model = TimelineAccessibility.value(date: oldest, isForecast: false, reference: reference, calendar: berlin,
                                                 locale: Locale(identifier: "de_DE"), caption: RadarLayer.temperature.frameCaption(isForecast: false))
-        XCTAssertEqual(model, "Di., 17. Nov., 11:00, Modell")
+        XCTAssertEqual(model, "Di. 17. Nov., 11:00, Modell")
         let future = TimelineAccessibility.value(date: reference.addingTimeInterval(7200), isForecast: true, reference: reference, calendar: berlin,
                                                  locale: Locale(identifier: "de_DE"), caption: RadarLayer.temperature.frameCaption(isForecast: true))
         XCTAssertEqual(future, "13:00, Modellvorhersage")
@@ -389,7 +389,7 @@ final class RadarHistoryHoursTests: XCTestCase {
         XCTAssertEqual(TimelineGapText.lines(for: 0, gaps: timeline.gaps, calendar: berlin, locale: de), [])
         // A hole across midnight names both days.
         let overnight = try parse(observationObject(hours: 72, missing: Set(420...500))).timeline(at: reference)
-        XCTAssertEqual(TimelineGapText.range(try XCTUnwrap(overnight.gaps.inner.first), calendar: berlin, locale: de), "Mi. 22:00\u{2013}Do. 04:40")
+        XCTAssertEqual(TimelineGapText.range(try XCTUnwrap(overnight.gaps.inner.first), calendar: berlin, locale: de), "Mi 22:00\u{2013}Do 04:40")
         XCTAssertEqual(TimelineGapText.lines(for: 3, gaps: .empty, calendar: berlin, locale: de), [])
     }
 

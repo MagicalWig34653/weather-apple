@@ -155,8 +155,9 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
     /// Forecast layer (pressure): run reference must not be older than this.
     static let maximumForecastRunAge: TimeInterval = 18 * 3600
 
-    /// Most slots prefetched around the selected one (`nil` = whole catalogue). Cloud images are
-    /// hundreds of KB each, so only a window is preloaded; pressure and lightning images are tiny.
+    /// Most slots prefetched around the selected one (`nil` = the catalogue, but never more than
+    /// `RadarBackendPolicy.maximumPrefetchSlots`: a 72 h manifest has 865 slots). Cloud images are
+    /// hundreds of KB each, so only a smaller window is preloaded.
     var prefetchSlotLimit: Int? {
         switch self {
         case .clouds, .cloudmask: 19
@@ -282,7 +283,10 @@ struct RadarLayerManifest: Equatable, Sendable {
     var slots: [RadarManifest.Slot] { backend.slots }
     var radarAttribution: RadarAttribution { RadarAttribution(attribution: attribution, modificationNotice: modificationNotice) }
 
-    static let maximumSlots = 600
+    /// 72 hours at 5 minutes are 865 times (plus the forecast part of a model layer): room for that, nothing more.
+    static let maximumSlots = 1000
+    /// Past valid times of a model layer (`past_slots`): hourly, at most 72 hours; more is not plausible.
+    static let maximumPastSlots = 500
 
     /// Observation: newest slot not older than the layer's limit. Forecast: run young enough and not exhausted.
     func isFresh(at now: Date) -> Bool {
@@ -334,12 +338,39 @@ struct RadarLayerManifest: Equatable, Sendable {
         let legend: RawLegend?
         let source: String?, scale: String?
     }
+    /// `past_slots` of the model layers, decoded on its own: a broken list must not make the layer unusable.
+    private struct PastProbe: Decodable {
+        struct Item: Decodable { let time: String, kind: String, path: String }
+        let pastSlots: [Item]?
+    }
 
     /// Optional short ids only: empty, over-long or odd strings count as absent (never shown, never guessed).
     private static func cleaned(_ value: String?) -> String? {
         guard let value, (1...32).contains(value.count),
               value.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }) else { return nil }
         return value
+    }
+
+    /// Past valid times (`past_slots`) of a model layer, ascending and strictly before the latest run's first slot;
+    /// `nil` when absent or when anything in it is unusable (then the layer shows the latest run alone).
+    private static func pastSlots(from data: Data, layersBaseURL: URL, latest: [RadarManifest.Slot]) -> [RadarManifest.Slot]? {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        guard let items = (try? decoder.decode(PastProbe.self, from: data))?.pastSlots, !items.isEmpty,
+              items.count <= maximumPastSlots, let firstLatest = latest.first?.time else { return nil }
+        var result: [RadarManifest.Slot] = []
+        for item in items {
+            guard let time = DWDRequest.date(item.time), RadarManifest.isSafe(path: item.path),
+                  let kind = RadarManifest.Kind(rawValue: item.kind),
+                  let url = URL(string: item.path, relativeTo: layersBaseURL)?.absoluteURL,
+                  url.host == layersBaseURL.host, url.scheme == layersBaseURL.scheme,
+                  url.path.hasPrefix(layersBaseURL.path) else { return nil }
+            if let last = result.last, time <= last.time { return nil }
+            if time > firstLatest { return nil }
+            if time == firstLatest { continue }   // the latest run wins at the same time
+            result.append(RadarManifest.Slot(time: time, kind: kind, path: item.path, url: url))
+        }
+        return result.isEmpty ? nil : result
     }
 
     /// `layersBaseURL` is `…/v1/layers/<layer>/`; slot URLs must stay below it on the same origin.
@@ -380,6 +411,12 @@ struct RadarLayerManifest: Equatable, Sendable {
             slots.append(RadarManifest.Slot(time: time, kind: slotKind, path: item.path, url: url))
         }
 
+        // Model layers (kind forecast): the past valid times come first, the latest run follows. Any unusable entry drops
+        // the whole list (honest fallback to the latest run alone). A past time that the latest run also covers loses.
+        if kind == .forecast, let past = pastSlots(from: data, layersBaseURL: layersBaseURL, latest: slots) {
+            slots = past + slots
+        }
+
         var legend: RadarLayerLegendRef?
         if let rawLegend = raw.legend {
             // A malformed legend reference only drops the legend; the layer itself stays usable.
@@ -393,7 +430,8 @@ struct RadarLayerManifest: Equatable, Sendable {
         let backend = RadarManifest(run: raw.run, referenceTime: reference, generatedAt: generated,
                                     stepMinutes: raw.stepMinutes, imageWidth: raw.image.width,
                                     imageHeight: raw.image.height, bounds: bounds, slots: slots,
-                                    attribution: raw.attribution, modificationNotice: raw.modificationNotice)
+                                    attribution: raw.attribution, modificationNotice: raw.modificationNotice,
+                                    history: RadarHistoryInfo.parse(manifestData: data))
         return RadarLayerManifest(layer: expected, title: raw.title, kind: kind, run: raw.run, referenceTime: reference,
                                   generatedAt: generated, stepMinutes: raw.stepMinutes,
                                   forecastHorizonMinutes: raw.forecastHorizonMinutes, historyHours: raw.historyHours,

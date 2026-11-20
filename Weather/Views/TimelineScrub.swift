@@ -115,7 +115,7 @@ enum PlaybackWindow {
 
 /// VoiceOver text for the timeline slider (value, step and move logic), free of UI so it is unit-testable.
 enum TimelineAccessibility {
-    /// "HH:mm, Messung" / "Vorhersage"; names the day (e.g. "Fr., 30. Okt., 23:55, Messung") when it is not the reference day.
+    /// "HH:mm, Messung" / "Vorhersage" (plus the hole lines next to this slot, if any); names the day (e.g. "Fr., 30. Okt., 23:55, Messung") when it is not the reference day.
     static func value(date: Date?, isForecast: Bool, reference: Date?, calendar: Calendar = .current,
                       locale: Locale = .current, caption: String? = nil, gapLines: [String] = []) -> String {
         guard let date else { return NSLocalizedString("TIMELINE_UNKNOWN", value: "Unbekannt", comment: "Timeline value") }
@@ -125,7 +125,8 @@ enum TimelineAccessibility {
         }
         let word = caption ?? (isForecast ? NSLocalizedString("LAYER_CAPTION_FORECAST", value: "Vorhersage", comment: "Layer name or caption")
                                           : NSLocalizedString("LAYER_CAPTION_MEASUREMENT", value: "Messung", comment: "Layer name or caption"))
-        return "\(text), \(word)"
+        let base = "\(text), \(word)"
+        return gapLines.isEmpty ? base : base + ". " + gapLines.joined(separator: ". ")
     }
 
     /// Index after a VoiceOver increment (+1) or decrement (-1); stays within the slots.

@@ -103,6 +103,16 @@ struct RadarScreen: View {
                             .transition(.opacity)
                             .accessibilityIdentifier("radar-slot-status")
                     }
+                    if !store.isPlaying, !displayedGapLines.isEmpty {
+                        // A hole in the data next to the shown slot: said plainly, never filled with a picture.
+                        Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
+                            .font(.caption.weight(.medium))
+                            .multilineTextAlignment(.leading)
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                            .transition(.opacity)
+                            .accessibilityIdentifier("radar-gap-note")
+                    }
                     if let readout {
                         Label(readout.text, systemImage: "scope")
                             .font(.caption.weight(.medium))
@@ -477,6 +487,12 @@ struct RadarScreen: View {
         return dates[displayedIndex]
     }
 
+    /// Holes in the data directly before and after the shown slot (empty without holes).
+    private var displayedGapLines: [String] {
+        guard let timeline = store.displayTimeline, !timeline.gaps.isEmpty else { return [] }
+        return TimelineGapText.lines(for: displayedIndex, gaps: timeline.gaps)
+    }
+
     /// Honest per-slot hint: the map never shows another slot's image as this slot's state.
     private var slotFeedback: (text: String, failed: Bool)? {
         let layer = store.activeLayer
@@ -678,6 +694,23 @@ struct RadarScreen: View {
                     .frame(height: 2)
                     Rectangle().fill(.primary).frame(width: 2, height: 6)
                         .offset(x: max(0, geometry.size.width * boundary - 1), y: -2)
+                    // Holes in the data: a short red mark between the two slots around the hole (one Canvas, whatever the count).
+                    if !timeline.gaps.isEmpty {
+                        let count = timeline.dates.count
+                        let gaps = timeline.gaps.gaps
+                        Canvas { context, size in
+                            for gap in gaps {
+                                let fraction = gap.afterIndex < 0 ? 0 : (Double(gap.afterIndex) + 0.5) / Double(max(count - 1, 1))
+                                let x = size.width * fraction
+                                context.fill(Path(CGRect(x: min(max(x - 1.5, 0), size.width - 3), y: 0, width: 3, height: size.height)),
+                                             with: .color(Color(.systemRed).opacity(0.9)))
+                            }
+                        }
+                        .frame(width: geometry.size.width, height: 12)
+                        .position(x: geometry.size.width / 2, y: 1)
+                        .accessibilityHidden(true)
+                        .accessibilityIdentifier("radar-timeline-gap-marks")
+                    }
                 }
                 .frame(height: 2)
                 .offset(y: 7)
@@ -700,7 +733,8 @@ struct RadarScreen: View {
                     if store.displayFrameIndex != index { store.displayFrameIndex = index }
                 }
                 .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime,
-                                                                caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast)))
+                                                                caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast),
+                                                                gapLines: displayedGapLines))
                 .accessibilityHint(String(format: NSLocalizedString("TIMELINE_SLIDER_HINT", value: "Von %1$@ bis %2$@. Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.", comment: "Radar"), timeline.dates.first!.formatted(date: .abbreviated, time: .shortened), timeline.dates.last!.formatted(date: .omitted, time: .shortened)))
             }
         } else {

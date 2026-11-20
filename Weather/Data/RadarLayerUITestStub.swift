@@ -42,6 +42,16 @@ extension RadarLayerStore {
         ]
     }
 
+    /// `-UITestHistoryHours <48|72>` (with `-UITestLayers all`): the backend of PR #4 - observation layers deliver
+    /// `hours` of past (with a `history` block, one hole of 6 times and one single missing time), model layers deliver
+    /// `past_slots` (hourly, built up for 10 hours only, with one hole) - smaller images, time-dependent pattern.
+    nonisolated static var uiTestHistoryHours: Int? {
+        guard let index = CommandLine.arguments.firstIndex(of: "-UITestHistoryHours"),
+              CommandLine.arguments.indices.contains(index + 1), let hours = Int(CommandLine.arguments[index + 1]),
+              [48, 72].contains(hours) else { return nil }
+        return hours
+    }
+
     private nonisolated static let stubStart = Date()
     private nonisolated static var outageLayer: String {
         guard let index = CommandLine.arguments.firstIndex(of: "-UITestOutageLayer"), CommandLine.arguments.indices.contains(index + 1) else { return "radar_world" }
@@ -109,7 +119,8 @@ extension RadarLayerStore {
             let now = Date()
             let observation = (entry.extra["kind"] as? String) == "observation"
             let step = (entry.extra["step"] as? Double) ?? 3600
-            let count = observation ? 13 : 49
+            let historyHours = uiTestHistoryHours
+            let count = observation ? (historyHours.map { $0 * 3600 / Int(step) + 1 } ?? 13) : 49
             // Observation: the newest slot lies a few minutes back; forecast: the hour before now, then 48 hours.
             let start = observation
                 ? Date(timeIntervalSince1970: (now.timeIntervalSince1970 / step).rounded(.down) * step - Double(count - 1) * step)
@@ -119,7 +130,10 @@ extension RadarLayerStore {
             compact.locale = Locale(identifier: "en_US_POSIX"); compact.timeZone = TimeZone(identifier: "UTC")
             compact.dateFormat = "yyyyMMdd'T'HHmm'Z'"
             let run = compact.string(from: start)
-            let slots = (0..<count).map { index -> [String: Any] in
+            // History mode: grid index of the single hole (6 times from `holeStart`) and the single missing time.
+            let holeStart = max(0, count / 2 - 3), missingOne = max(1, count / 5)
+            let missing: Set<Int> = historyHours == nil || !observation ? [] : Set(holeStart..<(holeStart + 6)).union([missingOne])
+            let slots = (0..<count).filter { !missing.contains($0) }.map { index -> [String: Any] in
                 let time = start.addingTimeInterval(Double(index) * step)
                 return ["time": iso.string(from: time), "kind": observation ? "observation" : (index == 0 ? "analysis" : "forecast"),
                         "path": "\(run)/\(compact.string(from: time)).webp"]
@@ -138,6 +152,37 @@ extension RadarLayerStore {
                                     "width": 88, "height": 505]
             }
             object.merge(entry.extra.filter { !["kind", "step", "attribution"].contains($0.key) }) { $1 }
+            if let historyHours {
+                object["history_hours"] = historyHours
+                if observation {
+                    func time(_ index: Int) -> Date { start.addingTimeInterval(Double(index) * step) }
+                    let gaps: [[String: Any]] = [
+                        ["from": iso.string(from: time(missingOne)), "to": iso.string(from: time(missingOne)), "slots": 1],
+                        ["from": iso.string(from: time(holeStart)), "to": iso.string(from: time(holeStart + 5)), "slots": 6]]
+                    object["history"] = ["hours": historyHours, "oldest": iso.string(from: time(0)), "expected": count,
+                                         "present": count - missing.count, "complete": false, "gaps": gaps] as [String: Any]
+                } else {
+                    // Model layer: only the newest 10 hours exist (built up since the deploy), one hour missing among them.
+                    let builtUp = 10, hole = 4
+                    let firstPast = start.addingTimeInterval(-Double(builtUp) * 3600)
+                    let past = (0..<builtUp).filter { $0 != hole }.map { index -> [String: Any] in
+                        let time = firstPast.addingTimeInterval(Double(index) * 3600)
+                        return ["time": iso.string(from: time), "kind": index % 3 == 0 ? "analysis" : "forecast",
+                                "path": "\(compact.string(from: time.addingTimeInterval(-Double(index % 3) * 3600)))/\(compact.string(from: time)).webp"]
+                    }
+                    object["past_slots"] = past
+                    let windowStart = start.addingTimeInterval(-Double(historyHours) * 3600)
+                    let leading = historyHours - builtUp
+                    object["history"] = ["hours": historyHours, "oldest": iso.string(from: firstPast), "expected": historyHours, "present": builtUp - 1,
+                                         "complete": false,
+                                         "gaps": [["from": iso.string(from: windowStart), "to": iso.string(from: firstPast.addingTimeInterval(-3600)), "slots": leading],
+                                                  ["from": iso.string(from: firstPast.addingTimeInterval(Double(hole) * 3600)),
+                                                   "to": iso.string(from: firstPast.addingTimeInterval(Double(hole) * 3600)), "slots": 1]]] as [String: Any]
+                }
+                var image = object["image"] as! [String: Any]
+                image["width"] = UITestLayerImage.historySize.width; image["height"] = UITestLayerImage.historySize.height
+                object["image"] = image
+            }
             if etagMode { NSLog("UITEST-STUB \(id) 200") }
             let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: etagMode ? ["ETag": etag] : nil)!
             return ((try? JSONSerialization.data(withJSONObject: object)) ?? Data(), ok)
@@ -148,13 +193,22 @@ extension RadarLayerStore {
 /// UI tests only: slot images of the stubbed layers, drawn locally (1024 x 1311, like the manifest says), so the map
 /// shows a real overlay instead of "image missing". Colours follow each layer's family; no network.
 nonisolated enum UITestLayerImage {
-    static func data(forLayer id: String) -> Data? {
+    /// Image size in history mode (`-UITestHistoryHours`): small, so that many different slot images stay cheap.
+    static let historySize = (width: 256, height: 328)
+
+    /// `time`: the slot's time; in history mode the pattern moves with it, so an old slot looks different from a new one.
+    static func data(forLayer id: String, time: Date? = nil) -> Data? {
         // The world stub follows the backend's world image (2048 x 995); the loader checks the manifest size.
-        let (width, height) = id == "radar_world" ? (2048, 995) : (1024, 1311)
+        var (width, height) = id == "radar_world" ? (2048, 995) : (1024, 1311)
+        let phase: Double
+        if RadarLayerStore.uiTestHistoryHours != nil, let time {
+            (width, height) = historySize
+            phase = time.timeIntervalSince1970 / 3600 * 0.05
+        } else { phase = 0 }
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         for y in 0..<height {
             for x in 0..<width {
-                let (r, g, b, a) = color(id, Double(x) / Double(width), Double(y) / Double(height))
+                let (r, g, b, a) = color(id, Double(x) / Double(width) + phase.truncatingRemainder(dividingBy: 1), Double(y) / Double(height))
                 let i = (y * width + x) * 4
                 // Premultiplied RGBA.
                 pixels[i] = UInt8(r * a * 255); pixels[i + 1] = UInt8(g * a * 255); pixels[i + 2] = UInt8(b * a * 255); pixels[i + 3] = UInt8(a * 255)
