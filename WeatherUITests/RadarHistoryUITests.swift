@@ -336,7 +336,7 @@ final class RadarHistoryUITests: XCTestCase {
     }
     func testTemperatureSeventyTwoHours() throws {
         try layerCase("temperatur", pick: .entry(group: nil, "Temperatur"), setting: 72, now: "09:00, Modell",
-                      oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 09:00")
+                      oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 08:00")
     }
 
     /// The forecast stays separate from the past of a model layer; the way to the end of the forecast works at 72 h.
@@ -471,7 +471,7 @@ final class RadarHistoryUITests: XCTestCase {
         try freshCase("europa", layers: .rain("Europa (OPERA)"), server: 72, now: "09:50, Messung", oldest: "So. 15. Nov., 09:50, Messung", note: nil)
     }
     func testFreshInstallTemperature72() throws {
-        try freshCase("temperatur", layers: .entry(group: nil, "Temperatur"), server: 72, now: "09:00, Modell", oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 09:00")
+        try freshCase("temperatur", layers: .entry(group: nil, "Temperatur"), server: 72, now: "09:00, Modell", oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 08:00")
     }
     func testFreshInstallRadarGermany48() throws {
         try freshCase("radar", layers: nil, server: 48, now: "09:40, Messung", oldest: "Mo. 16. Nov., 09:40, Messung", note: nil)
