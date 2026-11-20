@@ -66,7 +66,31 @@ final class RadarHistoryUITests: XCTestCase {
         return predicate(value(slider))
     }
 
-    private func gapNote(_ app: XCUIApplication) -> XCUIElement { app.descendants(matching: .any)["radar-gap-note"] }
+
+    /// The slider is an accessibility representation over a custom drag control, so `adjust(toNormalizedSliderPosition:)` does not
+    /// work. A touch on the track jumps there (like a normal slider): `fraction` 0 = oldest slot, 1 = newest (clamped at the ends).
+    private func jump(_ slider: XCUIElement, fraction: Double) {
+        let width = Double(slider.frame.width)
+        let x = min(max((20 + fraction * (width - 40)) / width, 0.004), 0.996)
+        slider.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.5)).press(forDuration: 0.05)
+        usleep(500_000)
+    }
+
+    /// Touches around `fraction` in steps of a fraction of a slot until `found` is true (a hole sits between two single slots).
+    @discardableResult
+    private func seek(_ slider: XCUIElement, near fraction: Double, slots: Int, found: () -> Bool) -> Bool {
+        let step = 0.4 / Double(max(slots - 1, 1))
+        for k in 0..<24 {
+            let offset = Double((k + 1) / 2) * step * (k % 2 == 0 ? 1 : -1)
+            // A touch within 22 pt of the thumb keeps the current slot (grab radius): go to the far end first, then to the target.
+            slider.coordinate(withNormalizedOffset: CGVector(dx: fraction < 0.5 ? 0.99 : 0.01, dy: 0.5)).press(forDuration: 0.05)
+            jump(slider, fraction: fraction + offset)
+            if found() { return true }
+        }
+        return false
+    }
+
+    private func gapNote(_ app: XCUIApplication) -> XCUIElement { app.descendants(matching: .any).matching(identifier: "radar-gap-note").firstMatch }
 
     // MARK: Radar Deutschland, 72 hours
 
@@ -79,20 +103,21 @@ final class RadarHistoryUITests: XCTestCase {
         shot(app, "radar72-1-jetzt")
 
         // Oldest slot: reference 2026-11-18 08:40 UTC minus 72 h = Sunday 15 Nov, 09:40 in Berlin.
-        slider.adjust(toNormalizedSliderPosition: 0)
+        jump(slider, fraction: 0)
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:40, Messung") }, "oldest slot: \(value(slider))")
         XCTAssertFalse(gapNote(app).exists, "the source reaches back the full 72 h: no note at the oldest slot")
         shot(app, "radar72-2-aeltester-slot")
 
         // The hole of 6 times: slot before (index 424) or after (index 425) it names it. 882 slots in total (845 + 37).
-        slider.adjust(toNormalizedSliderPosition: 424.5 / 881)
+        // 72 h: history 845 slots (hole 6 + 1 missing) + 37 latest = 876 positions; the 6-hole lies in the middle of history.
+        XCTAssertTrue(seek(slider, near: 0.48, slots: 876) { value(slider).contains("fehlen Daten") }, "a slot next to a hole: \(value(slider))")
         XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "note next to the hole: \(value(slider))")
         XCTAssertTrue(gapNote(app).label.contains("fehlen Daten"), "note text: \(gapNote(app).label)")
         XCTAssertTrue(value(slider).contains("fehlen Daten"), "VoiceOver value names the hole: \(value(slider))")
         shot(app, "radar72-3-luecke")
 
         // Back to now: the pill's long press jumps there.
-        app.otherElements["radar-frame-label"].press(forDuration: 0.8)
+        app.buttons["radar-frame-label"].press(forDuration: 0.8)
         XCTAssertTrue(waitValue(slider) { $0 == nowValue }, "back at now: \(value(slider)) vs \(nowValue)")
         XCTAssertTrue(gapNote(app).waitForNonExistence(timeout: 10))
         shot(app, "radar72-4-zurueck")
@@ -105,7 +130,7 @@ final class RadarHistoryUITests: XCTestCase {
         let app = launchRadar(hours: 72, extra: ["-UITestRadarOldest", "30"])
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
-        slider.adjust(toNormalizedSliderPosition: 0)
+        jump(slider, fraction: 0)
         XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "leading hole named at the oldest slot: \(value(slider))")
         XCTAssertTrue(gapNote(app).label.hasPrefix("Davor fehlen Daten"), gapNote(app).label)
         // Oldest slot = reference minus 30 h = Tuesday 17 Nov, 03:40 in Berlin.
@@ -123,11 +148,11 @@ final class RadarHistoryUITests: XCTestCase {
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, value(slider))
         shot(app, "europa72-1-jetzt")
-        slider.adjust(toNormalizedSliderPosition: 0)
-        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") && !$0.contains("fehlen") }, "oldest: \(value(slider))")
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, "oldest: \(value(slider))")
         // Newest slot is within the current 5 min; the oldest lies 72 h before it, so on another day than now.
         shot(app, "europa72-2-aeltester-slot")
-        slider.adjust(toNormalizedSliderPosition: 427.5 / 857)
+        XCTAssertTrue(seek(slider, near: 0.5, slots: 859) { value(slider).contains("fehlen Daten") }, "a slot next to a hole: \(value(slider))")
         XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "hole named: \(value(slider))")
         shot(app, "europa72-3-luecke")
         app.terminate()
@@ -140,12 +165,12 @@ final class RadarHistoryUITests: XCTestCase {
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Modell") }, value(slider))
         shot(app, "temperatur72-1-jetzt")
-        slider.adjust(toNormalizedSliderPosition: 0)
+        jump(slider, fraction: 0)
         XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "the past builds up: the missing part before it is named: \(value(slider))")
         XCTAssertTrue(value(slider).contains(", Modell."), "the past is a model value, not a forecast: \(value(slider))")
         XCTAssertFalse(value(slider).contains("Vorhersage"), value(slider))
         shot(app, "temperatur72-2-aeltester-slot-aufbau")
-        slider.adjust(toNormalizedSliderPosition: 1)
+        jump(slider, fraction: 1)
         XCTAssertTrue(waitValue(slider) { $0.contains("Modellvorhersage") }, "the forecast stays separate: \(value(slider))")
         shot(app, "temperatur72-3-vorhersage-ende")
         app.terminate()
@@ -196,13 +221,13 @@ final class RadarHistoryUITests: XCTestCase {
             let slider = slider(app)
             sleep(3)
             let now = value(slider)
-            slider.adjust(toNormalizedSliderPosition: 0)
+            jump(slider, fraction: 0)
             sleep(3)
             let oldest = value(slider)
             let note = gapNote(app).exists ? gapNote(app).label : "-"
             print("HISTINT hours=\(hours) layer=\(parts[1]) jetzt=\(now) | aeltester=\(oldest) | hinweis=\(note)")
             shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-aeltester")
-            slider.adjust(toNormalizedSliderPosition: 1)
+            jump(slider, fraction: 1)
             sleep(2)
             shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende")
         }

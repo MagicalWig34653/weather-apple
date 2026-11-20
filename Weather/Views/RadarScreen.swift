@@ -103,16 +103,6 @@ struct RadarScreen: View {
                             .transition(.opacity)
                             .accessibilityIdentifier("radar-slot-status")
                     }
-                    if !store.isPlaying, !displayedGapLines.isEmpty {
-                        // A hole in the data next to the shown slot: said plainly, never filled with a picture.
-                        Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
-                            .font(.caption.weight(.medium))
-                            .multilineTextAlignment(.leading)
-                            .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
-                            .transition(.opacity)
-                            .accessibilityIdentifier("radar-gap-note")
-                    }
                     if let readout {
                         Label(readout.text, systemImage: "scope")
                             .font(.caption.weight(.medium))
@@ -151,6 +141,17 @@ struct RadarScreen: View {
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier(notice.identifier)
+                }
+                // A hole in the data next to the shown slot: said plainly, never filled with a picture. In the top stack (like the
+                // other notes), so the lower strip with Apple's legal link stays free.
+                if !store.isPlaying, !displayedGapLines.isEmpty {
+                    Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("radar-gap-note")
                 }
                 HStack(alignment: .top, spacing: 10) {
                     Spacer()

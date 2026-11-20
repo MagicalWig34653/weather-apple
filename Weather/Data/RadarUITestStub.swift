@@ -102,7 +102,8 @@ enum RadarUITestStub {
         formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyyMMdd'T'HHmm'Z'"
         let time = formatter.date(from: stem) ?? reference
-        let step = Int(time.timeIntervalSince(firstSlot) / 300)
+        // Far-back history slots (72 h = 860 steps) would move the cells off the map: the pattern repeats every 60 steps.
+        let step = ((Int((time.timeIntervalSince(firstSlot) / 300).rounded()) % 60) + 60) % 60
         return render(step: step)
     }
 
