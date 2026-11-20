@@ -619,3 +619,22 @@ Stand 18.11.2026: Build 49 (Showers 0.1.1 (49), Bundle `de.linolaske.showernow`,
 ## Build 50: Upload an TestFlight (18.11.2026)
 
 Showers 0.1.1 (50) wurde über den Upload-Wrapper mit den internen Uploadoptionen (`testFlightInternalTestingOnly=true`, `manageAppVersionAndBuildNumber=false`) hochgeladen. Wrapper-Exit 0; `Upload succeeded` und `** EXPORT SUCCEEDED **` um 20:20:51 Uhr, letzter Zustand "Uploaded package is processing". Apple-Verarbeitungsabschluss und interne Verfügbarkeit: nicht geprüft.
+
+## Vorgabe ab Build 53: Export "TestFlight & App Store" (20.11.2026, Lino)
+
+Ab Build 53 wird jeder Showers-Build als "TestFlight & App Store" exportiert und hochgeladen: `method=app-store-connect`, `destination=upload`, `testFlightInternalTestingOnly=false` (bisher `true`), damit Lino den Build später externen TestFlight-Gruppen zuordnen kann. Die Exportkonfiguration liegt fertig unter `~/Development/orchestrator/runtime/nachweise/showers-53/ExportOptions-TestFlight-AppStore.plist` (`signingStyle=automatic`, `teamID=J2DU2P47XW`, `manageAppVersionAndBuildNumber=false`, `uploadSymbols=true`, `stripSwiftSymbols=true`; sonst wie Build 52) und wird nicht verändert. Wir ordnen keine externe Gruppe zu und reichen keine Betaprüfung ein; das bleibt bei Lino.
+
+## GitHub-Prerelease je angenommenem Build ab Build 53
+
+Regeln (Lino, 20.11.2026): Jeder von Apple ANGENOMMENE Showers-TestFlight-Build wird im Repo `MagicalWig34653/weather-apple` als GitHub-Prerelease festgehalten.
+- Ein eindeutiger Tag je Build auf dem tatsächlich archivierten und gepushten Commit, Schema `testflight-<Version>-<Build>` (Build 53: `testflight-0.1.1-53`).
+- Titel mit Version und Buildnummer (z. B. "Showers 0.1.1 (53)"); Text mit Datum des Uploads, den konkreten Änderungen gegenüber dem vorherigen hochgeladenen Build (bei 53: gegenüber Build 52, `ba03bf3`/`f3bcd45`) und den bekannten Einschränkungen.
+- Keine IPA, keine Archive, keine Logs anhängen.
+- Nur bei einem angenommenen Build, nie vorher. Bei Wiederholung den vorhandenen Eintrag prüfen und ergänzen, kein Duplikat.
+
+Ablauf nach Apples Annahme:
+1. Duplikat prüfen: `gh release view testflight-0.1.1-53 --repo MagicalWig34653/weather-apple` (existiert er, wird er mit `gh release edit` ergänzt).
+2. Sonst Tag und Prerelease auf den Archivcommit: `gh release create testflight-0.1.1-53 --repo MagicalWig34653/weather-apple --target <Archivcommit> --prerelease --title "Showers 0.1.1 (53)" --notes-file <Text>` (legt den Tag an; der Archivcommit muss gepusht sein).
+3. Den Link des Releases auf der Build-Karte melden.
+
+Stand 20.11.2026: Für Build 53 gibt es noch weder Tag noch Release; es wird nach Apples Annahme erstellt (nicht durch den Build-Worker).
