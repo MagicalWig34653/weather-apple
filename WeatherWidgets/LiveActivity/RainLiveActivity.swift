@@ -28,7 +28,7 @@ struct RainLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     RainActivityTimeline(context: context) { p, _ in
-                        RainIslandBottom(p: p).padding(.leading, 8).padding(.bottom, 12).accessibilityElement(children: .combine)  // clear of the island corner curve
+                        RainIslandBottom(p: p).padding(.leading, 8).accessibilityElement(children: .combine)
                     }
                 }
             } compactLeading: {
