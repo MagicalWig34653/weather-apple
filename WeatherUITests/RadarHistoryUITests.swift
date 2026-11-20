@@ -16,14 +16,14 @@ final class RadarHistoryUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
-    private func shot(_ app: XCUIApplication, _ name: String) {
+    private func shot(_ app: XCUIApplication, _ name: String, darkLimit: Double = 0.45) {
         sleep(1)
         let dir = "/private/tmp/claude-501/hist-shots"
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         let screenshot = app.screenshot()
         let luminance = UITestLaunch.meanLuminance(screenshot.image)
         print("LUMA hist-\(name)-\(suffix)=\(luminance)")
-        if suffix == "dark" { XCTAssertLessThan(luminance, 0.45, "dark screenshot expected, luminance \(luminance)") }
+        if suffix == "dark" { XCTAssertLessThan(luminance, darkLimit, "dark screenshot expected, luminance \(luminance)") }
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("hist-\(name)-\(suffix).png"))
     }
 
@@ -209,15 +209,15 @@ final class RadarHistoryUITests: XCTestCase {
         entry.tap()
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Modell") }, value(slider))
-        shot(app, "temperatur72-1-jetzt")
+        shot(app, "temperatur72-1-jetzt", darkLimit: 0.65)   // the stub's opaque warm temperature field stays bright in dark mode
         jump(slider, fraction: 0)
         XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "the past builds up: the missing part before it is named: \(value(slider))")
         XCTAssertTrue(value(slider).contains(", Modell."), "the past is a model value, not a forecast: \(value(slider))")
         XCTAssertFalse(value(slider).contains("Vorhersage"), value(slider))
-        shot(app, "temperatur72-2-aeltester-slot-aufbau")
+        shot(app, "temperatur72-2-aeltester-slot-aufbau", darkLimit: 0.65)   // the stub's opaque warm temperature field stays bright in dark mode
         jump(slider, fraction: 1)
         XCTAssertTrue(waitValue(slider) { $0.contains("Modellvorhersage") }, "the forecast stays separate: \(value(slider))")
-        shot(app, "temperatur72-3-vorhersage-ende")
+        shot(app, "temperatur72-3-vorhersage-ende", darkLimit: 0.65)   // the stub's opaque warm temperature field stays bright in dark mode
         app.terminate()
     }
 
