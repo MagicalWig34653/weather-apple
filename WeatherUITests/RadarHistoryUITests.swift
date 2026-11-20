@@ -425,4 +425,86 @@ final class RadarHistoryUITests: XCTestCase {
         }
         app.terminate()
     }
+
+    // MARK: Brightness per layer (dark mode check, fixed data: stubs and one real Europe image, no network)
+
+    /// Layers whose data image itself is bright over most of the map (cause measured in `LayerImageLuminanceTests`): their screen
+    /// luminance may reach 0.45 or more in dark mode; the SURFACE check below still holds for them. Filled from the measurement.
+    private static let brightDataLayers: Set<String> = []
+
+    /// Mean luminance of the app surface WITHOUT any data layer: the German radar fixture (a few rain cells) before a layer is chosen.
+    /// Named check "OBERFLAECHE": stays below 0.45 in dark mode, in every brightness test.
+    private func brightnessShot(_ app: XCUIApplication, _ name: String, surface: Bool = false) {
+        sleep(1)
+        let dir = "/private/tmp/claude-501/hist-shots"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let screenshot = app.screenshot()
+        let luminance = UITestLaunch.meanLuminance(screenshot.image)
+        print("LUMA bright-\(name)-\(suffix)=\(luminance)")
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("bright-\(name)-\(suffix).png"))
+        guard suffix == "dark", ProcessInfo.processInfo.environment["BRIGHT_MEASURE"] == nil else { return }
+        if surface {
+            XCTAssertLessThan(luminance, 0.45, "OBERFLAECHE (map and app chrome without data layer) in dark mode: \(luminance)")
+        } else if !Self.brightDataLayers.contains(name) {
+            XCTAssertLessThan(luminance, 0.45, "layer \(name) in dark mode: \(luminance)")
+        }
+    }
+
+    private func launchBrightness(realEurope: Bool = false) -> XCUIApplication {
+        var extra = ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestLayers", "all"]
+        if realEurope {
+            let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/radar_eu-real-20261120T0455Z.webp").path
+            extra += ["-UITestRealImage", "radar_eu=\(file)"]
+        }
+        let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: extra))
+        app.launch()
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 30))
+        sleep(2)
+        menu.tap()   // the stubbed layers are reported after the first probe
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(2)
+        return app
+    }
+
+    private func brightnessLayer(_ app: XCUIApplication, _ name: String, _ pick: Pick) throws {
+        try pick.select(app, self)
+        _ = slider(app)
+        sleep(6)   // the overlay is drawn progressively
+        brightnessShot(app, name)
+    }
+
+    func testBrightnessSurfaceAndRainLayers() throws {
+        let app = launchBrightness()
+        _ = slider(app)
+        sleep(4)
+        brightnessShot(app, "oberflaeche-radar-de", surface: true)
+        try brightnessLayer(app, "europa-stub", .rain("Europa (OPERA)"))
+        try brightnessLayer(app, "welt", .rain("Welt (NOAA)"))
+        try brightnessLayer(app, "blitze", .entry(group: nil, "Blitze"))
+        try brightnessLayer(app, "wolken", .entry(group: nil, "Wolken"))
+        app.terminate()
+    }
+
+    func testBrightnessModelLayers() throws {
+        let app = launchBrightness()
+        _ = slider(app)
+        sleep(4)
+        brightnessShot(app, "oberflaeche-radar-de", surface: true)
+        try brightnessLayer(app, "sonne", .entry(group: nil, "Sonne"))
+        try brightnessLayer(app, "luftdruck-de", .entry(group: "Luftdruck", "Deutschland"))
+        try brightnessLayer(app, "temperatur", .entry(group: nil, "Temperatur"))
+        try brightnessLayer(app, "taupunkt", .entry(group: "Feuchtigkeit", "Taupunkt"))
+        try brightnessLayer(app, "feuchte-relativ", .entry(group: "Feuchtigkeit", "Relativ"))
+        app.terminate()
+    }
+
+    func testBrightnessEuropeWithRealData() throws {
+        let app = launchBrightness(realEurope: true)
+        _ = slider(app)
+        sleep(4)
+        brightnessShot(app, "oberflaeche-radar-de", surface: true)
+        try brightnessLayer(app, "europa-real", .rain("Europa (OPERA)"))
+        app.terminate()
+    }
 }

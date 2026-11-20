@@ -57,6 +57,15 @@ extension RadarLayerStore {
     private nonisolated static let sourceLimits: [String: Int] = ["lightning": 24, "temperature": 60]
     private nonisolated static let defaultModelBuildUp = 10
 
+    /// `-UITestRealImage radar_eu=<file>`: this layer serves one REAL slot image (OPERA Europe, 2048 x 2168, bbox like production)
+    /// for every slot, so brightness can be measured with real data (no live dependency; the file is a repo fixture).
+    nonisolated static func realImagePath(for id: String) -> String? {
+        guard id == "radar_eu", let index = CommandLine.arguments.firstIndex(of: "-UITestRealImage"),
+              CommandLine.arguments.indices.contains(index + 1) else { return nil }
+        let parts = CommandLine.arguments[index + 1].split(separator: "=", maxSplits: 1).map(String.init)
+        return parts.count == 2 && parts[0] == id ? parts[1] : nil
+    }
+
     /// History mode with a frozen forecast clock: the stub, the client and the store all see this "now".
     nonisolated static var frozenNow: Date? { uiTestHistoryHours != nil && ForecastUITestStub.mode != nil ? ForecastUITestStub.now : nil }
 
@@ -203,6 +212,11 @@ extension RadarLayerStore {
                 image["width"] = UITestLayerImage.historySize.width; image["height"] = UITestLayerImage.historySize.height
                 object["image"] = image
             }
+            if realImagePath(for: id) != nil {
+                object["image"] = ["format": "image/webp", "width": 2048, "height": 2168, "projection": "EPSG:3857",
+                                   "bbox": [-2782987.0, 3503550.0, 5009377.0, 11753185.0], "bbox_wgs84": [-25.0, 30.0, 45.0, 72.0]] as [String: Any]
+                object["source"] = "opera"
+            }
             if etagMode { NSLog("UITEST-STUB \(id) 200") }
             let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: etagMode ? ["ETag": etag] : nil)!
             return ((try? JSONSerialization.data(withJSONObject: object)) ?? Data(), ok)
@@ -218,6 +232,7 @@ nonisolated enum UITestLayerImage {
 
     /// `time`: the slot's time; in history mode the pattern moves with it, so an old slot looks different from a new one.
     static func data(forLayer id: String, time: Date? = nil) -> Data? {
+        if let path = RadarLayerStore.realImagePath(for: id), let real = try? Data(contentsOf: URL(fileURLWithPath: path)) { return real }
         // The world stub follows the backend's world image (2048 x 995); the loader checks the manifest size.
         var (width, height) = id == "radar_world" ? (2048, 995) : (1024, 1311)
         let phase: Double
