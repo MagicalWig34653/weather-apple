@@ -379,8 +379,9 @@ final class RadarHistoryUITests: XCTestCase {
 
     // MARK: Measurement: scrubbing across a full 72 h timeline
 
+    /// Default state (no stored choice): the 72 h of the backend are the window, the slider covers all of them.
     func testScrubbingAcrossFullSeventyTwoHourTimelineIsMeasured() throws {
-        let app = launchRadar(hours: 72)
+        let app = launchRadar(hours: 72, fresh: true)
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
         let options = XCTMeasureOptions(); options.iterationCount = 5
