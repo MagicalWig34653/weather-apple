@@ -182,6 +182,7 @@
 		9C6486E379CED3B3F1C0C685 /* RadarLayerLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EFBC30D1D558ABDB1F74AC /* RadarLayerLegend.swift */; };
 		9C92C64FE793BE4A3FC196C9 /* RainActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBE95B24FD0B56AB87DFAA99 /* RainActivityManager.swift */; };
 		9D2517CD7F413BC19EFE991B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 61DCF3C03DBAA61ED4E5923D /* Localizable.strings */; };
+		9DAA294F855E150AC82C1B3C /* LiveActivityUITestStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7BBA82DCBD9193673FB617 /* LiveActivityUITestStub.swift */; };
 		A246D63785690786FC1A976F /* DWDRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E506014F74FCB1F262D83D /* DWDRequest.swift */; };
 		A30B5C15697AD3543AF6B4B0 /* DWDRadarTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D4066D41334EABC25975BF /* DWDRadarTimeline.swift */; };
 		A42BCE0EE2A3168BF93401E9 /* SunMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91C08FB88B3A541C27E2CC7 /* SunMask.swift */; };
@@ -583,6 +584,7 @@
 		FA4BD7E6D885E92F089D224A /* ScreenGlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenGlow.swift; sourceTree = "<group>"; };
 		FB0B59D778801F65B8630D2F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		FCC44CE8AC15248B3925E610 /* WarnSettingsPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnSettingsPresentation.swift; sourceTree = "<group>"; };
+		FE7BBA82DCBD9193673FB617 /* LiveActivityUITestStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityUITestStub.swift; sourceTree = "<group>"; };
 		FEBA2774C202317C41D89E31 /* SitePageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SitePageSheet.swift; sourceTree = "<group>"; };
 		FF7FEC92235CD112EE06ACAF /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		FFEA92DFC8BAB20EC3AA6738 /* DataLocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataLocalizationTests.swift; sourceTree = "<group>"; };
@@ -781,6 +783,7 @@
 			isa = PBXGroup;
 			children = (
 				CD36F4098D69F147BE374B42 /* InstallationIDDisplay.swift */,
+				FE7BBA82DCBD9193673FB617 /* LiveActivityUITestStub.swift */,
 				9D16DB25BD2EF2D3A4B69719 /* PushActivityWire.swift */,
 				B920639E02C1140F70C713AE /* PushGateway.swift */,
 				8174F0961CBA8C530C9B30C0 /* PushGrid.swift */,
@@ -1360,6 +1363,7 @@
 				47DC1040421EF6F6AAC6FFC6 /* ForestOverlay.swift in Sources */,
 				BBCAFC6177CAE2EE714406F2 /* InformationSheet.swift in Sources */,
 				AE751D168EAEA7074644E83D /* InstallationIDDisplay.swift in Sources */,
+				9DAA294F855E150AC82C1B3C /* LiveActivityUITestStub.swift in Sources */,
 				4BC1A582791DB78F7AB1DC78 /* LocaleFormat.swift in Sources */,
 				15FA1D368A4EC18D002A9924 /* MapChromeVisibility.swift in Sources */,
 				EC3E2B631B5DC273AA55712E /* NotificationNameStore.swift in Sources */,

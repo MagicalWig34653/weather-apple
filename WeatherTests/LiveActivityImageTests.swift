@@ -76,7 +76,7 @@ final class LiveActivityImageTests: XCTestCase {
                     HStack {
                         HStack(spacing: 6) {
                             Image(systemName: p.symbol).foregroundStyle(p.color)
-                            Text(title).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                            Text(p.watchTitle(name: sample.name) ?? title).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                         }
                         Spacer()
                         Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).foregroundStyle(.secondary)

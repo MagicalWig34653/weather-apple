@@ -138,6 +138,8 @@ struct RainShareBar: View {
 struct RainRegionDetails: View {
     let p: RainActivityPresentation
     let tint: Color
+    /// The expanded island title is name-only (the leading region is narrow), so the radius moves into the details.
+    var showsRadius = false
 
     var body: some View {
         if let region = p.region, region.shareText != nil || region.intensityText != nil {
@@ -146,7 +148,8 @@ struct RainRegionDetails: View {
                 if let fraction = region.barFraction {
                     RainShareBar(fraction: fraction, tint: tint)
                 }
-                if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
+                let caption = [region.intensityText, showsRadius ? region.radiusText : nil].compactMap { $0 }.joined(separator: " · ")
+                if !caption.isEmpty { Text(caption).font(.caption).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8) }
             }
         }
     }
@@ -191,7 +194,7 @@ struct RainIslandBottom: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             RainHeroView(p: p, size: .island)
-            RainRegionDetails(p: p, tint: p.tone.tint(scheme))
+            RainRegionDetails(p: p, tint: p.tone.tint(scheme), showsRadius: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

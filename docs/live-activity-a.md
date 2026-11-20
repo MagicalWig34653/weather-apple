@@ -26,5 +26,5 @@ Dateien: `WeatherWidgets/LiveActivity/RainActivityCards.swift` (Ansichten ohne A
 4. **Kartengröße:** System bestimmt die Höhe. Eigene Obergrenze per Test: Ort höchstens 125 pt, Gebiet 140 pt (Entwurf ca. 102 pt) bei 150 pt Breite. Gegen Xcode-Vorschau/Uhr nicht geprüft.
 5. Nicht umgesetzt (Entwurf B/C): Uhrzeit des Ereignisses, Intensität für Orte, Mehrfach-Activity.
 
-## Prüfung
-Siehe `status.md` (20.11., Eintrag Live Activity A) und Nachweis im Orchestrator (`showers-live-activity-impl.json`). Bilder entstehen per `ImageRenderer` im Unit-Test (Näherung ohne Systemhintergrund/-unschärfe) und, soweit machbar, aus einer echten Live Activity im Simulator.
+## Prüfung (20.11.2026)
+Siehe `status.md` (Eintrag Live Activity A). Kurz: Unit-Tests 14/14 für die Logik (12 zuvor rot), Bildtests 4/4, volle `WeatherTests` 744 grün, `check_l10n --strict` Exit 0. Echte Live Activity im Simulator (Island, Sperrbildschirm, hell/dunkel, Accessibility 5) über den Debug-Hook `-UITestLiveActivity`. Nicht geprüft: Watch-Smart-Stack auf echter Uhr oder gekoppeltem Simulator, Push-to-Start/Remote-Updates, echtes Gerät. Bilder liegen im Orchestrator-Nachweis `showers-live-activity-impl/`, nicht im Repo.

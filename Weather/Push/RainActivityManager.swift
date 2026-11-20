@@ -63,6 +63,9 @@ final class SystemRainActivityManager: RainActivityManaging {
 
     private func observe(_ activity: Activity<RainActivityAttributes>) async {
         guard tokenTasks[activity.id] == nil else { return }
+        #if DEBUG
+        if activity.attributes.subscriptionID == LiveActivityUITestStub.subscriptionID { return }  // simulator sample, never server-backed
+        #endif
         let sub = activity.attributes.subscriptionID
         guard let kind = eligible?(sub), activity.activityState != .ended, activity.activityState != .dismissed else {
             await activity.end(nil, dismissalPolicy: .immediate)

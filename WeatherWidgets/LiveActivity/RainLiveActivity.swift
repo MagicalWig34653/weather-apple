@@ -12,21 +12,23 @@ struct RainLiveActivity: Widget {
             let link = RainActivityPlace.resolve(context.attributes).url
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    RainActivityTimeline(context: context) { p, title in
+                    RainActivityTimeline(context: context) { p, _ in
                         HStack(spacing: 6) {
                             Image(systemName: p.symbol).foregroundStyle(p.color).accessibilityHidden(true)
-                            if let title { Text(title).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
+                            if let title = p.watchTitle(name: RainActivityPlace.resolve(context.attributes).name) { Text(title).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
                         }
+                        .padding(.leading, 8)
                     }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     RainActivityTimeline(context: context) { p, _ in
                         Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).foregroundStyle(.secondary)
+                            .lineLimit(1).padding(.trailing, 6)   // the island corner clipped the last digit
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     RainActivityTimeline(context: context) { p, _ in
-                        RainIslandBottom(p: p).accessibilityElement(children: .combine)
+                        RainIslandBottom(p: p).padding(.leading, 8).padding(.bottom, 12).accessibilityElement(children: .combine)  // clear of the island corner curve
                     }
                 }
             } compactLeading: {
