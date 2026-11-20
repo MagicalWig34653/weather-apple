@@ -439,7 +439,7 @@ final class RadarHistoryHoursTests: XCTestCase {
         let last = reference.addingTimeInterval(-12 * 300)   // latest starts at reference - 55 min
         let expected = hours * 12 - 11
         let first = last.addingTimeInterval(-Double(expected - 1) * 300)
-        let firstIndex = oldestAvailableHours.map { max(0, expected - (oldestAvailableHours! * 12 - 11)) } ?? 0
+        let firstIndex = oldestAvailableHours.map { back in max(0, expected - (back * 12 - 11)) } ?? 0
         let present = Set((firstIndex..<expected).filter { !missing.contains($0) })
         let slots = present.sorted().map { index -> [String: Any] in
             let time = first.addingTimeInterval(Double(index) * 300)
