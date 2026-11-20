@@ -16,8 +16,15 @@ final class RadarHistoryUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
-    /// `enforceDark: false` only for the integration run with REAL data: widespread coloured rain over the whole map raises the mean
-    /// luminance independent of the appearance (the luminance is still printed and documented).
+    /// Layers whose DATA image colours (almost) the whole map with light colours (measured in `LayerImageLuminanceTests`: coverage 1.0,
+    /// mean colour luminance 0.62 to 0.78, opacity 0.80 to 0.85): over a dark map the screen stays far above 0.45 although the
+    /// appearance IS dark (measured 0.47 to 0.65). For them the 0.45 limit is not applied to the whole screen but to the SURFACE (map and
+    /// app chrome without a data layer, check "OBERFLAECHE" in `brightnessShot`), and the screen gets the regression bound
+    /// `brightDataLimit`. Decision to confirm; 0.45 itself is unchanged for the surface and for every other layer.
+    private static let brightDataPrefixes = ["wolken", "temperatur", "taupunkt", "feuchte"]
+    private static let brightDataLimit = 0.70
+    private static func isBrightData(_ name: String) -> Bool { brightDataPrefixes.contains { name.lowercased().hasPrefix($0) } }
+
     private func shot(_ app: XCUIApplication, _ name: String, enforceDark: Bool = true) {
         sleep(1)
         let dir = "/private/tmp/claude-501/hist-shots"
@@ -25,7 +32,10 @@ final class RadarHistoryUITests: XCTestCase {
         let screenshot = app.screenshot()
         let luminance = UITestLaunch.meanLuminance(screenshot.image)
         print("LUMA hist-\(name)-\(suffix)=\(luminance)")
-        if suffix == "dark", enforceDark { XCTAssertLessThan(luminance, 0.45, "dark screenshot expected, luminance \(luminance)") }
+        if suffix == "dark", enforceDark {
+            let limit = Self.isBrightData(name) ? Self.brightDataLimit : 0.45
+            XCTAssertLessThan(luminance, limit, "dark screenshot expected, luminance \(luminance) (limit \(limit))")
+        }
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("hist-\(name)-\(suffix).png"))
     }
 
@@ -418,19 +428,15 @@ final class RadarHistoryUITests: XCTestCase {
             let oldest = value(slider)
             let note = gapNote(app).exists ? gapNote(app).label : "-"
             print("HISTINT hours=\(hours) layer=\(parts[1]) jetzt=\(now) | aeltester=\(oldest) | hinweis=\(note)")
-            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-aeltester", enforceDark: layers.first == item)
+            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-aeltester")
             jump(slider, fraction: 1)
             sleep(2)
-            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende", enforceDark: layers.first == item)
+            shot(app, "integration\(hours)-\(parts[1].filter { $0.isLetter })-ende")
         }
         app.terminate()
     }
 
     // MARK: Brightness per layer (dark mode check, fixed data: stubs and one real Europe image, no network)
-
-    /// Layers whose data image itself is bright over most of the map (cause measured in `LayerImageLuminanceTests`): their screen
-    /// luminance may reach 0.45 or more in dark mode; the SURFACE check below still holds for them. Filled from the measurement.
-    private static let brightDataLayers: Set<String> = []
 
     /// Mean luminance of the app surface WITHOUT any data layer: the German radar fixture (a few rain cells) before a layer is chosen.
     /// Named check "OBERFLAECHE": stays below 0.45 in dark mode, in every brightness test.
@@ -445,13 +451,15 @@ final class RadarHistoryUITests: XCTestCase {
         guard suffix == "dark", ProcessInfo.processInfo.environment["BRIGHT_MEASURE"] == nil else { return }
         if surface {
             XCTAssertLessThan(luminance, 0.45, "OBERFLAECHE (map and app chrome without data layer) in dark mode: \(luminance)")
-        } else if !Self.brightDataLayers.contains(name) {
+        } else if Self.isBrightData(name) {
+            XCTAssertLessThan(luminance, Self.brightDataLimit, "layer \(name) (bright data colours) in dark mode: \(luminance)")
+        } else {
             XCTAssertLessThan(luminance, 0.45, "layer \(name) in dark mode: \(luminance)")
         }
     }
 
     private func launchBrightness(realEurope: Bool = false) -> XCUIApplication {
-        var extra = ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestLayers", "all"]
+        var extra = ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestLayers", "all", "-UITestFrozenLayers"]
         if realEurope {
             let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/radar_eu-real-20261120T0455Z.webp").path
             extra += ["-UITestRealImage", "radar_eu=\(file)"]
@@ -474,37 +482,24 @@ final class RadarHistoryUITests: XCTestCase {
         brightnessShot(app, name)
     }
 
-    func testBrightnessSurfaceAndRainLayers() throws {
-        let app = launchBrightness()
+    /// One layer per test (a test has 180 s): surface first (radar fixture alone), then the layer.
+    private func brightnessCase(_ name: String, _ pick: Pick, realEurope: Bool = false) throws {
+        let app = launchBrightness(realEurope: realEurope)
         _ = slider(app)
-        sleep(4)
+        sleep(3)
         brightnessShot(app, "oberflaeche-radar-de", surface: true)
-        try brightnessLayer(app, "europa-stub", .rain("Europa (OPERA)"))
-        try brightnessLayer(app, "welt", .rain("Welt (NOAA)"))
-        try brightnessLayer(app, "blitze", .entry(group: nil, "Blitze"))
-        try brightnessLayer(app, "wolken", .entry(group: nil, "Wolken"))
+        try brightnessLayer(app, name, pick)
         app.terminate()
     }
 
-    func testBrightnessModelLayers() throws {
-        let app = launchBrightness()
-        _ = slider(app)
-        sleep(4)
-        brightnessShot(app, "oberflaeche-radar-de", surface: true)
-        try brightnessLayer(app, "sonne", .entry(group: nil, "Sonne"))
-        try brightnessLayer(app, "luftdruck-de", .entry(group: "Luftdruck", "Deutschland"))
-        try brightnessLayer(app, "temperatur", .entry(group: nil, "Temperatur"))
-        try brightnessLayer(app, "taupunkt", .entry(group: "Feuchtigkeit", "Taupunkt"))
-        try brightnessLayer(app, "feuchte-relativ", .entry(group: "Feuchtigkeit", "Relativ"))
-        app.terminate()
-    }
-
-    func testBrightnessEuropeWithRealData() throws {
-        let app = launchBrightness(realEurope: true)
-        _ = slider(app)
-        sleep(4)
-        brightnessShot(app, "oberflaeche-radar-de", surface: true)
-        try brightnessLayer(app, "europa-real", .rain("Europa (OPERA)"))
-        app.terminate()
-    }
+    func testBrightnessEuropeStub() throws { try brightnessCase("europa-stub", .rain("Europa (OPERA)")) }
+    func testBrightnessEuropeRealData() throws { try brightnessCase("europa-real", .rain("Europa (OPERA)"), realEurope: true) }
+    func testBrightnessWorld() throws { try brightnessCase("welt", .rain("Welt (NOAA)")) }
+    func testBrightnessLightning() throws { try brightnessCase("blitze", .entry(group: nil, "Blitze")) }
+    func testBrightnessClouds() throws { try brightnessCase("wolken", .entry(group: nil, "Wolken")) }
+    func testBrightnessSun() throws { try brightnessCase("sonne", .entry(group: nil, "Sonne")) }
+    func testBrightnessPressure() throws { try brightnessCase("luftdruck-de", .entry(group: "Luftdruck", "Deutschland")) }
+    func testBrightnessTemperature() throws { try brightnessCase("temperatur", .entry(group: nil, "Temperatur")) }
+    func testBrightnessDewpoint() throws { try brightnessCase("taupunkt", .entry(group: "Feuchtigkeit", "Taupunkt")) }
+    func testBrightnessHumidity() throws { try brightnessCase("feuchte-relativ", .entry(group: "Feuchtigkeit", "Relativ")) }
 }

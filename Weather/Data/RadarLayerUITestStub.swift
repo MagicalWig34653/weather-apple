@@ -67,7 +67,10 @@ extension RadarLayerStore {
     }
 
     /// History mode with a frozen forecast clock: the stub, the client and the store all see this "now".
-    nonisolated static var frozenNow: Date? { uiTestHistoryHours != nil && ForecastUITestStub.mode != nil ? ForecastUITestStub.now : nil }
+    /// `-UITestFrozenLayers` does the same without history (fixed images, e.g. brightness measurement next to the frozen radar stub).
+    nonisolated static var frozenNow: Date? {
+        (uiTestHistoryHours != nil || CommandLine.arguments.contains("-UITestFrozenLayers")) && ForecastUITestStub.mode != nil ? ForecastUITestStub.now : nil
+    }
 
     private nonisolated static let stubStart = Date()
     private nonisolated static var outageLayer: String {

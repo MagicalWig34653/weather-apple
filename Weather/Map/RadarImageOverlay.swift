@@ -210,7 +210,14 @@ final class BackendRadarLoader: @unchecked Sendable {
 
     private static func defaultFetch() -> Fetch {
         #if DEBUG
-        if RadarUITestStub.isActive { return { url in try await RadarUITestStub.fetch(url) } }
+        if RadarUITestStub.isActive {
+            return { url in
+                // Stubbed layers next to the radar fixture (brightness measurement): their own generated images, not rain cells.
+                if RadarLayerStore.uiTestMode == "all", let layer = url.pathComponents.drop(while: { $0 != "layers" }).dropFirst().first,
+                   let data = UITestLayerImage.data(forLayer: layer, time: UITestSlotTime.parse(url.deletingPathExtension().lastPathComponent)) { return data }
+                return try await RadarUITestStub.fetch(url)
+            }
+        }
         #endif
         return makeFetch()
     }
