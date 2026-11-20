@@ -29,17 +29,20 @@ final class RadarHistoryUITests: XCTestCase {
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("hist-\(name)-\(suffix).png"))
     }
 
-    private func launchRadar(hours: Int, extra: [String] = []) -> XCUIApplication {
+    /// `hours`: what the stubbed `history.json` delivers; `setting`: the chosen "Maximale Vergangenheit" (default: the same).
+    private func launchRadar(hours: Int, setting: Int? = nil, extra: [String] = []) -> XCUIApplication {
         let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
             "-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestRadarHistoryHours", "\(hours)",
-            "-radarPastHours", "\(hours)"] + extra))
+            "-radarPastHours", "\(setting ?? hours)"] + extra))
         app.launch()
         return app
     }
 
-    private func launchLayers(hours: Int) -> XCUIApplication {
+    /// `setting`: the user's "Maximale Vergangenheit" (shared by every layer); `server`: what the stubbed backend delivers
+    /// (`-UITestHistoryHours`). Time is frozen (now 08:50 UTC = 09:50 Berlin on Wednesday 18 Nov 2026).
+    private func launchLayers(setting: Int, server: Int = 72) -> XCUIApplication {
         let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
-            "-UITestForecast", "current", "-UITestLayers", "all", "-UITestHistoryHours", "\(hours)"]))
+            "-UITestForecast", "current", "-UITestLayers", "all", "-UITestHistoryHours", "\(server)", "-radarPastHours", "\(setting)"]))
         app.launch()
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 30))
@@ -144,6 +147,22 @@ final class RadarHistoryUITests: XCTestCase {
         app.terminate()
     }
 
+    func testRadarFortyEightHoursOfASeventyTwoHourHistoryStopsAtFortyEight() throws {
+        let app = launchRadar(hours: 72, setting: 48)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+        shot(app, "radar48-1-jetzt")
+        jump(slider, fraction: 0)
+        // Reference 2026-11-18 08:40 UTC minus 48 h = Monday 16 Nov, 09:40 in Berlin (72 h would be Sunday 15 Nov).
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("Mo. 16. Nov., 09:40, Messung") }, "oldest slot at 48 h: \(value(slider))")
+        XCTAssertFalse(gapNote(app).exists, "the source reaches back the full 48 h: no note")
+        shot(app, "radar48-2-aeltester-slot")
+        jump(slider, fraction: 1)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+        shot(app, "radar48-4-ende")
+        app.terminate()
+    }
+
     // MARK: Setting "Maximale Vergangenheit": 72 hours
 
     private func openInfoSheet(_ app: XCUIApplication) {
@@ -187,41 +206,150 @@ final class RadarHistoryUITests: XCTestCase {
         app.terminate()
     }
 
-    // MARK: Layers
-
-    func testObservationLayerSeventyTwoHoursHoleAndOldestSlot() throws {
-        let app = launchLayers(hours: 72)
-        try chooseRain(app, "Europa (OPERA)")
+    /// Same source (30 h) at 48 h chosen: the oldest slot is the same, the missing part before it starts at 48 h back.
+    func testRadarShorterSourceAtFortyEightHoursNamesAnotherShortfall() throws {
+        let app = launchRadar(hours: 72, setting: 48, extra: ["-UITestRadarOldest", "30"])
         let slider = slider(app)
-        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, value(slider))
-        shot(app, "europa72-1-jetzt")
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
         jump(slider, fraction: 0)
-        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, "oldest: \(value(slider))")
-        // Newest slot is within the current 5 min; the oldest lies 72 h before it, so on another day than now.
-        shot(app, "europa72-2-aeltester-slot")
-        XCTAssertTrue(seek(slider, near: 0.5, slots: 859) { value(slider).contains("fehlen Daten") }, "a slot next to a hole: \(value(slider))")
-        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "hole named: \(value(slider))")
-        shot(app, "europa72-3-luecke")
+        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "leading hole named: \(value(slider))")
+        XCTAssertTrue(gapNote(app).label.hasPrefix("Davor fehlen Daten: Mo"), "from Monday 09:40 (48 h back): \(gapNote(app).label)")
+        XCTAssertTrue(value(slider).hasPrefix("Di. 17. Nov., 03:40, Messung"), value(slider))
+        print("HISTNOTE radar-kurz48 \(gapNote(app).label)")
+        shot(app, "radar-quelle-kurz48-aeltester-slot")
         app.terminate()
     }
 
-    func testModelLayerShowsPastAsModelNotForecastAndNamesTheBuildUp() throws {
-        // Luftdruck (model layer, transparent isobars): the stub delivers `past_slots` for the newest 10 hours only.
-        let app = launchLayers(hours: 72)
-        let entry = try XCTUnwrap(openLayerEntry(app, group: "Luftdruck", entry: "Deutschland"), "Luftdruck Deutschland wählbar")
-        entry.tap()
+    // MARK: Layers: one shared setting, every group, 48 and 72 hours
+
+    private enum Pick {
+        case rain(String), entry(group: String?, String)
+        @MainActor func select(_ app: XCUIApplication, _ test: RadarHistoryUITests) throws {
+            switch self {
+            case .rain(let prefix): try test.chooseRain(app, prefix)
+            case .entry(let group, let prefix):
+                let entry = try XCTUnwrap(test.openLayerEntry(app, group: group, entry: prefix), "\(prefix) wählbar")
+                entry.tap()
+            }
+        }
+    }
+
+    /// One layer at one setting: starts at now, the slider's left end is the oldest slot that exists inside the chosen past
+    /// (`oldest` is its VoiceOver value prefix), the "Davor fehlen Daten" note is there exactly when the source gives less
+    /// than chosen (`note` = start of its text), and 48 and 72 produce different oldest slots or texts (checked by the callers).
+    private func layerCase(_ name: String, pick: Pick, setting: Int, now: String, oldest: String, note: String?,
+                           midHole: Bool = false) throws {
+        let app = launchLayers(setting: setting)
+        try pick.select(app, self)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(now) }, "starts at now (\(now)): \(value(slider))")
+        shot(app, "\(name)\(setting)-1-jetzt")
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(oldest) }, "\(setting) h: oldest slot \(oldest): \(value(slider))")
+        if let note {
+            XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "\(setting) h: shortfall named: \(value(slider))")
+            XCTAssertTrue(gapNote(app).label.hasPrefix(note), "\(setting) h: note \(note) vs \(gapNote(app).label)")
+            XCTAssertTrue(value(slider).contains(note), "VoiceOver value names it: \(value(slider))")
+            print("HISTNOTE \(name)\(setting) \(gapNote(app).label) | \(value(slider))")
+        } else {
+            XCTAssertFalse(gapNote(app).exists, "\(setting) h: the source gives all that was chosen, no note: \(gapNote(app).label)")
+        }
+        shot(app, "\(name)\(setting)-2-aeltester-slot")
+        if midHole {
+            XCTAssertTrue(seek(slider, near: 0.5, slots: setting * 12 + 1) { value(slider).contains("fehlen Daten") }, "a slot next to the hole: \(value(slider))")
+            XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "hole named: \(value(slider))")
+            shot(app, "\(name)\(setting)-3-luecke")
+        }
+        jump(slider, fraction: 1)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(now) || $0.localizedCaseInsensitiveContains("vorhersage") }, "way back to the end: \(value(slider))")
+        shot(app, "\(name)\(setting)-4-ende")
+        app.terminate()
+    }
+
+    // Europa (OPERA): server and source deliver 72 h; the chosen past decides the oldest slot. Now = Wed 18 Nov 09:50.
+    func testEuropeFortyEightHours() throws {
+        try layerCase("europa", pick: .rain("Europa (OPERA)"), setting: 48, now: "09:50, Messung",
+                      oldest: "Mo. 16. Nov., 09:50, Messung", note: nil, midHole: true)
+    }
+    func testEuropeSeventyTwoHours() throws {
+        try layerCase("europa", pick: .rain("Europa (OPERA)"), setting: 72, now: "09:50, Messung",
+                      oldest: "So. 15. Nov., 09:50, Messung", note: nil, midHole: true)
+    }
+
+    // Blitze: the source keeps about 24 h: the oldest slot is the same, the missing part before it depends on the choice.
+    func testLightningFortyEightHours() throws {
+        try layerCase("blitze", pick: .entry(group: nil, "Blitze"), setting: 48, now: "09:50, Messung",
+                      oldest: "Di. 17. Nov., 09:50", note: "Davor fehlen Daten: Mo")
+    }
+    func testLightningSeventyTwoHours() throws {
+        try layerCase("blitze", pick: .entry(group: nil, "Blitze"), setting: 72, now: "09:50, Messung",
+                      oldest: "Di. 17. Nov., 09:50", note: "Davor fehlen Daten: So")
+    }
+
+    // Wolken (satellite): full 72 h, 10 minute grid.
+    func testCloudsFortyEightHours() throws {
+        try layerCase("wolken", pick: .entry(group: nil, "Wolken"), setting: 48, now: "09:50, Messung",
+                      oldest: "Mo. 16. Nov., 09:50", note: nil)
+    }
+    func testCloudsSeventyTwoHours() throws {
+        try layerCase("wolken", pick: .entry(group: nil, "Wolken"), setting: 72, now: "09:50, Messung",
+                      oldest: "So. 15. Nov., 09:50", note: nil)
+    }
+
+    // Luftdruck Deutschland (model layer, built up for 10 h since the deploy): oldest = first past slot, the rest is named.
+    func testPressureFortyEightHours() throws {
+        try layerCase("luftdruck", pick: .entry(group: "Luftdruck", "Deutschland"), setting: 48, now: "09:00, Modell",
+                      oldest: "Di. 17. Nov., 22:00, Modell", note: "Davor fehlen Daten: Mo")
+    }
+    func testPressureSeventyTwoHours() throws {
+        try layerCase("luftdruck", pick: .entry(group: "Luftdruck", "Deutschland"), setting: 72, now: "09:00, Modell",
+                      oldest: "Di. 17. Nov., 22:00, Modell", note: "Davor fehlen Daten: So")
+    }
+
+    // Temperatur (model, 60 h built up): 48 h are all there, 72 h end 12 hours short.
+    func testTemperatureFortyEightHours() throws {
+        try layerCase("temperatur", pick: .entry(group: nil, "Temperatur"), setting: 48, now: "09:00, Modell",
+                      oldest: "Mo. 16. Nov., 09:00, Modell", note: nil)
+    }
+    func testTemperatureSeventyTwoHours() throws {
+        try layerCase("temperatur", pick: .entry(group: nil, "Temperatur"), setting: 72, now: "09:00, Modell",
+                      oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 09:00")
+    }
+
+    /// The forecast stays separate from the past of a model layer; the way to the end of the forecast works at 72 h.
+    func testModelLayerPastIsModelNotForecast() throws {
+        let app = launchLayers(setting: 72)
+        try Pick.entry(group: "Luftdruck", "Deutschland").select(app, self)
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Modell") }, value(slider))
-        shot(app, "luftdruck72-1-jetzt")
         jump(slider, fraction: 0)
-        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "the past builds up: the missing part before it is named: \(value(slider))")
-        XCTAssertTrue(value(slider).contains(", Modell."), "the past is a model value, not a forecast: \(value(slider))")
-        XCTAssertFalse(value(slider).contains("Vorhersage"), value(slider))
-        shot(app, "luftdruck72-2-aeltester-slot-aufbau")
+        XCTAssertTrue(waitValue(slider) { $0.contains(", Modell.") || $0.contains(", Modell") }, "the past is a model value: \(value(slider))")
+        XCTAssertFalse(value(slider).localizedCaseInsensitiveContains("vorhersage"), value(slider))
         jump(slider, fraction: 1)
-        XCTAssertTrue(waitValue(slider) { $0.contains("Vorhersage") }, "the forecast stays separate: \(value(slider))")
-        shot(app, "luftdruck72-3-vorhersage-ende")
+        XCTAssertTrue(waitValue(slider) { $0.localizedCaseInsensitiveContains("vorhersage") }, "the forecast stays separate: \(value(slider))")
         app.terminate()
+    }
+
+    /// 48 / 72 greyed per layer: the active map's own offer decides (server reports 48 h: 72 greyed; 72 h: selectable).
+    func testStepsAreGreyedPerLayerWhereTheServerReportsLess() throws {
+        for (server, selectable) in [(48, false), (72, true)] {
+            for (name, pick) in [("Blitze", Pick.entry(group: nil, "Blitze")), ("Luftdruck", .entry(group: "Luftdruck", "Deutschland")), ("Europa", .rain("Europa (OPERA)"))] {
+                let app = launchLayers(setting: 24, server: server)
+                try pick.select(app, self)
+                XCTAssertTrue(waitValue(slider(app)) { !$0.isEmpty })
+                openInfoSheet(app)
+                let entry = app.buttons["Maximale Vergangenheit"]
+                XCTAssertTrue(entry.waitForExistence(timeout: 10))
+                entry.tap()
+                let row72 = app.descendants(matching: .any).matching(identifier: "past-hours-72").firstMatch
+                XCTAssertTrue(row72.waitForExistence(timeout: 10), "72 h row")
+                XCTAssertEqual(row72.isEnabled, selectable, "\(name): server reports \(server) h, 72 selectable = \(selectable)")
+                XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "past-hours-48").firstMatch.isEnabled == (server >= 48))
+                print("HISTGREY layer=\(name) server=\(server) 72selectable=\(row72.isEnabled)")
+                shot(app, "einstellung-\(name.lowercased())-server\(server)")
+                app.terminate()
+            }
+        }
     }
 
     // MARK: Measurement: scrubbing across a full 72 h timeline

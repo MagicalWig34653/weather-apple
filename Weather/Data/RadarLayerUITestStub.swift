@@ -52,6 +52,14 @@ extension RadarLayerStore {
         return hours
     }
 
+    /// History mode: how far back each source really reaches (hours), like the real sources - lightning keeps about 24 h, the
+    /// temperature model has built up 60 h, the other model layers 10 h; everything else delivers what the server reports.
+    private nonisolated static let sourceLimits: [String: Int] = ["lightning": 24, "temperature": 60]
+    private nonisolated static let defaultModelBuildUp = 10
+
+    /// History mode with a frozen forecast clock: the stub, the client and the store all see this "now".
+    nonisolated static var frozenNow: Date? { uiTestHistoryHours != nil && ForecastUITestStub.mode != nil ? ForecastUITestStub.now : nil }
+
     private nonisolated static let stubStart = Date()
     private nonisolated static var outageLayer: String {
         guard let index = CommandLine.arguments.firstIndex(of: "-UITestOutageLayer"), CommandLine.arguments.indices.contains(index + 1) else { return "radar_world" }
@@ -116,11 +124,14 @@ extension RadarLayerStore {
                 NSLog("UITEST-STUB \(id) 304")
                 return (Data(), HTTPURLResponse(url: url, statusCode: 304, httpVersion: nil, headerFields: ["ETag": etag])!)
             }
-            let now = Date()
+            // History mode with a frozen clock (`-UITestForecast`): stub and app share one "now", so slot times are fixed.
+            let now = frozenNow ?? Date()
             let observation = (entry.extra["kind"] as? String) == "observation"
             let step = (entry.extra["step"] as? Double) ?? 3600
             let historyHours = uiTestHistoryHours
-            let count = observation ? (historyHours.map { $0 * 3600 / Int(step) + 1 } ?? 13) : 49
+            let availableHours = historyHours.map { min($0, sourceLimits[id] ?? $0) }
+            let count = observation ? (availableHours.map { $0 * 3600 / Int(step) + 1 } ?? 13) : 49
+            let expectedCount = observation ? (historyHours.map { $0 * 3600 / Int(step) + 1 } ?? 13) : 49
             // Observation: the newest slot lies a few minutes back; forecast: the hour before now, then 48 hours.
             let start = observation
                 ? Date(timeIntervalSince1970: (now.timeIntervalSince1970 / step).rounded(.down) * step - Double(count - 1) * step)
@@ -130,8 +141,11 @@ extension RadarLayerStore {
             compact.locale = Locale(identifier: "en_US_POSIX"); compact.timeZone = TimeZone(identifier: "UTC")
             compact.dateFormat = "yyyyMMdd'T'HHmm'Z'"
             let run = compact.string(from: start)
-            // History mode: grid index of the single hole (6 times from `holeStart`) and the single missing time.
-            let holeStart = max(0, count / 2 - 3), missingOne = max(1, count / 5)
+            // History mode: the hole of 6 times lies 36 h back (or half the available span), the single missing time at four
+            // fifths of the span - both counted from the newest slot, so 48 and 72 h see the same hole and only 72 h the single one.
+            let spanSlots = count - 1
+            let holeBack = min(36 * 3600 / Int(step), spanSlots / 2)
+            let holeStart = max(0, count - 1 - holeBack - 5), missingOne = max(1, count - 1 - spanSlots * 4 / 5)
             let missing: Set<Int> = historyHours == nil || !observation ? [] : Set(holeStart..<(holeStart + 6)).union([missingOne])
             let slots = (0..<count).filter { !missing.contains($0) }.map { index -> [String: Any] in
                 let time = start.addingTimeInterval(Double(index) * step)
@@ -159,11 +173,17 @@ extension RadarLayerStore {
                     let gaps: [[String: Any]] = [
                         ["from": iso.string(from: time(missingOne)), "to": iso.string(from: time(missingOne)), "slots": 1],
                         ["from": iso.string(from: time(holeStart)), "to": iso.string(from: time(holeStart + 5)), "slots": 6]]
-                    object["history"] = ["hours": historyHours, "oldest": iso.string(from: time(0)), "expected": count,
-                                         "present": count - missing.count, "complete": false, "gaps": gaps] as [String: Any]
+                    var allGaps = gaps.sorted { ($0["from"] as! String) < ($1["from"] as! String) }
+                    if expectedCount > count {   // the source reaches back less far than the server window
+                        let lead = expectedCount - count
+                        allGaps.insert(["from": iso.string(from: time(0).addingTimeInterval(-Double(lead) * step)),
+                                        "to": iso.string(from: time(0).addingTimeInterval(-step)), "slots": lead], at: 0)
+                    }
+                    object["history"] = ["hours": historyHours, "oldest": iso.string(from: time(0)), "expected": expectedCount,
+                                         "present": count - missing.count, "complete": false, "gaps": allGaps] as [String: Any]
                 } else {
                     // Model layer: only the newest 10 hours exist (built up since the deploy), one hour missing among them.
-                    let builtUp = 10, hole = 4
+                    let builtUp = min(sourceLimits[id] ?? defaultModelBuildUp, historyHours), hole = 4
                     let firstPast = start.addingTimeInterval(-Double(builtUp) * 3600)
                     let past = (0..<builtUp).filter { $0 != hole }.map { index -> [String: Any] in
                         let time = firstPast.addingTimeInterval(Double(index) * 3600)
@@ -186,7 +206,7 @@ extension RadarLayerStore {
             if etagMode { NSLog("UITEST-STUB \(id) 200") }
             let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: etagMode ? ["ETag": etag] : nil)!
             return ((try? JSONSerialization.data(withJSONObject: object)) ?? Data(), ok)
-        })
+        }, clock: { frozenNow ?? Date() })
     }
 }
 

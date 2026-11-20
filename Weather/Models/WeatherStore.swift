@@ -110,7 +110,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         #if DEBUG
         if layers == nil, let mode = RadarLayerStore.uiTestMode {
             self.layers = RadarLayerStore(radarBaseURL: backend.baseURL,
-                                          client: RadarLayerStore.uiTestClient(mode: mode, radarBaseURL: backend.baseURL))
+                                          client: RadarLayerStore.uiTestClient(mode: mode, radarBaseURL: backend.baseURL),
+                                          clock: { RadarLayerStore.frozenNow ?? Date() })
         } else {
             self.layers = layers ?? RadarLayerStore(radarBaseURL: backend.baseURL)
         }
