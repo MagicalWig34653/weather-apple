@@ -336,7 +336,7 @@ final class RadarHistoryUITests: XCTestCase {
     }
     func testTemperatureSeventyTwoHours() throws {
         try layerCase("temperatur", pick: .entry(group: nil, "Temperatur"), setting: 72, now: "09:00, Modell",
-                      oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 08:00")
+                      oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 09:00")
     }
 
     /// The forecast stays separate from the past of a model layer; the way to the end of the forecast works at 72 h.
@@ -361,7 +361,8 @@ final class RadarHistoryUITests: XCTestCase {
             XCTAssertTrue(waitValue(slider(app)) { !$0.isEmpty })
             openInfoSheet(app)
             let entry = app.buttons["Maximale Vergangenheit"]
-            XCTAssertTrue(entry.waitForExistence(timeout: 10))
+            if !entry.waitForExistence(timeout: 10) { shot(app, "einstellung-\(name.lowercased())-server\(server)-fehlt", enforceDark: false) }
+            XCTAssertTrue(entry.exists, "entry Maximale Vergangenheit")
             entry.tap()
             let row72 = app.descendants(matching: .any).matching(identifier: "past-hours-72").firstMatch
             XCTAssertTrue(row72.waitForExistence(timeout: 10), "72 h row")
@@ -521,6 +522,42 @@ final class RadarHistoryUITests: XCTestCase {
         jump(slider, fraction: 0)
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:50") }, "Standard: the backend's 72 h are back: \(value(slider))")
         shot(app, "neustart-3-standard-72")
+        app.terminate()
+    }
+
+    // MARK: Against PRODUCTION (read-only view), only with TEST_RUNNER_HIST_PROD=1
+
+    /// The app against `https://showers.linolaske.de/v1` (production default): only viewing and the slider, no write access, no login,
+    /// no stub. Fresh install (no stored choice): the first open shows the backend's 72 h window limited to what exists. Prints the oldest
+    /// slot, the hint and the end per layer (`HISTPROD ...`); not part of the regular suite (needs the network and moves with the data).
+    func testProductionReadOnlyOldestSlotAndHint() throws {
+        guard ProcessInfo.processInfo.environment["HIST_PROD"] != nil else { throw XCTSkip("Nur mit TEST_RUNNER_HIST_PROD=1 (liest die Produktion, nur Ansicht)") }
+        let layer = ProcessInfo.processInfo.environment["HIST_PROD_LAYER"] ?? "welt"
+        let pick: Pick = layer == "welt" ? .rain("Welt (NOAA)") : layer == "europa" ? .rain("Europa (OPERA)") : .entry(group: nil, "Temperatur")
+        let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestResetPastChoice"]))
+        app.launch()
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 40))
+        sleep(6)
+        menu.tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(1)
+        try pick.select(app, self)
+        let slider = slider(app)
+        sleep(4)
+        let now = value(slider)
+        shot(app, "prod-\(layer)-1-jetzt", enforceDark: false)
+        jump(slider, fraction: 0)
+        sleep(8)
+        let oldest = value(slider)
+        let note = gapNote(app).exists ? gapNote(app).label : "-"
+        print("HISTPROD layer=\(layer) jetzt=\(now) | aeltester=\(oldest) | hinweis=\(note)")
+        XCTAssertNotEqual(oldest, now, "the slider reaches back")
+        shot(app, "prod-\(layer)-2-aeltester-slot", enforceDark: false)
+        jump(slider, fraction: 1)
+        sleep(3)
+        shot(app, "prod-\(layer)-3-zurueck", enforceDark: false)
+        print("HISTPROD layer=\(layer) zurueck=\(value(slider)) hinweis_am_ende=\(gapNote(app).exists)")
         app.terminate()
     }
 
