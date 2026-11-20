@@ -248,7 +248,7 @@ final class RadarHistoryUITests: XCTestCase {
         guard let url = environment["HIST_BACKEND_URL"] else { throw XCTSkip("Nur mit lokalem Backend (HIST_BACKEND_URL)") }
         executionTimeAllowance = 600
         let hours = environment["HIST_HOURS"] ?? "48"
-        let layers = (environment["HIST_LAYERS"] ?? "Regen|Deutschland (DWD),Regen|Europa (OPERA),|Blitze,Luftdruck|Deutschland").split(separator: ",").map(String.init)
+        let layers = (environment["HIST_LAYERS"] ?? "Regen|Deutschland (DWD),Regen|Europa (OPERA),Regen|Welt (NOAA),|Blitze,Luftdruck|Deutschland").split(separator: ",").map(String.init)
         let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
             "-radar-backend-url", url, "-radarPastHours", hours]))
         app.launch()
@@ -261,8 +261,12 @@ final class RadarHistoryUITests: XCTestCase {
         for item in layers {
             let parts = item.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
             let group = parts[0].isEmpty ? nil : parts[0]
-            guard let entry = openLayerEntry(app, group: group, entry: parts[1]) else { print("HISTINT layer=\(parts[1]) nicht angeboten"); continue }
-            entry.tap()
+            if group == "Regen" {
+                try chooseRain(app, parts[1])
+            } else {
+                guard let entry = openLayerEntry(app, group: group, entry: parts[1]) else { print("HISTINT layer=\(parts[1]) nicht angeboten"); continue }
+                entry.tap()
+            }
             let slider = slider(app)
             sleep(3)
             let now = value(slider)
