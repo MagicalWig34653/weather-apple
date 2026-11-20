@@ -47,11 +47,14 @@ enum LiveActivityUITestStub {
         case "regionRaining": content = state(.raining, maxClass: 4, wet: 34, peak: 60, radius: 10)
         default: return
         }
+        // `-UITestLiveActivityStale event|age`: stale date = event time (what the app/server should send) or the old 20 minutes.
+        let eventStale = args.firstIndex(of: "-UITestLiveActivityStale").map { $0 + 1 < args.count && args[$0 + 1] == "event" } ?? false
+        let stale = eventStale ? content.activityStaleDate(now: now) : now.addingTimeInterval(1_200)
         Task {
             for old in Activity<RainActivityAttributes>.activities { await old.end(nil, dismissalPolicy: .immediate) }
             do {
                 _ = try Activity.request(attributes: RainActivityAttributes(displayName: name, subscriptionID: subscriptionID),
-                                         content: ActivityContent(state: content, staleDate: now.addingTimeInterval(1_200)), pushType: nil)
+                                         content: ActivityContent(state: content, staleDate: stale), pushType: nil)
                 NSLog("LAStub started %@", args[i + 1])
             } catch {
                 NSLog("LAStub failed %@", String(describing: error))

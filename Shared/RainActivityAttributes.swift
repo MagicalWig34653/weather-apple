@@ -83,6 +83,15 @@ public struct RainActivityAttributes: Codable, Hashable, Sendable {
         public var effectiveStaleDate: Date {
             min(staleDate ?? referenceTime.addingTimeInterval(1_200), referenceTime.addingTimeInterval(1_200))
         }
+
+        /// Stale date to hand to ActivityKit (`ActivityContent.staleDate`; for pushes the `stale-date` key): the event time while a
+        /// countdown runs (and the event lies within the 20 minute freshness window), otherwise `effectiveStaleDate`. The system does not
+        /// re-render a Live Activity at the event time (measured 20.11.: "0:00" stayed 107 s), but it does when the activity turns stale;
+        /// the card then reads "Endet gleich"/"Regen gleich" (see `RainActivityPresentation`).
+        public func activityStaleDate(now: Date) -> Date {
+            guard phase == .startsIn || phase == .endsIn, let event = eventDate, event > now, event < effectiveStaleDate else { return effectiveStaleDate }
+            return event
+        }
     }
 }
 

@@ -143,7 +143,7 @@ final class SystemRainActivityManager: RainActivityManaging {
         guard Activity<RainActivityAttributes>.activities.isEmpty else { throw FallbackError.alreadyActive }
         guard !state.isStale(at: Date()), state.phase != .dry else { throw FallbackError.staleOrDry }
         let activity = try Activity.request(attributes: attributes,
-                                            content: ActivityContent(state: state, staleDate: state.effectiveStaleDate), pushType: .token)
+                                            content: ActivityContent(state: state, staleDate: state.activityStaleDate(now: Date())), pushType: .token)
         Task { [weak self] in await self?.observe(activity) }
     }
 }

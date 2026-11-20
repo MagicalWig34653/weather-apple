@@ -16,7 +16,10 @@ struct RainActivityPresentation: Equatable {
     init(state: RainActivityAttributes.ContentState, contextIsStale: Bool, now: Date, localRadiusKm: Int? = nil) {
         phase = state.phase
         referenceTime = state.referenceTime
-        isStale = contextIsStale || state.isStale(at: now)
+        // The activity's stale date may be the event time (`activityStaleDate`): a context flag that arrives with a reached event of a
+        // running countdown while the data is still fresh is "event reached" ("Endet gleich"), not "outdated".
+        let eventReached = (state.phase == .startsIn || state.phase == .endsIn) && state.eventDate.map { $0 <= now } == true
+        isStale = state.isStale(at: now) || (contextIsStale && !eventReached)
         region = state.isRegion ? RainActivityRegionPresentation(state: state, isStale: isStale, localRadiusKm: localRadiusKm) : nil
         if !isStale, state.phase == .startsIn || state.phase == .endsIn,
            let date = state.eventDate, date > now {

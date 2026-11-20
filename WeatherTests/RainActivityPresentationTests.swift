@@ -63,6 +63,34 @@ final class RainActivityPresentationTests: XCTestCase {
         }
     }
 
+    /// Lino/Brain 20.11.: "0:00" stood frozen after the event (the system does not re-run the view at the event time, only when the
+    /// activity turns stale). With the activity's stale date set to the event time, the context flag arrives at the event: the card then
+    /// must read "Endet gleich"/"Regen gleich" (data is not old), never "Daten veraltet" and never a frozen countdown.
+    func testContextStaleAtTheEventReadsAsImminentNotOutdated() {
+        for (phase, text) in [(RainActivityAttributes.Phase.endsIn, "Endet gleich"), (.startsIn, "Regen gleich")] {
+            let pr = p(state(phase, in: 0), stale: true)
+            XCTAssertEqual(pr.hero, .statement(text))
+            XCTAssertEqual(pr.tone, .rain)
+            XCTAssertNil(pr.countdownTarget)
+            XCTAssertNil(pr.heroDetail)
+        }
+    }
+
+    func testContextStaleBeforeTheEventOrOtherPhasesOrOldDataStaysOutdated() {
+        XCTAssertEqual(p(state(.endsIn, in: 3), stale: true).tone, .stale, "event not reached: still outdated")
+        XCTAssertEqual(p(state(.raining), stale: true).tone, .stale)
+        XCTAssertEqual(p(state(.dry, in: -1), stale: true).tone, .stale)
+        XCTAssertEqual(p(state(.endsIn, in: -1, ageMinutes: 25), stale: true).tone, .stale, "older than 20 minutes: outdated")
+    }
+
+    func testActivityStaleDateIsTheEventTimeWhileACountdownRuns() {
+        let e = state(.endsIn, in: 5)
+        XCTAssertEqual(e.activityStaleDate(now: now), now.addingTimeInterval(300))
+        XCTAssertEqual(state(.startsIn, in: 30).activityStaleDate(now: now), state(.startsIn, in: 30).effectiveStaleDate, "event after the 20 min limit")
+        XCTAssertEqual(state(.endsIn, in: -1).activityStaleDate(now: now), state(.endsIn, in: -1).effectiveStaleDate, "event already passed")
+        XCTAssertEqual(state(.raining).activityStaleDate(now: now), state(.raining).effectiveStaleDate)
+    }
+
     func testStaleBoundaryIsExactlyTwentyMinutes() {
         XCTAssertEqual(p(state(.raining, ageMinutes: 19.9)).tone, .rain)
         XCTAssertEqual(p(state(.raining, ageMinutes: 20)).tone, .stale)
