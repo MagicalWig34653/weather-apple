@@ -282,7 +282,7 @@ struct RadarLayerManifest: Equatable, Sendable {
     var slots: [RadarManifest.Slot] { backend.slots }
     var radarAttribution: RadarAttribution { RadarAttribution(attribution: attribution, modificationNotice: modificationNotice) }
 
-    static let maximumSlots = 600
+    static let maximumSlots = 1000
 
     /// Observation: newest slot not older than the layer's limit. Forecast: run young enough and not exhausted.
     func isFresh(at now: Date) -> Bool {

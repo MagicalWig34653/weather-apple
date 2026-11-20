@@ -177,6 +177,32 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertThrowsError(try parse(modified("layer-pressure") { var image = $0["image"] as! [String: Any]; image["projection"] = "EPSG:4326"; $0["image"] = image }))
     }
 
+    /// Production serves the full 72 h for Europe since the 72 h deploy: 865 slots at 5 minutes (20.11.2026). Build 53 (limit 600)
+    /// rejected that manifest and Europe could not be selected ("Europa (OPERA) ließ sich nicht wählen").
+    private func manifestWithSlots(_ count: Int) throws -> Data {
+        try modified("layer-radar_world") {
+            let start = DWDRequest.date("2026-11-17T15:35:00Z")!
+            let format = ISO8601DateFormatter()
+            $0["slots"] = (0..<count).map { index -> [String: Any] in
+                let time = start.addingTimeInterval(Double(index) * 300)
+                return ["time": format.string(from: time), "kind": "observation", "path": "run/slot\(index).webp"]
+            }
+        }
+    }
+
+    func testAcceptsFullSeventyTwoHourEuropeManifestUpToTheLimit() throws {
+        for count in [865, RadarLayerManifest.maximumSlots] {
+            let value = try RadarLayerManifest.parse(manifestWithSlots(count), expected: .radarWorld, layersBaseURL: base(.radarWorld))
+            XCTAssertEqual(value.slots.count, count)
+        }
+        XCTAssertEqual(RadarLayerManifest.maximumSlots, 1000)
+    }
+
+    func testRejectsManifestAboveTheSlotLimit() throws {
+        XCTAssertThrowsError(try RadarLayerManifest.parse(manifestWithSlots(RadarLayerManifest.maximumSlots + 1),
+                                                          expected: .radarWorld, layersBaseURL: base(.radarWorld)))
+    }
+
     func testLegendFromForeignHostIsDroppedButLayerStaysUsable() throws {
         let data = try modified("layer-lightning") {
             $0["legend"] = ["url": "https://evil.example.invalid/l.png", "width": 119, "height": 344]
