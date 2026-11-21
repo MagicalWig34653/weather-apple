@@ -92,6 +92,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private var forecastLoads: Set<UUID> = []
     /// Counts successful answers; a load that was overtaken by another answer while it ran must not step back to an older run.
     @ObservationIgnored private var forecastDeliveries = 0
+    /// Counts answers that reached the store (success or failure); tells a joining `refresh()` whether the load it waited for answered.
+    @ObservationIgnored private var forecastAnswers = 0
+    /// `refresh()` calls waiting for the running forecast load instead of asking a second time.
+    @ObservationIgnored private var forecastLoadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
     /// Shared by polls, manual reloads and timeline composition across suspension points.
     @ObservationIgnored private var radarGeneration = UUID()
     /// Refresh started by the last `select`; tests await it to order requests deterministically.
@@ -267,6 +271,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
         forecastLoads.removeAll()
+        releaseForecastWaiters()
         radarGeneration = UUID()
         selectedPlace = place
         if places.contains(where: { $0.id == place.id }) { persistPlaces() }
@@ -325,7 +330,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         radarGeneration = requestID
         let place = selectedPlace
         isRadarLoading = true
-        beginForecastLoad(requestID)
+        // A forecast load of this place already runs (start-up: the loop was first): join it, ask the service only once.
+        let joining = !forecastLoads.isEmpty
+        if !joining { beginForecastLoad(requestID) }
         radarNotice = nil
         attemptedRadarFallback = false
         // A retry must also reload missing tiles when the data run is unchanged.
@@ -338,7 +345,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         radarError = nil
         // Each source can fail independently: a point error must not disable the map.
         async let mapUpdate: Void = refreshTimeline(requestID: requestID, placeID: place.id)
-        async let pointUpdate: Bool = refreshForecast(requestID: requestID, place: place)
+        async let pointUpdate: Bool = joining ? joinForecastLoad(requestID: requestID, place: place) : refreshForecast(requestID: requestID, place: place)
         _ = await (mapUpdate, pointUpdate)
         guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
         lastRefresh = Date()
@@ -451,6 +458,35 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     private func endForecastLoad(_ id: UUID) {
         guard forecastLoads.remove(id) != nil, forecastLoads.isEmpty else { return }
         isForecastLoading = false
+        releaseForecastWaiters()
+    }
+
+    private func releaseForecastWaiters() {
+        let waiting = forecastLoadWaiters
+        forecastLoadWaiters = [:]
+        waiting.values.forEach { $0.resume() }
+    }
+
+    /// Returns when no forecast load runs any more (or a place change dropped them); returns at once when cancelled.
+    private func waitForForecastLoads() async {
+        let id = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                if forecastLoads.isEmpty || Task.isCancelled { continuation.resume() } else { forecastLoadWaiters[id] = continuation }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.forecastLoadWaiters.removeValue(forKey: id)?.resume() }
+        }
+    }
+
+    /// The forecast part of a `refresh()` that found a load running: the running load shows the answer. Only when that load
+    /// ended without any answer (its task was cancelled, e.g. the loop on leaving the app) does this refresh ask once itself.
+    private func joinForecastLoad(requestID: UUID, place: SavedPlace) async -> Bool {
+        let answersBefore = forecastAnswers
+        await waitForForecastLoads()
+        guard forecastAnswers == answersBefore, generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return true }
+        beginForecastLoad(requestID)
+        return await refreshForecast(requestID: requestID, place: place)
     }
 
     /// `true` when the answer belongs to the selected place and was not cancelled.
@@ -460,6 +496,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         let result = await loadForecast(at: place.coordinate)
         guard forecastLoads.contains(requestID), selectedPlace.id == place.id, !Task.isCancelled else { return false }
         endForecastLoad(requestID)
+        forecastAnswers += 1
         // Another load answered while this one ran: an older run must not replace what that one delivered.
         let overtaken = forecastDeliveries != deliveriesAtStart
         switch result {
