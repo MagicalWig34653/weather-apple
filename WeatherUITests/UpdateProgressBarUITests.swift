@@ -262,4 +262,54 @@ final class UpdateProgressBarUITests: XCTestCase {
             XCTAssertEqual(with.text, without.text, accuracy: 0.5, "\(category): the hint text keeps its line count with the percent")
         }
     }
+
+    // MARK: Real services (read only), no stub
+
+    /// End to end against the real services (DWD forecast, Showers radar cache): GET requests only. Observes the bar during the
+    /// start-up load and after "Daten neu laden". Needs network; skipped (not failed) when no load can be observed at all.
+    func testRealServicesBarRunsThroughWithoutPercentAndEnds() throws {
+        let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestExposeProgress", "-UITestResetForecast"]))
+        app.launch()
+        defer { app.terminate() }
+        let header = header(app)
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        var observed: [String] = []
+        var sawPercent = false
+        let end = Date().addingTimeInterval(60)
+        var seenBar = false
+        while Date() < end {
+            if bar(app).exists, let value = bar(app).value as? String {
+                seenBar = true
+                if observed.last != value { observed.append(value) }
+                if percent(app).exists { sawPercent = true }
+                if observed.count == 1, observed[0] == "running" { shot(app, "8-echtbetrieb-waehrend-durchlaufend") }
+            } else if seenBar { break }
+            usleep(150_000)
+        }
+        NSLog("REALRUN start-up load observed=\(observed) percentSeen=\(sawPercent)")
+        try XCTSkipIf(!seenBar, "no load observed (too fast or no network)")
+        XCTAssertFalse(observed.contains { $0.hasPrefix("measured") }, "the real services report no total size: no measured value, got \(observed)")
+        XCTAssertFalse(sawPercent, "no percent without a total size")
+        XCTAssertFalse(bar(app).exists, "bar gone after the load")
+        // Manual reload.
+        guard let reload = openLayerEntry(app, group: nil, entry: "Daten neu laden") else { return XCTFail("reload entry not found") }
+        reload.tap()
+        var manual: [String] = []
+        let manualEnd = Date().addingTimeInterval(45)
+        var seenManual = false
+        while Date() < manualEnd {
+            if bar(app).exists, let value = bar(app).value as? String {
+                seenManual = true
+                if manual.last != value { manual.append(value) }
+                if percent(app).exists { sawPercent = true }
+            } else if seenManual { break }
+            usleep(150_000)
+        }
+        NSLog("REALRUN manual reload observed=\(manual) percentSeen=\(sawPercent)")
+        // A manual reload against the real services can finish within a fraction of a second (cached point forecast, small manifest):
+        // then the polling of the accessibility tree cannot see the bar. Not seeing it is logged, not failed; seeing it is checked.
+        XCTAssertFalse(manual.contains { $0.hasPrefix("measured") }, "got \(manual)")
+        XCTAssertFalse(sawPercent)
+        XCTAssertFalse(bar(app).exists, "bar gone after the manual reload")
+    }
 }

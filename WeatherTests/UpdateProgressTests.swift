@@ -222,6 +222,17 @@ final class UpdateProgressTests: XCTestCase {
         XCTAssertEqual(store.updateProgressDisplay, .hidden, "success")
     }
 
+    func testManualReloadShowsTheRunningBarAndEndsIt() async throws {
+        let gate = Gate()
+        let data = try Self.fixture()
+        let store = makeStore { await gate.wait(); return (data, 200) }
+        let reload = Task { await store.refresh() }   // "Daten neu laden": radar part and forecast part
+        try await waitUntil { store.updateProgressDisplay == .running }
+        await gate.open()
+        await reload.value
+        XCTAssertEqual(store.updateProgressDisplay, .hidden, "manual reload over")
+    }
+
     func testBarEndsWhenTheLoadBringsNothingNew() async throws {
         let data = try Self.fixture()
         let store = makeStore { (data, 200) }

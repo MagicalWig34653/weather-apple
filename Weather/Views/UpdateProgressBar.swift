@@ -22,7 +22,8 @@ struct UpdateProgressBar: View {
 
     private static var exposedForUITests: Bool {
         #if DEBUG
-        return ForecastUITestStub.mode != nil
+        // Stub runs, or a real-service run that only observes (`-UITestExposeProgress`).
+        return ForecastUITestStub.mode != nil || CommandLine.arguments.contains("-UITestExposeProgress")
         #else
         return false
         #endif
