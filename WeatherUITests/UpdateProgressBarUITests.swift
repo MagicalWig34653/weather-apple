@@ -31,6 +31,88 @@ final class UpdateProgressBarUITests: XCTestCase {
         return (snapshot.value as? String, snapshot.frame)
     }
 
+    /// Polls the bar by atomic snapshot reads (about 0.1 s apart) until `accept` holds; nil on timeout.
+    private func pollBar(_ app: XCUIApplication, timeout: TimeInterval,
+                         until accept: ((value: String?, frame: CGRect)) -> Bool = { _ in true }) -> (value: String?, frame: CGRect)? {
+        let end = Date().addingTimeInterval(timeout)
+        repeat {
+            if let read = barRead(app), accept(read) { return read }
+            usleep(100_000)
+        } while Date() < end
+        return nil
+    }
+
+    /// True as soon as the bar is absent in two consecutive snapshot reads 0.25 s apart (one failed query is not the end of a load;
+    /// a follow-on load that starts at once is not a gap either).
+    private func pollBarGone(_ app: XCUIApplication, timeout: TimeInterval) -> Bool {
+        let end = Date().addingTimeInterval(timeout)
+        repeat {
+            if barRead(app) == nil {
+                usleep(250_000)
+                if barRead(app) == nil { return true }
+            } else { usleep(100_000) }
+        } while Date() < end
+        return false
+    }
+
+    private enum ForecastState { case behind, refreshing, current, notShown }
+
+    /// What the forecast header says right now (one snapshot of the header, the status text carries a fixed identifier or label).
+    private func forecastState(_ app: XCUIApplication) -> ForecastState? {
+        guard let snapshot = try? header(app).snapshot() else { return nil }
+        let label = snapshot.label
+        if app.descendants(matching: .any)["forecast-server-behind"].exists || label.contains("neueren Stand") { return .behind }
+        if label.contains("Aktualisiere") { return .refreshing }
+        if label.localizedCaseInsensitiveContains("geladen") || label.localizedCaseInsensitiveContains("nicht verf") { return .notShown }
+        return .current
+    }
+
+    /// Non-asserting variant of `waitForForecast` (a start that must be repeated is not a failure).
+    private func forecastShown(_ header: XCUIElement, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "NOT (label CONTAINS[c] 'geladen') AND NOT (label CONTAINS[c] 'nicht verf')")
+        return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: header)], timeout: timeout) == .completed
+    }
+
+    /// Cold start of a stub run whose bar sequence is keyed on REQUEST COUNTS (stub: "later index queries", "point query > 1").
+    /// At launch the app starts three loads at about the same time: the forecast of `store.refresh()` (WeatherApp.swift:55), the forecast
+    /// of the loop `runForecastRefresh` (WeatherApp.swift:65 to 68) and the radar timeline (which also asks the run index). Which of
+    /// them is index query no. 1 (fast, shows the 10 minute old run) and which one is no. 2 (slow or newer, measured) depends on
+    /// scheduling, so under machine load the planned sequence "first load -> stalled second load" sometimes does not happen:
+    ///   - the forecast got a NEWER run right away (header shows no hint, no further load is due: no bar ever), or
+    ///   - the stalled request belongs to the loop while `refresh()` already shows the old run (loop blocked, no bar).
+    /// Both are states of the stub's counters, not of the bar. This helper checks the ACTUAL state and cold-starts again if the planned
+    /// sequence did not come up (up to `attempts`; limits and waits of the assertions are not touched). The result is the running app
+    /// with the expected bar value already seen, and the header height before the bar.
+    ///  - `returnTrip`: the planned second load is the one a return from the background starts (stub `slowfresh`): the start must settle
+    ///    (no bar, hint "server behind"), then one return; otherwise the second load is the loop's own (stub `measured`, 3 s after the first).
+    private func launchUntilStubBar(_ mode: String, extra: [String] = [], expect value: String, returnTrip: Bool = false,
+                                    attempts: Int = 4, onSettled: (XCUIApplication) -> Void = { _ in },
+                                    onBar: (XCUIApplication) -> Void = { _ in },
+                                    file: StaticString = #filePath, line: UInt = #line) -> (app: XCUIApplication, heightBefore: CGFloat) {
+        var app: XCUIApplication!
+        var notes: [String] = []
+        for attempt in 1...attempts {
+            app?.terminate()
+            app = launch(mode, extra: extra)
+            guard header(app).waitForExistence(timeout: 30), forecastShown(header(app), timeout: 60) else { notes.append("\(attempt): no forecast"); continue }
+            if returnTrip, !pollBarGone(app, timeout: 30) { notes.append("\(attempt): start bar did not end"); continue }
+            let state = forecastState(app)
+            guard state == .behind || (!returnTrip && state == .refreshing) else {
+                notes.append("\(attempt): start settled as \(String(describing: state)) (newer run shown at once)"); NSLog("STUBSTART \(mode) \(notes.last!)"); continue
+            }
+            let heightBefore = header(app).frame.height
+            if returnTrip { onSettled(app); startUpdate(app) }
+            guard pollBar(app, timeout: 20, until: { $0.value == value }) != nil else {
+                notes.append("\(attempt): no bar '\(value)' within 20 s (planned second load did not come)"); NSLog("STUBSTART \(mode) \(notes.last!)"); continue
+            }
+            onBar(app)
+            NSLog("STUBSTART \(mode) attempt \(attempt) of \(attempts) ok")
+            return (app, heightBefore)
+        }
+        XCTFail("stub sequence '\(mode)' did not come up in \(attempts) cold starts: \(notes)", file: file, line: line)
+        return (app, 0)
+    }
+
     private func waitForForecast(_ header: XCUIElement) {
         let predicate = NSPredicate(format: "NOT (label CONTAINS[c] 'geladen') AND NOT (label CONTAINS[c] 'nicht verf')")
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: header)], timeout: 60), .completed, header.label)
@@ -108,13 +190,12 @@ final class UpdateProgressBarUITests: XCTestCase {
     // MARK: Measured progress (stub reports sizes)
 
     func testMeasuredBarShowsFillPercentOnTheRightAndKeepsHintText() throws {
-        let app = launch("measured")
-        let header = header(app)
-        XCTAssertTrue(header.waitForExistence(timeout: 30))
-        waitForForecast(header)
-        let heightBefore = header.frame.height
         // No background trip: the stub's stalled point query is shared and would be joined (unmeasured) by a repeated load.
         // The loop starts the next load by itself 3 s after the first one (stub `measured` shortens the pause); the stub then stalls it for 90 s.
+        // `launchUntilStubBar` starts again if the stub's request counts did not give this sequence (see there).
+        let started = launchUntilStubBar("measured", expect: "measured:50")
+        let app = started.app, heightBefore = started.heightBefore
+        let header = header(app)
         XCTAssertEqual(barValue(app, timeout: 60), "measured:50", "fill = progress (100 + 100 of 100 + 300 bytes)")
         assertBarGeometry(app, heightBefore: heightBefore)
         // Drawn: the filled left half differs clearly from the unfilled right half (fill 50 %).
@@ -174,10 +255,7 @@ final class UpdateProgressBarUITests: XCTestCase {
     }
 
     func testReducedMotionMeasuredBarKeepsFillAndPercent() throws {
-        let app = launch("measured", extra: ["-UITestReduceMotion"])
-        let header = header(app)
-        XCTAssertTrue(header.waitForExistence(timeout: 30))
-        waitForForecast(header)
+        let app = launchUntilStubBar("measured", extra: ["-UITestReduceMotion"], expect: "measured:50").app
         assertBarValue(app, "measured:50")
         XCTAssertTrue(percent(app).waitForExistence(timeout: 5))
         let frames = (0..<3).compactMap { _ -> Data? in usleep(230_000); return strip(app, of: bar(app)) }
@@ -197,16 +275,13 @@ final class UpdateProgressBarUITests: XCTestCase {
     }
 
     func testBarEndsAfterSuccessWithNewData() throws {
-        let app = launch("slowfresh")
+        // Settled start (no bar, hint "server behind"), then one return that starts the stalled load (6 s, lists the newer run).
+        // `launchUntilStubBar` starts again if the stub's request counts gave another start (see there); "running" is seen on return.
+        let started = launchUntilStubBar("slowfresh", expect: "running", returnTrip: true,
+                                         onSettled: { app in self.assertDarkIfNeeded(app); self.shot(app, "1-vorher") },
+                                         onBar: { app in self.shot(app, "2-waehrend-durchlaufend") })
+        let app = started.app, heightBefore = started.heightBefore
         let header = header(app)
-        XCTAssertTrue(header.waitForExistence(timeout: 30))
-        waitForForecast(header)
-        let heightBefore = header.frame.height
-        assertDarkIfNeeded(app)
-        shot(app, "1-vorher")
-        startUpdate(app)
-        XCTAssertEqual(barValue(app), "running")
-        shot(app, "2-waehrend-durchlaufend")
         assertBarGoneAndTextBack(app)
         XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5)
         sleep(1)
@@ -290,11 +365,16 @@ final class UpdateProgressBarUITests: XCTestCase {
 
     /// Frame heights of the hint (pill) and of its text block while an update runs, with or without a measured total.
     private func hintHeights(mode: String, category: String) -> (header: CGFloat, text: CGFloat) {
-        let app = launch(mode, extra: ["-UIPreferredContentSizeCategoryName", category])
+        let sizeArguments = ["-UIPreferredContentSizeCategoryName", category]
+        let app = mode == "measured" ? launchUntilStubBar(mode, extra: sizeArguments, expect: "measured:50").app : launch(mode, extra: sizeArguments)
         defer { app.terminate() }
-        XCTAssertTrue(header(app).waitForExistence(timeout: 30))
-        waitForForecast(header(app))
-        if mode == "measured" { assertBarValue(app, "measured:50", category) } else { startUpdate(app); XCTAssertEqual(barValue(app), "running") }
+        if mode == "measured" {
+            assertBarValue(app, "measured:50", category)
+        } else {
+            XCTAssertTrue(header(app).waitForExistence(timeout: 30))
+            waitForForecast(header(app))
+            startUpdate(app); XCTAssertEqual(barValue(app), "running")
+        }
         let text = app.descendants(matching: .any)["forecast-refreshing"]
         XCTAssertTrue(text.waitForExistence(timeout: 5), "hint text block (refreshing) \(category)")
         if mode == "measured" {
@@ -373,6 +453,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         let end = Date().addingTimeInterval(60)
         var seenBar = false
         var shotTaken = false
+        var ended = false
         while Date() < end {
             // One snapshot for value and frame: a snapshot that fails means the bar is gone (regular end once it was seen).
             if let read = barRead(app), let value = read.value {
@@ -381,14 +462,21 @@ final class UpdateProgressBarUITests: XCTestCase {
                 if percent(app).exists { sawPercent = true }
                 // Screenshot and frame log only ONCE (frame from the snapshot); the screenshot does not query the bar, so an end during it is harmless.
                 if !shotTaken, observed == ["running"] { shotTaken = true; NSLog("REALRUN bar frame \(read.frame) screen \(app.frame)"); shot(app, "8-echtbetrieb-waehrend-durchlaufend") }
-            } else if seenBar { break }
+            } else if seenBar {
+                // The end counts when two reads 0.3 s apart both find no bar. One failed query, or a follow-on load of the loop that
+                // starts at once (a NEW bar, not this one), is not the end of THIS load; the old `bar.exists` right after the loop
+                // met exactly such a bar (run 15:28, light) and failed. A bar that does not end within the 60 s still fails below.
+                usleep(300_000)
+                if barRead(app) == nil { ended = true; break }
+                continue
+            }
             usleep(150_000)
         }
         NSLog("REALRUN start-up load observed=\(observed) percentSeen=\(sawPercent)")
         try XCTSkipIf(!seenBar, "no load observed (too fast or no network)")
         XCTAssertFalse(observed.contains { $0.hasPrefix("measured") }, "the real services report no total size: no measured value, got \(observed)")
         XCTAssertFalse(sawPercent, "no percent without a total size")
-        XCTAssertFalse(bar(app).exists, "bar gone after the load")
+        XCTAssertTrue(ended, "bar gone after the load (no bar in two consecutive reads within 60 s), saw \(observed)")
         // Manual reload. What a poll after the tap can see: XCUITest returns from the tap only after the app is idle again (about 1 s in
         // the runs 21.11.2026), and the real manual reload answers from caches (run index and point cache 300 s, radar manifest by ETag)
         // within that time. So the bar of the manual reload is usually NOT observable here; that is a test window limit, not app
@@ -444,80 +532,114 @@ final class UpdateProgressBarUITests: XCTestCase {
         return image.cgImage?.cropping(to: r).flatMap { UIImage(cgImage: $0).pngData() }
     }
 
-    /// Image sequence of the START-UP bar (automatic load right after launch, real services, GET only): before (no bar yet),
-    /// during (bar visible and running), after (bar gone, hint intact, height unchanged). All three are REAL app screenshots taken
-    /// while the app is still running (the app is terminated only afterwards), pairwise different (MD5).
+    /// A frame with no bar and the facts read between the two bar checks around its screenshot.
+    private struct IdleFrame { let md5: String; let image: UIImage; let label: String; let value: String; let headerHeight: CGFloat; let percentVisible: Bool }
+
+    /// Screenshot of a settled screen: the bar is absent in two consecutive reads BEFORE the screenshot and absent again right AFTER it
+    /// (the hint, value and percent are read between the two checks, so they belong to the same moment). A follow-on load of the loop
+    /// that starts meanwhile is not an error: the screenshot is repeated once that bar has ended (up to `attempts`). nil: never settled.
+    private func captureIdle(_ app: XCUIApplication, _ name: String, attempts: Int = 4) -> IdleFrame? {
+        for attempt in 1...attempts {
+            guard pollBarGone(app, timeout: 60) else { return nil }
+            let frame = capture(app, name)
+            let snapshot = try? header(app).snapshot()
+            let percentVisible = percent(app).exists
+            if barRead(app) == nil {
+                return IdleFrame(md5: frame.md5, image: frame.image, label: snapshot?.label ?? "", value: snapshot?.value as? String ?? "",
+                                 headerHeight: snapshot?.frame.height ?? 0, percentVisible: percentVisible)
+            }
+            NSLog("REALSEQ \(name): a bar started during the screenshot (attempt \(attempt) of \(attempts)), again")
+        }
+        return nil
+    }
+
+    /// Image sequence of the START-UP bar against the REAL services (DWD forecast, Showers radar cache), GET only, no stub:
+    /// before (no bar), during (bar visible and running), after (bar gone, hint intact, height unchanged). All three are REAL app
+    /// screenshots, pairwise different (MD5) and different exactly at the bar strip.
     ///
-    /// Scope: only the automatic start-up load. The MANUAL reload ("Daten neu laden") is NOT deterministic against production
-    /// (answered from caches within the tap's idle wait of about 1 s, run 50: no bar seen; run 32 was falsely green because the bar seen
-    /// 16 s later belonged to the automatic loop) and is reproducible only with a stub or as a unit test
-    /// (`testManualReloadShowsTheBarAtOnce`, `testManualReloadShowsTheRunningBarAndEndsIt`). No skipping: a bar that never appears,
-    /// a bar that is already there when the "before" frame is taken, or a missing end is a clear failure.
+    /// Why two launches: the start-up load begins right after launch, so a cold start has NO bar-less frame before it (6 of 6 cold
+    /// starts of run 15:29 to 15:38, light and dark: "bar already visible at the first look"; app launch and the first XCUITest query
+    /// alone take longer than the start of the load). Every other real load is not observable: the manual reload and the return from the
+    /// background answer from caches within the tap's or activation's idle wait of about 1 s; a loop load is a forecast-only request of
+    /// well under a second. So the bar-less "before" cannot be taken inside the session that shows the start-up bar; no stub or
+    /// artificial state is built to get it. Instead the sequence is the user's own: (1) session 1 starts, its start-up load ends, the
+    /// screen settles: "before" (bar absent before and after the screenshot). (2) The app is closed and opened again
+    /// (cold start, the same real services): "during" is the start-up bar of this launch, "after" the settled screen once it ended.
+    /// What this does NOT prove: that no bar-less frame exists in the SAME session before the bar; that needs an app-side hook
+    /// (a Debug-only launch argument that delays the start-up load) and is listed as an option in docs, not done here.
+    ///
+    /// No skipping: no bar after relaunch, a bar that does not end, a hint that stays on "Aktualisiere" or equal frames are failures.
+    /// A frame whose validity cannot be shown (the bar ended during the 'during' screenshot) is taken again with another cold start
+    /// (up to 3), because the load may be too short for one screenshot; every attempt is logged (`REALSEQ`).
     ///
     /// Environment (via `TEST_RUNNER_`): `SHOT_SUFFIX` hell/dark (default: appearance of the device), `UPDATE_PROGRESS_SHOTS` (directory).
     /// Files: `10-start-echt-1-vorher|2-waehrend|3-nachher-<hell|dunkel>.png`.
     func testRealServicesStartBarImageSequence() throws {
-        // "Before" is only valid if no bar exists directly before AND directly after its screenshot. The start-up load begins right
-        // after launch, so a cold start can be too late for that: up to 3 fresh cold starts (cache reset), otherwise a clear failure.
-        var app: XCUIApplication!
-        var before: (md5: String, image: UIImage)?
-        var attempts = 0
-        while before == nil && attempts < 3 {
-            attempts += 1
-            app?.terminate()
-            app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestExposeProgress", "-UITestResetForecast"]))
-            app.launch()
-            guard header(app).waitForExistence(timeout: 30) else { XCTFail("the forecast header does not exist after launch"); return }
-            if bar(app).exists { NSLog("REALSEQ attempt \(attempts): bar already visible at the first look"); continue }
-            let candidate = capture(app, "10-start-echt-1-vorher")
-            if bar(app).exists { NSLog("REALSEQ attempt \(attempts): bar appeared during the before screenshot"); continue }
-            before = candidate
-        }
+        let launchArguments = UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestExposeProgress", "-UITestResetForecast"])
+        let app = UITestLaunch.app(extra: launchArguments)
         defer { app.terminate() }
-        guard let before else {
-            XCTFail("no 'before' frame without a bar in \(attempts) cold starts (the start-up bar was already visible each time): sequence not capturable")
-            return
-        }
-        let header = header(app)
-        let heightBefore = header.frame.height
+
+        // Session 1: start-up load, then the settled screen = "before".
+        app.launch()
+        guard header(app).waitForExistence(timeout: 30) else { return XCTFail("session 1: the forecast header does not exist after launch") }
+        guard forecastShown(header(app), timeout: 60) else { return XCTFail("session 1: no forecast shown within 60 s (no network?)") }
+        guard let before = captureIdle(app, "10-start-echt-1-vorher") else { return XCTFail("session 1: the screen did not settle without a bar within 60 s") }
+        XCTAssertFalse(before.label.contains("Aktualisiere"), "session 1: hint while no bar: \(before.label)")
+        XCTAssertFalse(before.percentVisible)
+        let heightBefore = before.headerHeight
         assertDarkIfNeeded(app)
 
-        // During: the bar must really appear (no skipping) and run without a number (the real services report no total size).
-        XCTAssertTrue(bar(app).waitForExistence(timeout: 60), "the start-up load shows no bar within 60 s (no network or bar missing)")
-        guard barRead(app) != nil else { return XCTFail("the bar was gone right after it appeared (no 'during' frame possible)") }
-        var values: [String] = []
+        // Session 2: cold start; "during" = the start-up bar of this launch.
+        var during: (md5: String, image: UIImage)?
+        var duringBar = CGRect.zero, duringHeader = CGRect.zero
+        var firstValue: String?
+        var attempts = 0
+        while during == nil && attempts < 3 {
+            attempts += 1
+            app.terminate()
+            app.launch()
+            guard let first = pollBar(app, timeout: 60) else { NSLog("REALSEQ attempt \(attempts): no start-up bar within 60 s after relaunch"); continue }
+            let candidate = capture(app, "10-start-echt-2-waehrend")
+            let stillThere = barRead(app)
+            let hintSnapshot = try? header(app).snapshot()
+            let stillThereAfterHint = barRead(app)
+            guard let stillThere, stillThereAfterHint != nil else { NSLog("REALSEQ attempt \(attempts): the bar ended during the 'during' screenshot (frame not valid), again"); continue }
+            XCTAssertTrue((hintSnapshot?.label ?? "").contains("Aktualisiere"), "hint during the load: \(hintSnapshot?.label ?? "nil")")
+            during = candidate; duringBar = stillThere.frame; duringHeader = hintSnapshot?.frame ?? header(app).frame; firstValue = first.value
+        }
+        guard let during else { return XCTFail("no valid 'during' frame in \(attempts) cold starts (no bar seen, or it ended during every screenshot): sequence not capturable") }
+        var values: [String] = [firstValue ?? ""]
         var sawPercent = false
-        // One snapshot per read: the bar may end between two queries (regular end of the load).
-        func note() { if let v = barRead(app)?.value, values.last != v { values.append(v) }; if percent(app).exists { sawPercent = true } }
-        note()
-        let during = capture(app, "10-start-echt-2-waehrend")
-        let afterDuring = barRead(app)
-        XCTAssertNotNil(afterDuring, "bar still there directly after the 'during' screenshot (frame valid)")
-        note()
-        guard let afterDuring else { return }
-        let duringHeader = header.frame, duringBar = afterDuring.frame
         XCTAssertEqual(values.first, "running", "the bar runs without a number, got \(values)")
-        assertBarGeometry(app, heightBefore: duringHeader.height, barFrame: duringBar)
-        XCTAssertTrue(header.label.contains("Aktualisiere"), "hint during the load: \(header.label)")
+        assertBarGeometry(app, heightBefore: heightBefore, barFrame: duringBar)
+        XCTAssertEqual(duringHeader.height, heightBefore, accuracy: 0.5, "no height change of the hint (before vs during)")
         // The bar strip is really drawn in the 'during' frame and not in the 'before' frame (same place).
         XCTAssertNotEqual(cropped(during.image, duringBar), cropped(before.image, duringBar), "bar strip differs between before and during")
 
-        // After: bar gone, hint intact, height unchanged, taken from the running app.
-        let gone = NSPredicate(format: "exists == false")
+        // End of the start-up load: two reads without a bar (a follow-on bar counts as its own load, not as a missing end).
         let end = Date().addingTimeInterval(60)
-        while Date() < end && bar(app).exists { note(); usleep(150_000) }   // note() reads atomically; a bar that ends meanwhile just yields nothing
-        XCTAssertFalse(bar(app).exists, "bar gone at the end of the start-up load (60 s), saw \(values)")
-        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 1), .completed)
-        waitForForecast(header)
-        sleep(1)
-        XCTAssertFalse(bar(app).exists, "no new bar before the 'after' frame (automatic follow-up load would not be the start-up bar)")
-        let after = capture(app, "10-start-echt-3-nachher")
-        XCTAssertFalse(bar(app).exists, "no bar directly after the 'after' screenshot")
-        XCTAssertFalse(percent(app).exists)
-        XCTAssertFalse(header.label.contains("Aktualisiere"), "hint text back: \(header.label)")
-        XCTAssertEqual(header.value as? String ?? "", "")
-        XCTAssertEqual(header.frame.height, duringHeader.height, accuracy: 0.5, "no height change of the hint (during vs after)")
-        NSLog("REALSEQ heights before=\(heightBefore) during=\(duringHeader.height) after=\(header.frame.height) values=\(values) percentSeen=\(sawPercent) md5 \(before.md5) \(during.md5) \(after.md5)")
+        var ended = false
+        while Date() < end {
+            if let read = barRead(app), let value = read.value {
+                if values.last != value { values.append(value) }
+                if percent(app).exists { sawPercent = true }
+            } else {
+                usleep(300_000)
+                if barRead(app) == nil { ended = true; break }
+                continue
+            }
+            usleep(150_000)
+        }
+        XCTAssertTrue(ended, "bar gone at the end of the start-up load (60 s), saw \(values)")
+        waitForForecast(header(app))
+
+        // After: the settled screen of the running app.
+        guard let after = captureIdle(app, "10-start-echt-3-nachher") else { return XCTFail("the screen did not settle without a bar after the start-up load") }
+        XCTAssertFalse(after.percentVisible)
+        XCTAssertFalse(after.label.contains("Aktualisiere"), "hint text back: \(after.label)")
+        XCTAssertEqual(after.value, "")
+        XCTAssertEqual(after.headerHeight, heightBefore, accuracy: 0.5, "no height change of the hint (before vs after)")
+        NSLog("REALSEQ cold starts for 'during'=\(attempts) heights before=\(heightBefore) during=\(duringHeader.height) after=\(after.headerHeight) values=\(values) percentSeen=\(sawPercent) md5 \(before.md5) \(during.md5) \(after.md5)")
         XCTAssertFalse(values.contains { $0.hasPrefix("measured") }, "the real services report no total size, got \(values)")
         XCTAssertFalse(sawPercent, "no percent without a total size")
         assertDarkIfNeeded(app)
