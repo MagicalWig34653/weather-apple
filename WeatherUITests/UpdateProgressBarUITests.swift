@@ -227,6 +227,55 @@ final class UpdateProgressBarUITests: XCTestCase {
         app.terminate()
     }
 
+    // MARK: Leaving the app while an update runs ("abort" of the loop)
+
+    /// Leaving the app (scene not `.active`) cancels the `.task(id: scenePhase)` loop. The stalled request itself is NOT cancelled
+    /// (`DWDClient` shares its index/point task on purpose: "cancelling one consumer must not cancel another", and the consumer waits
+    /// on `task.value`), so the load, and with it the bar, ends together with the request, never earlier. Verified by this test
+    /// (stub `delayed`: the later index query answers after 40 s):
+    ///   - the bar is still there after returning (no restart, a restarted load would run another 40 s),
+    ///   - it ends about 40 s after the load began (not 40 s after the return),
+    ///   - afterwards: no bar, hint text back, same height (no stuck bar).
+    /// A first version assumed "leaving cancels the load, returning starts a new one" and went red on exactly that
+    /// (end 34.9 s after the return instead of 40 s or more); see docs/status.md.
+    func testBarSurvivesLeavingTheAppAndEndsTogetherWithTheRequest() throws {
+        let app = launch("delayed")
+        let header = header(app)
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        let heightBefore = header.frame.height
+        startUpdate(app)
+        XCTAssertEqual(barValue(app), "running")
+        let firstSeen = Date()
+        assertDarkIfNeeded(app)
+        shot(app, "abbruch-1-vorher-balken-laeuft")
+        XCTAssertTrue(header.label.contains("Aktualisiere"), header.label)
+        sleep(2)
+        XCUIDevice.shared.press(.home)   // frame 2 is the home screen the person lands on
+        sleep(1)
+        let home = XCUIScreen.main.screenshot()
+        try? FileManager.default.createDirectory(atPath: shotDirectory, withIntermediateDirectories: true)
+        try? home.pngRepresentation.write(to: URL(fileURLWithPath: shotDirectory).appendingPathComponent("abbruch-2-waehrend-app-verlassen-\(suffix == "dark" ? "dunkel" : "hell").png"))
+        while Date().timeIntervalSince(firstSeen) < 8 { usleep(200_000) }   // load 1 and a possible restart are clearly apart
+        app.activate()
+        let returned = Date()
+        XCTAssertEqual(barValue(app), "running", "the load carries on: the bar is still there after returning")
+        XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5, "no height change of the hint")
+        assertDarkIfNeeded(app)
+        shot(app, "abbruch-3-zurueck-balken-laeuft-weiter")
+        assertBarGoneAndTextBack(app, timeout: 45)
+        let afterReturn = Date().timeIntervalSince(returned)
+        XCTAssertLessThan(afterReturn, 37, "ends with the original request (about 40 s after it began), not 40 s after the return: \(afterReturn)")
+        XCTAssertGreaterThan(Date().timeIntervalSince(firstSeen), 30, "ends with the stalled request, not earlier")
+        XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5, "height unchanged after the end")
+        XCTAssertFalse(header.label.isEmpty)
+        sleep(1)
+        assertDarkIfNeeded(app)
+        shot(app, "abbruch-4-nachher-balken-weg")
+        NSLog("ABORTRUN endedAfterReturn=\(afterReturn) sinceFirstSeen=\(Date().timeIntervalSince(firstSeen)) suffix=\(suffix)")
+        app.terminate()
+    }
+
     // MARK: Hint text does not wrap or change height because of the percent
 
     /// Frame heights of the hint (pill) and of its text block while an update runs, with or without a measured total.
