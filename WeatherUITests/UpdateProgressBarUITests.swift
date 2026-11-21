@@ -77,12 +77,16 @@ final class UpdateProgressBarUITests: XCTestCase {
     /// At launch the app starts three loads at about the same time: the forecast of `store.refresh()` (WeatherApp.swift:55), the forecast
     /// of the loop `runForecastRefresh` (WeatherApp.swift:65 to 68) and the radar timeline (which also asks the run index). Which of
     /// them is index query no. 1 (fast, shows the 10 minute old run) and which one is no. 2 (slow or newer, measured) depends on
-    /// scheduling, so under machine load the planned sequence "first load -> stalled second load" sometimes does not happen:
-    ///   - the forecast got a NEWER run right away (header shows no hint, no further load is due: no bar ever), or
-    ///   - the stalled request belongs to the loop while `refresh()` already shows the old run (loop blocked, no bar).
-    /// Both are states of the stub's counters, not of the bar. This helper checks the ACTUAL state and cold-starts again if the planned
-    /// sequence did not come up (up to `attempts`; limits and waits of the assertions are not touched). The result is the running app
-    /// with the expected bar value already seen, and the header height before the bar.
+    /// scheduling.
+    ///
+    /// The ONLY start this helper repeats is the one whose forecast got the NEWER run at once (header settles as "current", no hint, no
+    /// further load due): that is a state of the stub's counters (the forecast load took index query no. 2), the app shows the newer run
+    /// correctly and there is no bar to test. Every repetition is logged (`STUBSTART ... newer run shown at once`).
+    /// Everything else is NOT healed by a restart and fails the test at once: no forecast, a start bar that does not end, and above all
+    /// a start that settles on the old run ("server behind" / refreshing) while the planned bar does not come within 20 s. That is the
+    /// app's own symptom (Build 56: a lost second load or a bar-less running request), no longer hidden by a cold start.
+    /// Limits and waits of the assertions are not touched. The result is the running app with the expected bar value already seen,
+    /// and the header height before the bar.
     ///  - `returnTrip`: the planned second load is the one a return from the background starts (stub `slowfresh`): the start must settle
     ///    (no bar, hint "server behind"), then one return; otherwise the second load is the loop's own (stub `measured`, 3 s after the first).
     private func launchUntilStubBar(_ mode: String, extra: [String] = [], expect value: String, returnTrip: Bool = false,
@@ -94,22 +98,30 @@ final class UpdateProgressBarUITests: XCTestCase {
         for attempt in 1...attempts {
             app?.terminate()
             app = launch(mode, extra: extra)
-            guard header(app).waitForExistence(timeout: 30), forecastShown(header(app), timeout: 60) else { notes.append("\(attempt): no forecast"); continue }
-            if returnTrip, !pollBarGone(app, timeout: 30) { notes.append("\(attempt): start bar did not end"); continue }
+            guard header(app).waitForExistence(timeout: 30), forecastShown(header(app), timeout: 60) else {
+                XCTFail("stub '\(mode)' attempt \(attempt): no forecast shown after the cold start", file: file, line: line); return (app, 0)
+            }
+            if returnTrip, !pollBarGone(app, timeout: 30) {
+                XCTFail("stub '\(mode)' attempt \(attempt): the start bar did not end within 30 s", file: file, line: line); return (app, 0)
+            }
             let state = forecastState(app)
-            guard state == .behind || (!returnTrip && state == .refreshing) else {
-                notes.append("\(attempt): start settled as \(String(describing: state)) (newer run shown at once)"); NSLog("STUBSTART \(mode) \(notes.last!)"); continue
+            if state == .current {
+                notes.append("\(attempt): start settled as current (newer run shown at once)"); NSLog("STUBSTART \(mode) \(notes.last!)"); continue
+            }
+            if state == .notShown || (returnTrip && state == .refreshing) {
+                XCTFail("stub '\(mode)' attempt \(attempt): unexpected start state \(String(describing: state))", file: file, line: line); return (app, 0)
             }
             let heightBefore = header(app).frame.height
             if returnTrip { onSettled(app); startUpdate(app) }
             guard pollBar(app, timeout: 20, until: { $0.value == value }) != nil else {
-                notes.append("\(attempt): no bar '\(value)' within 20 s (planned second load did not come)"); NSLog("STUBSTART \(mode) \(notes.last!)"); continue
+                XCTFail("stub '\(mode)' attempt \(attempt): no bar '\(value)' within 20 s, header \(String(describing: state)): the planned second load did not come (not repeated by a restart)", file: file, line: line)
+                return (app, 0)
             }
             onBar(app)
             NSLog("STUBSTART \(mode) attempt \(attempt) of \(attempts) ok")
             return (app, heightBefore)
         }
-        XCTFail("stub sequence '\(mode)' did not come up in \(attempts) cold starts: \(notes)", file: file, line: line)
+        XCTFail("stub sequence '\(mode)' settled on the newer run in \(attempts) cold starts (no bar to test): \(notes)", file: file, line: line)
         return (app, 0)
     }
 
@@ -134,10 +146,8 @@ final class UpdateProgressBarUITests: XCTestCase {
 
     /// The bar starts as `running` and turns `measured` as soon as the requests have reported their sizes: wait for that value.
     private func assertBarValue(_ app: XCUIApplication, _ expected: String, _ message: String = "", file: StaticString = #filePath, line: UInt = #line) {
-        // The loop normally starts the stalled load itself 3 s after the first; if the app's loop did not (observed once under heavy
-        // machine load: header ended on "server behind"), one return from the background restarts it.
-        var appeared = barValue(app, timeout: 25)
-        if appeared == nil { startUpdate(app); appeared = barValue(app, timeout: 60) }
+        // The loop starts the stalled load itself 3 s after the first. A bar that does not come is a failure (no return trip heals it).
+        let appeared = barValue(app, timeout: 25)
         XCTAssertNotNil(appeared, "bar appears \(message)", file: file, line: line)
         let reached = NSPredicate(format: "value == %@", expected)
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: reached, evaluatedWith: bar(app))], timeout: 15), .completed,
@@ -568,7 +578,7 @@ final class UpdateProgressBarUITests: XCTestCase {
     /// What this does NOT prove: that no bar-less frame exists in the SAME session before the bar; that needs an app-side hook
     /// (a Debug-only launch argument that delays the start-up load) and is listed as an option in docs, not done here.
     ///
-    /// No skipping: no bar after relaunch, a bar that does not end, a hint that stays on "Aktualisiere" or equal frames are failures.
+    /// No skipping: no bar after relaunch, a bar that does not end, a hint that stays on "Regenprognose wird geladen" or equal frames are failures.
     /// A frame whose validity cannot be shown (the bar ended during the 'during' screenshot) is taken again with another cold start
     /// (up to 3), because the load may be too short for one screenshot; every attempt is logged (`REALSEQ`).
     ///
@@ -604,7 +614,10 @@ final class UpdateProgressBarUITests: XCTestCase {
             let hintSnapshot = try? header(app).snapshot()
             let stillThereAfterHint = barRead(app)
             guard let stillThere, stillThereAfterHint != nil else { NSLog("REALSEQ attempt \(attempts): the bar ended during the 'during' screenshot (frame not valid), again"); continue }
-            XCTAssertTrue((hintSnapshot?.label ?? "").contains("Aktualisiere"), "hint during the load: \(hintSnapshot?.label ?? "nil")")
+            // Cold start with -UITestResetForecast: no forecast is shown yet, so the hint says "Regenprognose wird geladen …"
+            // (Weather/Views/RadarScreen.swift:874, string RADAR_FORECAST_LOADING, Weather/Resources/de.lproj/Localizable.strings:235).
+            // "Aktualisiere …" exists only with a forecast already shown (RadarScreen.swift:866 spoken label).
+            XCTAssertTrue((hintSnapshot?.label ?? "").contains("Regenprognose wird geladen"), "hint during the load: \(hintSnapshot?.label ?? "nil")")
             during = candidate; duringBar = stillThere.frame; duringHeader = hintSnapshot?.frame ?? header(app).frame; firstValue = first.value
         }
         guard let during else { return XCTFail("no valid 'during' frame in \(attempts) cold starts (no bar seen, or it ended during every screenshot): sequence not capturable") }
