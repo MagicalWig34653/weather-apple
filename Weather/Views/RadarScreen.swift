@@ -833,9 +833,12 @@ struct RadarScreen: View {
         Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
         if isRefreshingForecast {
             Spacer(minLength: 8)
-            if let fraction = measuredUpdateFraction {
+            // At accessibility sizes the percent is not drawn: next to the spinner it adds a line to the hint text and makes the
+            // pill taller. The fill stays visible and the percent is still spoken as the header's value.
+            if let fraction = measuredUpdateFraction, !dynamicTypeSize.isAccessibilitySize {
                 Text(UpdateProgressDisplay.percentText(fraction))
                     .font(.caption.weight(.semibold)).monospacedDigit()
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .lineLimit(1).fixedSize()
                     .accessibilityHidden(!Self.exposeSpinnerForUITests)   // spoken as the header's value instead
                     .accessibilityIdentifier("update-progress-percent")

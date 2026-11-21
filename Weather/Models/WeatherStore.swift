@@ -149,6 +149,10 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             let store = try placeStore ?? PlaceStore()
             self.placeStore = store
             self.forecastCache = try forecastCache ?? ForecastCache()
+            #if DEBUG
+            // UI tests: start without a stored forecast (an earlier test's newer run would end every load before it starts).
+            if CommandLine.arguments.contains("-UITestResetForecast") { try? self.forecastCache?.retain(placeIDs: []) }
+            #endif
             let snapshot = try store.load()
             places = snapshot.places
             if let selected = places.first(where: { $0.id == snapshot.selectedPlaceID }) ?? places.first {

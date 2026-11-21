@@ -15,9 +15,10 @@ import Foundation
 ///   the service delivers that run (Build 53, fix 5d0c741: a not ready run is no failure).
 /// - `failrecover`: index queries 2 to 7 (two loads with three attempts each) fail with HTTP 503 (confirmed failure), then the
 ///   index lists the newer run 08:45 and everything answers normally (recovery clears the failure text).
-/// - `measured`: later loads report their sizes like a transport with `Content-Length` (index 100 of 100 bytes, point query
-///   150 of 300 bytes, then it stalls for 40 s): the bar is measured at 50 % ("Aktualisiere …" stays visible). `delayed` is the
+/// - `measured`: later loads report their sizes like a transport with `Content-Length` (index 100 of 100 bytes and the NEWER run 08:45,
+///   point query for it 100 of 300 bytes, then it stalls for 40 s): the bar is measured at 50 % ("Aktualisiere …" stays visible). `delayed` is the
 ///   counterpart without any size (bar runs through, no percent).
+/// - `slowfresh`: later index queries answer after 6 s and list the NEWER run 08:45 (load ends with new data: the bar ends after success).
 /// All other modes show the run 08:40 UTC (10 minutes old), while a newer one is expected.
 enum ForecastUITestStub {
     static var mode: String? {
@@ -55,17 +56,17 @@ enum ForecastUITestStub {
                     if mode == "failed" || (mode == "failonce" && number <= 4) || (mode == "failrecover" && number <= 7) { return (Data(), response(503)) }
                     if mode == "delayed" { try await Task.sleep(for: .seconds(40)) }
                     if mode == "slowfailed" { try await Task.sleep(for: .seconds(4)); return (Data(), response(503)) }
-                    if mode == "slowbehind" { try await Task.sleep(for: .seconds(6)) }
+                    if mode == "slowbehind" || mode == "slowfresh" { try await Task.sleep(for: .seconds(6)) }
                 }
                 let day = DateFormatter()
                 day.locale = Locale(identifier: "en_US_POSIX"); day.timeZone = TimeZone(identifier: "UTC")
                 day.dateFormat = "yyyyMMdd_HHmm"
-                let listsNewer = (mode == "rununavailable" && number > 1) || (mode == "failrecover" && number > 7)
+                let listsNewer = (mode == "rununavailable" && number > 1) || (mode == "slowfresh" && number > 1) || (mode == "measured" && number > 1) || (mode == "failrecover" && number > 7)
                 return (Data("<a href=\"composite_rv_\(day.string(from: listsNewer ? runs.addingTimeInterval(300) : runs)).tar\">x</a>".utf8), response(200))
             }
             let point = counter.nextPoint()
             if mode == "measured", point > 1 {
-                LoadProgress.activeRequest?.report(expected: 300, received: 150)
+                LoadProgress.activeRequest?.report(expected: 300, received: 100)
                 try await Task.sleep(for: .seconds(40))
             }
             if mode == "rununavailable", (2...7).contains(point) {
@@ -74,7 +75,7 @@ enum ForecastUITestStub {
             }
             // The newer-run modes answer for the run the app asked for (DIM_REFERENCE_TIME); all other modes keep `runs`.
             var reference = runs
-            if mode == "rununavailable" || mode == "failrecover",
+            if mode == "rununavailable" || mode == "failrecover" || mode == "slowfresh" || mode == "measured",
                let value = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "DIM_REFERENCE_TIME" })?.value,
                let asked = DWDRequest.date(value) { reference = asked }
             let features = (0..<25).map { step -> String in
