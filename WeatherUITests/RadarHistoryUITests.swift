@@ -764,6 +764,12 @@ extension RadarHistoryUITests {
             assertNoteUnchanged(app, slider, value: value, note: note, "after the unchanged answer \(round)")
             shot(app, "gap-unveraendert-\(round + 1)-nach-abruf-\(round)")
         }
+        // Back to now (newest slot of the lightning layer, which has no forecast): there is no hole there, the note goes away.
+        jump(slider, fraction: 1)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") }, "back at now: \(self.value(slider))")
+        XCTAssertTrue(gapNote(app).waitForNonExistence(timeout: 10), "no note at now: \(gapNote(app).label)")
+        XCTAssertFalse(app.staticTexts["Keine Zeiten für Blitze"].exists, "the timeline is still there at now")
+        shot(app, "gap-unveraendert-4-jetzt")
         app.terminate()
     }
 
