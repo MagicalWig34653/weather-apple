@@ -312,6 +312,42 @@ final class UpdateProgressBarUITests: XCTestCase {
         }
     }
 
+    // MARK: Manual reload ("Daten neu laden") shows the bar at once (stub, deterministic)
+
+    /// The bar belongs to the manual path too: `refresh()` sets the loading flags synchronously. Stub `slowbehind` (later index queries
+    /// answer after 6 s) makes the load long enough for the poll after the tap (about 1 s). Attributed to the tap only if no bar was
+    /// there right before it and it shows within 3 s after it (the automatic loop starts its own loads at about 20 s intervals: retried).
+    func testManualReloadShowsTheBarAtOnce() throws {
+        // `MANUAL_RELOAD_STUB=current` (instant answers) is the deliberate red run: the poll cannot see such a short load.
+        let app = launch(ProcessInfo.processInfo.environment["MANUAL_RELOAD_STUB"] ?? "slowbehind")
+        let header = header(app)
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        let heightBefore = header.frame.height
+        var attributed = false
+        for attempt in 1...4 where !attributed {
+            let gone = NSPredicate(format: "exists == false")
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 30), .completed, "no bar before the tap (attempt \(attempt))")
+            guard let reload = openLayerEntry(app, group: nil, entry: "Daten neu laden") else { return XCTFail("reload entry not found") }
+            if bar(app).exists { app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap(); sleep(2); continue }   // the loop's own load: try again
+            if attempt == 1 { assertDarkIfNeeded(app); shot(app, "9-manuell-vorher") }
+            reload.tap()
+            let tapped = Date()
+            XCTAssertTrue(bar(app).waitForExistence(timeout: 3), "the manual reload shows the bar within 3 s of the tap")
+            XCTAssertEqual(bar(app).value as? String, "running")
+            XCTAssertLessThan(Date().timeIntervalSince(tapped), 4)
+            XCTAssertTrue(header.label.contains("Aktualisiere"), header.label)
+            XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5, "no height change of the hint")
+            assertDarkIfNeeded(app)
+            shot(app, "9-manuell-waehrend-durchlaufend")
+            assertBarGoneAndTextBack(app, timeout: 30)
+            XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5)
+            attributed = true
+        }
+        XCTAssertTrue(attributed, "a manual reload could not be told apart from the loop's loads in 4 attempts")
+        app.terminate()
+    }
+
     // MARK: Real services (read only), no stub
 
     /// End to end against the real services (DWD forecast, Showers radar cache): GET requests only. Observes the bar during the
@@ -331,7 +367,7 @@ final class UpdateProgressBarUITests: XCTestCase {
                 seenBar = true
                 if observed.last != value { observed.append(value) }
                 if percent(app).exists { sawPercent = true }
-                if observed.count == 1, observed[0] == "running" { shot(app, "8-echtbetrieb-waehrend-durchlaufend") }
+                if observed.count == 1, observed[0] == "running" { shot(app, "8-echtbetrieb-waehrend-durchlaufend"); NSLog("REALRUN bar frame \(bar(app).frame) screen \(app.frame)") }
             } else if seenBar { break }
             usleep(150_000)
         }
@@ -340,25 +376,35 @@ final class UpdateProgressBarUITests: XCTestCase {
         XCTAssertFalse(observed.contains { $0.hasPrefix("measured") }, "the real services report no total size: no measured value, got \(observed)")
         XCTAssertFalse(sawPercent, "no percent without a total size")
         XCTAssertFalse(bar(app).exists, "bar gone after the load")
-        // Manual reload.
+        // Manual reload. What a poll after the tap can see: XCUITest returns from the tap only after the app is idle again (about 1 s in
+        // the runs 21.11.2026), and the real manual reload answers from caches (run index and point cache 300 s, radar manifest by ETag)
+        // within that time. So the bar of the manual reload is usually NOT observable here; that is a test window limit, not app
+        // behaviour (the manual path shows the bar: `testManualReloadShowsTheBarAtOnce` with a stub, `testManualReloadShowsTheRunningBarAndEndsIt`
+        // as unit test). Only a bar seen within 3 s after the tap counts as the manual reload; a later one is the automatic loop
+        // (a new 5-minute run falls due, observed 07:23:26 in run 32: bar 16 s after the tap) and is reported separately.
         guard let reload = openLayerEntry(app, group: nil, entry: "Daten neu laden") else { return XCTFail("reload entry not found") }
+        let beforeTap = Date()
         reload.tap()
-        var manual: [String] = []
-        let manualEnd = Date().addingTimeInterval(45)
-        var seenManual = false
+        let tapped = Date()
+        let tapReturnDelay = tapped.timeIntervalSince(beforeTap)   // the tap waits for the app to be idle again
+        var manual: [String] = [], later: [String] = []
+        var firstSeenAfter: TimeInterval?
+        let manualEnd = tapped.addingTimeInterval(30)
+        var seenAny = false
         while Date() < manualEnd {
             if bar(app).exists, let value = bar(app).value as? String {
-                seenManual = true
-                if manual.last != value { manual.append(value) }
+                seenAny = true
+                let elapsed = Date().timeIntervalSince(tapped)
+                if firstSeenAfter == nil { firstSeenAfter = elapsed }
                 if percent(app).exists { sawPercent = true }
-            } else if seenManual { break }
+                if elapsed <= 3 { if manual.last != value { manual.append(value) } } else if later.last != value { later.append(value) }
+            } else if seenAny, Date().timeIntervalSince(tapped) > 3 { break }
             usleep(150_000)
         }
-        NSLog("REALRUN manual reload observed=\(manual) percentSeen=\(sawPercent)")
-        // A manual reload against the real services can finish within a fraction of a second (cached point forecast, small manifest):
-        // then the polling of the accessibility tree cannot see the bar. Not seeing it is logged, not failed; seeing it is checked.
-        XCTAssertFalse(manual.contains { $0.hasPrefix("measured") }, "got \(manual)")
+        NSLog("REALRUN manual reload: the tap returned after \(String(format: "%.2f", tapReturnDelay)) s, polling starts then; seen within 3 s=\(manual), later (automatic loop)=\(later), first seen at \(firstSeenAfter.map { String(format: "%.2f s", $0) } ?? "never") percentSeen=\(sawPercent)")
+        XCTAssertFalse((manual + later).contains { $0.hasPrefix("measured") }, "got \(manual) \(later)")
         XCTAssertFalse(sawPercent)
-        XCTAssertFalse(bar(app).exists, "bar gone after the manual reload")
+        let gone = NSPredicate(format: "exists == false")
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 45), .completed, "bar gone at the end")
     }
 }
