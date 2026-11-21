@@ -645,3 +645,183 @@ final class RadarHistoryUITests: XCTestCase {
     func testBrightnessDewpoint() throws { try brightnessCase("taupunkt", .entry(group: "Feuchtigkeit", "Taupunkt")) }
     func testBrightnessHumidity() throws { try brightnessCase("feuchte-relativ", .entry(group: "Feuchtigkeit", "Relativ")) }
 }
+
+// MARK: Gap note ("Davor/Danach fehlen Daten", radar-gap-note) under fetch failure, cancel, unchanged answer and layer switch
+//
+// Build 55 evidence, only test code. The note is derived from the SHOWN timeline (`RadarScreen.displayedGapLines`: displayTimeline and
+// the selected index), so it must (a) stay while a failed or cancelled fetch keeps the shown slots, (b) stay while an unchanged (304)
+// answer rewrites nothing, (c) go away with the timeline when nothing is left (404) and not come back by itself after the recovery,
+// (d) never belong to another layer after a layer switch and never appear in the forecast part.
+// Stub only (`-UITestLayers all -UITestHistoryHours 72` with the frozen clock, `-UITestOutageLayer`/`-UITestFault <kind>:<from>:<to>`
+// seconds after the first request of that layer, `-UITestETag`): no network, so these are fixture tests and NOT end-to-end tests.
+// The test clock starts before the launch, the stub clock at the first request, so the windows leave about 15 s of margin.
+extension RadarHistoryUITests {
+    /// Like `launchLayers(setting: 72)` plus extra launch arguments (faults, ETag).
+    private func launchLayersWithFaults(layer: String, _ extra: [String]) -> XCUIApplication {
+        let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
+            "-UITestForecast", "current", "-UITestLayers", "all", "-UITestHistoryHours", "72", "-radarPastHours", "72",
+            "-UITestOutageLayer", layer] + extra))
+        app.launch()
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 30))
+        sleep(2)
+        menu.tap()   // the stubbed layers are reported after the first probe
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(1)
+        return app
+    }
+
+    private func waitUntil(_ seconds: TimeInterval, since start: Date) {
+        let rest = seconds - Date().timeIntervalSince(start)
+        if rest > 0 { Thread.sleep(forTimeInterval: rest) }
+    }
+
+    /// "Daten neu laden" exactly once (the native menu sometimes swallows the tap, see `RadarWorldUITests.reloadOnce`).
+    private func reloadDataOnce(_ app: XCUIApplication) {
+        let menu = app.buttons["radar-layer-menu"]
+        let reload = app.buttons["Daten neu laden"]
+        for _ in 0..<3 {
+            if !reload.exists { menu.tap() }
+            guard reload.waitForExistence(timeout: 5) else { continue }
+            reload.tap()
+            if reload.waitForNonExistence(timeout: 3) { return }
+        }
+        XCTFail("Daten neu laden ließ sich nicht auslösen")
+    }
+
+    /// Lightning at 72 h chosen: the source keeps 24 h, so the oldest slot names the missing part before it ("Davor fehlen Daten: So ...").
+    private func openLightningOldestSlotWithNote(_ app: XCUIApplication) throws -> (slider: XCUIElement, value: String, note: String) {
+        try Pick.entry(group: nil, "Blitze").select(app, self)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") }, "starts at now: \(value(slider))")
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("Di. 17. Nov., 09:50") }, "oldest slot: \(value(slider))")
+        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "note at the oldest slot: \(value(slider))")
+        let note = gapNote(app).label
+        XCTAssertTrue(note.hasPrefix("Davor fehlen Daten: So"), note)
+        return (slider, value(slider), note)
+    }
+
+    private func assertNoteUnchanged(_ app: XCUIApplication, _ slider: XCUIElement, value: String, note: String, _ why: String) {
+        XCTAssertTrue(gapNote(app).exists, "\(why): the note is still there")
+        XCTAssertEqual(gapNote(app).label, note, "\(why): same note")
+        XCTAssertEqual(self.value(slider), value, "\(why): same slider value")
+        XCTAssertFalse(app.staticTexts["Keine Zeiten für Blitze"].exists, "\(why): the timeline is still there")
+        XCTAssertTrue(((app.buttons["radar-layer-menu"].value as? String) ?? "").contains("Blitze"), "\(why): the layer stays chosen")
+    }
+
+    /// (a) A failed fetch (network unreachable) while the shown data is still fresh keeps the timeline, so the note stays.
+    func testGapNoteStaysWhenAFetchFailsAndTheShownDataIsKept() throws {
+        executionTimeAllowance = 240
+        let start = Date()
+        let app = launchLayersWithFaults(layer: "lightning", ["-UITestFault", "offline:40:85"])
+        let (slider, value, note) = try openLightningOldestSlotWithNote(app)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 36, "layer open before the outage window")
+        shot(app, "gap-fehler-1-vorher")
+        waitUntil(60, since: start)
+        reloadDataOnce(app)   // the fetch answers "offline"
+        sleep(4)
+        assertNoteUnchanged(app, slider, value: value, note: note, "after the failed fetch")
+        shot(app, "gap-fehler-2-nach-fehler")
+        waitUntil(110, since: start)
+        reloadDataOnce(app)   // the network is back: the same manifest again
+        sleep(4)
+        assertNoteUnchanged(app, slider, value: value, note: note, "after the recovery")
+        shot(app, "gap-fehler-3-nach-erholung")
+        app.terminate()
+    }
+
+    /// (b) A cancelled fetch (layer switch, scene change) changes nothing: the note stays.
+    func testGapNoteStaysAfterACancelledFetch() throws {
+        executionTimeAllowance = 240
+        let start = Date()
+        let app = launchLayersWithFaults(layer: "lightning", ["-UITestFault", "cancel:40:85"])
+        let (slider, value, note) = try openLightningOldestSlotWithNote(app)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 36, "layer open before the cancel window")
+        shot(app, "gap-abbruch-1-vorher")
+        waitUntil(60, since: start)
+        reloadDataOnce(app)   // the fetch is cancelled
+        sleep(4)
+        assertNoteUnchanged(app, slider, value: value, note: note, "after the cancelled fetch")
+        shot(app, "gap-abbruch-2-nach-abbruch")
+        waitUntil(110, since: start)
+        reloadDataOnce(app)   // one follow-up fetch
+        sleep(4)
+        assertNoteUnchanged(app, slider, value: value, note: note, "after the follow-up fetch")
+        shot(app, "gap-abbruch-3-nach-folgeabruf")
+        app.terminate()
+    }
+
+    /// (c) "Nothing new" (the second answer is `304`): nothing is rewritten, the note neither flickers nor changes.
+    func testGapNoteStaysWhenTheFetchBringsNothingNew() throws {
+        executionTimeAllowance = 150
+        let app = launchLayersWithFaults(layer: "lightning", ["-UITestETag", "1"])
+        let (slider, value, note) = try openLightningOldestSlotWithNote(app)
+        shot(app, "gap-unveraendert-1-vorher")
+        for round in 1...2 {
+            reloadDataOnce(app)
+            sleep(4)
+            assertNoteUnchanged(app, slider, value: value, note: note, "after the unchanged answer \(round)")
+            shot(app, "gap-unveraendert-\(round + 1)-nach-abruf-\(round)")
+        }
+        app.terminate()
+    }
+
+    /// (a, nothing left) The layer answers 404 (no manifest, no timeline): the note goes with the timeline and does not come back by
+    /// itself after the recovery (the selection starts at now again, where there is no hole). Europe stays chosen with its own note.
+    func testGapNoteGoesWithTheTimelineWhenNothingIsLeftAndDoesNotStickAfterTheRecovery() throws {
+        executionTimeAllowance = 260
+        let start = Date()
+        let app = launchLayersWithFaults(layer: "radar_eu", ["-UITestFault", "404:70:105"])
+        try Pick.rain("Europa (OPERA)").select(app, self)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") }, "starts at now: \(value(slider))")
+        XCTAssertTrue(seek(slider, near: 1 - 36.0 / 72, slots: 865) { value(slider).contains("fehlen Daten") }, "a slot next to the hole: \(value(slider))")
+        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "hole named: \(value(slider))")
+        XCTAssertLessThan(Date().timeIntervalSince(start), 64, "hole shown before the outage window")
+        shot(app, "gap-404-1-vorher")
+        waitUntil(95, since: start)
+        reloadDataOnce(app)   // 404: not published, no timeline left
+        XCTAssertTrue(app.staticTexts["Keine Zeiten für Regenradar Europa"].waitForExistence(timeout: 20), "no timeline left")
+        XCTAssertFalse(gapNote(app).exists, "the note went with the timeline")
+        XCTAssertTrue(((app.buttons["radar-layer-menu"].value as? String) ?? "").contains("Europa"), "Europe stays chosen")
+        shot(app, "gap-404-2-ohne-zeitleiste")
+        waitUntil(125, since: start)
+        reloadDataOnce(app)   // recovered: the timeline is back at now
+        let back = self.slider(app)
+        XCTAssertTrue(waitValue(back) { $0.hasPrefix("09:50, Messung") }, "back at now: \(value(back))")
+        XCTAssertFalse(gapNote(app).exists, "no stuck note after the recovery: \(gapNote(app).label)")
+        shot(app, "gap-404-3-erholt")
+        app.terminate()
+    }
+
+    /// (d) Layer switch: the note belongs to the layer shown. Lightning (note at its oldest slot) -> temperature (no note at now, its own
+    /// note at its oldest slot, none in the forecast part) -> lightning again (same slot, same note).
+    func testGapNoteFollowsTheLayerAndNeverShowsInTheForecast() throws {
+        executionTimeAllowance = 150
+        let app = launchLayersWithFaults(layer: "lightning", [])
+        let (slider, value, note) = try openLightningOldestSlotWithNote(app)
+        shot(app, "gap-ebene-1-blitze")
+        try Pick.entry(group: nil, "Temperatur").select(app, self)
+        let temperature = self.slider(app)
+        XCTAssertTrue(waitValue(temperature) { $0.contains("Modell") }, "temperature at now: \(self.value(temperature))")
+        XCTAssertFalse(gapNote(app).exists, "the lightning note does not stay on the other layer: \(gapNote(app).label)")
+        shot(app, "gap-ebene-2-temperatur-jetzt")
+        jump(temperature, fraction: 0)
+        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "temperature names its own missing part: \(self.value(temperature))")
+        XCTAssertTrue(gapNote(app).label.hasPrefix("Davor fehlen Daten"), gapNote(app).label)
+        shot(app, "gap-ebene-3-temperatur-aeltester")
+        jump(temperature, fraction: 1)
+        XCTAssertTrue(waitValue(temperature) { $0.localizedCaseInsensitiveContains("vorhersage") }, "forecast end: \(self.value(temperature))")
+        XCTAssertFalse(gapNote(app).exists, "no note in the forecast part: \(gapNote(app).label)")
+        shot(app, "gap-ebene-4-temperatur-vorhersage")
+        try Pick.entry(group: nil, "Blitze").select(app, self)
+        let again = self.slider(app)
+        XCTAssertTrue(waitValue(again) { $0 == value }, "lightning keeps its slot: \(self.value(again)) vs \(value)")
+        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "the lightning note is back with its slot")
+        XCTAssertEqual(gapNote(app).label, note, "same note")
+        shot(app, "gap-ebene-5-blitze-zurueck")
+        _ = slider
+        app.terminate()
+    }
+}
