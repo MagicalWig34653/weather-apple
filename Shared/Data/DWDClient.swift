@@ -10,6 +10,7 @@ actor DWDClient {
     nonisolated let progress: LoadProgress
     private var cachedRuns: (fetchedAt: Date, dates: [Date])?
     private var pendingRuns: Task<[Date], Error>?
+    private var loadsInFlight = 0
     private struct PointKey: Hashable {
         let coordinate: WeatherCoordinate
         let reference: Date
@@ -75,8 +76,14 @@ actor DWDClient {
     /// while its newest run is older than that, otherwise the caches stay in use.
     func forecast(at coordinate: WeatherCoordinate, expectedNewest: Date? = nil) async throws -> RainForecast {
         guard coordinate.isSupported else { throw DWDDataError.unsupportedLocation }
-        progress.begin(plannedRequests: cachedRuns(expectedNewest: expectedNewest) == nil && pendingRuns == nil ? 2 : 1)
-        defer { progress.finish() }
+        // Only the first of several overlapping calls starts the reading; the others join the requests already running
+        // (a repeated load must not wipe the sizes the running request has reported).
+        if loadsInFlight == 0 { progress.begin(plannedRequests: cachedRuns(expectedNewest: expectedNewest) == nil && pendingRuns == nil ? 2 : 1) }
+        loadsInFlight += 1
+        defer {
+            loadsInFlight -= 1
+            if loadsInFlight == 0 { progress.finish() }
+        }
         // Resolve the current run first: a still-fresh point must not hide a newer run.
         let dates = try await runs(expectedNewest: expectedNewest)
         try Task.checkCancellation()

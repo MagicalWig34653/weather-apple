@@ -150,6 +150,31 @@ final class UpdateProgressTests: XCTestCase {
         XCTAssertEqual(client.progress.reading, .indeterminate, "load over: reading reset")
     }
 
+    func testRepeatedCallJoiningARunningRequestKeepsTheMeasuredReading() async throws {
+        let gate = Gate()
+        let client = DWDClient(transport: { request in
+            let url = request.url!
+            let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            if url.host == "opendata.dwd.de" {
+                LoadProgress.activeRequest?.report(expected: 100, received: 100)
+                return (Data("composite_rv_20261028_1515.tar".utf8), response)
+            }
+            LoadProgress.activeRequest?.report(expected: 300, received: 100)
+            await gate.wait()
+            return (try UpdateProgressTests.fixture(), response)
+        }, clock: { DWDRequest.date("2026-10-28T15:20:00Z")! }, retryDelay: { _ in 0 })
+        let coordinate = WeatherCoordinate(latitude: 53.56, longitude: 6.74)
+        let first = Task { try await client.forecast(at: coordinate) }
+        try await waitUntil { client.progress.reading == .measured(0.5) }   // (100 + 100) / (100 + 300)
+        let second = Task { try await client.forecast(at: coordinate) }       // joins the running point query
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(client.progress.reading, .measured(0.5), "the joining call does not reset the reading")
+        await gate.open()
+        _ = try await first.value
+        _ = try await second.value
+        XCTAssertEqual(client.progress.reading, .indeterminate, "all calls over: reading reset")
+    }
+
     func testClientWithoutReportsStaysIndeterminate() async throws {
         let gate = Gate()
         let client = DWDClient(transport: { request in
