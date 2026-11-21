@@ -63,6 +63,21 @@ final class UpdateProgressBarUITests: XCTestCase {
         return image.cgImage?.cropping(to: rect).flatMap { UIImage(cgImage: $0).pngData() }
     }
 
+    /// Mean luminance (0...1) of 40 equal columns of the bar strip, from the screenshot (proves the bar is really DRAWN, not only in the accessibility tree).
+    private func columnLuminance(_ app: XCUIApplication, of bar: XCUIElement) -> [Double] {
+        let image = app.screenshot().image
+        let f = bar.frame, s = image.scale
+        let rect = CGRect(x: f.minX * s, y: f.minY * s, width: f.width * s, height: f.height * s).integral
+        guard let cropped = image.cgImage?.cropping(to: rect) else { return [] }
+        let columns = 40
+        var pixels = [UInt8](repeating: 0, count: columns * 4)
+        guard let context = CGContext(data: &pixels, width: columns, height: 1, bitsPerComponent: 8, bytesPerRow: columns * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return [] }
+        context.interpolationQuality = .medium
+        context.draw(cropped, in: CGRect(x: 0, y: 0, width: columns, height: 1))
+        return (0..<columns).map { (0.2126 * Double(pixels[$0 * 4]) + 0.7152 * Double(pixels[$0 * 4 + 1]) + 0.0722 * Double(pixels[$0 * 4 + 2])) / 255 }
+    }
+
     private func assertDarkIfNeeded(_ app: XCUIApplication) {
         if suffix == "dark" { XCTAssertLessThan(UITestLaunch.meanLuminance(app.screenshot().image), 0.45, "dark screenshot expected") }
     }
@@ -88,6 +103,10 @@ final class UpdateProgressBarUITests: XCTestCase {
         // The loop starts the next load by itself about 20 s after the first one; the stub then stalls it for 40 s.
         XCTAssertEqual(barValue(app, timeout: 60), "measured:50", "fill = progress (100 + 100 of 100 + 300 bytes)")
         assertBarGeometry(app, heightBefore: heightBefore)
+        // Drawn: the filled left half differs clearly from the unfilled right half (fill 50 %).
+        let columns = columnLuminance(app, of: bar(app))
+        let left = columns[6..<16].reduce(0, +) / 10, right = columns[24..<34].reduce(0, +) / 10
+        XCTAssertGreaterThan(abs(left - right), 0.12, "filled half vs unfilled half: \(left) / \(right)")
         XCTAssertTrue(percent(app).waitForExistence(timeout: 5), "percent in the hint")
         XCTAssertTrue(percent(app).label.contains("50"), percent(app).label)
         XCTAssertGreaterThan(percent(app).frame.minX, header.frame.midX, "percent on the right")
@@ -116,6 +135,8 @@ final class UpdateProgressBarUITests: XCTestCase {
         let frames = (0..<4).compactMap { _ -> Data? in usleep(230_000); return strip(app, of: bar(app)) }
         XCTAssertEqual(frames.count, 4)
         XCTAssertGreaterThan(Set(frames).count, 1, "the running segment moves (strip changes between moments)")
+        let drawn = (0..<6).map { _ -> Double in usleep(150_000); let c = columnLuminance(app, of: bar(app)); return (c.max() ?? 0) - (c.min() ?? 0) }
+        XCTAssertGreaterThan(drawn.max() ?? 0, 0.12, "a segment is drawn on the track: \(drawn)")
         assertDarkIfNeeded(app)
         shot(app, "2-waehrend-durchlaufend")
         app.terminate()

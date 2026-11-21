@@ -771,15 +771,16 @@ struct RadarScreen: View {
                     }
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                    .glassControl(RoundedRectangle(cornerRadius: 24), floor: darkGlassFloor)
                     .overlay {
                         // Whole width of the bottom edge, same height as before (overlay), clipped to the pill's corners.
+                        // Inside the glass (before glassControl): an overlay after the glass effect was not drawn.
                         if store.updateProgressDisplay != .hidden {
                             UpdateProgressBar(display: store.updateProgressDisplay)
                                 .frame(maxHeight: .infinity, alignment: .bottom)
                                 .clipShape(RoundedRectangle(cornerRadius: 24))
                         }
                     }
+                    .glassControl(RoundedRectangle(cornerRadius: 24), floor: darkGlassFloor)
                 }
                 .buttonStyle(.plain)
                 .accessibilityValue(measuredUpdateFraction.map { UpdateProgressDisplay.percentText($0) } ?? "")
