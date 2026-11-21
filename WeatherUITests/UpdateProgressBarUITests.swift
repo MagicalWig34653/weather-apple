@@ -24,6 +24,13 @@ final class UpdateProgressBarUITests: XCTestCase {
     private func bar(_ app: XCUIApplication) -> XCUIElement { app.descendants(matching: .any)["update-progress-bar"] }
     private func percent(_ app: XCUIApplication) -> XCUIElement { app.staticTexts["update-progress-percent"] }
 
+    /// Value and frame of the bar from ONE snapshot; nil once the bar is gone. `exists`, `.value` and `.frame` are separate queries:
+    /// a bar that ends in between makes XCTest fail with "Failed to get matching snapshot" (a regular end of a real load, not an app error).
+    private func barRead(_ app: XCUIApplication) -> (value: String?, frame: CGRect)? {
+        guard let snapshot = try? bar(app).snapshot() else { return nil }
+        return (snapshot.value as? String, snapshot.frame)
+    }
+
     private func waitForForecast(_ header: XCUIElement) {
         let predicate = NSPredicate(format: "NOT (label CONTAINS[c] 'geladen') AND NOT (label CONTAINS[c] 'nicht verf')")
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: header)], timeout: 60), .completed, header.label)
@@ -88,8 +95,10 @@ final class UpdateProgressBarUITests: XCTestCase {
     }
 
     /// Bar over the WHOLE width of the bottom edge, same height of the pill as without the bar.
-    private func assertBarGeometry(_ app: XCUIApplication, heightBefore: CGFloat, file: StaticString = #filePath, line: UInt = #line) {
-        let h = header(app).frame, b = bar(app).frame
+    private func assertBarGeometry(_ app: XCUIApplication, heightBefore: CGFloat, barFrame: CGRect? = nil, file: StaticString = #filePath, line: UInt = #line) {
+        // `barFrame`: frame already read atomically by the caller (the bar of a real load may end between two queries).
+        guard let b = barFrame ?? barRead(app)?.frame else { return XCTFail("bar gone while reading its geometry", file: file, line: line) }
+        let h = header(app).frame
         XCTAssertEqual(b.minX, h.minX, accuracy: 1.5, "bar starts at the left edge", file: file, line: line)
         XCTAssertEqual(b.width, h.width, accuracy: 1.5, "bar spans the whole width", file: file, line: line)
         XCTAssertEqual(b.maxY, h.maxY, accuracy: 1.5, "bar on the bottom edge", file: file, line: line)
@@ -363,12 +372,15 @@ final class UpdateProgressBarUITests: XCTestCase {
         var sawPercent = false
         let end = Date().addingTimeInterval(60)
         var seenBar = false
+        var shotTaken = false
         while Date() < end {
-            if bar(app).exists, let value = bar(app).value as? String {
+            // One snapshot for value and frame: a snapshot that fails means the bar is gone (regular end once it was seen).
+            if let read = barRead(app), let value = read.value {
                 seenBar = true
                 if observed.last != value { observed.append(value) }
                 if percent(app).exists { sawPercent = true }
-                if observed.count == 1, observed[0] == "running" { shot(app, "8-echtbetrieb-waehrend-durchlaufend"); NSLog("REALRUN bar frame \(bar(app).frame) screen \(app.frame)") }
+                // Screenshot and frame log only ONCE (frame from the snapshot); the screenshot does not query the bar, so an end during it is harmless.
+                if !shotTaken, observed == ["running"] { shotTaken = true; NSLog("REALRUN bar frame \(read.frame) screen \(app.frame)"); shot(app, "8-echtbetrieb-waehrend-durchlaufend") }
             } else if seenBar { break }
             usleep(150_000)
         }
@@ -393,7 +405,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         let manualEnd = tapped.addingTimeInterval(30)
         var seenAny = false
         while Date() < manualEnd {
-            if bar(app).exists, let value = bar(app).value as? String {
+            if let value = barRead(app)?.value {   // one snapshot: no race between exists and value
                 seenAny = true
                 let elapsed = Date().timeIntervalSince(tapped)
                 if firstSeenAfter == nil { firstSeenAfter = elapsed }
@@ -472,17 +484,20 @@ final class UpdateProgressBarUITests: XCTestCase {
 
         // During: the bar must really appear (no skipping) and run without a number (the real services report no total size).
         XCTAssertTrue(bar(app).waitForExistence(timeout: 60), "the start-up load shows no bar within 60 s (no network or bar missing)")
-        guard bar(app).exists else { return }
+        guard barRead(app) != nil else { return XCTFail("the bar was gone right after it appeared (no 'during' frame possible)") }
         var values: [String] = []
         var sawPercent = false
-        func note() { if let v = bar(app).value as? String, values.last != v { values.append(v) }; if percent(app).exists { sawPercent = true } }
+        // One snapshot per read: the bar may end between two queries (regular end of the load).
+        func note() { if let v = barRead(app)?.value, values.last != v { values.append(v) }; if percent(app).exists { sawPercent = true } }
         note()
         let during = capture(app, "10-start-echt-2-waehrend")
-        XCTAssertTrue(bar(app).exists, "bar still there directly after the 'during' screenshot (frame valid)")
+        let afterDuring = barRead(app)
+        XCTAssertNotNil(afterDuring, "bar still there directly after the 'during' screenshot (frame valid)")
         note()
-        let duringHeader = header.frame, duringBar = bar(app).frame
+        guard let afterDuring else { return }
+        let duringHeader = header.frame, duringBar = afterDuring.frame
         XCTAssertEqual(values.first, "running", "the bar runs without a number, got \(values)")
-        assertBarGeometry(app, heightBefore: duringHeader.height)
+        assertBarGeometry(app, heightBefore: duringHeader.height, barFrame: duringBar)
         XCTAssertTrue(header.label.contains("Aktualisiere"), "hint during the load: \(header.label)")
         // The bar strip is really drawn in the 'during' frame and not in the 'before' frame (same place).
         XCTAssertNotEqual(cropped(during.image, duringBar), cropped(before.image, duringBar), "bar strip differs between before and during")
@@ -490,7 +505,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         // After: bar gone, hint intact, height unchanged, taken from the running app.
         let gone = NSPredicate(format: "exists == false")
         let end = Date().addingTimeInterval(60)
-        while Date() < end && bar(app).exists { note(); usleep(150_000) }
+        while Date() < end && bar(app).exists { note(); usleep(150_000) }   // note() reads atomically; a bar that ends meanwhile just yields nothing
         XCTAssertFalse(bar(app).exists, "bar gone at the end of the start-up load (60 s), saw \(values)")
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 1), .completed)
         waitForForecast(header)
