@@ -15,6 +15,9 @@ import Foundation
 ///   the service delivers that run (Build 53, fix 5d0c741: a not ready run is no failure).
 /// - `failrecover`: index queries 2 to 7 (two loads with three attempts each) fail with HTTP 503 (confirmed failure), then the
 ///   index lists the newer run 08:45 and everything answers normally (recovery clears the failure text).
+/// - `measured`: later loads report their sizes like a transport with `Content-Length` (index 100 of 100 bytes, point query
+///   150 of 300 bytes, then it stalls for 40 s): the bar is measured at 50 % ("Aktualisiere …" stays visible). `delayed` is the
+///   counterpart without any size (bar runs through, no percent).
 /// All other modes show the run 08:40 UTC (10 minutes old), while a newer one is expected.
 enum ForecastUITestStub {
     static var mode: String? {
@@ -48,6 +51,7 @@ enum ForecastUITestStub {
                 let number = counter.nextIndex()
                 if number == 1, mode == "firstload" { try await Task.sleep(for: .seconds(25)) }
                 if number > 1 {
+                    if mode == "measured" { LoadProgress.activeRequest?.report(expected: 100, received: 100) }
                     if mode == "failed" || (mode == "failonce" && number <= 4) || (mode == "failrecover" && number <= 7) { return (Data(), response(503)) }
                     if mode == "delayed" { try await Task.sleep(for: .seconds(40)) }
                     if mode == "slowfailed" { try await Task.sleep(for: .seconds(4)); return (Data(), response(503)) }
@@ -60,6 +64,10 @@ enum ForecastUITestStub {
                 return (Data("<a href=\"composite_rv_\(day.string(from: listsNewer ? runs.addingTimeInterval(300) : runs)).tar\">x</a>".utf8), response(200))
             }
             let point = counter.nextPoint()
+            if mode == "measured", point > 1 {
+                LoadProgress.activeRequest?.report(expected: 300, received: 150)
+                try await Task.sleep(for: .seconds(40))
+            }
             if mode == "rununavailable", (2...7).contains(point) {
                 let report = "<?xml version=\"1.0\"?><ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">Invalid reference time</ServiceException></ServiceExceptionReport>"
                 return (Data(report.utf8), response(200))

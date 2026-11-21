@@ -6,6 +6,8 @@ actor DWDClient {
     private let clock: @Sendable () -> Date
     private let retryDelay: @Sendable (Int) -> TimeInterval
     private let requestTimeout: TimeInterval
+    /// Reading of the running forecast load for the progress bar (measured only where every request reports a total).
+    nonisolated let progress: LoadProgress
     private var cachedRuns: (fetchedAt: Date, dates: [Date])?
     private var pendingRuns: Task<[Date], Error>?
     private struct PointKey: Hashable {
@@ -26,7 +28,8 @@ actor DWDClient {
 
     init(transport: Transport? = nil, clock: @escaping @Sendable () -> Date = { Date() },
          retryDelay: @escaping @Sendable (Int) -> TimeInterval = { DWDRetryPolicy.delay(afterAttempt: $0) },
-         timeouts: Timeouts = .interactive) {
+         timeouts: Timeouts = .interactive, progress: LoadProgress = LoadProgress()) {
+        self.progress = progress
         self.clock = clock
         self.retryDelay = retryDelay
         self.requestTimeout = timeouts.request
@@ -40,8 +43,29 @@ actor DWDClient {
             configuration.httpMaximumConnectionsPerHost = 4
             let session = URLSession(configuration: configuration)
             self.transport = { request in
-                let (data, response) = try await session.data(for: request)
+                // With a progress handle (visible app) the body is read in a stream, so received bytes and the announced
+                // `Content-Length` reach the bar; without one (widget, watch) the plain call stays.
+                guard let handle = LoadProgress.activeRequest else {
+                    let (data, response) = try await session.data(for: request)
+                    guard let response = response as? HTTPURLResponse else { throw DWDDataError.invalidResponse }
+                    return (data, response)
+                }
+                let (bytes, response) = try await session.bytes(for: request)
                 guard let response = response as? HTTPURLResponse else { throw DWDDataError.invalidResponse }
+                // A compressed answer announces the encoded length while the stream delivers decoded bytes: not comparable.
+                let encoded = response.value(forHTTPHeaderField: "Content-Encoding").map { $0.lowercased() != "identity" } ?? false
+                let announced: Int64? = response.expectedContentLength > 0 && !encoded ? response.expectedContentLength : nil
+                var data = Data()
+                if let announced, announced <= 2 * 1024 * 1024 { data.reserveCapacity(Int(announced)) }
+                handle.report(expected: announced, received: 0)
+                var count: Int64 = 0
+                for try await byte in bytes {
+                    data.append(byte)
+                    count += 1
+                    if count % 1024 == 0 { handle.report(expected: announced, received: count) }
+                    if count > 2 * 1024 * 1024 + 1 { break }   // the size limit below rejects it; do not read on
+                }
+                handle.report(expected: announced, received: count)
                 return (data, response)
             }
         }
@@ -51,6 +75,8 @@ actor DWDClient {
     /// while its newest run is older than that, otherwise the caches stay in use.
     func forecast(at coordinate: WeatherCoordinate, expectedNewest: Date? = nil) async throws -> RainForecast {
         guard coordinate.isSupported else { throw DWDDataError.unsupportedLocation }
+        progress.begin(plannedRequests: cachedRuns(expectedNewest: expectedNewest) == nil && pendingRuns == nil ? 2 : 1)
+        defer { progress.finish() }
         // Resolve the current run first: a still-fresh point must not hide a newer run.
         let dates = try await runs(expectedNewest: expectedNewest)
         try Task.checkCancellation()
@@ -101,7 +127,8 @@ actor DWDClient {
         return DWDRadarTimeline(referenceTime: reference, dates: history + nowcast)
     }
 
-    private func runs(expectedNewest: Date? = nil) async throws -> [Date] {
+    /// The cached run index while it may still be used (so no index request is needed).
+    private func cachedRuns(expectedNewest: Date?) -> [Date]? {
         let now = clock()
         if let cachedRuns, now.timeIntervalSince(cachedRuns.fetchedAt) < 300,
            let latest = cachedRuns.dates.last,
@@ -109,6 +136,11 @@ actor DWDClient {
            expectedNewest.map({ latest >= $0 }) ?? true {
             return cachedRuns.dates
         }
+        return nil
+    }
+
+    private func runs(expectedNewest: Date? = nil) async throws -> [Date] {
+        if let dates = cachedRuns(expectedNewest: expectedNewest) { return dates }
         if let pendingRuns { return try await pendingRuns.value }
         let task = Task {
             let data = try await fetch(DWDRequest.indexURL)
@@ -134,23 +166,32 @@ actor DWDClient {
         request.setValue("Showers (native iOS rain radar)", forHTTPHeaderField: "User-Agent")
         let canRetry = attempt < DWDRetryPolicy.maxAttempts
         let (data, response): (Data, HTTPURLResponse)
-        do { (data, response) = try await transport(request) }
+        let tracker = progress.startRequest()
+        var completed = false
+        defer { progress.endRequest(tracker, completed: completed) }
+        do { (data, response) = try await LoadProgress.$activeRequest.withValue(tracker) { try await transport(request) } }
         catch is CancellationError { throw CancellationError() }
         catch let error as URLError where error.code == .cancelled { throw CancellationError() }
         catch let error as URLError where canRetry && DWDRetryPolicy.isTransient(error) {
+            progress.endRequest(tracker, completed: false)
             return try await retry(url, attempt: attempt)
         }
         catch { throw DWDDataError.unavailable }
         if canRetry, DWDRetryPolicy.isTransient(statusCode: response.statusCode) {
+            progress.endRequest(tracker, completed: false)
             return try await retry(url, attempt: attempt)
         }
         guard (200...299).contains(response.statusCode) else { throw DWDDataError.unavailable }
         guard !data.isEmpty else { throw DWDDataError.emptyBody }
         guard data.count <= 2 * 1024 * 1024 else { throw DWDDataError.oversizedBody }
         if let error = DWDResponse.serviceError(in: data) {
-            if DWDRetryPolicy.shouldRetry(error, attempt: attempt) { return try await retry(url, attempt: attempt) }
+            if DWDRetryPolicy.shouldRetry(error, attempt: attempt) {
+                progress.endRequest(tracker, completed: false)
+                return try await retry(url, attempt: attempt)
+            }
             throw error
         }
+        completed = true
         return data
     }
 

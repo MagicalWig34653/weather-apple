@@ -34,7 +34,12 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     var timeline: RadarTimeline?
     var selectedFrame = 0
     var isRadarLoading = false
-    var isForecastLoading = false
+    var isForecastLoading = false {
+        didSet { if isForecastLoading, !oldValue { startProgressPolling() } }
+    }
+    /// Last reading of the running forecast load. Polled: the transport reports from background threads, which must not write observable state.
+    private(set) var forecastReading = LoadProgress.Reading.indeterminate
+    @ObservationIgnored private var progressPoll: Task<Void, Never>?
     var isLoading: Bool { isRadarLoading || isForecastLoading }
     var radarNotice: String?
     var forecastError: String?
@@ -184,6 +189,25 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
 
     /// Loading circle at the right edge of the forecast pill: exactly while a forecast request runs, also the first one.
     var showsForecastSpinner: Bool { isForecastLoading }
+
+    /// Bar on the bottom edge of the forecast header: with a measured fill only where every request reports a total.
+    var updateProgressDisplay: UpdateProgressDisplay {
+        UpdateProgressDisplay.make(isForecastLoading: isForecastLoading, isRadarLoading: isRadarLoading, reading: forecastReading)
+    }
+
+    private func startProgressPolling() {
+        progressPoll?.cancel()
+        forecastReading = .indeterminate
+        progressPoll = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, self.isForecastLoading else { break }
+                let reading = self.client.progress.reading
+                if reading != self.forecastReading { self.forecastReading = reading }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            if !Task.isCancelled { self?.forecastReading = .indeterminate }
+        }
+    }
 
     /// Visible-app loop: load when due (also right after returning), then wait as `ForecastRefreshSchedule` says.
     func runForecastRefresh(schedule: ForecastRefreshSchedule = ForecastRefreshSchedule(),

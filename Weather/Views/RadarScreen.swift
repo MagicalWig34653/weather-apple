@@ -772,8 +772,17 @@ struct RadarScreen: View {
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
                     .glassControl(RoundedRectangle(cornerRadius: 24), floor: darkGlassFloor)
+                    .overlay {
+                        // Whole width of the bottom edge, same height as before (overlay), clipped to the pill's corners.
+                        if store.updateProgressDisplay != .hidden {
+                            UpdateProgressBar(display: store.updateProgressDisplay)
+                                .frame(maxHeight: .infinity, alignment: .bottom)
+                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
+                .accessibilityValue(measuredUpdateFraction.map { UpdateProgressDisplay.percentText($0) } ?? "")
                 .accessibilityIdentifier("forecast-details")
                 .accessibilityHint(NSLocalizedString("RADAR_FORECAST_DETAILS_HINT", value: "Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise", comment: "Radar"))
                 Button {
@@ -813,12 +822,24 @@ struct RadarScreen: View {
 
     private var isRefreshingForecast: Bool { store.showsForecastSpinner }
 
+    /// Share of the running update where every request reports its size; `nil` when it cannot be measured.
+    private var measuredUpdateFraction: Double? {
+        if case .measured(let value) = store.updateProgressDisplay { value } else { nil }
+    }
+
     /// Chevron where it always was (right behind the text), plus the refreshing spinner at the RIGHT EDGE of the pill.
     /// No second line, no age text.
     @ViewBuilder private var forecastTrailing: some View {
         Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
         if isRefreshingForecast {
             Spacer(minLength: 8)
+            if let fraction = measuredUpdateFraction {
+                Text(UpdateProgressDisplay.percentText(fraction))
+                    .font(.caption.weight(.semibold)).monospacedDigit()
+                    .lineLimit(1).fixedSize()
+                    .accessibilityHidden(!Self.exposeSpinnerForUITests)   // spoken as the header's value instead
+                    .accessibilityIdentifier("update-progress-percent")
+            }
             forecastStatusIcon(.refreshing)
         }
     }
