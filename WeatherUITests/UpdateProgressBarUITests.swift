@@ -1,3 +1,4 @@
+import CryptoKit
 import XCTest
 
 /// Progress bar on the bottom edge of the forecast header (Debug stubs `-UITestForecast measured|delayed|slowbehind|slowfresh|slowfailed`).
@@ -406,5 +407,108 @@ final class UpdateProgressBarUITests: XCTestCase {
         XCTAssertFalse(sawPercent)
         let gone = NSPredicate(format: "exists == false")
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 45), .completed, "bar gone at the end")
+    }
+
+    // MARK: Real services, start-up bar as a real image sequence (read only, no stub)
+
+    /// One screenshot, written to `shotDirectory` (names carry light/dark like `shot`), attached to the result and returned with its
+    /// MD5 and the image itself (so the checks use exactly the frame that is saved). No image manipulation.
+    private func capture(_ app: XCUIApplication, _ name: String) -> (md5: String, image: UIImage) {
+        let screenshot = app.screenshot()
+        let png = screenshot.pngRepresentation
+        try? FileManager.default.createDirectory(atPath: shotDirectory, withIntermediateDirectories: true)
+        try? png.write(to: URL(fileURLWithPath: shotDirectory).appendingPathComponent("\(name)-\(suffix == "dark" ? "dunkel" : "hell").png"))
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "\(name)-\(suffix == "dark" ? "dunkel" : "hell")"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        return (Insecure.MD5.hash(data: png).map { String(format: "%02x", $0) }.joined(), screenshot.image)
+    }
+
+    /// PNG bytes of `rect` (points) of a screenshot, to show that two frames differ exactly there.
+    private func cropped(_ image: UIImage, _ rect: CGRect) -> Data? {
+        let s = image.scale
+        let r = CGRect(x: rect.minX * s, y: rect.minY * s, width: rect.width * s, height: rect.height * s).integral
+        return image.cgImage?.cropping(to: r).flatMap { UIImage(cgImage: $0).pngData() }
+    }
+
+    /// Image sequence of the START-UP bar (automatic load right after launch, real services, GET only): before (no bar yet),
+    /// during (bar visible and running), after (bar gone, hint intact, height unchanged). All three are REAL app screenshots taken
+    /// while the app is still running (the app is terminated only afterwards), pairwise different (MD5).
+    ///
+    /// Scope: only the automatic start-up load. The MANUAL reload ("Daten neu laden") is NOT deterministic against production
+    /// (answered from caches within the tap's idle wait of about 1 s, run 50: no bar seen; run 32 was falsely green because the bar seen
+    /// 16 s later belonged to the automatic loop) and is reproducible only with a stub or as a unit test
+    /// (`testManualReloadShowsTheBarAtOnce`, `testManualReloadShowsTheRunningBarAndEndsIt`). No skipping: a bar that never appears,
+    /// a bar that is already there when the "before" frame is taken, or a missing end is a clear failure.
+    ///
+    /// Environment (via `TEST_RUNNER_`): `SHOT_SUFFIX` hell/dark (default: appearance of the device), `UPDATE_PROGRESS_SHOTS` (directory).
+    /// Files: `10-start-echt-1-vorher|2-waehrend|3-nachher-<hell|dunkel>.png`.
+    func testRealServicesStartBarImageSequence() throws {
+        // "Before" is only valid if no bar exists directly before AND directly after its screenshot. The start-up load begins right
+        // after launch, so a cold start can be too late for that: up to 3 fresh cold starts (cache reset), otherwise a clear failure.
+        var app: XCUIApplication!
+        var before: (md5: String, image: UIImage)?
+        var attempts = 0
+        while before == nil && attempts < 3 {
+            attempts += 1
+            app?.terminate()
+            app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestExposeProgress", "-UITestResetForecast"]))
+            app.launch()
+            guard header(app).waitForExistence(timeout: 30) else { XCTFail("the forecast header does not exist after launch"); return }
+            if bar(app).exists { NSLog("REALSEQ attempt \(attempts): bar already visible at the first look"); continue }
+            let candidate = capture(app, "10-start-echt-1-vorher")
+            if bar(app).exists { NSLog("REALSEQ attempt \(attempts): bar appeared during the before screenshot"); continue }
+            before = candidate
+        }
+        defer { app.terminate() }
+        guard let before else {
+            XCTFail("no 'before' frame without a bar in \(attempts) cold starts (the start-up bar was already visible each time): sequence not capturable")
+            return
+        }
+        let header = header(app)
+        let heightBefore = header.frame.height
+        assertDarkIfNeeded(app)
+
+        // During: the bar must really appear (no skipping) and run without a number (the real services report no total size).
+        XCTAssertTrue(bar(app).waitForExistence(timeout: 60), "the start-up load shows no bar within 60 s (no network or bar missing)")
+        guard bar(app).exists else { return }
+        var values: [String] = []
+        var sawPercent = false
+        func note() { if let v = bar(app).value as? String, values.last != v { values.append(v) }; if percent(app).exists { sawPercent = true } }
+        note()
+        let during = capture(app, "10-start-echt-2-waehrend")
+        XCTAssertTrue(bar(app).exists, "bar still there directly after the 'during' screenshot (frame valid)")
+        note()
+        let duringHeader = header.frame, duringBar = bar(app).frame
+        XCTAssertEqual(values.first, "running", "the bar runs without a number, got \(values)")
+        assertBarGeometry(app, heightBefore: duringHeader.height)
+        XCTAssertTrue(header.label.contains("Aktualisiere"), "hint during the load: \(header.label)")
+        // The bar strip is really drawn in the 'during' frame and not in the 'before' frame (same place).
+        XCTAssertNotEqual(cropped(during.image, duringBar), cropped(before.image, duringBar), "bar strip differs between before and during")
+
+        // After: bar gone, hint intact, height unchanged, taken from the running app.
+        let gone = NSPredicate(format: "exists == false")
+        let end = Date().addingTimeInterval(60)
+        while Date() < end && bar(app).exists { note(); usleep(150_000) }
+        XCTAssertFalse(bar(app).exists, "bar gone at the end of the start-up load (60 s), saw \(values)")
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 1), .completed)
+        waitForForecast(header)
+        sleep(1)
+        XCTAssertFalse(bar(app).exists, "no new bar before the 'after' frame (automatic follow-up load would not be the start-up bar)")
+        let after = capture(app, "10-start-echt-3-nachher")
+        XCTAssertFalse(bar(app).exists, "no bar directly after the 'after' screenshot")
+        XCTAssertFalse(percent(app).exists)
+        XCTAssertFalse(header.label.contains("Aktualisiere"), "hint text back: \(header.label)")
+        XCTAssertEqual(header.value as? String ?? "", "")
+        XCTAssertEqual(header.frame.height, duringHeader.height, accuracy: 0.5, "no height change of the hint (during vs after)")
+        NSLog("REALSEQ heights before=\(heightBefore) during=\(duringHeader.height) after=\(header.frame.height) values=\(values) percentSeen=\(sawPercent) md5 \(before.md5) \(during.md5) \(after.md5)")
+        XCTAssertFalse(values.contains { $0.hasPrefix("measured") }, "the real services report no total size, got \(values)")
+        XCTAssertFalse(sawPercent, "no percent without a total size")
+        assertDarkIfNeeded(app)
+        XCTAssertNotEqual(before.md5, during.md5, "before and during differ")
+        XCTAssertNotEqual(during.md5, after.md5, "during and after differ")
+        XCTAssertNotEqual(before.md5, after.md5, "before and after differ")
+        XCTAssertNotEqual(cropped(after.image, duringBar), cropped(during.image, duringBar), "bar strip differs between during and after")
     }
 }
