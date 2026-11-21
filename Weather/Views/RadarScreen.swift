@@ -833,18 +833,21 @@ struct RadarScreen: View {
     @ViewBuilder private var forecastTrailing: some View {
         Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
         if isRefreshingForecast {
-            Spacer(minLength: 8)
-            // At accessibility sizes the percent is not drawn: next to the spinner it adds a line to the hint text and makes the
-            // pill taller. The fill stays visible and the percent is still spoken as the header's value.
+            // Measured: the percent takes the spinner's place (bar and number show the progress; a second indicator would only
+            // take width and make the hint text wrap). At accessibility sizes the percent is not drawn at all: it would add a line
+            // and make the pill taller; the fill stays visible and the percent is still spoken as the header's value.
             if let fraction = measuredUpdateFraction, !dynamicTypeSize.isAccessibilitySize {
+                Spacer(minLength: 4)
                 Text(UpdateProgressDisplay.percentText(fraction))
-                    .font(.caption.weight(.semibold)).monospacedDigit()
+                    .font(.caption2.weight(.semibold)).monospacedDigit()
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .lineLimit(1).fixedSize()
                     .accessibilityHidden(!Self.exposeSpinnerForUITests)   // spoken as the header's value instead
                     .accessibilityIdentifier("update-progress-percent")
+            } else {
+                Spacer(minLength: 8)
+                forecastStatusIcon(.refreshing)
             }
-            forecastStatusIcon(.refreshing)
         }
     }
 

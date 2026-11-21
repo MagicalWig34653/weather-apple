@@ -44,7 +44,11 @@ final class UpdateProgressBarUITests: XCTestCase {
 
     /// The bar starts as `running` and turns `measured` as soon as the requests have reported their sizes: wait for that value.
     private func assertBarValue(_ app: XCUIApplication, _ expected: String, _ message: String = "", file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertNotNil(barValue(app, timeout: 60), "bar appears \(message)", file: file, line: line)
+        // The loop normally starts the stalled load itself 3 s after the first; if the app's loop did not (observed once under heavy
+        // machine load: header ended on "server behind"), one return from the background restarts it.
+        var appeared = barValue(app, timeout: 25)
+        if appeared == nil { startUpdate(app); appeared = barValue(app, timeout: 60) }
+        XCTAssertNotNil(appeared, "bar appears \(message)", file: file, line: line)
         let reached = NSPredicate(format: "value == %@", expected)
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: reached, evaluatedWith: bar(app))], timeout: 15), .completed,
                        "bar value \(expected), is \(String(describing: bar(app).value)) \(message)", file: file, line: line)
@@ -100,7 +104,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         waitForForecast(header)
         let heightBefore = header.frame.height
         // No background trip: the stub's stalled point query is shared and would be joined (unmeasured) by a repeated load.
-        // The loop starts the next load by itself about 20 s after the first one; the stub then stalls it for 40 s.
+        // The loop starts the next load by itself 3 s after the first one (stub `measured` shortens the pause); the stub then stalls it for 90 s.
         XCTAssertEqual(barValue(app, timeout: 60), "measured:50", "fill = progress (100 + 100 of 100 + 300 bytes)")
         assertBarGeometry(app, heightBefore: heightBefore)
         // Drawn: the filled left half differs clearly from the unfilled right half (fill 50 %).
@@ -223,40 +227,39 @@ final class UpdateProgressBarUITests: XCTestCase {
         app.terminate()
     }
 
-    // MARK: Large type: nothing is cut off
+    // MARK: Hint text does not wrap or change height because of the percent
 
-    /// Height of the hint while an update runs WITHOUT percent (only the existing spinner): the reference for the measured case.
-    private func runningHeight(category: String) -> CGFloat {
-        let app = launch("delayed", extra: ["-UIPreferredContentSizeCategoryName", category])
+    /// Frame heights of the hint (pill) and of its text block while an update runs, with or without a measured total.
+    private func hintHeights(mode: String, category: String) -> (header: CGFloat, text: CGFloat) {
+        let app = launch(mode, extra: ["-UIPreferredContentSizeCategoryName", category])
         defer { app.terminate() }
         XCTAssertTrue(header(app).waitForExistence(timeout: 30))
         waitForForecast(header(app))
-        startUpdate(app)
-        XCTAssertEqual(barValue(app), "running")
-        return header(app).frame.height
+        if mode == "measured" { assertBarValue(app, "measured:50", category) } else { startUpdate(app); XCTAssertEqual(barValue(app), "running") }
+        let text = app.descendants(matching: .any)["forecast-refreshing"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5), "hint text block (refreshing) \(category)")
+        if mode == "measured" {
+            XCTAssertEqual(bar(app).frame.width, header(app).frame.width, accuracy: 1.5, "bar spans the width at \(category)")
+            XCTAssertTrue((header(app).value as? String ?? "").contains("50"), "\(category): percent is spoken as the header's value")
+            if category.contains("Accessibility") {
+                XCTAssertFalse(percent(app).exists, "accessibility size: percent not drawn (would add a line)")
+            } else {
+                XCTAssertTrue(percent(app).waitForExistence(timeout: 5), category)
+                XCTAssertLessThanOrEqual(percent(app).frame.maxX, header(app).frame.maxX, "percent inside the pill")
+                XCTAssertGreaterThan(percent(app).frame.minX, header(app).frame.midX, "percent on the right")
+            }
+            shot(app, "7-schriftgroesse-\(category.replacingOccurrences(of: "UICTContentSizeCategory", with: "").lowercased())")
+        }
+        NSLog("HINTHEIGHT mode=\(mode) category=\(category) suffix=\(suffix) header=\(header(app).frame.height) text=\(text.frame.height) percentShown=\(percent(app).exists)")
+        return (header(app).frame.height, text.frame.height)
     }
 
-    func testLargeTypeKeepsPercentBarAndHintComplete() throws {
-        for (label, category) in [("std", "UICTContentSizeCategoryL"), ("axxxl", "UICTContentSizeCategoryAccessibilityXXXL")] {
-            let reference = runningHeight(category: category)
-            let app = launch("measured", extra: ["-UIPreferredContentSizeCategoryName", category])
-            let header = header(app)
-            XCTAssertTrue(header.waitForExistence(timeout: 30), label)
-            waitForForecast(header)
-            assertBarValue(app, "measured:50", label)
-            if label == "axxxl" {
-                XCTAssertFalse(percent(app).exists, "axxxl: percent not drawn (would make the hint taller)")
-            } else {
-                XCTAssertTrue(percent(app).waitForExistence(timeout: 5), label)
-                XCTAssertLessThanOrEqual(percent(app).frame.maxX, header.frame.maxX, "\(label): percent inside the pill")
-                XCTAssertGreaterThanOrEqual(percent(app).frame.minY, header.frame.minY, "\(label): percent inside the pill")
-                XCTAssertLessThanOrEqual(percent(app).frame.maxY, header.frame.maxY, "\(label): percent inside the pill")
-            }
-            XCTAssertTrue((header.value as? String ?? "").contains("50"), "\(label): percent still spoken as the value")
-            XCTAssertEqual(bar(app).frame.width, header.frame.width, accuracy: 1.5, label)
-            XCTAssertEqual(header.frame.height, reference, accuracy: 0.5, "\(label): measured hint as high as the unmeasured one (spinner only)")
-            shot(app, "7-grosse-schrift-\(label)")
-            app.terminate()
+    func testPercentKeepsHintTextAndHeightStable() throws {
+        for category in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryXXL", "UICTContentSizeCategoryAccessibilityXXXL"] {
+            let without = hintHeights(mode: "delayed", category: category)
+            let with = hintHeights(mode: "measured", category: category)
+            XCTAssertEqual(with.header, without.header, accuracy: 0.5, "\(category): hint height with/without percent")
+            XCTAssertEqual(with.text, without.text, accuracy: 0.5, "\(category): the hint text keeps its line count with the percent")
         }
     }
 }

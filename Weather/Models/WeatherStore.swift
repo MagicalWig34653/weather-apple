@@ -226,7 +226,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             // The cause of the one-off test-runner restart in ForecastRefreshUITests is not proven (Backlog card).
             if ForecastUITestStub.mode != nil { limited = false }
             #endif
-            let delay = schedule.nextDelay(now: clock(),shown: forecast?.referenceTime, failures: forecastFailures, restricted: limited)
+            var delay = schedule.nextDelay(now: clock(),shown: forecast?.referenceTime, failures: forecastFailures, restricted: limited)
+            #if DEBUG
+            // Stub `measured` only: the next load starts 3 s after the first one (no wait for the 20 s pause, no background trip).
+            if ForecastUITestStub.mode == "measured" { delay = min(delay, 3) }
+            #endif
             do { try await sleep(delay) } catch { return }
         }
     }
