@@ -86,8 +86,12 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
-    /// Token of the running point-forecast load (a forecast-only reload does not touch the radar generation).
-    @ObservationIgnored private var forecastToken = UUID()
+    /// IDs of the running point-forecast loads of the selected place (a forecast-only reload does not touch the radar generation).
+    /// `isForecastLoading` (and with it the bar) holds while any of them runs; a place change empties the set, which drops
+    /// the answers of the old loads. Overlapping loads (start-up: `refresh()` and the visible-app loop) no longer replace each other.
+    @ObservationIgnored private var forecastLoads: Set<UUID> = []
+    /// Counts successful answers; a load that was overtaken by another answer while it ran must not step back to an older run.
+    @ObservationIgnored private var forecastDeliveries = 0
     /// Shared by polls, manual reloads and timeline composition across suspension points.
     @ObservationIgnored private var radarGeneration = UUID()
     /// Refresh started by the last `select`; tests await it to order requests deterministically.
@@ -262,7 +266,7 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func select(_ place: SavedPlace) {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
-        forecastToken = UUID()
+        forecastLoads.removeAll()
         radarGeneration = UUID()
         selectedPlace = place
         if places.contains(where: { $0.id == place.id }) { persistPlaces() }
@@ -318,26 +322,23 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func refresh() async {
         let requestID = UUID()
         generation = requestID
-        forecastToken = requestID
         radarGeneration = requestID
         let place = selectedPlace
         isRadarLoading = true
-        isForecastLoading = true
+        beginForecastLoad(requestID)
         radarNotice = nil
         attemptedRadarFallback = false
         // A retry must also reload missing tiles when the data run is unchanged.
         radarReloadRevision += 1
         defer {
-            if generation == requestID {
-                isRadarLoading = false
-                isForecastLoading = false
-            }
+            if generation == requestID { isRadarLoading = false }
+            endForecastLoad(requestID)
         }
         forecastError = nil
         radarError = nil
         // Each source can fail independently: a point error must not disable the map.
         async let mapUpdate: Void = refreshTimeline(requestID: requestID, placeID: place.id)
-        async let pointUpdate: Void = refreshForecast(requestID: requestID, place: place)
+        async let pointUpdate: Bool = refreshForecast(requestID: requestID, place: place)
         _ = await (mapUpdate, pointUpdate)
         guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
         lastRefresh = Date()
@@ -434,36 +435,55 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func reloadForecast() async {
         guard !isForecastLoading else { return }
         let token = UUID()
-        forecastToken = token
         let place = selectedPlace
-        isForecastLoading = true
+        beginForecastLoad(token)
         forecastError = nil
-        defer { if forecastToken == token { isForecastLoading = false } }
-        await refreshForecast(requestID: token, place: place)
-        if forecastToken == token, selectedPlace.id == place.id, !Task.isCancelled { lastRefresh = clock() }
+        defer { endForecastLoad(token) }
+        if await refreshForecast(requestID: token, place: place) { lastRefresh = clock() }
     }
 
-    private func refreshForecast(requestID: UUID, place: SavedPlace) async {
-        let result = await loadForecast(at: place.coordinate)
-        guard forecastToken == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
+    private func beginForecastLoad(_ id: UUID) {
+        forecastLoads.insert(id)
+        isForecastLoading = true
+    }
+
+    /// Ends one load; the bar goes only when no other load of this place still runs. Loads dropped by a place change are ignored.
+    private func endForecastLoad(_ id: UUID) {
+        guard forecastLoads.remove(id) != nil, forecastLoads.isEmpty else { return }
         isForecastLoading = false
+    }
+
+    /// `true` when the answer belongs to the selected place and was not cancelled.
+    @discardableResult
+    private func refreshForecast(requestID: UUID, place: SavedPlace) async -> Bool {
+        let deliveriesAtStart = forecastDeliveries
+        let result = await loadForecast(at: place.coordinate)
+        guard forecastLoads.contains(requestID), selectedPlace.id == place.id, !Task.isCancelled else { return false }
+        endForecastLoad(requestID)
+        // Another load answered while this one ran: an older run must not replace what that one delivered.
+        let overtaken = forecastDeliveries != deliveriesAtStart
         switch result {
         case .success(let value):
-            forecast = value
+            forecastDeliveries += 1
             forecastFailures = 0
             forecastCheckedAt = clock()
+            if overtaken, let shown = forecast, value.referenceTime < shown.referenceTime { break }
+            forecast = value
             rememberForecast(value, for: place.id)
             reloadWidgets()
         case .failure(let error) where isRunNotReady(error):
             // The index lists a new run, but the service still answers "not available" for it (measured 10 to 30 s,
             // 20.11.2026): the shown forecast is valid and nothing failed. The loop asks again within seconds.
             forecastCheckedAt = clock()
+        case .failure where overtaken:
+            break // a newer answer arrived meanwhile: this failure is moot
         case .failure(let error):
             forecastFailures += 1
             // Keep (or restore) this place's last valid forecast; the view marks it as not confirmed.
             forecast = lastValidForecast(for: place.id)
             forecastError = error.localizedDescription
         }
+        return true
     }
 
     private func isRunNotReady(_ error: Error) -> Bool {

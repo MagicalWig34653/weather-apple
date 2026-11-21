@@ -260,6 +260,78 @@ final class ForecastRefreshTests: XCTestCase {
         XCTAssertNotNil(store.forecast)
         XCTAssertEqual(store.forecastFailures, 0)
     }
+
+    // MARK: Overlapping loads (start-up: `refresh()` and the visible-app loop's `reloadForecast()`)
+
+    private var newer: Date { n0.addingTimeInterval(300) }
+
+    private func makeOverlapStore(_ transport: OverlapTransport, clock: Clock) -> WeatherStore {
+        let client = DWDClient(transport: { try await transport.respond($0) }, clock: { clock.now }, retryDelay: { _ in 0 })
+        let store = WeatherStore(client: client, backend: DWDDataTests.unreachableBackend,
+                                 defaults: UserDefaults(suiteName: "ForecastRefreshTests-\(UUID().uuidString)")!)
+        store.clock = { clock.now }
+        store.selectedPlace = SavedPlace(name: "A", coordinate: coordinate)
+        return store
+    }
+
+    private func waitFor(_ what: String, _ condition: () async -> Bool) async throws {
+        for _ in 0..<500 {
+            if await condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTFail("not reached: \(what)")
+    }
+
+    /// The loop's load asks first and gets the old run (service behind); `refresh()` starts meanwhile and gets the new
+    /// run, which is answered first. Build 56: `refresh()` took over the loop's token, so its answer ended the bar although
+    /// the loop's request still ran, and the loop's answer was dropped.
+    func testOverlappingLoadsKeepTheBarUntilBothEndAndNeverStepBack() async throws {
+        let clock = Clock(at(480)) // N0+300 is expected, the index lists only N0 at first
+        let transport = OverlapTransport(fixture: try fixture(), origin: n0, listed: [n0])
+        let store = makeOverlapStore(transport, clock: clock)
+        let loop = Task { await store.reloadForecast() }
+        try await waitFor("loop request for the old run") { await transport.isWaiting(for: n0) }
+        await transport.setListed([n0, newer])
+        let manual = Task { await store.refresh() }
+        try await waitFor("refresh request for the new run") { await transport.isWaiting(for: newer) }
+        XCTAssertTrue(store.isForecastLoading)
+
+        await transport.open(newer) // the later request answers first, with the newer run
+        try await waitFor("new run shown") { store.forecast?.referenceTime == newer }
+        await manual.value
+        XCTAssertEqual(store.forecast?.referenceTime, newer, "the newer run is taken over")
+        XCTAssertTrue(store.isForecastLoading, "the loop's request still runs: the bar stays")
+        XCTAssertNotEqual(store.updateProgressDisplay, .hidden)
+
+        await transport.open(n0) // the old run arrives late
+        await loop.value
+        XCTAssertEqual(store.forecast?.referenceTime, newer, "a late older answer does not replace the newer run")
+        XCTAssertEqual(store.lastValidForecast(for: store.selectedPlace.id)?.referenceTime, newer)
+        XCTAssertFalse(store.isForecastLoading, "both requests are over")
+        XCTAssertNil(store.forecastError)
+        XCTAssertEqual(store.forecastFailures, 0)
+    }
+
+    /// Same overlap, answered in the order of the requests: the bar holds until the second one ends and the newer run wins.
+    func testOverlappingLoadsAnsweredInRequestOrderEndWithTheNewerRun() async throws {
+        let clock = Clock(at(480))
+        let transport = OverlapTransport(fixture: try fixture(), origin: n0, listed: [n0])
+        let store = makeOverlapStore(transport, clock: clock)
+        let loop = Task { await store.reloadForecast() }
+        try await waitFor("loop request for the old run") { await transport.isWaiting(for: n0) }
+        await transport.setListed([n0, newer])
+        let manual = Task { await store.refresh() }
+        try await waitFor("refresh request for the new run") { await transport.isWaiting(for: newer) }
+
+        await transport.open(n0)
+        await loop.value
+        XCTAssertTrue(store.isForecastLoading, "the second request still runs: the bar stays")
+        await transport.open(newer)
+        await manual.value
+        XCTAssertEqual(store.forecast?.referenceTime, newer)
+        XCTAssertFalse(store.isForecastLoading)
+        XCTAssertNil(store.forecastError)
+    }
 }
 
 private final class Clock: @unchecked Sendable {
@@ -290,5 +362,56 @@ private actor Transport {
         if pointDelay > 0 { try await Task.sleep(for: .seconds(pointDelay)) }
         if let pointStatus { return (Data("<html>error</html>".utf8), http(pointStatus)) }
         return (fixture, http(200))
+    }
+}
+
+/// Run index lists the runs set by the test; point queries wait until the test opens their run, then answer the fixture
+/// shifted to the run asked for (`DIM_REFERENCE_TIME`).
+private actor OverlapTransport {
+    let fixture: Data
+    let origin: Date
+    private var listed: [Date]
+    private var opened: Set<Date> = []
+    private var waiting: Set<Date> = []
+    private var waiters: [Date: [CheckedContinuation<Void, Never>]] = [:]
+    init(fixture: Data, origin: Date, listed: [Date]) { self.fixture = fixture; self.origin = origin; self.listed = listed }
+
+    func setListed(_ runs: [Date]) { listed = runs }
+    func isWaiting(for run: Date) -> Bool { waiting.contains(run) }
+    func open(_ run: Date) {
+        opened.insert(run)
+        waiters.removeValue(forKey: run)?.forEach { $0.resume() }
+    }
+
+    func respond(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let url = request.url!
+        func http(_ status: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)! }
+        if url.host == "opendata.dwd.de" {
+            let day = DateFormatter()
+            day.locale = Locale(identifier: "en_US_POSIX"); day.timeZone = TimeZone(identifier: "UTC")
+            day.dateFormat = "yyyyMMdd_HHmm"
+            return (Data(listed.map { "composite_rv_\(day.string(from: $0)).tar" }.joined(separator: " ").utf8), http(200))
+        }
+        guard let value = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "DIM_REFERENCE_TIME" })?.value,
+              let run = DWDRequest.date(value) else { return (fixture, http(200)) }
+        waiting.insert(run)
+        if !opened.contains(run) { await withCheckedContinuation { waiters[run, default: []].append($0) } }
+        return (try shifted(to: run), http(200))
+    }
+
+    private func shifted(to run: Date) throws -> Data {
+        let delta = run.timeIntervalSince(origin)
+        var root = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture) as? [String: Any])
+        var features = try XCTUnwrap(root["features"] as? [[String: Any]])
+        for index in features.indices {
+            var properties = try XCTUnwrap(features[index]["properties"] as? [String: Any])
+            for key in ["TIME", "REFERENCE_TIME"] {
+                let date = try XCTUnwrap((properties[key] as? String).flatMap(DWDRequest.date))
+                properties[key] = DWDRequest.timestamp(date.addingTimeInterval(delta))
+            }
+            features[index]["properties"] = properties
+        }
+        root["features"] = features
+        return try JSONSerialization.data(withJSONObject: root)
     }
 }
