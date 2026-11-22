@@ -645,3 +645,184 @@ final class RadarHistoryUITests: XCTestCase {
     func testBrightnessDewpoint() throws { try brightnessCase("taupunkt", .entry(group: "Feuchtigkeit", "Taupunkt")) }
     func testBrightnessHumidity() throws { try brightnessCase("feuchte-relativ", .entry(group: "Feuchtigkeit", "Relativ")) }
 }
+
+// MARK: Hint: the chosen past is longer than what the map really delivers
+//
+// Card C2AC381D. The hint ("Diese Karte reicht nur N Stunden zurück – gewählt sind M Stunden.") shows exactly when the user's choice
+// is larger than the span the shown timeline has; the choice and the data stay as they are. Stub tests (no network) plus one
+// read-only production test (`TEST_RUNNER_HIST_PROD=1`, `TEST_RUNNER_HIST_PROD_LAYER=radar|europa|temperatur|taupunkt|feuchte|luftdruck`).
+// Screenshots: `/private/tmp/claude-501/hist-hint-shots/<HINT_PHASE>-<name>-<light|dark>.png` (`TEST_RUNNER_HINT_PHASE=vorher|nachher`).
+extension RadarHistoryUITests {
+    private func hintNote(_ app: XCUIApplication) -> XCUIElement { app.descendants(matching: .any).matching(identifier: "radar-history-short-note").firstMatch }
+
+    private func hintShot(_ app: XCUIApplication, _ name: String) {
+        sleep(1)
+        let phase = ProcessInfo.processInfo.environment["HINT_PHASE"] ?? "nachher"
+        let dir = "/private/tmp/claude-501/hist-hint-shots"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(phase)-\(name)-\(suffix).png"))
+    }
+
+    /// What the screen says (no assertion): the hint, the hole note and the slider value. For the "before" reproduction.
+    private func hintReport(_ app: XCUIApplication, _ name: String, _ slider: XCUIElement) {
+        let hint = hintNote(app), gap = gapNote(app)
+        print("HINTREPRO \(name) hinweis=[\(hint.exists ? hint.label : "-")] luecke=[\(gap.exists ? gap.label : "-")] regler=[\(value(slider))]")
+    }
+
+    private func closeSheet(_ app: XCUIApplication) {
+        for _ in 0..<3 where app.sliders.firstMatch.isHittable == false {
+            app.swipeDown(velocity: .fast)
+            sleep(1)
+        }
+    }
+
+    private func expectHint(_ app: XCUIApplication, available: Int, chosen: Int, _ context: String) {
+        let hint = hintNote(app)
+        XCTAssertTrue(hint.waitForExistence(timeout: 10), "\(context): hint for \(available) of \(chosen) h missing")
+        guard hint.exists else { return }
+        XCTAssertTrue(hint.label.hasPrefix("Diese Karte reicht nur \(available) Stunden zurück – gewählt sind \(chosen) Stunden."), "\(context): \(hint.label)")
+    }
+
+    /// Layer case: the setting is `setting`, the stub's map reaches back `available` hours (`nil`: all of it, no hint).
+    private func hintLayerCase(_ name: String, pick: Pick, setting: Int, server: Int = 72, available: Int?) throws {
+        let app = launchLayers(setting: setting, server: server)
+        try pick.select(app, self)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") || $0.contains("Modell") }, value(slider))
+        sleep(2)
+        hintShot(app, "\(name)\(setting)-1-jetzt")
+        hintReport(app, "\(name)\(setting)-jetzt", slider)
+        if let available { expectHint(app, available: available, chosen: setting, "\(name) \(setting) h now") }
+        else { XCTAssertFalse(hintNote(app).exists, "\(name) \(setting) h: the map gives all that was chosen: \(hintNote(app).label)") }
+        jump(slider, fraction: 0)
+        sleep(2)
+        hintShot(app, "\(name)\(setting)-2-aeltester-slot")
+        hintReport(app, "\(name)\(setting)-aeltester", slider)
+        if let available { expectHint(app, available: available, chosen: setting, "\(name) \(setting) h oldest") }
+        else { XCTAssertFalse(hintNote(app).exists, "\(name) \(setting) h at the oldest slot: \(hintNote(app).label)") }
+        app.terminate()
+    }
+
+    // Case (b), stub: saved choice 72 h, the server of `history.json` reports 48 h. The choice stays selected (greyed out), the data stays 48 h.
+    func testHintRadarChoiceSeventyTwoServerFortyEight() throws {
+        let app = launchRadar(hours: 48, setting: 72)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+        sleep(2)
+        hintShot(app, "radar-server48-wahl72-1-jetzt")
+        hintReport(app, "radar-server48-wahl72-jetzt", slider)
+        expectHint(app, available: 48, chosen: 72, "radar server 48, choice 72")
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("Mo. 16. Nov.") }, "the data stays 48 h: \(value(slider))")
+        hintShot(app, "radar-server48-wahl72-2-aeltester-slot")
+        hintReport(app, "radar-server48-wahl72-aeltester", slider)
+        expectHint(app, available: 48, chosen: 72, "radar server 48, choice 72, oldest slot")
+        // The stored choice is not touched: row 72 stays ticked (and greyed out).
+        openInfoSheet(app)
+        let entry = app.buttons["Maximale Vergangenheit"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        entry.tap()
+        let row = app.descendants(matching: .any).matching(identifier: "past-hours-72").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        XCTAssertTrue(row.isSelected, "72 stays the stored choice")
+        XCTAssertFalse(row.isEnabled, "72 stays greyed out")
+        hintShot(app, "radar-server48-wahl72-3-einstellung")
+        app.terminate()
+    }
+
+    /// Radar Germany with the full 72 h, and a smaller choice than the server delivers: no hint.
+    func testHintRadarNoneWhenHistoryIsFullOrChoiceIsSmaller() throws {
+        for (server, setting, name) in [(72, 72, "radar-voll72"), (72, 24, "radar-wahl24"), (48, 48, "radar-voll48")] {
+            let app = launchRadar(hours: server, setting: setting)
+            let slider = slider(app)
+            XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+            sleep(2)
+            hintShot(app, "\(name)-1-jetzt")
+            XCTAssertFalse(hintNote(app).exists, "\(name): no hint: \(hintNote(app).label)")
+            jump(slider, fraction: 0)
+            sleep(2)
+            XCTAssertFalse(hintNote(app).exists, "\(name) oldest slot: no hint: \(hintNote(app).label)")
+            app.terminate()
+        }
+    }
+
+    // Layers (stub, now 09:50 Berlin): the hint names what the map really has.
+    func testHintTemperatureSeventyTwo() throws { try hintLayerCase("temperatur", pick: .entry(group: nil, "Temperatur"), setting: 72, available: 61) }
+    func testHintLightningFortyEight() throws { try hintLayerCase("blitze", pick: .entry(group: nil, "Blitze"), setting: 48, available: 24) }
+    func testHintPressureSeventyTwo() throws { try hintLayerCase("luftdruck", pick: .entry(group: "Luftdruck", "Deutschland"), setting: 72, available: 11) }
+    func testHintNoneTemperatureFortyEight() throws { try hintLayerCase("temperatur", pick: .entry(group: nil, "Temperatur"), setting: 48, available: nil) }
+    func testHintNoneCloudsSeventyTwo() throws { try hintLayerCase("wolken", pick: .entry(group: nil, "Wolken"), setting: 72, available: nil) }
+    func testHintNoneEuropeSeventyTwo() throws { try hintLayerCase("europa", pick: .rain("Europa (OPERA)"), setting: 72, available: nil) }
+
+    /// The hint goes away when the choice is reduced to what the map has, and comes back with the larger choice (the data never changes by itself).
+    func testHintFollowsTheChoice() throws {
+        let app = launchLayers(setting: 72)
+        try Pick.entry(group: nil, "Temperatur").select(app, self)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Modell") })
+        expectHint(app, available: 61, chosen: 72, "temperature 72 h")
+        pickStep(app, "past-hours-48")
+        closeSheet(app)
+        XCTAssertTrue(hintNote(app).waitForNonExistence(timeout: 10), "48 h are all there: no hint: \(hintNote(app).label)")
+        hintShot(app, "temperatur-wahl-auf-48")
+        pickStep(app, "past-hours-72")
+        closeSheet(app)
+        expectHint(app, available: 61, chosen: 72, "temperature 72 h again")
+        hintShot(app, "temperatur-wahl-wieder-72")
+        app.terminate()
+    }
+
+    // MARK: Production (read-only view), only with TEST_RUNNER_HIST_PROD=1
+
+    /// Case (a): choice 72 h against the real server. Whatever the layer really has (measured by the slider's oldest slot), the hint appears
+    /// exactly when it is clearly shorter than 72 h, and its number is that span. Prints `HINTPROD ...`.
+    func testHintAgainstProductionSeventyTwo() throws {
+        guard ProcessInfo.processInfo.environment["HIST_PROD"] != nil else { throw XCTSkip("Nur mit TEST_RUNNER_HIST_PROD=1 (liest die Produktion, nur Ansicht)") }
+        let layer = ProcessInfo.processInfo.environment["HIST_PROD_LAYER"] ?? "temperatur"
+        let pick: Pick? = switch layer {
+        case "radar": nil
+        case "europa": .rain("Europa (OPERA)")
+        case "taupunkt": .entry(group: "Feuchtigkeit", "Taupunkt")
+        case "feuchte": .entry(group: "Feuchtigkeit", "Relativ")
+        case "luftdruck": .entry(group: "Luftdruck", "Deutschland")
+        default: .entry(group: nil, "Temperatur")
+        }
+        let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-radarPastHours", "72"]))
+        app.launch()
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 40))
+        sleep(6)
+        menu.tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(1)
+        try pick?.select(app, self)
+        let slider = slider(app)
+        sleep(6)
+        let now = value(slider)
+        hintShot(app, "prod-\(layer)72-1-jetzt")
+        jump(slider, fraction: 0)
+        sleep(8)
+        let oldest = value(slider)
+        let reference = Date()
+        let span = PastWindowLimitUITests.date(of: now, reference: reference).flatMap { newer in
+            PastWindowLimitUITests.date(of: oldest, reference: reference).map { newer.timeIntervalSince($0) / 3600 }
+        }
+        let hint = hintNote(app)
+        print("HINTPROD layer=\(layer) jetzt=[\(now)] aeltester=[\(oldest)] stunden=\(span.map { String(format: "%.2f", $0) } ?? "?") hinweis=[\(hint.exists ? hint.label : "-")] luecke=[\(gapNote(app).exists ? gapNote(app).label : "-")]")
+        hintShot(app, "prod-\(layer)72-2-aeltester-slot")
+        let measured = try XCTUnwrap(span, "slider values not readable: \(now) | \(oldest)")
+        if measured <= 69 {
+            expectHint(app, available: Int(measured.rounded()), chosen: 72, "production \(layer): \(String(format: "%.2f", measured)) h")
+        } else if measured >= 71.5 {
+            XCTAssertFalse(hint.exists, "production \(layer): \(String(format: "%.2f", measured)) h are practically 72: no hint: \(hint.label)")
+        }
+        openInfoSheet(app)
+        let entry = app.buttons["Maximale Vergangenheit"]
+        if entry.waitForExistence(timeout: 10) {
+            entry.tap()
+            _ = app.descendants(matching: .any).matching(identifier: "past-hours-72").firstMatch.waitForExistence(timeout: 10)
+            hintShot(app, "prod-\(layer)72-3-einstellung")
+        }
+        app.terminate()
+    }
+}
