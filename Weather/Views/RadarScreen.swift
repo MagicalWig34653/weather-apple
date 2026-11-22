@@ -116,7 +116,8 @@ struct RadarScreen: View {
                 }
                 .allowsHitTesting(false)
                 VStack(spacing: 6) {
-                timePill
+                // Same side margin as the slider card below (12 pt); the wide content at the large sizes left only 6 pt.
+                timePill.padding(.horizontal, 12)
                 // Home-button devices: the credit stays above the slider. Otherwise it is drawn below the slider (see `timeline`).
                 if !hasStripBelowSlider { creditLine(sizeLimit: .xxxLarge) }
                 }
@@ -631,10 +632,14 @@ struct RadarScreen: View {
                 // scrubbing; another day's label makes it wider. At the largest sizes two lines keep the height stable.
                 ZStack {
                     // Largest sizes: the former wide template keeps the two-line pill as it was; otherwise only the time's width.
-                    Text(stacked ? "Mo., 88. Okt. \u{00B7} 88:88 AM" : Self.widestTimeTemplate).font(.title3.weight(.semibold)).monospacedDigit().hidden()
+                    // Only this hidden text reserves the two lines; the visible one is centred in them (a reserving visible text
+                    // sat at the top while the play symbol stayed in the middle).
+                    Text(stacked ? "Mo., 88. Okt. \u{00B7} 88:88 AM" : Self.widestTimeTemplate).font(.title3.weight(.semibold)).monospacedDigit()
+                        .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).hidden()
                     Group { if let day { Text("\(day) \u{00B7} \(time)") } else { time } }
+                        .lineLimit(stacked ? 2 : 1)
                 }
-                .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.7)
                 .multilineTextAlignment(.center)
             }
             .foregroundStyle(.primary)
