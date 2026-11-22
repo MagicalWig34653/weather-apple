@@ -493,6 +493,8 @@ struct RadarScreen: View {
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             layerMenu
         }
+        // The stacked layout (accessibility sizes) is narrower than the screen: leading like the cards below, not centred.
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var currentRadarLoadState: RadarLoadState? {

@@ -77,4 +77,25 @@ final class SpacingUITests: XCTestCase {
     func testTimePillStandardSize() { timePill(category: "L", "L") }
     func testTimePillAccessibilityXXXL() { timePill(category: "AccessibilityXXXL", "AXXXL") }
     func testTimePillAccessibilityM() { timePill(category: "AccessibilityM", "AXM") }
+
+    // MARK: Header at the accessibility sizes: same leading edge as the cards below
+
+    /// At the accessibility sizes the place capsule and the layer menu are stacked. The stack was centred in the screen (left edge 48 pt on a
+    /// 402 pt wide iPhone, 264 pt on an iPad) while the forecast pill and the notes below start at 16 pt: three different left edges.
+    private func headerAlignment(category: String, stacked: Bool, _ context: String) {
+        let app = launch(category: category, extra: ["-UITestForecast", "current", "-UITestRadar", "fixture"])
+        defer { app.terminate() }
+        let place = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Ort auswählen:")).firstMatch
+        let menu = app.buttons["radar-layer-menu"], pill = app.buttons["forecast-details"]
+        XCTAssertTrue(place.waitForExistence(timeout: 20) && menu.exists && pill.exists, "\(context): header controls missing")
+        shot(app, "kopfzeile-\(context)")
+        print("SPACING_HEADER \(context) place=\(place.frame) menu=\(menu.frame) pill=\(pill.frame)")
+        XCTAssertEqual(place.frame.minX, pill.frame.minX, accuracy: 1, "\(context): place capsule starts at \(place.frame.minX), the forecast pill at \(pill.frame.minX)")
+        // Standard sizes: the layer menu sits at the right of the place capsule (not stacked below it).
+        if stacked { XCTAssertEqual(menu.frame.minX, pill.frame.minX, accuracy: 1, "\(context): layer menu starts at \(menu.frame.minX), the forecast pill at \(pill.frame.minX)") }
+    }
+
+    func testHeaderLeadingEdgeStandardSize() { headerAlignment(category: "L", stacked: false, "L") }
+    func testHeaderLeadingEdgeAccessibilityM() { headerAlignment(category: "AccessibilityM", stacked: true, "AXM") }
+    func testHeaderLeadingEdgeAccessibilityXXXL() { headerAlignment(category: "AccessibilityXXXL", stacked: true, "AXXXL") }
 }
