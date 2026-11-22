@@ -673,4 +673,84 @@ final class UpdateProgressBarUITests: XCTestCase {
         XCTAssertNotEqual(before.md5, after.md5, "before and after differ")
         XCTAssertNotEqual(cropped(after.image, duringBar), cropped(during.image, duringBar), "bar strip differs between during and after")
     }
+
+    // MARK: Real services, driver for a screen recording (read only, no stub)
+
+    /// Epoch milliseconds for the log lines (`LOADSEQ`), to line the recording up with the run.
+    private func mark(_ text: String) { NSLog("LOADSEQ \(Int(Date().timeIntervalSince1970 * 1000)) \(text)") }
+
+    /// Drives the real app (GET requests against the real services, no `-UITestForecast`, no stub, no app hook) through
+    /// (1) a cold start without a saved forecast, (2) a cold start with the forecast of (1) saved, (3) the manual reload
+    /// ("Daten neu laden"). The images are NOT taken here: a screen recording of the simulator runs next to it (agent-device
+    /// `record start --scope device`), because the bar is visible from the first frame of the app and a manual reload is
+    /// answered from caches within the idle wait of the tap, so single screenshots cannot catch the moments. The test logs
+    /// what the accessibility tree says at each step (`LOADSEQ`), asserts that the bar appears, is a running bar without a
+    /// number, and ends with the answer (hint text back, header height unchanged). The bar of the manual reload is only logged
+    /// (see `testRealServicesBarRunsThroughWithoutPercentAndEnds`: usually not observable by polling); the recording shows it.
+    /// Environment (`TEST_RUNNER_`): `LOADSEQ_HOLD` seconds to wait before the manual reload (default 0; > 300 lets the 300 s
+    /// caches of the run index run out, so the reload has to ask the network).
+    func testRealServicesLoadingSequenceForRecording() throws {
+        let hold = TimeInterval(ProcessInfo.processInfo.environment["LOADSEQ_HOLD"] ?? "") ?? 0
+        let appearance = UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestExposeProgress"])
+        mark("appearance \(suffix)")
+
+        // (1) Cold start without a saved forecast: the hint says "Regenprognose wird geladen".
+        let app = UITestLaunch.app(extra: appearance + ["-UITestResetForecast"])
+        defer { app.terminate() }
+        mark("launch 1 (cold start, forecast reset)")
+        app.launch()
+        mark("launch 1 returned")
+        guard let first = pollBar(app, timeout: 60) else { return XCTFail("cold start 1: no bar within 60 s") }
+        mark("launch 1 bar first seen value=\(first.value ?? "nil") frame=\(first.frame) screen=\(app.frame)")
+        let hint1 = (try? header(app).snapshot())?.label ?? ""
+        mark("launch 1 hint during load: \(hint1)")
+        XCTAssertEqual(first.value, "running", "real services report no total size")
+        XCTAssertTrue(hint1.contains("Regenprognose wird geladen"), hint1)
+        XCTAssertTrue(pollBarGone(app, timeout: 60), "cold start 1: bar gone after the load")
+        mark("launch 1 bar gone")
+        waitForForecast(header(app))
+        let heightSettled = header(app).frame.height
+        mark("launch 1 settled hint=\((try? header(app).snapshot())?.label ?? "") headerHeight=\(heightSettled)")
+        sleep(3)
+
+        // (2) Cold start with the saved forecast (a returning user).
+        app.terminate()
+        sleep(3)
+        let again = UITestLaunch.app(extra: appearance)
+        mark("launch 2 (cold start, saved forecast)")
+        again.launch()
+        mark("launch 2 returned")
+        let sawBar2 = pollBar(again, timeout: 40)
+        mark("launch 2 bar first seen value=\(sawBar2?.value ?? "none") frame=\(sawBar2.map { "\($0.frame)" } ?? "-") hint=\((try? header(again).snapshot())?.label ?? "")")
+        XCTAssertNotNil(sawBar2, "cold start 2: the start-up load shows the bar")
+        if sawBar2 != nil { XCTAssertTrue(pollBarGone(again, timeout: 60), "cold start 2: bar gone after the load"); mark("launch 2 bar gone") }
+        waitForForecast(header(again))
+        let height2 = header(again).frame.height
+        mark("launch 2 settled hint=\((try? header(again).snapshot())?.label ?? "") headerHeight=\(height2)")
+        XCTAssertEqual(height2, heightSettled, accuracy: 0.5, "no height change of the hint between the starts")
+        XCTAssertTrue(pollBarGone(again, timeout: 60), "settled without a bar before the manual reload")
+
+        // (3) Manual reload.
+        if hold > 0 { mark("hold \(Int(hold)) s before the manual reload"); sleep(UInt32(hold)) }
+        XCTAssertTrue(pollBarGone(again, timeout: 90), "no bar right before the manual reload")
+        guard let reload = openLayerEntry(again, group: nil, entry: "Daten neu laden") else { return XCTFail("reload entry not found") }
+        mark("manual reload menu open, entry visible")
+        sleep(2)
+        let beforeTap = Date()
+        reload.tap()
+        mark("manual reload tapped (tap returned after \(String(format: "%.2f", Date().timeIntervalSince(beforeTap))) s)")
+        var values: [String] = []
+        let until = Date().addingTimeInterval(20)
+        while Date() < until {
+            if let read = barRead(again), let value = read.value { if values.last != value { values.append(value); mark("manual reload bar seen value=\(value)") } }
+            usleep(100_000)
+        }
+        mark("manual reload poll over, bar values seen by polling=\(values)")
+        XCTAssertTrue(pollBarGone(again, timeout: 60), "bar gone at the end of the manual reload")
+        XCTAssertFalse(values.contains { $0.hasPrefix("measured") }, "real services: no measured value, got \(values)")
+        XCTAssertEqual(header(again).frame.height, heightSettled, accuracy: 0.5, "no height change of the hint after the manual reload")
+        mark("manual reload settled hint=\((try? header(again).snapshot())?.label ?? "")")
+        sleep(3)
+        again.terminate()
+    }
 }
