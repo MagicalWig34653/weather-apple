@@ -232,6 +232,7 @@
 "RADAR_LAYER_UNAVAILABLE" = "%@ currently unavailable";
 "RADAR_FORECAST_DETAILS" = "Forecast details";
 "RADAR_FORECAST_DETAILS_HINT" = "Opens the precipitation outlook, data age and forecast notes";
+"RADAR_DETAIL_NOTES_VALUE" = "Notes: %d";
 "RADAR_SAVE_PLACE_BUTTON" = "Save or rename the selected place";
 "RADAR_FORECAST_LOADING" = "Loading rain forecast …";
 "RADAR_FORECAST_UNAVAILABLE" = "Forecast unavailable";

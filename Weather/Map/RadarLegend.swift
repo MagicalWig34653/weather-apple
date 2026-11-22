@@ -60,15 +60,32 @@ extension MapLegend {
 
 struct RadarLegendPanel: View {
     let legend: MapLegend
+    /// Height the panel may use (between the forecast pill and the time pill); `nil` = unknown yet. Used at the accessibility sizes.
+    var maxHeight: CGFloat?
+    @State private var contentHeight: CGFloat = 0
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    var body: some View {
+    private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(String(format: NSLocalizedString("LEGEND_TITLE_IN_UNIT", value: "%1$@ in %2$@", comment: "Legend title with unit"), legend.title, legend.unit)).font(.caption.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
             ViewThatFits(in: .vertical) {
                 rows
                 ScrollView { rows }.scrollBounceBehavior(.basedOnSize)
+            }
+        }
+    }
+
+    var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                // The 14 rows are taller than the screen at the largest sizes (the panel ran over the forecast pill and past the time pill):
+                // the whole content scrolls inside the height the screen gives it, like the layer legend.
+                ScrollView { content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 } }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .frame(height: contentHeight > 0 ? min(contentHeight, max(80, (maxHeight ?? 360) - 20)) : max(80, (maxHeight ?? 360) - 20))
+            } else {
+                content
             }
         }
         .padding(10)

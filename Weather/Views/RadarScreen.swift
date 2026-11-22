@@ -136,7 +136,7 @@ struct RadarScreen: View {
                         .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                ForEach(rainLayerNotices) { notice in
+                ForEach(inlineRainLayerNotices) { notice in
                     Label(notice.text, systemImage: notice.kind == .estimate ? "info.circle" : "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, notice.kind == .estimate ? 8 : 12)
@@ -147,7 +147,7 @@ struct RadarScreen: View {
                 }
                 // A hole in the data next to the shown slot: said plainly, never filled with a picture. In the top stack (like the
                 // other notes), so the lower strip with Apple's legal link stays free.
-                if !store.isPlaying, !displayedGapLines.isEmpty {
+                if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, !displayedGapLines.isEmpty {
                     Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -157,7 +157,7 @@ struct RadarScreen: View {
                         .accessibilityIdentifier("radar-gap-note")
                 }
                 // The chosen past is longer than the map delivers: said once and plainly (the choice and the data stay as they are).
-                if !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
+                if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
                     Label(RadarPastWindow.shortHistoryText(available: available, chosen: chosen), systemImage: "info.circle")
                         .font(.caption).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -174,7 +174,8 @@ struct RadarScreen: View {
                         if showLegend {
                             Group {
                                 if store.activeLayer == .radar {
-                                    RadarLegendPanel(legend: .precipitationRadar)
+                                    RadarLegendPanel(legend: .precipitationRadar,
+                                                     maxHeight: pillBlockTop.map { max(0, $0 - legendTop - 8) })
                                 } else {
                                     RadarLayerLegendPanel(
                                         layer: store.activeLayer, manifest: store.layers.activeManifest,
@@ -252,7 +253,7 @@ struct RadarScreen: View {
         .sheet(item: $sheet) { item in
             switch item {
             case .places: PlacesSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
-            case .details: ForecastDetails(store: store)
+            case .details: ForecastDetails(store: store, notes: detailNotes)
             case .information: InformationSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             }
@@ -787,6 +788,9 @@ struct RadarScreen: View {
                         forecastTrailing
                     }
                     .padding(.horizontal, 14)
+                    // 8 pt above and below the text: with ONE line the minimum height (48) wins, so the pill keeps its height through
+                    // rest, loading and done; with TWO lines (long status text, large type) the pill grows instead of the text touching its edge.
+                    .padding(.vertical, 8)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
                     .overlay {
                         // Whole width of the bottom edge, same height as before (overlay), clipped to the pill's corners.
@@ -800,7 +804,9 @@ struct RadarScreen: View {
                     .glassControl(RoundedRectangle(cornerRadius: 24), floor: darkGlassFloor)
                 }
                 .buttonStyle(.plain)
-                .accessibilityValue(measuredUpdateFraction.map { UpdateProgressDisplay.percentText($0) } ?? "")
+                .accessibilityValue([measuredUpdateFraction.map { UpdateProgressDisplay.percentText($0) },
+                                     detailNotes.isEmpty ? nil : String(format: NSLocalizedString("RADAR_DETAIL_NOTES_VALUE", value: "Hinweise: %d", comment: "Radar: number of notes moved into the details sheet"), detailNotes.count)]
+                    .compactMap { $0 }.joined(separator: ", "))
                 .accessibilityIdentifier("forecast-details")
                 .accessibilityHint(NSLocalizedString("RADAR_FORECAST_DETAILS_HINT", value: "Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise", comment: "Radar"))
                 Button {
@@ -848,6 +854,9 @@ struct RadarScreen: View {
     /// Chevron where it always was (right behind the text), plus the refreshing spinner at the RIGHT EDGE of the pill.
     /// No second line, no age text.
     @ViewBuilder private var forecastTrailing: some View {
+        if !detailNotes.isEmpty {
+            Image(systemName: "info.circle").font(.system(size: 14, weight: .semibold)).accessibilityHidden(true)
+        }
         Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
         if isRefreshingForecast {
             // Measured: the percent takes the spinner's place (bar and number show the progress; a second indicator would only
@@ -907,6 +916,28 @@ struct RadarScreen: View {
         } else {
             Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
         }
+    }
+
+    /// At the accessibility sizes the informational notes (gap, short history, world estimate) do not fit above the map: the stack
+    /// grew taller than the screen and pushed slider, info button and play pill out of reach. There they stand in the details sheet
+    /// (the pill carries an info symbol and says how many). Warnings and errors stay on the map.
+    private var inlineRainLayerNotices: [RainLayerNotice.Notice] {
+        dynamicTypeSize.isAccessibilitySize ? rainLayerNotices.filter { $0.kind != .estimate } : rainLayerNotices
+    }
+
+    private var detailNotes: [ForecastDetails.Note] {
+        guard dynamicTypeSize.isAccessibilitySize else { return [] }
+        var notes: [ForecastDetails.Note] = []
+        for notice in rainLayerNotices where notice.kind == .estimate {
+            notes.append(.init(id: notice.identifier, symbol: "info.circle", text: notice.text))
+        }
+        if !store.isPlaying, !displayedGapLines.isEmpty {
+            notes.append(.init(id: "radar-gap-note", symbol: "clock.badge.questionmark", text: displayedGapLines.joined(separator: "\n")))
+        }
+        if !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
+            notes.append(.init(id: "radar-history-short-note", symbol: "info.circle", text: RadarPastWindow.shortHistoryText(available: available, chosen: chosen)))
+        }
+        return notes
     }
 
     /// Rain maps beyond Germany: world estimate/coverage notes and the one missing-data note (world and Europe).
@@ -986,7 +1017,11 @@ struct RainChart: View {
 }
 
 struct ForecastDetails: View {
+    struct Note: Identifiable { let id: String; let symbol: String; let text: String }
+
     @Bindable var store: WeatherStore
+    /// Notes the map screen moved here at accessibility sizes (empty otherwise).
+    var notes: [Note] = []
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -994,6 +1029,12 @@ struct ForecastDetails: View {
             TimelineView(.periodic(from: .now, by: 30)) { context in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    ForEach(notes) { note in
+                        Label(note.text, systemImage: note.symbol)
+                            .font(.callout).fixedSize(horizontal: false, vertical: true)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier(note.id)
+                    }
                     if let forecast = store.forecast {
                         Text(forecast.summary(at: context.date)).font(.title2.bold())
                         RainChart(forecast: forecast).frame(height: 220)
