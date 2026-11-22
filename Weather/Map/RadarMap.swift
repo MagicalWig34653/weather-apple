@@ -332,6 +332,7 @@ struct RadarMap: UIViewRepresentable {
                               self.date == date, self.reloadRevision == revision else { return }
                         if ok {
                             map?.renderer(for: backendOverlay)?.setNeedsDisplay()
+                            self.redrawOnceMore(overlay: backendOverlay, map: map, date: date, revision: revision)
                             if let map { self.refreshReadout(map: map) }
                         }
                         self.reportBackend(ok ? .ready : .failed, date: date, reference: reference, loader: loader)
@@ -341,6 +342,17 @@ struct RadarMap: UIViewRepresentable {
             }
             if parent.layer == .cloudmask { syncVisible(overlay: backendOverlay, slot: slot, map: map) }
             startBackendPrefetch(loader: loader, selected: index)
+        }
+
+        /// Build 56: nach einem Slotwechsel auf ein noch nicht geladenes Bild blieben in etwa jedem vierten Fall einzelne Kacheln des
+        /// Overlays dauerhaft ungezeichnet (Rechteck der Basiskarte ueber dem Bild); MapKit nahm den ersten `setNeedsDisplay` nach dem
+        /// Laden nicht fuer alle Kacheln an. Ein zweiter Auftrag kurz danach zeichnet alle Kacheln nochmals (Bild liegt im Speicher).
+        private func redrawOnceMore(overlay: RadarImageOverlay, map: MKMapView?, date: Date, revision: Int) {
+            Task { @MainActor [weak self, weak overlay, weak map] in
+                try? await Task.sleep(for: .milliseconds(400))
+                guard let self, let overlay, self.backendOverlay === overlay, self.date == date, self.reloadRevision == revision else { return }
+                map?.renderer(for: overlay)?.setNeedsDisplay()
+            }
         }
 
         /// Sun layer: fetches only the one visible-channel slot matched to the shown mask slot (no prefetch,
