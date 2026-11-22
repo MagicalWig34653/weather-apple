@@ -33,6 +33,71 @@ struct RainGlassTint: View {
     }
 }
 
+// MARK: Lock screen backdrop (iPhone only)
+
+/// Which backdrop numbers the lock screen card uses. `.legacy` is the state of Build 56 and exists only so that tests can render
+/// before/after images and measure the difference in one run; production always uses `.brighter`.
+enum RainLockGlassMode { case brighter, legacy }
+
+/// Opacities of the lock screen backdrop on top of the system glass: a tone wash (top left to bottom right) and a white lightener.
+/// Only the lock screen card reads these; the Watch card keeps `RainGlassTint` unchanged.
+///
+/// Why these numbers (Lino 21.11.2026: "bisschen dunkel"; the system draws the lock screen card on dark glass): the wash is flatter
+/// than before (top 0.24 -> 0.19, bottom 0.06 -> 0.13) and a faint white lightener (0.03) is added. Measured on the test stand-in
+/// glass (`LiveActivityImageTests`) the mean luminance rises by about 31 % (dark) while the brightest pixel stays at or below the
+/// old one, so no text contrast is lost; flatter instead of stronger keeps the "tinted glass" look. The text colors are unchanged.
+/// Light and reduce-transparency variants are heavier because the light stand-in glass is already bright and the wash there is dark.
+struct RainLockGlassStyle: Equatable {
+    var washTop: Double
+    var washBottom: Double
+    var lightenTop: Double
+    var lightenBottom: Double
+
+    // Build 56 (legacy), identical to `RainGlassTint`.
+    static let legacyNormal = RainLockGlassStyle(washTop: 0.24, washBottom: 0.06, lightenTop: 0, lightenBottom: 0)
+    static let legacyReducedTransparency = RainLockGlassStyle(washTop: 0.30, washBottom: 0.16, lightenTop: 0, lightenBottom: 0)
+
+    // Brighter, dark appearance (the lock screen card on a real device is always rendered dark).
+    static let brighterDark = RainLockGlassStyle(washTop: 0.19, washBottom: 0.13, lightenTop: 0.03, lightenBottom: 0.03)
+    static let brighterDarkReducedTransparency = RainLockGlassStyle(washTop: 0.26, washBottom: 0.18, lightenTop: 0.03, lightenBottom: 0.03)
+    // Brighter, light appearance (iPad/preview only; the tone tints are dark here, so the wash is weak and the lightener strong).
+    static let brighterLight = RainLockGlassStyle(washTop: 0.10, washBottom: 0.02, lightenTop: 0.42, lightenBottom: 0.42)
+    static let brighterLightReducedTransparency = RainLockGlassStyle(washTop: 0.10, washBottom: 0.04, lightenTop: 0.40, lightenBottom: 0.40)
+
+    static func resolve(_ mode: RainLockGlassMode, scheme: ColorScheme, reduceTransparency: Bool) -> RainLockGlassStyle {
+        switch (mode, scheme, reduceTransparency) {
+        case (.legacy, _, false): return legacyNormal
+        case (.legacy, _, true): return legacyReducedTransparency
+        case (.brighter, .dark, false): return brighterDark
+        case (.brighter, .dark, true): return brighterDarkReducedTransparency
+        case (.brighter, _, false): return brighterLight
+        case (.brighter, _, true): return brighterLightReducedTransparency
+        }
+    }
+}
+
+/// Tone wash plus white lightener over the system background of the lock screen card.
+struct RainLockGlassTint: View {
+    let tint: Color
+    var mode: RainLockGlassMode = .brighter
+    /// Tests only: replaces the system setting.
+    var reduceTransparencyOverride: Bool?
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        let style = RainLockGlassStyle.resolve(mode, scheme: scheme, reduceTransparency: reduceTransparencyOverride ?? reduceTransparency)
+        ZStack {
+            LinearGradient(colors: [tint.opacity(style.washTop), tint.opacity(style.washBottom)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            if style.lightenTop > 0 || style.lightenBottom > 0 {
+                LinearGradient(colors: [Color.white.opacity(style.lightenTop), Color.white.opacity(style.lightenBottom)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }
+    }
+}
+
 /// Symbol in a rounded tinted tile.
 struct RainSymbolTile: View {
     let symbol: String
@@ -199,6 +264,8 @@ struct RainLockRegionDetails: View {
 struct RainLockScreenView: View {
     let p: RainActivityPresentation
     let title: String?
+    /// Tests only: `.legacy` renders the Build 56 backdrop for before/after images.
+    var glassMode: RainLockGlassMode = .brighter
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -220,7 +287,7 @@ struct RainLockScreenView: View {
             RainLockRegionDetails(p: p, tint: tint)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background { RainGlassTint(tint: tint) }
+        .background { RainLockGlassTint(tint: tint, mode: glassMode) }
         .accessibilityElement(children: .combine)
     }
 }
