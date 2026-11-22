@@ -207,6 +207,8 @@ final class LiveActivityImageTests: XCTestCase {
     private static func lin(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
     /// WCAG relative luminance of an sRGB color with components 0...1.
     private static func luminance(_ rgb: [Double]) -> Double { 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]) }
+    /// CIE lightness L* of a relative luminance Y.
+    private static func lightness(_ y: Double) -> Double { y > 0.008856 ? 116 * cbrt(y) - 16 : 903.3 * y }
     /// WCAG contrast ratio (L1 + 0.05) / (L2 + 0.05), L1 the lighter.
     private static func contrast(_ a: Double, _ b: Double) -> Double { (max(a, b) + 0.05) / (min(a, b) + 0.05) }
 
@@ -247,11 +249,14 @@ final class LiveActivityImageTests: XCTestCase {
 
     private func schemeName(_ scheme: ColorScheme) -> String { scheme == .dark ? "dunkel" : "hell" }
 
-    /// (a) Numeric: mean background luminance of the lock screen card is 25 to 60 % above Build 56 (reduce transparency: 8 to 60 %),
-    /// dark and light, rain/dry/stale. Red against Build 56: with the legacy numbers the ratio is exactly 1.000 (< 1.25).
+    /// (a) Numeric: the mean background luminance of the lock screen card is visibly higher than Build 56, expressed in CIE L* of the mean
+    /// relative luminance (Lino 21.11.: "bisschen dunkel"; a change below about 6 L* is hardly visible: the first attempt, x1.31 = +3 L*,
+    /// was). Bands of the L* difference: dark +6 to +12, dark with reduce transparency +3 to +10 (Build 56 is already brighter there
+    /// and the tone text contrast limits the ceiling), light and light with reduce transparency +5 to +16 (iPad/preview only).
+    /// Rain/dry/stale. Red against Build 56: with the legacy numbers the difference is exactly 0.
     func testLockBackdropMeanLuminanceRisesAgainstBuild56() throws {
         var failures: [String] = []
-        var report: [String: Double] = [:]
+        var report: [String: [String: Double]] = [:]
         for scheme in [ColorScheme.dark, .light] {
             for reduced in [false, true] {
                 for (toneName, tone) in Self.allTones {
@@ -263,10 +268,13 @@ final class LiveActivityImageTests: XCTestCase {
                     // The legacy mode of production code must be the pinned Build 56 backdrop (so before/after images are truthful).
                     let legacyMode = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .legacy, reduceTransparencyOverride: reduced), scheme: scheme), scheme: scheme))
                     if abs(legacyMode.mean - old.mean) > 1e-6 { failures.append("\(key): legacy mode \(legacyMode.mean) != pinned \(old.mean)") }
-                    let ratio = new.mean / old.mean
-                    report[key] = ratio
-                    let range = reduced ? 1.08...1.60 : 1.25...1.60
-                    if !range.contains(ratio) { failures.append("\(key): ratio \(ratio) (old \(old.mean), new \(new.mean)) outside \(range)") }
+                    let delta = Self.lightness(new.mean) - Self.lightness(old.mean)
+                    report[key] = ["Y-vorher": old.mean, "Y-nachher": new.mean, "Y-faktor": new.mean / old.mean,
+                                   "Lstar-vorher": Self.lightness(old.mean), "Lstar-nachher": Self.lightness(new.mean), "deltaLstar": delta]
+                    let band: ClosedRange<Double> = scheme == .dark ? (reduced ? 3...10 : 6...12) : 5...16
+                    if !band.contains(delta) {
+                        failures.append("\(key): delta L* \(delta) (Y \(old.mean) -> \(new.mean)) outside \(band)")
+                    }
                 }
             }
         }
@@ -275,7 +283,8 @@ final class LiveActivityImageTests: XCTestCase {
     }
 
     /// (b) Contrast against the worst background pixel (the brightest for light text in dark, the darkest for dark text in light):
-    /// primary text >= 4.5:1, tinted text/symbols (large type, 22 pt bold hero and symbol tile) >= 3:1, secondary text not worse than Build 56.
+    /// primary text >= 4.5:1; tinted text/symbols (hero value, symbol tile) >= 4.5:1 in dark (Build 56: 5.8 to 6.1) and >= 3:1 in the
+    /// light stand-in (Build 56: 2.0 to 2.4); secondary text (lock screen secondary color, dark: white 70 %) not worse than Build 56 (system secondary).
     func testLockBackdropKeepsTextContrast() throws {
         var failures: [String] = []
         var report: [String: [String: Double]] = [:]
@@ -286,21 +295,23 @@ final class LiveActivityImageTests: XCTestCase {
                     let key = "\(schemeName(scheme))-\(reduced ? "transparenz-reduziert" : "normal")-\(toneName)"
                     let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme), scheme: scheme))
                     let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme), scheme: scheme))
-                    func measure(_ scan: Scan) -> (primary: Double, tint: Double, secondary: Double) {
+                    func measure(_ scan: Scan, secondaryOverride: Color?) -> (primary: Double, tint: Double, secondary: Double) {
                         let bg = scheme == .dark ? scan.brightest : scan.darkest
                         let bgY = Self.luminance(bg)
                         let primary = rgb(.label, scheme).rgb
                         let tintRGB = rgb(UIColor(tint), scheme).rgb
-                        let sec = rgb(.secondaryLabel, scheme)
+                        let sec = secondaryOverride.map { rgb(UIColor($0), scheme) } ?? rgb(.secondaryLabel, scheme)
                         let secOnBg = (0..<3).map { sec.rgb[$0] * sec.alpha + bg[$0] * (1 - sec.alpha) }
                         return (Self.contrast(Self.luminance(primary), bgY), Self.contrast(Self.luminance(tintRGB), bgY),
                                 Self.contrast(Self.luminance(secOnBg), bgY))
                     }
-                    let o = measure(old), n = measure(new)
+                    let o = measure(old, secondaryOverride: nil)
+                    let n = measure(new, secondaryOverride: scheme == .dark ? RainLockGlassStyle.darkSecondaryText : nil)
                     report[key] = ["primaer-vorher": o.primary, "primaer-nachher": n.primary, "toenung-vorher": o.tint, "toenung-nachher": n.tint,
                                    "sekundaer-vorher": o.secondary, "sekundaer-nachher": n.secondary]
                     if n.primary < 4.5 { failures.append("\(key): primary \(n.primary) < 4.5") }
-                    if n.tint < 3.0 { failures.append("\(key): tint \(n.tint) < 3.0 (before \(o.tint))") }
+                    let tintLimit = scheme == .dark ? 4.5 : 3.0
+                    if n.tint < tintLimit { failures.append("\(key): tint \(n.tint) < \(tintLimit) (before \(o.tint))") }
                     if n.secondary < o.secondary - 0.05 { failures.append("\(key): secondary \(n.secondary) worse than Build 56 \(o.secondary)") }
                 }
             }

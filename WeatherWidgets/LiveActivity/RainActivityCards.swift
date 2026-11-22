@@ -42,11 +42,12 @@ enum RainLockGlassMode { case brighter, legacy }
 /// Opacities of the lock screen backdrop on top of the system glass: a tone wash (top left to bottom right) and a white lightener.
 /// Only the lock screen card reads these; the Watch card keeps `RainGlassTint` unchanged.
 ///
-/// Why these numbers (Lino 21.11.2026: "bisschen dunkel"; the system draws the lock screen card on dark glass): the wash is flatter
-/// than before (top 0.24 -> 0.19, bottom 0.06 -> 0.13) and a faint white lightener (0.03) is added. Measured on the test stand-in
-/// glass (`LiveActivityImageTests`) the mean luminance rises by about 31 % (dark) while the brightest pixel stays at or below the
-/// old one, so no text contrast is lost; flatter instead of stronger keeps the "tinted glass" look. The text colors are unchanged.
-/// Light and reduce-transparency variants are heavier because the light stand-in glass is already bright and the wash there is dark.
+/// Why these numbers (Lino 21.11.2026: "bisschen dunkel"; the system draws the lock screen card on dark glass): the first attempt
+/// (flatter wash, mean luminance x1.31 = +3 L*) was hardly visible next to Build 56. Now the wash is stronger at the top and much
+/// stronger at the bottom (dark: top 0.24 -> 0.28, bottom 0.06 -> 0.18) plus a faint white lightener (0.03). On the test stand-in
+/// glass this is about +8.5 L* (mean luminance x1.9) in dark, the tone wash stays visible. The ceiling is the contrast of the tone
+/// text (hero value, symbol) against the brightest pixel: >= 4.5:1 allows at most Y 0.0727 (rain). The secondary text of the card
+/// is set lighter (`darkSecondaryText`) so that it does not lose contrast on the brighter backdrop. Text/tone colors are not darker.
 struct RainLockGlassStyle: Equatable {
     var washTop: Double
     var washBottom: Double
@@ -58,11 +59,15 @@ struct RainLockGlassStyle: Equatable {
     static let legacyReducedTransparency = RainLockGlassStyle(washTop: 0.30, washBottom: 0.16, lightenTop: 0, lightenBottom: 0)
 
     // Brighter, dark appearance (the lock screen card on a real device is always rendered dark).
-    static let brighterDark = RainLockGlassStyle(washTop: 0.19, washBottom: 0.13, lightenTop: 0.03, lightenBottom: 0.03)
-    static let brighterDarkReducedTransparency = RainLockGlassStyle(washTop: 0.26, washBottom: 0.18, lightenTop: 0.03, lightenBottom: 0.03)
+    static let brighterDark = RainLockGlassStyle(washTop: 0.28, washBottom: 0.18, lightenTop: 0.03, lightenBottom: 0.03)
+    static let brighterDarkReducedTransparency = RainLockGlassStyle(washTop: 0.30, washBottom: 0.26, lightenTop: 0.02, lightenBottom: 0.02)
     // Brighter, light appearance (iPad/preview only; the tone tints are dark here, so the wash is weak and the lightener strong).
     static let brighterLight = RainLockGlassStyle(washTop: 0.10, washBottom: 0.02, lightenTop: 0.42, lightenBottom: 0.42)
     static let brighterLightReducedTransparency = RainLockGlassStyle(washTop: 0.10, washBottom: 0.04, lightenTop: 0.40, lightenBottom: 0.40)
+
+    /// Secondary text of the dark lock screen card (name, "Stand", detail line). System secondary (white 60 %) gives only 4.45 to
+    /// 4.52:1 on Build 56 and would drop to about 3.5:1 on the brighter backdrop; white 70 % keeps it above 5:1.
+    static let darkSecondaryText = Color.white.opacity(0.70)
 
     static func resolve(_ mode: RainLockGlassMode, scheme: ColorScheme, reduceTransparency: Bool) -> RainLockGlassStyle {
         switch (mode, scheme, reduceTransparency) {
@@ -116,12 +121,25 @@ struct RainSymbolTile: View {
     }
 }
 
+/// Secondary text color: `nil` keeps the system secondary style (Watch, island), a color replaces it (lock screen card only).
+private struct RainSecondaryText: ViewModifier {
+    let color: Color?
+    @ViewBuilder func body(content: Content) -> some View {
+        if let color { content.foregroundStyle(color) } else { content.foregroundStyle(.secondary) }
+    }
+}
+
+private extension View {
+    func rainSecondary(_ color: Color?) -> some View { modifier(RainSecondaryText(color: color)) }
+}
+
 /// "Zuhause" with a pin (for areas: "Umland · Umkreis 10 km").
 struct RainTitleRow: View {
     let title: String
     let isRegion: Bool
     var compact = false
     var font: Font?
+    var secondary: Color?
 
     var body: some View {
         Label {
@@ -131,7 +149,7 @@ struct RainTitleRow: View {
         }
         .labelStyle(.titleAndIcon)
         .font(font ?? (compact ? Font.footnote : .subheadline).weight(.medium))
-        .foregroundStyle(.secondary)
+        .rainSecondary(secondary)
     }
 }
 
@@ -140,6 +158,8 @@ struct RainHeroView: View {
     enum Size { case lock, island, watch }
     let p: RainActivityPresentation
     let size: Size
+    /// Lock screen only: replaces the system secondary color of the detail line.
+    var secondary: Color?
     @Environment(\.colorScheme) private var scheme
 
     private var tint: Color { p.tone.tint(scheme) }
@@ -158,7 +178,7 @@ struct RainHeroView: View {
                     .lineLimit(1).minimumScaleFactor(0.6)
                 if let detail = p.heroDetail, !(size == .watch && p.tone == .stale) {
                     Text(detail).font(size == .watch ? .system(size: 11) : size == .lock ? .caption : .subheadline)
-                        .foregroundStyle(.secondary).lineLimit(size == .watch ? 1 : 2).minimumScaleFactor(size == .watch ? 0.75 : 1)
+                        .rainSecondary(secondary).lineLimit(size == .watch ? 1 : 2).minimumScaleFactor(size == .watch ? 0.75 : 1)
                 }
             }
         }
@@ -234,6 +254,7 @@ struct RainRegionDetails: View {
 struct RainLockRegionDetails: View {
     let p: RainActivityPresentation
     let tint: Color
+    var secondary: Color?
 
     var body: some View {
         if let region = p.region, region.shortShareText != nil || region.intensityText != nil {
@@ -241,7 +262,7 @@ struct RainLockRegionDetails: View {
                 let share = region.shortShareText, level = region.intensityText
                 ViewThatFits(in: .horizontal) {
                     line(share, level).lineLimit(1)
-                    VStack(alignment: .leading, spacing: 0) { if let share { Text(share).fontWeight(.semibold) }; if let level { Text(level).foregroundStyle(.secondary) } }
+                    VStack(alignment: .leading, spacing: 0) { if let share { Text(share).fontWeight(.semibold) }; if let level { Text(level).rainSecondary(secondary) } }
                 }
                 .font(.footnote)
                 if let fraction = region.barFraction { RainShareBar(fraction: fraction, tint: tint, height: 4) }
@@ -249,11 +270,13 @@ struct RainLockRegionDetails: View {
         }
     }
 
+    private func dim(_ text: Text) -> Text { secondary.map { text.foregroundStyle($0) } ?? text.foregroundStyle(.secondary) }
+
     private func line(_ share: String?, _ level: String?) -> Text {
         switch (share, level) {
-        case let (share?, level?): return Text(share).fontWeight(.semibold) + Text(" · ").foregroundStyle(.secondary) + Text(level).foregroundStyle(.secondary)
+        case let (share?, level?): return Text(share).fontWeight(.semibold) + dim(Text(" · ")) + dim(Text(level))
         case let (share?, nil): return Text(share).fontWeight(.semibold)
-        case let (nil, level?): return Text(level).foregroundStyle(.secondary)
+        case let (nil, level?): return dim(Text(level))
         default: return Text("")
         }
     }
@@ -271,20 +294,21 @@ struct RainLockScreenView: View {
 
     var body: some View {
         let tint = p.tone.tint(scheme)
+        let secondary: Color? = glassMode == .brighter && scheme == .dark ? RainLockGlassStyle.darkSecondaryText : nil
         VStack(alignment: .leading, spacing: 4) {
             // Accessibility sizes: name and "Stand" stack instead of cutting the name.
             let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout())
             layout {
-                if let title { RainTitleRow(title: title, isRegion: p.region != nil, compact: true) }
+                if let title { RainTitleRow(title: title, isRegion: p.region != nil, compact: true, secondary: secondary) }
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
-                Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).foregroundStyle(.secondary)
+                Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).rainSecondary(secondary)
             }
             HStack(alignment: .center, spacing: 10) {
-                RainHeroView(p: p, size: .lock)
+                RainHeroView(p: p, size: .lock, secondary: secondary)
                 Spacer(minLength: 0)
                 RainSymbolTile(symbol: p.symbol, tint: tint, side: 36)
             }
-            RainLockRegionDetails(p: p, tint: tint)
+            RainLockRegionDetails(p: p, tint: tint, secondary: secondary)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background { RainLockGlassTint(tint: tint, mode: glassMode) }
