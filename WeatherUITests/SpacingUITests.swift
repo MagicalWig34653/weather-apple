@@ -98,4 +98,137 @@ final class SpacingUITests: XCTestCase {
     func testHeaderLeadingEdgeStandardSize() { headerAlignment(category: "L", stacked: false, "L") }
     func testHeaderLeadingEdgeAccessibilityM() { headerAlignment(category: "AccessibilityM", stacked: true, "AXM") }
     func testHeaderLeadingEdgeAccessibilityXXXL() { headerAlignment(category: "AccessibilityXXXL", stacked: true, "AXXXL") }
+
+    // MARK: Forecast pill: inner padding with two lines, fixed height with one line (decision 22.11.2026, card D5875BAA)
+
+    /// The pill keeps 48 pt with ONE text line (the loading bar's "no height change" promise); with TWO lines it grows by 8 pt of
+    /// padding above and below the text instead of letting the text touch the edge (it had 5 pt at L, 0 at AXXXL).
+    private func pillPadding(category: String, forecast: String, singleLine: Bool?, _ context: String) {
+        let app = launch(category: category, extra: ["-UITestForecast", forecast, "-UITestRadar", "fixture", "-UITestResetForecast", "-radarPastHours", "2"])   // 2 = default: a choice stored by an earlier test must not add the short-history note
+        defer { app.terminate() }
+        let pill = app.buttons["forecast-details"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 20), "\(context): forecast pill missing")
+        if forecast == "failed" { sleep(10) }
+        let text = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'forecast-' AND identifier != 'forecast-details' AND identifier != 'forecast-refresh-spinner'")).firstMatch
+        XCTAssertTrue(text.waitForExistence(timeout: 10), "\(context): forecast text missing")
+        shot(app, "prognose-pille-\(context)")
+        let p = pill.frame, t = text.frame
+        let above = t.minY - p.minY, below = p.maxY - t.maxY
+        print("SPACING_PILL \(context) pill=\(p) text=\(t) above=\(above) below=\(below)")
+        if let singleLine {
+            // 20 pt lines at L; a second line adds at least 15 pt.
+            XCTAssertEqual(t.height < 30, singleLine, "\(context): text height \(t.height) does not have the expected line count")
+            if singleLine { XCTAssertEqual(p.height, 48, accuracy: 0.5, "\(context): one-line pill must stay 48 pt, is \(p.height)") }
+        }
+        XCTAssertGreaterThanOrEqual(above, 7.5, "\(context): only \(above) pt above the text (pill \(p), text \(t))")
+        XCTAssertGreaterThanOrEqual(below, 7.5, "\(context): only \(below) pt below the text (pill \(p), text \(t))")
+    }
+
+    func testPillOneLineStaysFixedHeightStandardSize() { pillPadding(category: "L", forecast: "current", singleLine: true, "L-einzeilig") }
+    func testPillTwoLinesHaveInnerPaddingStandardSize() { pillPadding(category: "L", forecast: "behind", singleLine: false, "L-zweizeilig") }
+    func testPillTwoLinesHaveInnerPaddingXXL() { pillPadding(category: "XXL", forecast: "behind", singleLine: nil, "XXL-zweizeilig") }
+    func testPillTwoLinesHaveInnerPaddingAccessibilityM() { pillPadding(category: "AccessibilityM", forecast: "behind", singleLine: nil, "AXM-zweizeilig") }
+    func testPillTwoLinesHaveInnerPaddingAccessibilityXXXL() { pillPadding(category: "AccessibilityXXXL", forecast: "behind", singleLine: nil, "AXXXL-zweizeilig") }
+
+    // MARK: Top block at the accessibility sizes: controls stay on screen and do not overlap
+
+    private func columnButtons(_ app: XCUIApplication) -> [(name: String, frame: CGRect)] {
+        ["Aktuellen Standort verwenden", "Datenquellen und Datenschutz"].compactMap { label in
+            let b = app.buttons[label]; return b.exists ? (label, b.frame) : nil
+        } + ["radar-legend-toggle", "radar-warnings-button", "radar-read-center"].compactMap { id in
+            let b = app.buttons[id]; return b.exists ? (id, b.frame) : nil
+        }
+    }
+
+    /// Frames of the controls below the top block: slider card, play pill and the button column. Nothing outside the screen, no overlap
+    /// of the column with the pill, hit areas at least 44 pt.
+    private func assertControlsVisibleAndApart(_ app: XCUIApplication, _ context: String) {
+        let screen = app.frame
+        let pill = app.buttons["radar-frame-label"], slider = app.sliders.firstMatch
+        XCTAssertTrue(pill.exists && slider.exists, "\(context): time pill or slider missing")
+        let place = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Ort auswählen:")).firstMatch
+        XCTAssertGreaterThanOrEqual(place.frame.minY, 0, "\(context): place capsule starts above the screen (\(place.frame))")
+        XCTAssertLessThanOrEqual(slider.frame.maxY, screen.height + 0.5, "\(context): slider reaches below the screen (\(slider.frame))")
+        XCTAssertLessThanOrEqual(pill.frame.maxY, slider.frame.minY + 0.5, "\(context): play pill \(pill.frame) overlaps the slider \(slider.frame)")
+        let columns = columnButtons(app)
+        XCTAssertGreaterThanOrEqual(columns.count, 3, "\(context): button column incomplete: \(columns.map(\.name))")
+        for (name, f) in columns {
+            XCTAssertGreaterThanOrEqual(f.minY, 0, "\(context): \(name) above the screen (\(f))")
+            XCTAssertLessThanOrEqual(f.maxY, screen.height + 0.5, "\(context): \(name) outside the screen (\(f))")
+            XCTAssertLessThanOrEqual(f.maxY, pill.frame.minY + 0.5, "\(context): \(name) \(f) overlaps the play pill \(pill.frame)")
+            XCTAssertGreaterThanOrEqual(min(f.width, f.height), 44, "\(context): \(name) hit area \(f)")
+        }
+        let sorted = columns.map(\.frame).sorted { $0.minY < $1.minY }
+        for (a, b) in zip(sorted, sorted.dropFirst()) { XCTAssertLessThanOrEqual(a.maxY, b.minY + 0.5, "\(context): column buttons overlap (\(a) / \(b))") }
+    }
+
+    /// Stub scenario of the hint stack (stub forecast `current`, stub history 72 h; NOT a real server): temperature layer at the oldest slot
+    /// shows the gap note and "this map only reaches back N hours", plus warnings (fixture) in the button column.
+    private func hintStackScene(category: String, legend: Bool, _ context: String) {
+        let app = launch(category: category, extra: ["-UITestForecast", "current", "-UITestLayers", "all", "-UITestHistoryHours", "72", "-radarPastHours", "72",
+                                                      "-UITestWarnings", "fixture"])
+        defer { app.terminate() }
+        let menu = app.buttons["radar-layer-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 30), "\(context): layer menu missing")
+        sleep(2)
+        menu.tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+        sleep(1)
+        guard let entry = openLayerEntry(app, group: nil, entry: "Temperatur") else { return XCTFail("\(context): temperature layer not offered") }
+        entry.tap()
+        sleep(3)
+        let slider = app.sliders.firstMatch
+        XCTAssertTrue(slider.waitForExistence(timeout: 20), "\(context): slider missing")
+        let width = Double(slider.frame.width)
+        slider.coordinate(withNormalizedOffset: CGVector(dx: 20 / width, dy: 0.5)).press(forDuration: 0.05)
+        sleep(3)
+        let gap = element(app, "radar-gap-note"), short = element(app, "radar-history-short-note")
+        let notes = [gap, short].filter { $0.exists }
+        print("SPACING_HINTS \(context) gap=\(gap.exists) short=\(short.exists)")
+        if legend {
+            let toggle = app.buttons["radar-legend-toggle"]
+            if toggle.exists { toggle.tap(); sleep(2) }
+        }
+        shot(app, "hinweisstapel\(legend ? "-legende" : "")-\(context)")
+        assertControlsVisibleAndApart(app, context)
+        // The notes are still reachable: inline (own frame, not behind the column) or in the forecast details sheet.
+        if notes.isEmpty {
+            app.buttons["forecast-details"].tap(); sleep(2)
+            XCTAssertTrue(element(app, "radar-gap-note").waitForExistence(timeout: 5) && element(app, "radar-history-short-note").exists,
+                          "\(context): notes neither on the map nor in the details sheet")
+            shot(app, "hinweisstapel-blatt-\(context)")
+        } else {
+            let column = columnButtons(app).map(\.frame).min { $0.minY < $1.minY }
+            let panel = legend ? element(app, "radar-legend") : nil
+            for note in notes {
+                let f = note.frame
+                if let column, f.maxX > column.minX { XCTAssertLessThanOrEqual(f.maxY, column.minY + 0.5, "\(context): note \(f) overlaps the button column \(column)") }
+                if let panel, panel.exists { XCTAssertTrue(f.intersection(panel.frame).isNull || f.intersection(panel.frame).height < 1, "\(context): note \(f) overlaps the legend \(panel.frame)") }
+            }
+        }
+        if legend {
+            let panel = element(app, "radar-legend")
+            XCTAssertTrue(panel.exists, "\(context): legend missing")
+            XCTAssertLessThanOrEqual(panel.frame.maxY, app.buttons["radar-frame-label"].frame.minY + 0.5, "\(context): legend \(panel.frame) reaches into the play pill")
+            XCTAssertGreaterThanOrEqual(panel.frame.minY, app.buttons["forecast-details"].frame.maxY - 0.5, "\(context): legend \(panel.frame) covers the forecast pill")
+        }
+    }
+
+    func testHintStackKeepsControlsVisibleAccessibilityXXXL() { hintStackScene(category: "AccessibilityXXXL", legend: false, "AXXXL") }
+    func testHintStackKeepsControlsVisibleAccessibilityM() { hintStackScene(category: "AccessibilityM", legend: false, "AXM") }
+    func testHintStackKeepsControlsVisibleXXXL() { hintStackScene(category: "XXXL", legend: false, "XXXL") }
+    func testHintStackWithLegendAccessibilityXXXL() { hintStackScene(category: "AccessibilityXXXL", legend: true, "AXXXL") }
+
+    /// Rain radar legend (14 rows) at the largest size: between forecast pill and play pill, not over them.
+    func testRadarLegendFitsBetweenPillsAccessibilityXXXL() {
+        let app = launch(category: "AccessibilityXXXL", extra: ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestWarnings", "fixture", "-radarPastHours", "2"])
+        defer { app.terminate() }
+        app.buttons["radar-legend-toggle"].tap(); sleep(2)
+        shot(app, "radar-legende-AXXXL")
+        let panel = element(app, "radar-legend")
+        XCTAssertTrue(panel.exists, "legend missing")
+        XCTAssertLessThanOrEqual(panel.frame.maxY, app.buttons["radar-frame-label"].frame.minY + 0.5, "legend \(panel.frame) reaches into the play pill \(app.buttons["radar-frame-label"].frame)")
+        XCTAssertGreaterThanOrEqual(panel.frame.minY, app.buttons["forecast-details"].frame.maxY - 0.5, "legend \(panel.frame) covers the forecast pill \(app.buttons["forecast-details"].frame)")
+        assertControlsVisibleAndApart(app, "radar-legende-AXXXL")
+    }
 }
