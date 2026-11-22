@@ -82,6 +82,18 @@ final class UpdateProgressBarUITests: XCTestCase {
     /// The ONLY start this helper repeats is the one whose forecast got the NEWER run at once (header settles as "current", no hint, no
     /// further load due): that is a state of the stub's counters (the forecast load took index query no. 2), the app shows the newer run
     /// correctly and there is no bar to test. Every repetition is logged (`STUBSTART ... newer run shown at once`).
+    /// Decision 22.11.2026 (card D5875BAA, finding 3): the hint pill has 8 pt of padding above and below its text. ONE line keeps the
+    /// minimum height of 48 pt (the loading bar's promise: rest, loading and done do not change the height); a TWO-line text grows the
+    /// pill (the status text "Der Wetterdienst hat noch keinen neueren Stand" has two lines at standard size: 54 pt). Heights of two
+    /// states therefore agree if they are equal, or if one is the one-line 48 pt and the other a two-line height (more than 48, at
+    /// most 60 at standard size). Anything else (a bar that changes the height) still fails.
+    private func assertPillHeight(_ now: CGFloat, _ before: CGFloat, _ message: String = "no height change of the hint",
+                                  file: StaticString = #filePath, line: UInt = #line) {
+        if abs(now - before) <= 0.5 { return }
+        let (low, high) = (min(now, before), max(now, before))
+        XCTAssertTrue(abs(low - 48) <= 0.5 && high > 48.5 && high <= 60, "\(message): \(before) -> \(now) (only one line <-> two lines may differ)", file: file, line: line)
+    }
+
     /// Everything else is NOT healed by a restart and fails the test at once: no forecast, a start bar that does not end, and above all
     /// a start that settles on the old run ("server behind" / refreshing) while the planned bar does not come within 20 s. That is the
     /// app's own symptom (Build 56: a lost second load or a bar-less running request), no longer hidden by a cold start.
@@ -194,7 +206,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         XCTAssertEqual(b.minX, h.minX, accuracy: 1.5, "bar starts at the left edge", file: file, line: line)
         XCTAssertEqual(b.width, h.width, accuracy: 1.5, "bar spans the whole width", file: file, line: line)
         XCTAssertEqual(b.maxY, h.maxY, accuracy: 1.5, "bar on the bottom edge", file: file, line: line)
-        XCTAssertEqual(h.height, heightBefore, accuracy: 0.5, "no height change of the hint", file: file, line: line)
+        assertPillHeight(h.height, heightBefore, "no height change of the hint", file: file, line: line)
     }
 
     // MARK: Measured progress (stub reports sizes)
@@ -293,7 +305,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         let app = started.app, heightBefore = started.heightBefore
         let header = header(app)
         assertBarGoneAndTextBack(app)
-        XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5)
+        assertPillHeight(header.frame.height, heightBefore)
         sleep(1)
         assertDarkIfNeeded(app)
         shot(app, "6-nachher-erfolg")
@@ -355,14 +367,14 @@ final class UpdateProgressBarUITests: XCTestCase {
         app.activate()
         let returned = Date()
         XCTAssertEqual(barValue(app), "running", "the load carries on: the bar is still there after returning")
-        XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5, "no height change of the hint")
+        assertPillHeight(header.frame.height, heightBefore, "no height change of the hint")
         assertDarkIfNeeded(app)
         shot(app, "abbruch-3-zurueck-balken-laeuft-weiter")
         assertBarGoneAndTextBack(app, timeout: 45)
         let afterReturn = Date().timeIntervalSince(returned)
         XCTAssertLessThan(afterReturn, 37, "ends with the original request (about 40 s after it began), not 40 s after the return: \(afterReturn)")
         XCTAssertGreaterThan(Date().timeIntervalSince(firstSeen), 30, "ends with the stalled request, not earlier")
-        XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5, "height unchanged after the end")
+        assertPillHeight(header.frame.height, heightBefore, "height unchanged after the end")
         XCTAssertFalse(header.label.isEmpty)
         sleep(1)
         assertDarkIfNeeded(app)
@@ -437,11 +449,11 @@ final class UpdateProgressBarUITests: XCTestCase {
             XCTAssertEqual(bar(app).value as? String, "running")
             XCTAssertLessThan(Date().timeIntervalSince(tapped), 4)
             XCTAssertTrue(header.label.contains("Aktualisiere"), header.label)
-            XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5, "no height change of the hint")
+            assertPillHeight(header.frame.height, heightBefore, "no height change of the hint")
             assertDarkIfNeeded(app)
             shot(app, "9-manuell-waehrend-durchlaufend")
             assertBarGoneAndTextBack(app, timeout: 30)
-            XCTAssertEqual(header.frame.height, heightBefore, accuracy: 0.5)
+            assertPillHeight(header.frame.height, heightBefore)
             attributed = true
         }
         XCTAssertTrue(attributed, "a manual reload could not be told apart from the loop's loads in 4 attempts")
@@ -625,7 +637,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         var sawPercent = false
         XCTAssertEqual(values.first, "running", "the bar runs without a number, got \(values)")
         assertBarGeometry(app, heightBefore: heightBefore, barFrame: duringBar)
-        XCTAssertEqual(duringHeader.height, heightBefore, accuracy: 0.5, "no height change of the hint (before vs during)")
+        assertPillHeight(duringHeader.height, heightBefore, "no height change of the hint (before vs during)")
         // The bar strip is really drawn in the 'during' frame and not in the 'before' frame (same place).
         XCTAssertNotEqual(cropped(during.image, duringBar), cropped(before.image, duringBar), "bar strip differs between before and during")
 
@@ -651,7 +663,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         XCTAssertFalse(after.percentVisible)
         XCTAssertFalse(after.label.contains("Aktualisiere"), "hint text back: \(after.label)")
         XCTAssertEqual(after.value, "")
-        XCTAssertEqual(after.headerHeight, heightBefore, accuracy: 0.5, "no height change of the hint (before vs after)")
+        assertPillHeight(after.headerHeight, heightBefore, "no height change of the hint (before vs after)")
         NSLog("REALSEQ cold starts for 'during'=\(attempts) heights before=\(heightBefore) during=\(duringHeader.height) after=\(after.headerHeight) values=\(values) percentSeen=\(sawPercent) md5 \(before.md5) \(during.md5) \(after.md5)")
         XCTAssertFalse(values.contains { $0.hasPrefix("measured") }, "the real services report no total size, got \(values)")
         XCTAssertFalse(sawPercent, "no percent without a total size")
