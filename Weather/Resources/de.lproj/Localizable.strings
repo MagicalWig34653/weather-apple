@@ -199,6 +199,7 @@
 "TIMELINE_SLIDER_HINT" = "Von %1$@ bis %2$@. Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.";
 "TIMELINE_GAP_BEFORE" = "Davor fehlen Daten: %@";
 "TIMELINE_GAP_AFTER" = "Danach fehlen Daten: %@";
+"RADAR_HISTORY_SHORT" = "Diese Karte reicht nur %1$@ zurück – gewählt sind %2$@.";
 "TIMELINE_PAUSE" = "Animation pausieren";
 "TIMELINE_PLAY" = "Animation abspielen";
 "TIMELINE_PILL_HINT" = "Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen";

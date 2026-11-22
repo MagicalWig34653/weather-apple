@@ -77,6 +77,14 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// What the server offers for the map in view: the radar's `history.json`, else the layer's own manifest.
     var activeServerHistoryHours: Int? { layers.active == .radar ? serverHistoryHours : layers.offeredHistoryHours(layers.active) }
 
+    /// Hours the shown map really reaches back when that is clearly less than the user's chosen past (for the hint); `nil` without a
+    /// choice, without a timeline, on the direct DWD path, and while the radar's own timeline is still being composed for a new choice.
+    var shortHistoryHours: Int? {
+        guard let choice = pastChoice, layers.active != .radar || composedHours == choice,
+              let timeline = displayTimeline, let step = timeline.backend?.stepMinutes, let oldest = timeline.dates.first else { return nil }
+        return RadarPastWindow.shortfallHours(chosen: choice, span: timeline.referenceTime.timeIntervalSince(oldest), stepMinutes: step)
+    }
+
     @ObservationIgnored private let reloadWidgets: () -> Void
     @ObservationIgnored private let client: DWDClient
     @ObservationIgnored private let backend: RadarBackendClient

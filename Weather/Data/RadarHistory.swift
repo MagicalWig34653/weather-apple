@@ -45,6 +45,19 @@ enum RadarPastWindow {
         return false
     }
 
+    /// Hours of past the shown timeline really has when that is clearly less than the chosen past (more than 1.5 grid steps short,
+    /// so rounding of slot times stays quiet); `nil` otherwise. Only says so - the choice and the timeline stay as they are.
+    static func shortfallHours(chosen: Int, span: TimeInterval, stepMinutes: Int) -> Int? {
+        let tolerance = Double(max(stepMinutes, 1)) * 60 * RadarTimelineGaps.tolerance
+        guard span >= 0, span + tolerance < Double(chosen) * 3600 else { return nil }
+        return min(max(Int((span / 3600).rounded()), directHours), max(chosen - 1, directHours))
+    }
+
+    static func shortHistoryText(available: Int, chosen: Int) -> String {
+        String(format: NSLocalizedString("RADAR_HISTORY_SHORT", value: "Diese Karte reicht nur %1$@ zurück – gewählt sind %2$@.", comment: "Radar: the chosen past is longer than the data"),
+               label(available), label(chosen))
+    }
+
     static func label(_ hours: Int) -> String {
         hours == 1 ? NSLocalizedString("RADAR_PAST_WINDOW_ONE", value: "1 Stunde", comment: "History window")
             : String(format: NSLocalizedString("RADAR_PAST_WINDOW_MANY", value: "%d Stunden", comment: "History window"), hours)

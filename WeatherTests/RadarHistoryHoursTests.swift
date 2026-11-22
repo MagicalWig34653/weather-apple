@@ -888,3 +888,81 @@ final class RadarHistoryHoursTests: XCTestCase {
         XCTAssertNil(fresh.layers.pastHours)
     }
 }
+
+// MARK: Hint when the chosen past is longer than what the map delivers (card C2AC381D)
+
+extension RadarHistoryHoursTests {
+    /// The rule: the hint exists only when the span is more than 1.5 grid steps short of the choice; the number is the real span in hours.
+    func testShortfallRuleNamesTheRealSpanOnlyWhenClearlyShort() {
+        func hint(_ chosen: Int, hours: Double, step: Int) -> Int? { RadarPastWindow.shortfallHours(chosen: chosen, span: hours * 3600, stepMinutes: step) }
+        XCTAssertEqual(hint(72, hours: 53, step: 60), 53, "model layer with 53 of 72 hours")
+        XCTAssertEqual(hint(72, hours: 48, step: 5), 48, "server with 48 hours, choice 72")
+        XCTAssertEqual(hint(48, hours: 24, step: 5), 24)
+        XCTAssertEqual(hint(72, hours: 47 + 55.0 / 60, step: 5), 48, "rounded to the hour")
+        XCTAssertNil(hint(72, hours: 72, step: 5), "everything there")
+        XCTAssertNil(hint(72, hours: 71 + 55.0 / 60, step: 5), "radar Germany: 864 of 865 times, 5 minutes short")
+        XCTAssertNil(hint(72, hours: 72 - 7.0 / 60, step: 5), "within 1.5 steps")
+        XCTAssertNil(hint(72, hours: 71, step: 60), "within 1.5 hourly steps")
+        XCTAssertEqual(hint(72, hours: 71.4, step: 5), 71, "never 'reaches back 72, 72 chosen'")
+        XCTAssertEqual(hint(6, hours: 5.5, step: 5), 5)
+        XCTAssertEqual(hint(72, hours: 0.2, step: 5), 1, "at least one hour is named")
+        XCTAssertNil(hint(24, hours: 48, step: 5), "more than chosen")
+        XCTAssertNil(hint(72, hours: -1, step: 5), "nonsense span")
+        XCTAssertEqual(RadarPastWindow.shortHistoryText(available: 53, chosen: 72), "Diese Karte reicht nur 53 Stunden zurück – gewählt sind 72 Stunden.")
+        XCTAssertEqual(RadarPastWindow.shortHistoryText(available: 1, chosen: 2), "Diese Karte reicht nur 1 Stunde zurück – gewählt sind 2 Stunden.")
+    }
+
+    /// Radar Germany: the stored choice 72 with a server of 48 shows the hint; the choice and the 48 h stay; every full or smaller case is quiet.
+    @MainActor func testRadarHintOnlyWhenTheChoiceExceedsTheServersHistory() async throws {
+        for (choice, server, expected) in [(72, 48, 48), (72, 72, nil), (48, 48, nil), (24, 72, nil), (6, 48, nil), (48, 72, nil)] as [(Int, Int, Int?)] {
+            let (store, _, defaults) = try radarStore(storedChoice: choice, historyHours: server)
+            await store.refresh()
+            XCTAssertEqual(store.shortHistoryHours, expected, "choice \(choice) h, server \(server) h")
+            XCTAssertEqual(store.pastChoice, choice, "the choice stays")
+            XCTAssertEqual(defaults.integer(forKey: RadarPastWindow.defaultsKey), choice, "nothing rewritten")
+            XCTAssertEqual(store.timeline?.dates.first, reference.addingTimeInterval(-Double(min(choice, server)) * 3600), "the data stays what the server has")
+        }
+        let (fresh, _, _) = try radarStore(historyHours: 48)
+        await fresh.refresh()
+        XCTAssertNil(fresh.shortHistoryHours, "no choice: the server's window is the window")
+    }
+
+    /// The radar's hint waits until the timeline is composed for a new choice (no flash of the old, shorter timeline).
+    @MainActor func testRadarHintWaitsForTheTimelineOfTheNewChoice() async throws {
+        let (store, _, _) = try radarStore(storedChoice: 6, historyHours: 48)
+        await store.refresh()
+        XCTAssertNil(store.shortHistoryHours)
+        store.setPastHours(72)
+        XCTAssertNil(store.shortHistoryHours, "composed for 6 h: not claimed for 72 h")
+        await settle(store) { store.shortHistoryHours != nil }
+        XCTAssertEqual(store.shortHistoryHours, 48)
+    }
+
+    /// Model and observation layers: the number is the span the layer really has; 48 h of 61 are quiet; no choice is quiet.
+    @MainActor func testLayerHintNamesTheRealSpanAndFollowsTheChoice() throws {
+        let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
+        let defaults = UserDefaults(suiteName: "ShowerNowTests-\(UUID().uuidString)")!
+        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
+        layers.apply(.fresh(try parse(modelObject(pastHours: 61, layer: "temperature"), layer: .temperature)), to: .temperature, now: reference.addingTimeInterval(1800))
+        layers.apply(.fresh(try parse(observationObject(hours: 24, layer: "lightning"), layer: .lightning)), to: .lightning, now: reference.addingTimeInterval(100))
+        layers.apply(.fresh(try parse(observationObject(hours: 72, layer: "radar_eu"), layer: .radarEU)), to: .radarEU, now: reference.addingTimeInterval(100))
+        XCTAssertTrue(layers.select(.temperature))
+        XCTAssertNil(store.shortHistoryHours, "no choice: the layer shows its own window")
+        store.setPastHours(72)
+        XCTAssertEqual(store.shortHistoryHours, 61)
+        store.setPastHours(48)
+        XCTAssertNil(store.shortHistoryHours, "48 h are all there")
+        store.setPastHours(72)
+        XCTAssertEqual(store.shortHistoryHours, 61)
+        XCTAssertEqual(store.pastChoice, 72)
+        XCTAssertTrue(layers.select(.lightning))
+        XCTAssertEqual(store.shortHistoryHours, 24, "the choice of 72 h is shared by every map")
+        store.setPastHours(48)
+        XCTAssertEqual(store.shortHistoryHours, 24)
+        store.setPastHours(24)
+        XCTAssertNil(store.shortHistoryHours)
+        XCTAssertTrue(layers.select(.radarEU))
+        store.setPastHours(72)
+        XCTAssertNil(store.shortHistoryHours, "Europe with the full 72 h")
+    }
+}

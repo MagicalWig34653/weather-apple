@@ -155,6 +155,16 @@ struct RadarScreen: View {
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("radar-gap-note")
                 }
+                // The chosen past is longer than the map delivers: said once and plainly (the choice and the data stay as they are).
+                if !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
+                    Label(RadarPastWindow.shortHistoryText(available: available, chosen: chosen), systemImage: "info.circle")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("radar-history-short-note")
+                }
                 HStack(alignment: .top, spacing: 10) {
                     Spacer()
                     // The container only morphs the legend panel. The round buttons stay OUTSIDE it: inside a
