@@ -490,6 +490,7 @@
 "OUTLOOK_STALE" = "Forecast data is out of date";
 "OUTLOOK_RAIN_AT_PLACE" = "Rain at the selected place";
 "OUTLOOK_RAIN_IN_MINUTES" = "Rain expected in about %d min";
+"OUTLOOK_RAIN_IN_MINUTES_SHORT" = "Rain in about %d min";
 "OUTLOOK_DRY" = "No measurable rain expected for now";
 "OUTLOOK_POSSIBLE_RAIN" = "Rain possible · data partly incomplete";
 "OUTLOOK_UNRELIABLE" = "No reliable rain forecast available";
