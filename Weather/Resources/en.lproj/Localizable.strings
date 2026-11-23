@@ -231,6 +231,7 @@
 "RADAR_SLOT_FAILED" = "%1$@ for %2$@ not loaded";
 "RADAR_LAYER_UNAVAILABLE" = "%@ currently unavailable";
 "RADAR_FORECAST_DETAILS" = "Forecast details";
+"RADAR_FORECAST_DETAILS_PILL" = "Forecast\ndetails";
 "RADAR_FORECAST_DETAILS_HINT" = "Opens the precipitation outlook, data age and forecast notes";
 "RADAR_DETAIL_NOTES_VALUE" = "Notes: %d";
 "RADAR_SAVE_PLACE_BUTTON" = "Save or rename the selected place";

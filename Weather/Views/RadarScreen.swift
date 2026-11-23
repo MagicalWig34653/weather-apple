@@ -885,6 +885,13 @@ struct RadarScreen: View {
         }
     }
 
+    /// What the pill SHOWS at the accessibility sizes: "Prognose-" / "details" with the line break set by hand. The automatic
+    /// hyphenation broke "Progno-sedetails" in dark mode at AXXXL (the glyph widths differ a little between the appearances, so the
+    /// first line took a different number of letters). Spoken stays the unbroken `RADAR_FORECAST_DETAILS`.
+    private static var forecastDetailsPillText: String {
+        NSLocalizedString("RADAR_FORECAST_DETAILS_PILL", value: "Prognose-\ndetails", comment: "Radar: pill text at accessibility sizes, the line break is part of the string (never inside a syllable); spoken text is RADAR_FORECAST_DETAILS")
+    }
+
     /// What the pill SHOWS for the rain summary. "Regen voraussichtlich in etwa 15 Min." had two lines at standard size as soon as the
     /// spinner took width, so the pill jumped 48 -> 54 -> 48 pt when a load started and ended (Build 57 frames). "Regen in etwa 15 Min." fits
     /// one line with the spinner. The full sentence stays the spoken label (`forecast.summary`) and the details sheet.
@@ -901,10 +908,11 @@ struct RadarScreen: View {
             let statusReplacesSummary = status != nil && status != .refreshing
             HStack(spacing: 6) {
                 if statusReplacesSummary, let status { forecastStatusIcon(status) }
-                Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                Text(dynamicTypeSize.isAccessibilitySize ? Self.forecastDetailsPillText
                      : (statusReplacesSummary && status != nil ? forecastStatusShownText(status!) : forecastSummaryShownText(forecast)))
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
+                    .detailsPillBreak(dynamicTypeSize.isAccessibilitySize)
                     // The spoken label adds "Aktualisiere …" (no age); it is not shown as text.
                     .accessibilityLabel(status == .refreshing
                         ? "\(forecast.summary(at: displayNow)). \(forecastStatusText(.refreshing))"
@@ -913,10 +921,13 @@ struct RadarScreen: View {
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier(status == .refreshing ? "forecast-refreshing" : status == .failed ? "forecast-update-failed" : status == .serverBehind ? "forecast-server-behind" : "forecast-headline")
         } else {
-            Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                 : (store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar")))
+            let spoken = dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                : (store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar"))
+            Text(dynamicTypeSize.isAccessibilitySize ? Self.forecastDetailsPillText : spoken)
                 .font(.subheadline.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
+                .detailsPillBreak(dynamicTypeSize.isAccessibilitySize)
+                .accessibilityLabel(spoken)
         }
     }
 
@@ -1168,5 +1179,13 @@ enum TimelineNowCrossing: Equatable {
     static func side(index: Int, nowIndex: Int?) -> TimelineNowCrossing {
         guard let nowIndex else { return .past }
         return index < nowIndex ? .past : .future
+    }
+}
+
+private extension View {
+    /// Pill text at accessibility sizes: two lines at most, the string's own break stays; a narrow pill shrinks the type a little
+    /// instead of breaking inside a word.
+    @ViewBuilder func detailsPillBreak(_ active: Bool) -> some View {
+        if active { lineLimit(2).minimumScaleFactor(0.7) } else { self }
     }
 }

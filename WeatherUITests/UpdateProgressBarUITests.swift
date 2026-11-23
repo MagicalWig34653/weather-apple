@@ -852,7 +852,7 @@ final class UpdateProgressBarUITests: XCTestCase {
         let cases: [(UITestLaunch.Language, String, [String], String)] = [
             (.german, "de", ["prognose", "details"], "Prognosedetails"),
             (.english, "en", ["forecast", "details"], "Forecast details")]
-        for mode in ["slowbehind", "slowcurrent"] {
+        for mode in ["slowbehind", "current"] {
             for (language, tag, expected, spoken) in cases {
                 let app = launchSized(mode, language: language, category: "UICTContentSizeCategoryAccessibilityXXXL")
                 let header = header(app)
