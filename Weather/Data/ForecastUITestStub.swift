@@ -30,6 +30,9 @@ import UIKit
 ///   point query for it 100 of 300 bytes, then it stalls for 90 s): the bar is measured at 50 % ("Aktualisiere …" stays visible). `delayed` is the
 ///   counterpart without any size (bar runs through, no percent).
 /// - `slowfresh`: later index queries answer after 6 s and list the NEWER run 08:45 (load ends with new data: the bar ends after success).
+/// - `slowfreshrain`: like `slowfresh`, and the forecast (of both runs) starts rain in 15 minutes from the frozen "now" (09:05 UTC) for
+///   25 minutes: the pill carries the real summary "Regen voraussichtlich in etwa 15 Min." while the load runs (refreshing: summary
+///   plus spinner) and after it (Build 58, pill height while loading the real rain text).
 /// All other modes show the run 08:40 UTC (10 minutes old), while a newer one is expected.
 enum ForecastUITestStub {
     static var mode: String? {
@@ -69,13 +72,15 @@ enum ForecastUITestStub {
     }
 
     static func client(mode requested: String) -> DWDClient {
+        let rainSoon = requested == "slowfreshrain"
+        let base = rainSoon ? "slowfresh" : requested
         let counter = Counter()
         let trip = BackgroundTrip()
         let runs = RadarPollSchedule.nominal(at: now).addingTimeInterval(requested == "current" ? 0 : -300)
         return DWDClient(transport: { request in
             // `slowfailedreturn` / `slowfreshreturn`: like `behind` (answers at once, no newer run) until the first trip to the background,
             // then exactly `slowfailed` / `slowfresh`.
-            let mode = requested.hasSuffix("return") && requested != "delayedreturn" ? (trip.hasLeft ? String(requested.dropLast("return".count)) : "behind") : requested
+            let mode = base.hasSuffix("return") && base != "delayedreturn" ? (trip.hasLeft ? String(base.dropLast("return".count)) : "behind") : base
             let url = request.url ?? DWDRequest.indexURL
             func response(_ code: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)! }
             if url.absoluteString == DWDRequest.indexURL.absoluteString {
@@ -110,7 +115,8 @@ enum ForecastUITestStub {
                let asked = DWDRequest.date(value) { reference = asked }
             let features = (0..<25).map { step -> String in
                 let time = DWDRequest.timestamp(reference.addingTimeInterval(Double(step * 300)))
-                let value = step % 7 < 3 ? 0.6 : -0.001
+                let rains = rainSoon ? (reference.addingTimeInterval(Double(step * 300)) >= now.addingTimeInterval(900) && reference.addingTimeInterval(Double(step * 300)) < now.addingTimeInterval(2400)) : step % 7 < 3
+                let value = rains ? 0.6 : -0.001
                 return "{\"type\":\"Feature\",\"id\":\"f\(step)\",\"geometry\":null,\"properties\":{\"RV_ANALYSIS\":\(value),\"TIME\":\"\(time)\",\"REFERENCE_TIME\":\"\(DWDRequest.timestamp(reference))\"}}"
             }
             return (Data("{\"type\":\"FeatureCollection\",\"features\":[\(features.joined(separator: ","))]}".utf8), response(200))

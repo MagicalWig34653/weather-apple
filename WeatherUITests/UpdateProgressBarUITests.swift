@@ -1,4 +1,5 @@
 import CryptoKit
+import Vision
 import XCTest
 
 /// Progress bar on the bottom edge of the forecast header (Debug stubs `-UITestForecast measured|delayed|slowbehind|slowfresh|slowfailed`).
@@ -827,5 +828,94 @@ final class UpdateProgressBarUITests: XCTestCase {
         XCTAssertTrue(header.isHittable, "the pill stays reachable")
         XCTAssertLessThanOrEqual(header.frame.maxX, app.frame.maxX, "inside the screen")
         app.terminate()
+    }
+
+    // MARK: Build 58: real rain text in the pill while loading (L), and the line break of the pill text at AXXXL
+
+    /// The pill's visible text lines, top to bottom, read by text recognition from a screenshot of the pill (the pill's children are
+    /// hidden from the accessibility tree, and the label is the SPOKEN text, not what is drawn, so only the picture shows where the
+    /// text breaks). The pill is shown at 3x pixel density already; the recognition is exact for this large type.
+    private func pillLines(_ header: XCUIElement) -> [String] {
+        guard let cg = header.screenshot().image.cgImage else { return [] }
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = false
+        try? VNImageRequestHandler(cgImage: cg).perform([request])
+        let items = (request.results ?? []).compactMap { observation in observation.topCandidates(1).first.map { (observation.boundingBox.midY, $0.string) } }
+        return items.sorted { $0.0 > $1.0 }.map { $0.1.trimmingCharacters(in: .whitespaces) }
+    }
+
+    /// Largest accessibility size, light/dark (`SHOT_SUFFIX`) x German/English x two pill states (warning symbol "server behind" and
+    /// the plain rain text state): the text "Prognosedetails" / "Forecast details" breaks at the word part ("Prognose-" / "details"),
+    /// never inside a syllable ("Progno-sedetails", dark AXXXL, Build 57). Stub data, no live data. The spoken label is untouched.
+    func testPillTextBreaksAtTheWordPartAtLargestSize() throws {
+        let cases: [(UITestLaunch.Language, String, [String], String)] = [
+            (.german, "de", ["prognose", "details"], "Prognosedetails"),
+            (.english, "en", ["forecast", "details"], "Forecast details")]
+        for mode in ["slowbehind", "slowcurrent"] {
+            for (language, tag, expected, spoken) in cases {
+                let app = launchSized(mode, language: language, category: "UICTContentSizeCategoryAccessibilityXXXL")
+                let header = header(app)
+                XCTAssertTrue(header.waitForExistence(timeout: 30), "\(mode)-\(tag)")
+                sleep(4)   // the start load of the stub (immediate answer) settles
+                let lines = pillLines(header)
+                shot(app, "pille-AXXXL-\(mode)-\(tag)")
+                if let png = try? header.screenshot().pngRepresentation { try? png.write(to: URL(fileURLWithPath: shotDirectory).appendingPathComponent("pille-AXXXL-\(mode)-\(tag)-nur-pille-\(suffix == "dark" ? "dunkel" : "hell").png")) }
+                NSLog("PILLLINES mode=\(mode) tag=\(tag) suffix=\(suffix) lines=\(lines) height=\(header.frame.height) label=\(header.label)")
+                let normalized = lines.map { $0.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "-– ")) }
+                XCTAssertEqual(normalized, expected, "\(mode)-\(tag)-\(suffix): visible lines \(lines)")
+                XCTAssertEqual(lines.joined().replacingOccurrences(of: "-", with: "").replacingOccurrences(of: " ", with: "").lowercased(),
+                               spoken.replacingOccurrences(of: " ", with: "").lowercased(), "\(mode)-\(tag)-\(suffix): no letter lost or added \(lines)")
+                if tag == "de" { XCTAssertTrue(lines.first?.hasSuffix("-") == true, "\(mode)-\(tag)-\(suffix): German break with a hyphen at the compound seam \(lines)") }
+                app.terminate()
+            }
+        }
+    }
+
+    /// Pill with the REAL rain text (de "Regen voraussichtlich in etwa 15 Min." / en "Rain expected in about 15 min"; stub `slowfreshrain`:
+    /// rain in 15 minutes, the shown run is 10 minutes old, the load after the return from the background takes 6 s and brings the newer run)
+    /// at standard size L: the pill is one line = 48 pt before (resting state), during (refreshing: real text plus spinner) and
+    /// after the load (real text, new data), no tolerance beyond 0.5 pt (card 205C818F "no height change"). Light/dark via `SHOT_SUFFIX`.
+    func testPillHeightWithRealRainTextIsExactlyOneLineBeforeDuringAndAfterTheLoad() throws {
+        let cases: [(UITestLaunch.Language, String, String, String)] = [
+            (.german, "de", "Regen voraussichtlich in etwa", "Aktualisiere"),
+            (.english, "en", "Rain expected in about", "Updating")]
+        for (language, tag, rain, loading) in cases {
+            // The start of the stub races with the start load of the loop: in some cold starts the newer run is shown at once, then the
+            // return from the background starts no load. Same rule as `launchUntilStubBar`: start again (up to 4 times), never heal silently.
+            var app: XCUIApplication!
+            var before: CGFloat = 0, beforeLabel = ""
+            for attempt in 1...4 {
+                app?.terminate()
+                app = launchSized("slowfreshrain", language: language, category: "UICTContentSizeCategoryL")
+                XCTAssertTrue(header(app).waitForExistence(timeout: 30), tag)
+                XCTAssertTrue(forecastShown(header(app), timeout: 60), "\(tag): forecast shown after the cold start: \(header(app).label)")
+                XCTAssertTrue(pollBarGone(app, timeout: 30), "\(tag): start bar ends")
+                before = header(app).frame.height
+                beforeLabel = header(app).label
+                shot(app, "pille-\(tag)-L-regen-1-vorher")
+                startUpdate(app)
+                if bar(app).waitForExistence(timeout: 8) { break }
+                NSLog("RAINSTART \(tag) attempt \(attempt): no load after the return (newer run shown at once), start again")
+            }
+            let pill = header(app)
+            XCTAssertEqual(barValue(app), "running", tag)
+            let during = pill.frame.height
+            let duringLabel = pill.label
+            shot(app, "pille-\(tag)-L-regen-2-waehrend")
+            let gone = NSPredicate(format: "exists == false")
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 40), .completed, "\(tag): bar gone")
+            let showsRain = NSPredicate(format: "label CONTAINS %@ AND NOT (label CONTAINS %@)", rain, loading)
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: showsRain, evaluatedWith: pill)], timeout: 10), .completed, "\(tag): real rain text after the load: \(pill.label)")
+            sleep(1)
+            let after = pill.frame.height
+            shot(app, "pille-\(tag)-L-regen-3-nachher")
+            NSLog("PILLHEIGHT-RAIN tag=\(tag) suffix=\(suffix) width=\(app.frame.width) before=\(before) during=\(during) after=\(after) beforeLabel=\(beforeLabel) duringLabel=\(duringLabel) afterLabel=\(pill.label)")
+            XCTAssertTrue(duringLabel.contains(rain) && duringLabel.contains(loading), "\(tag): during the load the real rain text and the loading state are spoken: \(duringLabel)")
+            XCTAssertEqual(before, 48, accuracy: 0.5, "\(tag): rest state, one line")
+            XCTAssertEqual(during, before, accuracy: 0.5, "\(tag): no height change when the load starts (\(before) -> \(during))")
+            XCTAssertEqual(after, before, accuracy: 0.5, "\(tag): no height change when the load ends (\(before) -> \(after))")
+            app.terminate()
+        }
     }
 }
