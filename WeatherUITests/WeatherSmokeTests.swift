@@ -228,8 +228,10 @@ final class WeatherSmokeTests: XCTestCase {
     func testTimeShownOnceAsStandingPill() throws {
         for large in [false, true] {
             let app = XCUIApplication()
+            // Fixed data (like the stable-timeline test below): the live radar query hung for 4.2 s without a stub (Build 57, accessibility snapshot).
             app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
                 + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+                + timelineStubArguments
             app.launch()
             let slider = app.sliders["Radarzeitpunkt"]
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
@@ -251,7 +253,13 @@ final class WeatherSmokeTests: XCTestCase {
             add(shot)
             writeShot(app, "pill-future-\(large ? "xxxl" : "normal")")
             dragSlider(slider, to: 0.0)
-            XCTAssertTrue(waitForValue(slider, containing: "Messung"))
+            let reachedPast = waitForValue(slider, containing: "Messung")
+            if !reachedPast {   // state for the failure: value, frames, header, screenshot and hierarchy (the live run gave no value at all)
+                print("PILL_STANDING not reached (large=\(large)): slider value '\(slider.value as? String ?? "nil")' frame \(slider.frame), pill \(timePill(app).frame), header \(app.buttons["forecast-details"].frame)")
+                let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "pill-standing-not-reached-large-\(large)"; shot.lifetime = .keepAlways; add(shot)
+                let tree = XCTAttachment(string: app.debugDescription); tree.name = "pill-standing-hierarchy-large-\(large)"; tree.lifetime = .keepAlways; add(tree)
+            }
+            XCTAssertTrue(reachedPast)
             let past = XCTAttachment(screenshot: app.screenshot())
             past.name = large ? "timeline-past-maximum-type" : "timeline-past-normal"
             past.lifetime = .keepAlways

@@ -281,10 +281,10 @@ final class ForecastRefreshUITests: XCTestCase {
         app.terminate()
     }
 
-    /// The load on return fails (stub `slowfailed`, about 13 s with the client's repeats): the spinner ends with the
+    /// The load on return fails (stub `slowfailedreturn` = `slowfailed` from the first trip to the background on, about 13 s with the client's repeats): the spinner ends with the
     /// failed load and stays away while the app waits for the repeat; the failure text comes after the repeat as before.
     func testSpinnerEndsWhenLoadFails() throws {
-        guard let app = launchSettled("slowfailed") else { return }
+        guard let app = launchSettled("slowfailedreturn") else { return }
         let header = app.buttons["forecast-details"]
         let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
         XCTAssertFalse(spinner.exists, "no spinner before the load")

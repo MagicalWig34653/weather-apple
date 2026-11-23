@@ -301,7 +301,7 @@ final class UpdateProgressBarUITests: XCTestCase {
     func testBarEndsAfterSuccessWithNewData() throws {
         // Settled start (no bar, hint "server behind"), then one return that starts the stalled load (6 s, lists the newer run).
         // `launchUntilStubBar` starts again if the stub's request counts gave another start (see there); "running" is seen on return.
-        let started = launchUntilStubBar("slowfresh", expect: "running", returnTrip: true,
+        let started = launchUntilStubBar("slowfreshreturn", expect: "running", returnTrip: true,
                                          onSettled: { app in self.assertDarkIfNeeded(app); self.shot(app, "1-vorher") },
                                          onBar: { app in self.shot(app, "2-waehrend-durchlaufend") })
         let app = started.app, heightBefore = started.heightBefore

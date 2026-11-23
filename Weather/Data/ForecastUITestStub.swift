@@ -18,6 +18,9 @@ import UIKit
 /// - `behind`: the index never offers a newer run than the shown one ("Stand vor 10 Min.").
 /// - `slowbehind`: like `behind`, later index queries answer after 6 s (load ends without newer data).
 /// - `slowfailed`: later index queries fail with HTTP 503 after 4 s each (load ends with an error).
+/// - `slowfailedreturn`, `slowfreshreturn`: like `slowfailed` / `slowfresh`, but only from the first trip to the background on (before that like
+///   `behind`: answers at once). Same reason as `delayedreturn`: the early loop request of the frozen clock must not run visibly at the start
+///   (Build 58: the start is settled in every cold start, the tests need no restart window).
 /// - `rununavailable`: from the 2nd index query on the index lists the NEWER run 08:45, but the first 6 point queries for it
 ///   (two loads with their three attempts each) answer HTTP 200 with a WMS `InvalidDimensionValue` report (run not ready), then
 ///   the service delivers that run (Build 53, fix 5d0c741: a not ready run is no failure).
@@ -65,11 +68,14 @@ enum ForecastUITestStub {
         }
     }
 
-    static func client(mode: String) -> DWDClient {
+    static func client(mode requested: String) -> DWDClient {
         let counter = Counter()
         let trip = BackgroundTrip()
-        let runs = RadarPollSchedule.nominal(at: now).addingTimeInterval(mode == "current" ? 0 : -300)
+        let runs = RadarPollSchedule.nominal(at: now).addingTimeInterval(requested == "current" ? 0 : -300)
         return DWDClient(transport: { request in
+            // `slowfailedreturn` / `slowfreshreturn`: like `behind` (answers at once, no newer run) until the first trip to the background,
+            // then exactly `slowfailed` / `slowfresh`.
+            let mode = requested.hasSuffix("return") && requested != "delayedreturn" ? (trip.hasLeft ? String(requested.dropLast("return".count)) : "behind") : requested
             let url = request.url ?? DWDRequest.indexURL
             func response(_ code: Int) -> HTTPURLResponse { HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)! }
             if url.absoluteString == DWDRequest.indexURL.absoluteString {
