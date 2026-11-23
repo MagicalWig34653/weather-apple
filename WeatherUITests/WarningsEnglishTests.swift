@@ -31,12 +31,19 @@ final class WarningsEnglishTests: XCTestCase {
         XCTAssertTrue(info.waitForExistence(timeout: 15))
         info.tap()
         let row = app.buttons["info-row-alerts"]
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        if !row.waitForExistence(timeout: 5) {
+            // Failure state (Build 57 diagnosis): what the sheet shows (rows, navigation bars) and the screen.
+            let state = "navigation bars \(app.navigationBars.allElementsBoundByIndex.map { $0.identifier }), info rows \(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'info-row-'")).allElementsBoundByIndex.map { $0.identifier }), buttons \(app.buttons.allElementsBoundByIndex.map { $0.label })"
+            print("WARNEN_INFO_ROW_MISSING \(state)")
+            attach(app, "info-row-alerts-missing")
+            XCTFail("row info-row-alerts did not appear within 5 s after opening the information sheet: \(state)")
+            return
+        }
         row.tap()
         let toggle = app.switches["warn-toggle"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10), "warn toggle did not appear after opening the alerts page")
         XCTAssertEqual(toggle.label, "Warnings as notifications")
-        XCTAssertTrue(app.staticTexts["Not a replacement for official warning channels (WarnWetter app, NINA)."].exists)
+        XCTAssertTrue(app.staticTexts["Not a replacement for official warning channels (WarnWetter app, NINA)."].exists, "disclaimer text missing in the English alerts page")
         assertNoGerman(app)
         attach(app, "en-warn-settings")
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()

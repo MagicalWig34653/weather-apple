@@ -132,6 +132,8 @@ final class SpacingUITests: XCTestCase {
     func testPillServerBehindIsOneLineAtStandardSize() { pillPadding(category: "L", forecast: "behind", singleLine: true, "L-behind-einzeilig") }
     func testPillServerBehindKeepsPaddingXXL() { pillPadding(category: "XXL", forecast: "behind", singleLine: nil, "XXL-behind") }
     func testPillTwoLinesHaveInnerPaddingAccessibilityM() { pillPadding(category: "AccessibilityM", forecast: "behind", singleLine: nil, "AXM-zweizeilig") }
+    func testPillMultiLineHasInnerPaddingAccessibilityL() { pillPadding(category: "AccessibilityL", forecast: "behind", singleLine: nil, "AXL-mehrzeilig") }
+    func testPillMultiLineHasInnerPaddingAccessibilityXXL() { pillPadding(category: "AccessibilityXXL", forecast: "behind", singleLine: nil, "AXXL-mehrzeilig") }
     func testPillTwoLinesHaveInnerPaddingAccessibilityXXXL() { pillPadding(category: "AccessibilityXXXL", forecast: "behind", singleLine: nil, "AXXXL-zweizeilig") }
 
     // MARK: Top block at the accessibility sizes: controls stay on screen and do not overlap

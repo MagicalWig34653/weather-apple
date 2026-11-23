@@ -678,7 +678,14 @@ extension RadarHistoryUITests {
 
     private func expectHint(_ app: XCUIApplication, available: Int, chosen: Int, _ context: String) {
         let hint = hintNote(app)
-        XCTAssertTrue(hint.waitForExistence(timeout: 10), "\(context): hint for \(available) of \(chosen) h missing")
+        let shown = hint.waitForExistence(timeout: 10)
+        if !shown {
+            // Failure state (Build 57 diagnosis): which layer is really active, what the slider says, and the screen.
+            let state = "layer button '\(app.buttons["radar-layer-menu"].value as? String ?? "nil")', slider '\(app.sliders.firstMatch.value as? String ?? "nil")', gap note \(gapNote(app).exists)"
+            print("HINTMISSING \(context): \(state)")
+            let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "hint-missing"; shot.lifetime = .keepAlways; add(shot)
+            XCTFail("\(context): hint for \(available) of \(chosen) h missing (\(state))")
+        }
         guard hint.exists else { return }
         XCTAssertTrue(hint.label.hasPrefix("Diese Karte reicht nur \(available) Stunden zurück – gewählt sind \(chosen) Stunden."), "\(context): \(hint.label)")
     }
@@ -687,6 +694,20 @@ extension RadarHistoryUITests {
     private func hintLayerCase(_ name: String, pick: Pick, setting: Int, server: Int = 72, available: Int?) throws {
         let app = launchLayers(setting: setting, server: server)
         try pick.select(app, self)
+        // The layer switch is verified (Build 57 diagnosis: in a full run the tap on the menu entry once did not switch, the radar stayed
+        // active and the test then looked for the hint on the wrong map). Up to three selections; the expectation itself is unchanged.
+        let menu = app.buttons["radar-layer-menu"]
+        func switched() -> Bool { ((menu.value as? String) ?? "") != "Regenradar" }
+        for attempt in 1...3 where !switched() {
+            let end = Date().addingTimeInterval(8)
+            while Date() < end && !switched() { usleep(300_000) }
+            if switched() { break }
+            print("LAYERSWITCH \(name): not switched after the tap (attempt \(attempt)), layer button '\(menu.value as? String ?? "nil")'")
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)).tap()
+            sleep(1)
+            try pick.select(app, self)
+        }
+        XCTAssertTrue(switched(), "\(name): the layer switch did not happen (layer button '\(menu.value as? String ?? "nil")')")
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Messung") || $0.contains("Modell") }, value(slider))
         sleep(2)
