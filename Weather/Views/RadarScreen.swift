@@ -835,6 +835,14 @@ struct RadarScreen: View {
         }
     }
 
+    /// What the pill SHOWS for a status. "Server behind" has a short text of its own: the full sentence (still spoken, see
+    /// `forecastStatusText`) had two lines at standard size, so the pill (8 pt padding, one line = 48 pt) jumped 54 <-> 48 pt when a
+    /// load started and ended. The other statuses already fit one line.
+    private func forecastStatusShownText(_ status: WeatherStore.ForecastStatus) -> String {
+        if status == .serverBehind { return NSLocalizedString("RADAR_FORECAST_CAPTION_BEHIND_SHORT", value: "Noch kein neuerer Stand", comment: "Radar: pill text, the weather service has nothing newer yet (short, one line)") }
+        return forecastStatusText(status)
+    }
+
     /// UI tests with the forecast stub query the spinner's frame; for real users it stays hidden from VoiceOver.
     private static var exposeSpinnerForUITests: Bool {
         #if DEBUG
@@ -885,7 +893,7 @@ struct RadarScreen: View {
             HStack(spacing: 6) {
                 if statusReplacesSummary, let status { forecastStatusIcon(status) }
                 Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                     : (statusReplacesSummary && status != nil ? forecastStatusText(status!) : forecast.summary(at: displayNow)))
+                     : (statusReplacesSummary && status != nil ? forecastStatusShownText(status!) : forecast.summary(at: displayNow)))
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                     // The spoken label adds "Aktualisiere …" (no age); it is not shown as text.

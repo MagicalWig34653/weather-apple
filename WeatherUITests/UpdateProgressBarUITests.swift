@@ -84,7 +84,9 @@ final class UpdateProgressBarUITests: XCTestCase {
     /// correctly and there is no bar to test. Every repetition is logged (`STUBSTART ... newer run shown at once`).
     /// Decision 22.11.2026 (card D5875BAA, finding 3): the hint pill has 8 pt of padding above and below its text. ONE line keeps the
     /// minimum height of 48 pt (the loading bar's promise: rest, loading and done do not change the height); a TWO-line text grows the
-    /// pill (the status text "Der Wetterdienst hat noch keinen neueren Stand" has two lines at standard size: 54 pt). Heights of two
+    /// pill. Since the Build 57 text decision the status "server behind" shows the short text ("Noch kein neuerer Stand", one line at
+    /// standard size, so exactly 48 pt in rest, loading and done: `testPillHeightIsExactlyOneLineFromServerBehindThroughLoadingAndDone`);
+    /// the full sentence "Der Wetterdienst hat noch keinen neueren Stand" is only spoken (two lines would be 54 pt). Heights of two
     /// states therefore agree if they are equal, or if one is the one-line 48 pt and the other a two-line height (more than 48, at
     /// most 60 at standard size). Anything else (a bar that changes the height) still fails.
     private func assertPillHeight(_ now: CGFloat, _ before: CGFloat, _ message: String = "no height change of the hint",
@@ -752,5 +754,78 @@ final class UpdateProgressBarUITests: XCTestCase {
         mark("manual reload settled hint=\((try? header(again).snapshot())?.label ?? "")")
         sleep(3)
         again.terminate()
+    }
+
+    // MARK: Pill height from "server behind" (promise: no height change; Build 57 decision: short status text)
+
+    private func launchSized(_ mode: String, language: UITestLaunch.Language, category: String) -> XCUIApplication {
+        let app = UITestLaunch.app(language: language, extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light,
+            extra: ["-UITestForecast", mode, "-UITestRadar", "fixture", "-UITestResetForecast", "-UIPreferredContentSizeCategoryName", category]))
+        app.launch()
+        return app
+    }
+
+    /// Start state "server behind" (the stub's frozen clock: the shown run 08:40 is older than the expected 08:45), then one load
+    /// (return from the background, stub `slowbehind`: 6 s, no newer run), then "server behind" again. At standard size (L) the pill
+    /// must be EXACTLY the same height in all three states, one line = 48 pt, in German and in English. The status text used to be the
+    /// full sentence (two lines at L: 54 pt), so the pill jumped 54 -> 48 -> 54 (the 6 pt deviation of Build 57). The spoken label stays
+    /// the full sentence. No tolerance beyond 0.5 pt; `assertPillHeight` (one line <-> two lines) stays for the accessibility sizes only.
+    func testPillHeightIsExactlyOneLineFromServerBehindThroughLoadingAndDone() throws {
+        let cases: [(UITestLaunch.Language, String, String)] = [(.german, "Wetterdienst hat noch keinen neueren Stand", "de"),
+                                                                 (.english, "The weather service has no newer data yet", "en")]
+        for (language, spoken, tag) in cases {
+            let app = launchSized("slowbehind", language: language, category: "UICTContentSizeCategoryL")
+            let header = header(app)
+            XCTAssertTrue(header.waitForExistence(timeout: 30), tag)
+            // The start reload of the loop (frozen clock) may still run: wait until the state is "server behind" and no bar is there.
+            let behind = NSPredicate(format: "label CONTAINS %@", spoken)
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: behind, evaluatedWith: header)], timeout: 40), .completed, "\(tag): \(header.label)")
+            XCTAssertTrue(pollBarGone(app, timeout: 30), "\(tag): start bar ends")
+            let before = header.frame.height
+            shot(app, "pille-\(tag)-L-1-ruhe")
+            startUpdate(app)
+            XCTAssertEqual(barValue(app), "running", tag)
+            let during = header.frame.height
+            shot(app, "pille-\(tag)-L-2-laden")
+            let gone = NSPredicate(format: "exists == false")
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 40), .completed, "\(tag): bar gone")
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: behind, evaluatedWith: header)], timeout: 10), .completed, "\(tag): back to server behind: \(header.label)")
+            sleep(1)
+            let after = header.frame.height
+            shot(app, "pille-\(tag)-L-3-danach")
+            NSLog("PILLHEIGHT tag=\(tag) suffix=\(suffix) width=\(app.frame.width) before=\(before) during=\(during) after=\(after)")
+            XCTAssertEqual(before, 48, accuracy: 0.5, "\(tag): rest state, one line")
+            XCTAssertEqual(during, before, accuracy: 0.5, "\(tag): no height change when the load starts (\(before) -> \(during))")
+            XCTAssertEqual(after, before, accuracy: 0.5, "\(tag): no height change when the load ends (\(before) -> \(after))")
+            XCTAssertTrue(header.label.contains(spoken), "\(tag): the spoken label keeps the full sentence: \(header.label)")
+            app.terminate()
+        }
+    }
+
+    /// Largest accessibility size (German): the pill shows "Prognosedetails" and says the state aloud; it stays complete and reachable.
+    /// Heights are logged (`PILLHEIGHT-AX`); the one-line <-> two-line rule of `assertPillHeight` applies there.
+    func testPillAtLargestSizeKeepsTheFullSentenceSpokenAndStaysReachable() throws {
+        let app = launchSized("slowbehind", language: .german, category: "UICTContentSizeCategoryAccessibilityXXXL")
+        let header = header(app)
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        let behind = NSPredicate(format: "label CONTAINS %@", "Wetterdienst hat noch keinen neueren Stand")
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: behind, evaluatedWith: header)], timeout: 40), .completed, header.label)
+        XCTAssertTrue(pollBarGone(app, timeout: 30), "start bar ends")
+        let before = header.frame.height
+        shot(app, "pille-de-AXXXL-1-ruhe")
+        startUpdate(app)
+        XCTAssertEqual(barValue(app), "running")
+        let during = header.frame.height
+        shot(app, "pille-de-AXXXL-2-laden")
+        let gone = NSPredicate(format: "exists == false")
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 40), .completed, "bar gone")
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: behind, evaluatedWith: header)], timeout: 10), .completed, header.label)
+        let after = header.frame.height
+        NSLog("PILLHEIGHT-AX before=\(before) during=\(during) after=\(after)")
+        assertPillHeight(during, before, "AXXXL: load start")
+        assertPillHeight(after, before, "AXXXL: load end")
+        XCTAssertTrue(header.isHittable, "the pill stays reachable")
+        XCTAssertLessThanOrEqual(header.frame.maxX, app.frame.maxX, "inside the screen")
+        app.terminate()
     }
 }

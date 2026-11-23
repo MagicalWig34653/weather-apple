@@ -592,4 +592,5 @@
 "RADAR_FORECAST_CAPTION_REFRESHING" = "Updating …";
 "RADAR_FORECAST_CAPTION_FAILED" = "Update failed";
 "RADAR_FORECAST_CAPTION_BEHIND" = "The weather service has no newer data yet";
+"RADAR_FORECAST_CAPTION_BEHIND_SHORT" = "No newer data yet";
 "RADAR_DETAILS_SERVER_BEHIND" = "The weather service has no newer data than this forecast yet, %@. The app keeps checking.";

@@ -592,4 +592,5 @@
 "RADAR_FORECAST_CAPTION_REFRESHING" = "Aktualisiere …";
 "RADAR_FORECAST_CAPTION_FAILED" = "Aktualisierung fehlgeschlagen";
 "RADAR_FORECAST_CAPTION_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand";
+"RADAR_FORECAST_CAPTION_BEHIND_SHORT" = "Noch kein neuerer Stand";
 "RADAR_DETAILS_SERVER_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand als diese Prognose, %@. Die App fragt weiter nach.";
