@@ -299,23 +299,50 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(waitForValue(slider, containing: "Messung"), "Gedrückt halten springt auf Jetzt.")
     }
 
+    /// Stubbed forecast (`current`) and radar (`fixture`) for the stability test: the checked requirement (slider and pill keep their frame
+    /// between measurement and forecast) does not depend on live data, and with live data the test failed in the Build 57 full run and in
+    /// repeat runs (forecast missing at the largest size: slider below the screen edge, drag becomes the system edge gesture; reference frame
+    /// read while the slider still animates in). Every assertion stays as it was.
+    private let timelineStubArguments = ["-UITestForecast", "current", "-UITestRadar", "fixture"]
+
     func testTimelineLayoutStaysStableBetweenMeasurementAndForecast() throws {
         for large in [false, true] {
             let app = XCUIApplication()
             app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
                 + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+                + timelineStubArguments
             app.launch()
             let slider = app.sliders["Radarzeitpunkt"]
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
             let pill = timePill(app)
             XCTAssertTrue(pill.waitForExistence(timeout: 5))
             func frames() -> [CGRect] { [slider.frame, pill.frame] }
+            // State for a failing drag (values were not printed before): slider value, frames, header, screen, screenshot and hierarchy.
+            func state(_ step: String) -> String {
+                "\(step) (large=\(large)): slider value '\(slider.value as? String ?? "nil")' frame \(slider.frame) hittable \(slider.isHittable), pill \(pill.frame), header \(app.buttons["forecast-details"].frame), screen \(app.frame)"
+            }
+            func reach(_ text: String, _ step: String) {
+                let reached = waitForValue(slider, containing: text)
+                print("TIMELINE_STABLE reached=\(reached) \(state(step))")
+                if !reached {
+                    let shot = XCTAttachment(screenshot: app.screenshot())
+                    shot.name = "timeline-stable-\(step)-large-\(large)"
+                    shot.lifetime = .keepAlways
+                    add(shot)
+                    let tree = XCTAttachment(string: app.debugDescription)
+                    tree.name = "timeline-stable-hierarchy-\(step)-large-\(large)"
+                    tree.lifetime = .keepAlways
+                    add(tree)
+                }
+                XCTAssertTrue(reached, "slider value must contain '\(text)': \(state(step))")
+            }
             let reference = frames()
+            print("TIMELINE_STABLE \(state("start"))")
             dragSlider(slider, to: 1)
-            XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
+            reach("Vorhersage", "drag-to-forecast")
             let forecast = frames()
             dragSlider(slider, to: 0)
-            XCTAssertTrue(waitForValue(slider, containing: "Messung"))
+            reach("Messung", "drag-to-measurement")
             let past = frames()
             // Vertical position and the slider never move; the centred pill keeps its centre (its width may follow the text by a few points).
             for (name, frame) in [("Vorhersage", forecast), ("Messung", past)] {
