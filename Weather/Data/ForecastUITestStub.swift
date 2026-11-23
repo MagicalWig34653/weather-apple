@@ -1,9 +1,17 @@
 #if DEBUG
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// UI tests only (Debug builds): `-UITestForecast delayed|failed|failonce|behind|current` simulates the DWD run index,
 /// point queries and the radar cache without network, with a frozen clock so light and dark screenshots show the same texts.
 /// - `delayed`: first index query answers at once, later ones after 40 s ("Aktualisiere …" stays visible).
+/// - `delayedreturn`: like `delayed`, but only from the first trip to the background on: index queries before that answer at once.
+///   With the frozen clock a newer run is always "expected", so in about half of the cold starts the loop starts a second request
+///   right after the start-up load (it races with the scene becoming active); with `delayed` that request stalls for 40 s and the
+///   header already "refreshes" at the start. Here it is answered at once (invisible), and the load the test triggers by going to
+///   the background and back is the first one that stalls. For tests that need "start settled" before they trigger the load.
 /// - `failed`: first index query answers, all later ones fail with HTTP 503.
 /// - `failonce`: exactly one failing load (the 2nd to 4th index request, i.e. one query with its retries), then normal answers.
 /// - `current`: the shown run is the expected newest one (normal state, "Stand vor 5 Min.").
@@ -42,8 +50,24 @@ enum ForecastUITestStub {
         func nextPoint() -> Int { lock.lock(); defer { lock.unlock() }; points += 1; return points }
     }
 
+    /// `delayedreturn`: true once the app went to the background for the first time.
+    private final class BackgroundTrip: @unchecked Sendable {
+        private let lock = NSLock()
+        private var left = false
+        var hasLeft: Bool { lock.lock(); defer { lock.unlock() }; return left }
+        init() {
+            #if canImport(UIKit)
+            NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] _ in
+                guard let self else { return }
+                self.lock.lock(); self.left = true; self.lock.unlock()
+            }
+            #endif
+        }
+    }
+
     static func client(mode: String) -> DWDClient {
         let counter = Counter()
+        let trip = BackgroundTrip()
         let runs = RadarPollSchedule.nominal(at: now).addingTimeInterval(mode == "current" ? 0 : -300)
         return DWDClient(transport: { request in
             let url = request.url ?? DWDRequest.indexURL
@@ -54,7 +78,7 @@ enum ForecastUITestStub {
                 if number > 1 {
                     if mode == "measured" { LoadProgress.activeRequest?.report(expected: 100, received: 100) }
                     if mode == "failed" || (mode == "failonce" && number <= 4) || (mode == "failrecover" && number <= 7) { return (Data(), response(503)) }
-                    if mode == "delayed" { try await Task.sleep(for: .seconds(40)) }
+                    if mode == "delayed" || (mode == "delayedreturn" && trip.hasLeft) { try await Task.sleep(for: .seconds(40)) }
                     if mode == "slowfailed" { try await Task.sleep(for: .seconds(4)); return (Data(), response(503)) }
                     if mode == "slowbehind" || mode == "slowfresh" { try await Task.sleep(for: .seconds(6)) }
                 }

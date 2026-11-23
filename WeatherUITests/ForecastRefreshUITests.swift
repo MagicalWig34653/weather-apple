@@ -167,9 +167,13 @@ final class ForecastRefreshUITests: XCTestCase {
 
     /// Spinner at the right edge of the pill, chevron stays: screenshot, several spinner phases for the contrast
     /// measurement, and the position check.
+    /// Stub `delayedreturn` (not `delayed`): the start-up reload of the loop (frozen clock, see `launchSettled`) is answered at once, so
+    /// "start settled" holds in every cold start, not only in about half of them (Build 57 measurement: 9 of 17 starts early with `delayed`,
+    /// four in a row in the full runs). The load that stalls is still the one this test triggers by going to the background and back;
+    /// all assertions (no spinner before, label, spinner at the right edge, right half) are unchanged.
     func testRefreshingSpinnerPlacement() throws {
         do {
-            guard let app = launchSettled("delayed") else { return }
+            guard let app = launchSettled("delayedreturn") else { return }
             let header = app.buttons["forecast-details"]
             XCTAssertFalse(app.descendants(matching: .any)["forecast-refresh-spinner"].exists, "no spinner while the forecast is current")
             backgroundAndReturn(app)
