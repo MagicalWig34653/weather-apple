@@ -231,6 +231,7 @@
 "RADAR_SLOT_FAILED" = "%1$@ für %2$@ nicht geladen";
 "RADAR_LAYER_UNAVAILABLE" = "%@ derzeit nicht verfügbar";
 "RADAR_FORECAST_DETAILS" = "Prognosedetails";
+"RADAR_FORECAST_DETAILS_PILL" = "Prognose-\ndetails";
 "RADAR_FORECAST_DETAILS_HINT" = "Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise";
 "RADAR_DETAIL_NOTES_VALUE" = "Hinweise: %d";
 "RADAR_SAVE_PLACE_BUTTON" = "Ausgewählten Ort speichern oder umbenennen";
