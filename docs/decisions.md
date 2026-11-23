@@ -407,3 +407,7 @@ Grundlage: Entscheidungen Lino 17.11.2026 (Backend `docs/decisions.md`, Ebene `r
 - **Prozent ersetzt den Ladekreis** (Breite; sonst bricht der Hinweistext um). Bei Accessibility-Schriftgroessen kein Prozenttext (Hoehe), nur Fuellstand und gesprochener Wert. Offene Frage fuer Lino: ist das so gewuenscht oder soll der Prozenttext dort auf Kosten der Hoehe erscheinen?
 - **Radar-Anteil unmessbar:** solange Radar mitlaedt (z. B. „Daten neu laden“) laeuft der Balken durchlaufend, auch wenn die Prognose allein messbar waere.
 
+## 23.11.2026: Prognose-Pille "Server hinterher", Kurztext (Entscheidung Brain, Option 3; Karte 205C818F)
+
+- **Entscheidung:** Der sichtbare Ruhetext der Prognose-Pille im Zustand "Server hinterher" wird "Noch kein neuerer Stand" / "No newer data yet" (einzeilig bei Schrift L, auch SE 3). Der volle Satz bleibt gesprochene Beschriftung und Text im Detailblatt. Grund: der 8-pt-Innenabstand machte den bisherigen zweizeiligen Text 54 pt hoch und die Pille sprang beim Laden um 6 pt; die Zusage "keine Höhenänderung" gilt damit bei L wieder ohne Ausnahme. Bei Accessibility-Größen bleibt der Text "Prognosedetails", dort ist die Pillenhöhe in allen Zuständen gleich gemessen.
+
