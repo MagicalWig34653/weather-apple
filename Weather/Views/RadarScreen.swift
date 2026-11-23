@@ -885,6 +885,15 @@ struct RadarScreen: View {
         }
     }
 
+    /// What the pill SHOWS for the rain summary. "Regen voraussichtlich in etwa 15 Min." had two lines at standard size as soon as the
+    /// spinner took width, so the pill jumped 48 -> 54 -> 48 pt when a load started and ended (Build 57 frames). "Regen in etwa 15 Min." fits
+    /// one line with the spinner. The full sentence stays the spoken label (`forecast.summary`) and the details sheet.
+    private func forecastSummaryShownText(_ forecast: RainForecast) -> String {
+        let outlook = RainOutlook.evaluate(forecast, at: displayNow)
+        guard outlook.state == .startsIn else { return forecast.summary(at: displayNow) }
+        return String(format: NSLocalizedString("OUTLOOK_RAIN_IN_MINUTES_SHORT", value: "Regen in etwa %d Min.", comment: "Radar: pill text, rain starts in N minutes (short, one line with the spinner); spoken text is OUTLOOK_RAIN_IN_MINUTES"), outlook.minutes ?? 0)
+    }
+
     @ViewBuilder private var forecastLabel: some View {
         if let forecast = store.forecast {
             let status = store.forecastStatus(now: displayNow)
@@ -893,7 +902,7 @@ struct RadarScreen: View {
             HStack(spacing: 6) {
                 if statusReplacesSummary, let status { forecastStatusIcon(status) }
                 Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                     : (statusReplacesSummary && status != nil ? forecastStatusShownText(status!) : forecast.summary(at: displayNow)))
+                     : (statusReplacesSummary && status != nil ? forecastStatusShownText(status!) : forecastSummaryShownText(forecast)))
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                     // The spoken label adds "Aktualisiere …" (no age); it is not shown as text.
