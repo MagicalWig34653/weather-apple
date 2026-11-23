@@ -20,6 +20,17 @@ extension RainActivityPresentation.Tone {
         case (.stale, _): return Color(red: 0.74, green: 0.38, blue: 0.0)
         }
     }
+
+    /// Text/symbol tint of the lock screen card only (Build 58): the card surface is now about L* 37 instead of 20, and the plain dark
+    /// tints would fall below 4.5:1 there. Same hues, lighter. Light scheme and Watch/island keep `tint(_:)`.
+    func lockTint(_ scheme: ColorScheme) -> Color {
+        guard scheme == .dark else { return tint(scheme) }
+        switch self {
+        case .rain: return Color(red: 0.60, green: 0.90, blue: 1.0)
+        case .dry: return Color(red: 0.58, green: 0.95, blue: 0.66)
+        case .stale: return Color(red: 1.0, green: 0.86, blue: 0.5)
+        }
+    }
 }
 
 /// Soft tone wash over the system background; stronger when the user turned transparency off.
@@ -46,28 +57,42 @@ enum RainLockGlassMode { case brighter, legacy }
 /// (flatter wash, mean luminance x1.31 = +3 L*) was hardly visible next to Build 56. Now the wash is stronger at the top and much
 /// stronger at the bottom (dark: top 0.24 -> 0.28, bottom 0.06 -> 0.18) plus a faint white lightener (0.03). On the test stand-in
 /// glass this is about +8.5 L* (mean luminance x1.9) in dark, the tone wash stays visible. The ceiling is the contrast of the tone
-/// text (hero value, symbol) against the brightest pixel: >= 4.5:1 allows at most Y 0.0727 (rain). The secondary text of the card
-/// is set lighter (`darkSecondaryText`) so that it does not lose contrast on the brighter backdrop. Text/tone colors are not darker.
+/// text (hero value, symbol) against the brightest pixel: >= 4.5:1 allows at most Y 0.0727 (rain).
+///
+/// Build 58 (Lino's device photo of Build 57, Zustand trocken: card centre L* 5 to 7, darker than the wallpaper L* 14, i.e. "schwarz"):
+/// the dark card now has an opaque black base under the wash (surface independent of the system glass and of reduce transparency) and a
+/// much stronger wash: mean surface L* about 37 in every state (test band 34 to 42). For that the tone text of the card is lighter
+/// (`RainActivityPresentation.Tone.lockTint`, same hues) and the secondary text is white 80 % (`darkSecondaryText`, >= 4.5:1).
 struct RainLockGlassStyle: Equatable {
     var washTop: Double
     var washBottom: Double
     var lightenTop: Double
     var lightenBottom: Double
+    /// Opaque layer under the wash. Dark lock screen card only: the surface then no longer depends on what the system draws behind
+    /// the card (Simulator: black; Lino's device photo of Build 57: darker than the wallpaper), nor on reduce transparency.
+    var opaqueBase: Color?
+
+    init(washTop: Double, washBottom: Double, lightenTop: Double, lightenBottom: Double, opaqueBase: Color? = nil) {
+        self.washTop = washTop; self.washBottom = washBottom; self.lightenTop = lightenTop; self.lightenBottom = lightenBottom
+        self.opaqueBase = opaqueBase
+    }
 
     // Build 56 (legacy), identical to `RainGlassTint`.
     static let legacyNormal = RainLockGlassStyle(washTop: 0.24, washBottom: 0.06, lightenTop: 0, lightenBottom: 0)
     static let legacyReducedTransparency = RainLockGlassStyle(washTop: 0.30, washBottom: 0.16, lightenTop: 0, lightenBottom: 0)
 
     // Brighter, dark appearance (the lock screen card on a real device is always rendered dark).
-    static let brighterDark = RainLockGlassStyle(washTop: 0.28, washBottom: 0.18, lightenTop: 0.03, lightenBottom: 0.03)
-    static let brighterDarkReducedTransparency = RainLockGlassStyle(washTop: 0.30, washBottom: 0.26, lightenTop: 0.02, lightenBottom: 0.02)
+    // Build 58: opaque black base + stronger wash. Over black the mean surface is about L* 37 (target 34 to 42) in every state; the same
+    // numbers apply with reduce transparency, because the opaque base leaves nothing to reduce.
+    static let brighterDark = RainLockGlassStyle(washTop: 0.45, washBottom: 0.38, lightenTop: 0.05, lightenBottom: 0.05, opaqueBase: .black)
+    static let brighterDarkReducedTransparency = brighterDark
     // Brighter, light appearance (iPad/preview only; the tone tints are dark here, so the wash is weak and the lightener strong).
     static let brighterLight = RainLockGlassStyle(washTop: 0.10, washBottom: 0.02, lightenTop: 0.42, lightenBottom: 0.42)
     static let brighterLightReducedTransparency = RainLockGlassStyle(washTop: 0.10, washBottom: 0.04, lightenTop: 0.40, lightenBottom: 0.40)
 
     /// Secondary text of the dark lock screen card (name, "Stand", detail line). System secondary (white 60 %) gives only 4.45 to
     /// 4.52:1 on Build 56 and would drop to about 3.5:1 on the brighter backdrop; white 70 % keeps it above 5:1.
-    static let darkSecondaryText = Color.white.opacity(0.70)
+    static let darkSecondaryText = Color.white.opacity(0.80)
 
     static func resolve(_ mode: RainLockGlassMode, scheme: ColorScheme, reduceTransparency: Bool) -> RainLockGlassStyle {
         switch (mode, scheme, reduceTransparency) {
@@ -93,6 +118,7 @@ struct RainLockGlassTint: View {
     var body: some View {
         let style = RainLockGlassStyle.resolve(mode, scheme: scheme, reduceTransparency: reduceTransparencyOverride ?? reduceTransparency)
         ZStack {
+            if let base = style.opaqueBase { base }
             LinearGradient(colors: [tint.opacity(style.washTop), tint.opacity(style.washBottom)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
             if style.lightenTop > 0 || style.lightenBottom > 0 {
@@ -160,9 +186,11 @@ struct RainHeroView: View {
     let size: Size
     /// Lock screen only: replaces the system secondary color of the detail line.
     var secondary: Color?
+    /// Lock screen card only: replaces the tone tint of the text (`lockTint`).
+    var toneTint: Color?
     @Environment(\.colorScheme) private var scheme
 
-    private var tint: Color { p.tone.tint(scheme) }
+    private var tint: Color { toneTint ?? p.tone.tint(scheme) }
 
     var body: some View {
         switch p.hero {
@@ -294,6 +322,7 @@ struct RainLockScreenView: View {
 
     var body: some View {
         let tint = p.tone.tint(scheme)
+        let textTint = glassMode == .brighter ? p.tone.lockTint(scheme) : tint
         let secondary: Color? = glassMode == .brighter && scheme == .dark ? RainLockGlassStyle.darkSecondaryText : nil
         VStack(alignment: .leading, spacing: 4) {
             // Accessibility sizes: name and "Stand" stack instead of cutting the name.
@@ -304,11 +333,11 @@ struct RainLockScreenView: View {
                 Text(WidgetAsOfText.string(for: p.referenceTime)).font(.caption).rainSecondary(secondary)
             }
             HStack(alignment: .center, spacing: 10) {
-                RainHeroView(p: p, size: .lock, secondary: secondary)
+                RainHeroView(p: p, size: .lock, secondary: secondary, toneTint: textTint)
                 Spacer(minLength: 0)
-                RainSymbolTile(symbol: p.symbol, tint: tint, side: 36)
+                RainSymbolTile(symbol: p.symbol, tint: textTint, side: 36)
             }
-            RainLockRegionDetails(p: p, tint: tint, secondary: secondary)
+            RainLockRegionDetails(p: p, tint: textTint, secondary: secondary)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background { RainLockGlassTint(tint: tint, mode: glassMode) }

@@ -251,8 +251,9 @@ final class LiveActivityImageTests: XCTestCase {
 
     /// (a) Numeric: the mean background luminance of the lock screen card is visibly higher than Build 56, expressed in CIE L* of the mean
     /// relative luminance (Lino 21.11.: "bisschen dunkel"; a change below about 6 L* is hardly visible: the first attempt, x1.31 = +3 L*,
-    /// was). Bands of the L* difference: dark +6 to +12, dark with reduce transparency +3 to +10 (Build 56 is already brighter there
-    /// and the tone text contrast limits the ceiling), light and light with reduce transparency +5 to +16 (iPad/preview only).
+    /// was). Bands of the L* difference to Build 56 (stand-in glass): dark +15 to +22, dark with reduce transparency +10 to +16 (Build 56 is
+    /// already brighter there; Build 58 target is the absolute test below, L* 34 to 42), light and light with reduce transparency +5 to +16
+    /// (iPad/preview only, unchanged). Until Build 57 the dark bands were +6 to +12 / +3 to +10; raised with the Build 58 target (Lino 23.11.).
     /// Rain/dry/stale. Red against Build 56: with the legacy numbers the difference is exactly 0.
     func testLockBackdropMeanLuminanceRisesAgainstBuild56() throws {
         var failures: [String] = []
@@ -271,7 +272,7 @@ final class LiveActivityImageTests: XCTestCase {
                     let delta = Self.lightness(new.mean) - Self.lightness(old.mean)
                     report[key] = ["Y-vorher": old.mean, "Y-nachher": new.mean, "Y-faktor": new.mean / old.mean,
                                    "Lstar-vorher": Self.lightness(old.mean), "Lstar-nachher": Self.lightness(new.mean), "deltaLstar": delta]
-                    let band: ClosedRange<Double> = scheme == .dark ? (reduced ? 3...10 : 6...12) : 5...16
+                    let band: ClosedRange<Double> = scheme == .dark ? (reduced ? 10...16 : 15...22) : 5...16
                     if !band.contains(delta) {
                         failures.append("\(key): delta L* \(delta) (Y \(old.mean) -> \(new.mean)) outside \(band)")
                     }
@@ -338,24 +339,26 @@ final class LiveActivityImageTests: XCTestCase {
                     let key = "\(schemeName(scheme))-\(reduced ? "transparenz-reduziert" : "normal")-\(toneName)"
                     let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme), scheme: scheme))
                     let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme), scheme: scheme))
-                    func measure(_ scan: Scan, secondaryOverride: Color?) -> (primary: Double, tint: Double, secondary: Double) {
+                    func measure(_ scan: Scan, secondaryOverride: Color?, tintColor: Color) -> (primary: Double, tint: Double, secondary: Double) {
                         let bg = scheme == .dark ? scan.brightest : scan.darkest
                         let bgY = Self.luminance(bg)
                         let primary = rgb(.label, scheme).rgb
-                        let tintRGB = rgb(UIColor(tint), scheme).rgb
+                        let tintRGB = rgb(UIColor(tintColor), scheme).rgb
                         let sec = secondaryOverride.map { rgb(UIColor($0), scheme) } ?? rgb(.secondaryLabel, scheme)
                         let secOnBg = (0..<3).map { sec.rgb[$0] * sec.alpha + bg[$0] * (1 - sec.alpha) }
                         return (Self.contrast(Self.luminance(primary), bgY), Self.contrast(Self.luminance(tintRGB), bgY),
                                 Self.contrast(Self.luminance(secOnBg), bgY))
                     }
-                    let o = measure(old, secondaryOverride: nil)
-                    let n = measure(new, secondaryOverride: scheme == .dark ? RainLockGlassStyle.darkSecondaryText : nil)
+                    let o = measure(old, secondaryOverride: nil, tintColor: tint)
+                    // Build 58: the card uses the lighter lock screen tone text (`lockTint`) on the brighter surface.
+                    let n = measure(new, secondaryOverride: scheme == .dark ? RainLockGlassStyle.darkSecondaryText : nil, tintColor: tone.lockTint(scheme))
                     report[key] = ["primaer-vorher": o.primary, "primaer-nachher": n.primary, "toenung-vorher": o.tint, "toenung-nachher": n.tint,
                                    "sekundaer-vorher": o.secondary, "sekundaer-nachher": n.secondary]
                     if n.primary < 4.5 { failures.append("\(key): primary \(n.primary) < 4.5") }
                     let tintLimit = scheme == .dark ? 4.5 : 3.0
                     if n.tint < tintLimit { failures.append("\(key): tint \(n.tint) < \(tintLimit) (before \(o.tint))") }
                     if n.secondary < o.secondary - 0.05 { failures.append("\(key): secondary \(n.secondary) worse than Build 56 \(o.secondary)") }
+                    if scheme == .dark && n.secondary < 4.5 { failures.append("\(key): secondary \(n.secondary) < 4.5") }
                 }
             }
         }
