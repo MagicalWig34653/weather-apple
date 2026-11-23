@@ -282,6 +282,49 @@ final class LiveActivityImageTests: XCTestCase {
         XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
     }
 
+    /// The five card states of Build 58 as presentations: rain, starts soon, area, dry (Dashboard test / probe), stale (tone amber).
+    private func lockStates() -> [(name: String, p: RainActivityPresentation)] {
+        let now = Date()
+        func make(_ phase: RainActivityAttributes.Phase, in min: Double? = nil, ageMin: Double = 4, maxClass: Int = 3, wet: Int? = nil,
+                  peak: Int? = nil, radius: Int? = nil) -> RainActivityPresentation {
+            let state = RainActivityAttributes.ContentState(phase: phase, eventDate: min.map { now.addingTimeInterval($0 * 60) }, intensityClass: maxClass,
+                                                            referenceTime: now.addingTimeInterval(-ageMin * 60), wetSharePercent: wet, peakSharePercent: peak, regionRadiusKm: radius)
+            return RainActivityPresentation(state: state, contextIsStale: false, now: now, localRadiusKm: radius)
+        }
+        return [("rain", make(.raining)), ("starting", make(.startsIn, in: 8.5, maxClass: 2)),
+                ("area", make(.raining, maxClass: 4, wet: 34, peak: 60, radius: 10)), ("dry", make(.dry, maxClass: 0)),
+                ("stale", make(.raining, ageMin: 36))]
+    }
+
+    /// Absolute target (Lino 23.11.2026 photo of Build 57: card centre L* 5 to 7, darker than the wallpaper behind it, L* 14): the surface of the
+    /// dark lock screen card must be L* 34 to 42 in EVERY state, with and without reduce transparency, whatever the system draws behind it.
+    /// Red against Build 57 (mean L* about 20, and different over a black and a white system background).
+    func testLockBackdropAbsoluteLightnessAllStates() throws {
+        var failures: [String] = []
+        var report: [String: [String: Double]] = [:]
+        let scheme = ColorScheme.dark
+        for (stateName, p) in lockStates() {
+            for reduced in [false, true] {
+                var lightnessByBase: [Double] = []
+                for (baseName, base) in [("schwarz", Color.black), ("weiss", Color.white), ("grau", Color(white: 0.3))] {
+                    let layer = RainLockGlassTint(tint: p.tone.tint(scheme), reduceTransparencyOverride: reduced)
+                    let view = ZStack { base; glass(scheme); layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
+                    let key = "\(stateName)-\(reduced ? "transparenz-reduziert" : "normal")-\(baseName)"
+                    let scanned = try scan(image(view, scheme: scheme, name: "lock-bg-absolut-\(key)"))
+                    let lightness = Self.lightness(scanned.mean)
+                    lightnessByBase.append(lightness)
+                    report[key] = ["Y": scanned.mean, "Lstar": lightness]
+                    if !(34...42).contains(lightness) { failures.append("\(key): L* \(lightness) outside 34...42") }
+                }
+                if let lo = lightnessByBase.min(), let hi = lightnessByBase.max(), hi - lo > 0.5 {
+                    failures.append("\(stateName) reduced=\(reduced): card depends on the system background (L* \(lo) to \(hi))")
+                }
+            }
+        }
+        writeJSON(report, name: "lock-bg-absolut.json")
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
+    }
+
     /// (b) Contrast against the worst background pixel (the brightest for light text in dark, the darkest for dark text in light):
     /// primary text >= 4.5:1; tinted text/symbols (hero value, symbol tile) >= 4.5:1 in dark (Build 56: 5.8 to 6.1) and >= 3:1 in the
     /// light stand-in (Build 56: 2.0 to 2.4); secondary text (lock screen secondary color, dark: white 70 %) not worse than Build 56 (system secondary).
