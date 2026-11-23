@@ -125,8 +125,12 @@ final class SpacingUITests: XCTestCase {
     }
 
     func testPillOneLineStaysFixedHeightStandardSize() { pillPadding(category: "L", forecast: "current", singleLine: true, "L-einzeilig") }
-    func testPillTwoLinesHaveInnerPaddingStandardSize() { pillPadding(category: "L", forecast: "behind", singleLine: false, "L-zweizeilig") }
-    func testPillTwoLinesHaveInnerPaddingXXL() { pillPadding(category: "XXL", forecast: "behind", singleLine: nil, "XXL-zweizeilig") }
+    /// Build 57 text decision (23.11.2026, "Option 3"): the status "server behind" shows the short text "Noch kein neuerer Stand", ONE line at L
+    /// (measured 18 pt text, 48 pt pill, 15 pt above and below), so the 54 pt two-line state at L no longer exists. The two-line rule itself
+    /// (a two-line text grows the pill, 8 pt padding) is still checked where two-line text exists: the accessibility sizes below
+    /// (AXXXL: 117 pt of text, pill 133 pt). Here: at L the pill stays one line and 48 pt, with at least 7.5 pt of air.
+    func testPillServerBehindIsOneLineAtStandardSize() { pillPadding(category: "L", forecast: "behind", singleLine: true, "L-behind-einzeilig") }
+    func testPillServerBehindKeepsPaddingXXL() { pillPadding(category: "XXL", forecast: "behind", singleLine: nil, "XXL-behind") }
     func testPillTwoLinesHaveInnerPaddingAccessibilityM() { pillPadding(category: "AccessibilityM", forecast: "behind", singleLine: nil, "AXM-zweizeilig") }
     func testPillTwoLinesHaveInnerPaddingAccessibilityXXXL() { pillPadding(category: "AccessibilityXXXL", forecast: "behind", singleLine: nil, "AXXXL-zweizeilig") }
 
