@@ -918,4 +918,57 @@ final class UpdateProgressBarUITests: XCTestCase {
             app.terminate()
         }
     }
+
+    // MARK: Build 58: real services (read only), pill height over the whole loading sequence at L
+
+    /// Real services, no stub (GET requests only, like `testRealServicesLoadingSequenceForRecording`): the pill height is sampled every
+    /// ~0.15 s from a cold start without a saved forecast, through the forecast arriving, and through a manual reload. Standard size L:
+    /// every sample must be one line = 48 pt (+-0.5). The picture is saved at each new pill text (hint "Regenprognose wird geladen …",
+    /// the real forecast text, the refreshing state). What the real forecast says depends on the weather of the day; it is logged
+    /// (`REALPILL`), not asserted. Light/dark via `SHOT_SUFFIX`.
+    func testRealServicesPillHeightAcrossTheLoadingSequence() throws {
+        let appearance = UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestExposeProgress"])
+        let app = UITestLaunch.app(extra: appearance + ["-UITestResetForecast", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"])
+        defer { app.terminate() }
+        app.launch()
+        let start = Date()
+        var samples: [(Double, String, CGFloat)] = []
+        var lastLabel = ""
+        var shots = 0
+        func sample() {
+            guard let snapshot = try? header(app).snapshot() else { return }
+            let t = Date().timeIntervalSince(start), label = snapshot.label, height = snapshot.frame.height
+            samples.append((t, label, height))
+            if label != lastLabel, shots < 14 {
+                lastLabel = label; shots += 1
+                shot(app, "pille-echt-\(String(format: "%02d", shots))-L")
+                NSLog("REALPILL t=\(String(format: "%.1f", t)) height=\(height) bar=\(barRead(app)?.value ?? "none") label=\(label)")
+            }
+        }
+        func poll(for seconds: TimeInterval, until done: () -> Bool = { false }) {
+            let end = Date().addingTimeInterval(seconds)
+            while Date() < end { sample(); if done() { return }; usleep(150_000) }
+        }
+        // (1) Cold start without a forecast until the forecast text stands and the bar is gone.
+        var sawForecast = false
+        poll(for: 90) {
+            if let label = samples.last?.1, !label.contains("geladen"), !label.contains("nicht verf") { sawForecast = true }
+            return sawForecast && barRead(app) == nil && Date().timeIntervalSince(start) > 3
+        }
+        XCTAssertTrue(sawForecast, "real forecast shown within 90 s (network needed)")
+        poll(for: 4)
+        // (2) Manual reload.
+        if let reload = openLayerEntry(app, group: nil, entry: "Daten neu laden") {
+            reload.tap()
+            poll(for: 12)
+        } else { XCTFail("reload entry not found") }
+        poll(for: 3)
+        let heights = samples.map(\.2)
+        NSLog("REALPILL summary suffix=\(suffix) samples=\(samples.count) min=\(heights.min() ?? 0) max=\(heights.max() ?? 0) texts=\(Array(Set(samples.map(\.1))))")
+        for (t, label, height) in samples where abs(height - 48) > 0.5 {
+            XCTFail("pill height \(height) pt at t=\(String(format: "%.1f", t)) s, text \"\(label)\" (one line = 48 pt)")
+            break
+        }
+        XCTAssertGreaterThan(samples.count, 20)
+    }
 }
