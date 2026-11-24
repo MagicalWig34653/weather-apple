@@ -842,7 +842,9 @@ final class UpdateProgressBarUITests: XCTestCase {
         request.usesLanguageCorrection = false
         try? VNImageRequestHandler(cgImage: cg).perform([request])
         let items = (request.results ?? []).compactMap { observation in observation.topCandidates(1).first.map { (observation.boundingBox.midY, $0.string) } }
-        return items.sorted { $0.0 > $1.0 }.map { $0.1.trimmingCharacters(in: .whitespaces) }
+        // Lines without a letter are the pill's symbols read as text (the chevron ">" or the info "i" circle beside the first line, dark
+        // "Forecast details", Build 58 dark run), not text lines of the pill.
+        return items.sorted { $0.0 > $1.0 }.map { $0.1.trimmingCharacters(in: .whitespaces) }.filter { $0.contains(where: \.isLetter) && $0.count > 1 }
     }
 
     /// Largest accessibility size, light/dark (`SHOT_SUFFIX`) x German/English x two pill states (warning symbol "server behind" and
