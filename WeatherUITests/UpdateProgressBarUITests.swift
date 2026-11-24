@@ -884,10 +884,10 @@ final class UpdateProgressBarUITests: XCTestCase {
 
     /// Build 58 fix: the DRY text ("Vorerst kein messbarer Regen erwartet", the normal case on most days) had two lines at standard size L
     /// (54 pt) while the loading hint and the spinner state had one (48 pt): the pill jumped when the forecast arrived and when a load
-    /// began (real-service run on 01f973c: min 48, max 54). Stub `slowfresh` = dry forecast, same sequence as the rain test: the pill is
+    /// began (real-service run on 01f973c: min 48, max 54). Stub `slowfreshdry` = dry forecast, same sequence as the rain test: the pill is
     /// one line = 48 pt before, during and after the load. Spoken text stays the full sentence.
     func testPillHeightWithDryTextIsExactlyOneLineBeforeDuringAndAfterTheLoad() throws {
-        try assertPillHeightStaysOneLineAtL(stubMode: "slowfresh", shotTag: "trocken", cases: [
+        try assertPillHeightStaysOneLineAtL(stubMode: "slowfreshdry", shotTag: "trocken", cases: [
             (.german, "de", "Vorerst kein messbarer Regen erwartet", "Aktualisiere"),
             (.english, "en", "No measurable rain expected for now", "Updating")])
     }

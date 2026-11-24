@@ -33,6 +33,8 @@ import UIKit
 /// - `slowfreshrain`: like `slowfresh`, and the forecast (of both runs) starts rain in 15 minutes from the frozen "now" (09:05 UTC) for
 ///   25 minutes: the pill carries the real summary "Regen voraussichtlich in etwa 15 Min." while the load runs (refreshing: summary
 ///   plus spinner) and after it (Build 58, pill height while loading the real rain text).
+/// - `slowfreshdry`: like `slowfresh`, but no rain at all in the forecast (of both runs): the pill carries the dry text "Vorerst kein
+///   messbarer Regen erwartet" (Build 58 fix, pill height with the dry text, the normal case on most days).
 /// All other modes show the run 08:40 UTC (10 minutes old), while a newer one is expected.
 enum ForecastUITestStub {
     static var mode: String? {
@@ -73,7 +75,8 @@ enum ForecastUITestStub {
 
     static func client(mode requested: String) -> DWDClient {
         let rainSoon = requested == "slowfreshrain"
-        let base = rainSoon ? "slowfresh" : requested
+        let dry = requested == "slowfreshdry"
+        let base = rainSoon || dry ? "slowfresh" : requested
         let counter = Counter()
         let trip = BackgroundTrip()
         let runs = RadarPollSchedule.nominal(at: now).addingTimeInterval(requested == "current" ? 0 : -300)
@@ -115,7 +118,7 @@ enum ForecastUITestStub {
                let asked = DWDRequest.date(value) { reference = asked }
             let features = (0..<25).map { step -> String in
                 let time = DWDRequest.timestamp(reference.addingTimeInterval(Double(step * 300)))
-                let rains = rainSoon ? (reference.addingTimeInterval(Double(step * 300)) >= now.addingTimeInterval(900) && reference.addingTimeInterval(Double(step * 300)) < now.addingTimeInterval(2400)) : step % 7 < 3
+                let rains = dry ? false : rainSoon ? (reference.addingTimeInterval(Double(step * 300)) >= now.addingTimeInterval(900) && reference.addingTimeInterval(Double(step * 300)) < now.addingTimeInterval(2400)) : step % 7 < 3
                 let value = rains ? 0.6 : -0.001
                 return "{\"type\":\"Feature\",\"id\":\"f\(step)\",\"geometry\":null,\"properties\":{\"RV_ANALYSIS\":\(value),\"TIME\":\"\(time)\",\"REFERENCE_TIME\":\"\(DWDRequest.timestamp(reference))\"}}"
             }
