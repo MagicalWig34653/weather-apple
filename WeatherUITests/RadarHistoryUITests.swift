@@ -173,6 +173,89 @@ final class RadarHistoryUITests: XCTestCase {
         app.terminate()
     }
 
+    /// Frame origins of the round button column on the right (palette toggle, info). The hints that come and go with playing
+    /// (legend, hole note) must never move it: it starts at the same y whether they stand above the map or not.
+    private func columnOrigins(_ app: XCUIApplication) -> [CGPoint] {
+        [app.buttons["radar-legend-toggle"], app.buttons["Datenquellen und Datenschutz"]].map { $0.frame.origin }
+    }
+
+    private func assertColumnStays(_ app: XCUIApplication, _ expected: [CGPoint], _ context: String) {
+        let now = columnOrigins(app)
+        print("COLUMN_Y \(suffix) \(context): toggle y=\(now[0].y) x=\(now[0].x), info y=\(now[1].y) x=\(now[1].x)")
+        for (index, name) in ["toggle", "info"].enumerated() {
+            XCTAssertEqual(now[index].y, expected[index].y, accuracy: 0.5, "\(context): \(name) moved vertically: \(now[index].y) vs \(expected[index].y)")
+            XCTAssertEqual(now[index].x, expected[index].x, accuracy: 0.5, "\(context): \(name) moved horizontally: \(now[index].x) vs \(expected[index].x)")
+        }
+    }
+
+    /// The button column stays where it is while the hints above the map come and go: legend at now (i), none while playing
+    /// (ii), back after playing (iii), hole note next to the hole instead of the legend (iv), legend at now again (v).
+    func testRadarButtonColumnStaysPutWhenTheHintsComeAndGo() throws {
+        let app = launchRadar(hours: 72)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, "starts at now: \(value(slider))")
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "(i) legend at now")
+        let reference = columnOrigins(app)
+        print("COLUMN_Y \(suffix) i-now-with-legend: toggle y=\(reference[0].y) x=\(reference[0].x), info y=\(reference[1].y) x=\(reference[1].x)")
+        shot(app, "strich2-1-vorher")
+
+        app.buttons["radar-frame-label"].tap()
+        XCTAssertTrue(gapLegend(app).waitForNonExistence(timeout: 10), "(ii) no legend while playing")
+        XCTAssertFalse(gapNote(app).exists)
+        sleep(1)
+        assertColumnStays(app, reference, "ii-playing")
+        shot(app, "strich2-2-waehrend-abspielen")
+
+        app.buttons["radar-frame-label"].tap()
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "(iii) legend after playing")
+        assertColumnStays(app, reference, "iii-after-playing")
+        shot(app, "strich2-3-nachher")
+
+        XCTAssertTrue(seek(slider, near: 0.48, slots: 876) { value(slider).contains("fehlen Daten") }, "(iv) a slot next to a hole: \(value(slider))")
+        XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "(iv) note next to the hole")
+        XCTAssertTrue(gapLegend(app).waitForNonExistence(timeout: 10), "(iv) the note replaces the legend")
+        sleep(1)
+        assertColumnStays(app, reference, "iv-next-to-hole")
+        shot(app, "strich2-4-an-der-luecke")
+
+        app.buttons["radar-frame-label"].press(forDuration: 0.8)
+        XCTAssertTrue(gapNote(app).waitForNonExistence(timeout: 10))
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "(v) legend at now again")
+        assertColumnStays(app, reference, "v-now-again")
+        app.terminate()
+    }
+
+    /// The legend goes away when it must: while playing, next to the hole (its note takes over) and when no hole is left in the
+    /// chosen past (24 h: the hole lies 36 h back, so the timeline has no red mark and nothing needs explaining).
+    func testRadarLegendDisappearsWhilePlayingNextToTheHoleAndWhenNoHoleIsLeft() throws {
+        var app = launchRadar(hours: 72)
+        var slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "legend at now (hole inside 72 h)")
+        app.buttons["radar-frame-label"].tap()
+        XCTAssertTrue(gapLegend(app).waitForNonExistence(timeout: 10), "gone while playing")
+        app.buttons["radar-frame-label"].tap()
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "back after playing")
+        XCTAssertTrue(seek(slider, near: 0.48, slots: 876) { value(slider).contains("fehlen Daten") })
+        XCTAssertTrue(gapLegend(app).waitForNonExistence(timeout: 10), "gone next to the hole")
+        app.terminate()
+
+        app = launchRadar(hours: 72, setting: 24)
+        slider = self.slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") }, "24 h: starts at now: \(value(slider))")
+        sleep(3)
+        XCTAssertFalse(gapLegend(app).exists, "no hole inside 24 h: no legend at now")
+        XCTAssertFalse(gapNote(app).exists)
+        shot(app, "strich2-5-ohne-luecke")
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
+        XCTAssertFalse(gapLegend(app).exists, "no hole inside 24 h: no legend at the oldest slot")
+        app.buttons["radar-frame-label"].tap()
+        sleep(1)
+        XCTAssertFalse(gapLegend(app).exists, "no legend while playing either")
+        app.terminate()
+    }
+
     func testRadarFortyEightHoursOfASeventyTwoHourHistoryStopsAtFortyEight() throws {
         let app = launchRadar(hours: 72, setting: 48)
         let slider = slider(app)
