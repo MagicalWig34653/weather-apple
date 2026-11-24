@@ -199,6 +199,7 @@
 "TIMELINE_SLIDER_HINT" = "From %1$@ to %2$@. Dragging your finger up and away from the slider gives finer control.";
 "TIMELINE_GAP_BEFORE" = "No data before this: %@";
 "TIMELINE_GAP_AFTER" = "No data after this: %@";
+"TIMELINE_GAP_LEGEND" = "Red mark: data is missing here.";
 "RADAR_HISTORY_SHORT" = "This map only reaches back %1$@ – %2$@ selected.";
 "TIMELINE_PAUSE" = "Pause animation";
 "TIMELINE_PLAY" = "Play animation";

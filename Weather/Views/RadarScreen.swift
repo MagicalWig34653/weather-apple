@@ -156,6 +156,16 @@ struct RadarScreen: View {
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("radar-gap-note")
                 }
+                // The red mark on the timeline is a real hole in the data: where no note names it, one line says what the mark is.
+                if !dynamicTypeSize.isAccessibilitySize, let legend = displayedGapLegend {
+                    Label(legend, systemImage: "clock.badge.questionmark")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("radar-gap-legend")
+                }
                 // The chosen past is longer than the map delivers: said once and plainly (the choice and the data stay as they are).
                 if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
                     Label(RadarPastWindow.shortHistoryText(available: available, chosen: chosen), systemImage: "info.circle")
@@ -518,6 +528,12 @@ struct RadarScreen: View {
     private var displayedGapLines: [String] {
         guard let timeline = store.displayTimeline, !timeline.gaps.isEmpty else { return [] }
         return TimelineGapText.lines(for: displayedIndex, gaps: timeline.gaps)
+    }
+
+    /// What the red mark on the timeline means, while the timeline has holes and no note names one (nil otherwise).
+    private var displayedGapLegend: String? {
+        guard let timeline = store.displayTimeline else { return nil }
+        return TimelineGapText.legend(gaps: timeline.gaps, adjacentLines: displayedGapLines, isPlaying: store.isPlaying)
     }
 
     /// Honest per-slot hint: the map never shows another slot's image as this slot's state.
@@ -966,6 +982,9 @@ struct RadarScreen: View {
         }
         if !store.isPlaying, !displayedGapLines.isEmpty {
             notes.append(.init(id: "radar-gap-note", symbol: "clock.badge.questionmark", text: displayedGapLines.joined(separator: "\n")))
+        }
+        if let legend = displayedGapLegend {
+            notes.append(.init(id: "radar-gap-legend", symbol: "clock.badge.questionmark", text: legend))
         }
         if !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
             notes.append(.init(id: "radar-history-short-note", symbol: "info.circle", text: RadarPastWindow.shortHistoryText(available: available, chosen: chosen)))

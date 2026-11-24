@@ -98,6 +98,7 @@ final class LayerContrastUITests: XCTestCase {
         Element(name: "Ort: Untertitel (Text)", identifier: nil, text: "Regenradar", threshold: 4.5),
         Element(name: "Regenleiste am Ort (Text)", identifier: nil, text: "Regen am ausgewählten Ort", threshold: 4.5),
         Element(name: "Hinweiszeile Lücke (Text)", identifier: "radar-gap-note", text: nil, threshold: 4.5),
+        Element(name: "Legendenzeile roter Strich (Text)", identifier: "radar-gap-legend", text: nil, threshold: 4.5),
         Element(name: "Credit-Zeile (Text)", identifier: "radar-attribution", text: nil, threshold: 4.5),
         Element(name: "Legendenschalter (Symbol)", identifier: "radar-legend-toggle", text: nil, threshold: 3.0),
         Element(name: "Warnungen-Knopf (Symbol)", identifier: "radar-warnings-button", text: nil, threshold: 3.0),
