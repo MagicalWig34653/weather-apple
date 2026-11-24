@@ -892,11 +892,16 @@ struct RadarScreen: View {
         NSLocalizedString("RADAR_FORECAST_DETAILS_PILL", value: "Prognose-\ndetails", comment: "Radar: pill text at accessibility sizes, the line break is part of the string (never inside a syllable); spoken text is RADAR_FORECAST_DETAILS")
     }
 
-    /// What the pill SHOWS for the rain summary. "Regen voraussichtlich in etwa 15 Min." had two lines at standard size as soon as the
+    /// What the pill SHOWS for the rain summary (rain soon and dry in short form). "Regen voraussichtlich in etwa 15 Min." had two lines at standard size as soon as the
     /// spinner took width, so the pill jumped 48 -> 54 -> 48 pt when a load started and ended (Build 57 frames). "Regen in etwa 15 Min." fits
     /// one line with the spinner. The full sentence stays the spoken label (`forecast.summary`) and the details sheet.
     private func forecastSummaryShownText(_ forecast: RainForecast) -> String {
         let outlook = RainOutlook.evaluate(forecast, at: displayNow)
+        // Dry (the normal case): "Vorerst kein messbarer Regen erwartet" had two lines at standard size L (54 pt) while the loading hint and
+        // the refreshing state have one (48 pt): the pill jumped when the forecast arrived and when a load began (Build 58 gate finding).
+        if outlook.state == .dry {
+            return NSLocalizedString("OUTLOOK_DRY_SHORT", value: "Kein Regen erwartet", comment: "Radar: pill text, no rain expected (short, one line with the spinner at size L); spoken text is OUTLOOK_DRY")
+        }
         guard outlook.state == .startsIn else { return forecast.summary(at: displayNow) }
         return String(format: NSLocalizedString("OUTLOOK_RAIN_IN_MINUTES_SHORT", value: "Regen in etwa %d Min.", comment: "Radar: pill text, rain starts in N minutes (short, one line with the spinner); spoken text is OUTLOOK_RAIN_IN_MINUTES"), outlook.minutes ?? 0)
     }

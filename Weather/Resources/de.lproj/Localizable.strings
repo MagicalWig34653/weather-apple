@@ -493,6 +493,7 @@
 "OUTLOOK_RAIN_IN_MINUTES" = "Regen voraussichtlich in etwa %d Min.";
 "OUTLOOK_RAIN_IN_MINUTES_SHORT" = "Regen in etwa %d Min.";
 "OUTLOOK_DRY" = "Vorerst kein messbarer Regen erwartet";
+"OUTLOOK_DRY_SHORT" = "Kein Regen erwartet";
 "OUTLOOK_POSSIBLE_RAIN" = "Regen möglich · Daten teilweise unvollständig";
 "OUTLOOK_UNRELIABLE" = "Keine verlässliche Regenaussage verfügbar";
 "OUTLOOK_NO_FORECAST" = "Keine aktuelle Prognose verfügbar";
