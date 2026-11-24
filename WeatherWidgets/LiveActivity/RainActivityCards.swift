@@ -21,14 +21,14 @@ extension RainActivityPresentation.Tone {
         }
     }
 
-    /// Text/symbol tint of the lock screen card only (Build 58): the card surface is now about L* 37 instead of 20, and the plain dark
+    /// Text/symbol tint of the lock screen card only (Build 58, lighter again in Build 59 for the translucent card over mid-dark wallpaper): the plain dark
     /// tints would fall below 4.5:1 there. Same hues, lighter. Light scheme and Watch/island keep `tint(_:)`.
     func lockTint(_ scheme: ColorScheme) -> Color {
         guard scheme == .dark else { return tint(scheme) }
         switch self {
-        case .rain: return Color(red: 0.60, green: 0.90, blue: 1.0)
-        case .dry: return Color(red: 0.58, green: 0.95, blue: 0.66)
-        case .stale: return Color(red: 1.0, green: 0.86, blue: 0.5)
+        case .rain: return Color(red: 0.68, green: 0.93, blue: 1.0)
+        case .dry: return Color(red: 0.66, green: 0.97, blue: 0.72)
+        case .stale: return Color(red: 1.0, green: 0.89, blue: 0.58)
         }
     }
 }
@@ -59,17 +59,18 @@ enum RainLockGlassMode { case brighter, legacy }
 /// glass this is about +8.5 L* (mean luminance x1.9) in dark, the tone wash stays visible. The ceiling is the contrast of the tone
 /// text (hero value, symbol) against the brightest pixel: >= 4.5:1 allows at most Y 0.0727 (rain).
 ///
-/// Build 58 (Lino's device photo of Build 57, Zustand trocken: card centre L* 5 to 7, darker than the wallpaper L* 14, i.e. "schwarz"):
-/// the dark card now has an opaque black base under the wash (surface independent of the system glass and of reduce transparency) and a
-/// much stronger wash: mean surface L* about 37 in every state (test band 34 to 42). For that the tone text of the card is lighter
-/// (`RainActivityPresentation.Tone.lockTint`, same hues) and the secondary text is white 80 % (`darkSecondaryText`, >= 4.5:1).
+/// Build 58 (Lino's device photo of Build 57, Zustand trocken: card centre L* 5 to 7, darker than the wallpaper L* 14, i.e. "schwarz")
+/// added an opaque black base and a strong wash (surface L* 37). Build 59 (Lino 24.11.: "zu deckend ... durchsichtig ... nur etwas
+/// getoent") takes the opaque base back for the normal case: translucent card with a light tone wash; the opaque L* 37 variant remains
+/// only for reduce transparency. The tone text of the card is lighter (`RainActivityPresentation.Tone.lockTint`, same hues) and the
+/// secondary text is white 80 % (`darkSecondaryText`, >= 4.5:1) as in Build 58.
 struct RainLockGlassStyle: Equatable {
     var washTop: Double
     var washBottom: Double
     var lightenTop: Double
     var lightenBottom: Double
-    /// Opaque layer under the wash. Dark lock screen card only: the surface then no longer depends on what the system draws behind
-    /// the card (Simulator: black; Lino's device photo of Build 57: darker than the wallpaper), nor on reduce transparency.
+    /// Layer under the wash: opaque black for the dark card with reduce transparency (Build 58 look, independent of the background), a thin
+    /// black scrim (alpha 0.17) for the translucent dark card. Nil for the light card.
     var opaqueBase: Color?
 
     init(washTop: Double, washBottom: Double, lightenTop: Double, lightenBottom: Double, opaqueBase: Color? = nil) {
@@ -81,11 +82,16 @@ struct RainLockGlassStyle: Equatable {
     static let legacyNormal = RainLockGlassStyle(washTop: 0.24, washBottom: 0.06, lightenTop: 0, lightenBottom: 0)
     static let legacyReducedTransparency = RainLockGlassStyle(washTop: 0.30, washBottom: 0.16, lightenTop: 0, lightenBottom: 0)
 
-    // Brighter, dark appearance (the lock screen card on a real device is always rendered dark).
-    // Build 58: opaque black base + stronger wash. Over black the mean surface is about L* 37 (target 34 to 42) in every state; the same
-    // numbers apply with reduce transparency, because the opaque base leaves nothing to reduce.
-    static let brighterDark = RainLockGlassStyle(washTop: 0.45, washBottom: 0.38, lightenTop: 0.05, lightenBottom: 0.05, opaqueBase: .black)
-    static let brighterDarkReducedTransparency = brighterDark
+    // Dark appearance (the lock screen card on a real device is always rendered dark).
+    // Build 59 (Lino 24.11.2026, TestFlight Build 58: "Die LA ist zu deckend. Die sollte so wie die LA von T3 durchsichtig sein. Nur halt
+    // etwas getoent."): the system material behind the card is switched off (`activityBackgroundTint(.clear)` in `RainLiveActivity`), the
+    // wallpaper shows through. The card brings its own light layers: a thin black scrim (0.17, keeps white text readable on mid-bright
+    // wallpapers, replaces the dark system material) and a tone wash (top 0.28, bottom 0.12). Mean coverage about 0.32 (test limit 0.35;
+    // Build 58: 1.0 = opaque).
+    static let brighterDark = RainLockGlassStyle(washTop: 0.28, washBottom: 0.12, lightenTop: 0, lightenBottom: 0, opaqueBase: Color.black.opacity(0.17))
+    // Reduce transparency: the opaque variant of Build 58 (opaque black base + wash 0.45/0.38 + lightener 0.05, surface about L* 37 in every
+    // state, independent of the system background). The user asked for less transparency, so nothing shows through here.
+    static let brighterDarkReducedTransparency = RainLockGlassStyle(washTop: 0.45, washBottom: 0.38, lightenTop: 0.05, lightenBottom: 0.05, opaqueBase: .black)
     // Brighter, light appearance (iPad/preview only; the tone tints are dark here, so the wash is weak and the lightener strong).
     static let brighterLight = RainLockGlassStyle(washTop: 0.10, washBottom: 0.02, lightenTop: 0.42, lightenBottom: 0.42)
     static let brighterLightReducedTransparency = RainLockGlassStyle(washTop: 0.10, washBottom: 0.04, lightenTop: 0.40, lightenBottom: 0.40)

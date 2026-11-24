@@ -182,9 +182,15 @@ final class LiveActivityImageTests: XCTestCase {
     /// Opaque stand-in for the wallpaper behind the glass (a flat mid-dark gray; mid gray for the light appearance).
     private func backdrop(_ scheme: ColorScheme) -> Color { Color(white: scheme == .dark ? 0.12 : 0.55) }
 
-    private func stack<V: View>(_ layer: V, scheme: ColorScheme) -> some View {
-        ZStack { backdrop(scheme); glass(scheme); layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
+    /// `systemGlass: false` is the Build 59 dark card: `activityBackgroundTint(.clear)` draws no system material, the card layer sits directly
+    /// on the wallpaper (here a flat `ground`, default the stand-in wallpaper of the scheme).
+    private func stack<V: View>(_ layer: V, scheme: ColorScheme, systemGlass: Bool = true, ground: Color? = nil) -> some View {
+        ZStack { ground ?? backdrop(scheme); if systemGlass { glass(scheme) }; layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
     }
+
+    /// Mid-dark wallpaper stand-in (encoded gray 0.30, L* about 30; the brighter regions of the dark Simulator wallpaper) for the dark card
+    /// without system material. Brighter wallpapers are NOT guaranteed 4.5:1 (documented in decisions.md 24.11.2026).
+    private static let midGround = Color(white: 0.30)
 
     private func pinnedLegacy(tint: Color, reduced: Bool) -> some View {
         let w = reduced ? Self.pinnedLegacyWash.reduced : Self.pinnedLegacyWash.normal
@@ -249,12 +255,12 @@ final class LiveActivityImageTests: XCTestCase {
 
     private func schemeName(_ scheme: ColorScheme) -> String { scheme == .dark ? "dunkel" : "hell" }
 
-    /// (a) Numeric: the mean background luminance of the lock screen card is visibly higher than Build 56, expressed in CIE L* of the mean
-    /// relative luminance (Lino 21.11.: "bisschen dunkel"; a change below about 6 L* is hardly visible: the first attempt, x1.31 = +3 L*,
-    /// was). Bands of the L* difference to Build 56 (stand-in glass): dark +15 to +22, dark with reduce transparency +10 to +16 (Build 56 is
-    /// already brighter there; Build 58 target is the absolute test below, L* 34 to 42), light and light with reduce transparency +5 to +16
-    /// (iPad/preview only, unchanged). Until Build 57 the dark bands were +6 to +12 / +3 to +10; raised with the Build 58 target (Lino 23.11.).
-    /// Rain/dry/stale. Red against Build 56: with the legacy numbers the difference is exactly 0.
+    /// (a) Numeric: the mean background luminance of the lock screen card against Build 56, expressed in CIE L* of the mean relative
+    /// luminance. Bands of the L* difference to Build 56 (stand-in glass): dark 0 to +8 (Lino 24.11.2026: translucent, only lightly tinted;
+    /// the card must stay close to the glass of Build 56 and may not lift into an opaque surface; until 23.11. the band was +15 to +22 for the
+    /// opaque L* 37 surface), dark with reduce transparency +10 to +16 (opaque variant, absolute target in
+    /// `testLockBackdropReducedTransparencyIsOpaqueWithFixedLightness`), light and light with reduce transparency +5 to +16 (iPad/preview only,
+    /// unchanged). Rain/dry/stale. Red against Build 58: the opaque base gives +15 to +22 in dark.
     func testLockBackdropMeanLuminanceRisesAgainstBuild56() throws {
         var failures: [String] = []
         var report: [String: [String: Double]] = [:]
@@ -264,7 +270,8 @@ final class LiveActivityImageTests: XCTestCase {
                     let tint = tone.tint(scheme)
                     let key = "\(schemeName(scheme))-\(reduced ? "transparenz-reduziert" : "normal")-\(toneName)"
                     let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme), scheme: scheme, name: "lock-bg-vorher-\(key)"))
-                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme),
+                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme,
+                                                   systemGlass: !(scheme == .dark && !reduced)),
                                              scheme: scheme, name: "lock-bg-nachher-\(key)"))
                     // The legacy mode of production code must be the pinned Build 56 backdrop (so before/after images are truthful).
                     let legacyMode = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .legacy, reduceTransparencyOverride: reduced), scheme: scheme), scheme: scheme))
@@ -272,7 +279,7 @@ final class LiveActivityImageTests: XCTestCase {
                     let delta = Self.lightness(new.mean) - Self.lightness(old.mean)
                     report[key] = ["Y-vorher": old.mean, "Y-nachher": new.mean, "Y-faktor": new.mean / old.mean,
                                    "Lstar-vorher": Self.lightness(old.mean), "Lstar-nachher": Self.lightness(new.mean), "deltaLstar": delta]
-                    let band: ClosedRange<Double> = scheme == .dark ? (reduced ? 10...16 : 15...22) : 5...16
+                    let band: ClosedRange<Double> = scheme == .dark ? (reduced ? 10...16 : 0...8) : 5...16
                     if !band.contains(delta) {
                         failures.append("\(key): delta L* \(delta) (Y \(old.mean) -> \(new.mean)) outside \(band)")
                     }
@@ -297,32 +304,71 @@ final class LiveActivityImageTests: XCTestCase {
                 ("stale", make(.raining, ageMin: 36))]
     }
 
-    /// Absolute target (Lino 23.11.2026 photo of Build 57: card centre L* 5 to 7, darker than the wallpaper behind it, L* 14): the surface of the
-    /// dark lock screen card must be L* 34 to 42 in EVERY state, with and without reduce transparency, whatever the system draws behind it.
-    /// Red against Build 57 (mean L* about 20, and different over a black and a white system background).
-    func testLockBackdropAbsoluteLightnessAllStates() throws {
+    /// Reduce transparency (system setting): the dark card keeps the opaque variant of Build 58 (Lino 24.11.2026: "Transparenz reduzieren" may
+    /// stay non-translucent). Its surface must be L* 34 to 42 in EVERY state, whatever the system draws behind it (black, white, gray).
+    func testLockBackdropReducedTransparencyIsOpaqueWithFixedLightness() throws {
         var failures: [String] = []
         var report: [String: [String: Double]] = [:]
         let scheme = ColorScheme.dark
         for (stateName, p) in lockStates() {
-            for reduced in [false, true] {
-                var lightnessByBase: [Double] = []
-                for (baseName, base) in [("schwarz", Color.black), ("weiss", Color.white), ("grau", Color(white: 0.3))] {
-                    let layer = RainLockGlassTint(tint: p.tone.tint(scheme), reduceTransparencyOverride: reduced)
-                    let view = ZStack { base; glass(scheme); layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
-                    let key = "\(stateName)-\(reduced ? "transparenz-reduziert" : "normal")-\(baseName)"
-                    let scanned = try scan(image(view, scheme: scheme, name: "lock-bg-absolut-\(key)"))
-                    let lightness = Self.lightness(scanned.mean)
-                    lightnessByBase.append(lightness)
-                    report[key] = ["Y": scanned.mean, "Lstar": lightness]
-                    if !(34...42).contains(lightness) { failures.append("\(key): L* \(lightness) outside 34...42") }
-                }
-                if let lo = lightnessByBase.min(), let hi = lightnessByBase.max(), hi - lo > 0.5 {
-                    failures.append("\(stateName) reduced=\(reduced): card depends on the system background (L* \(lo) to \(hi))")
-                }
+            var lightnessByBase: [Double] = []
+            for (baseName, base) in [("schwarz", Color.black), ("weiss", Color.white), ("grau", Color(white: 0.3))] {
+                let layer = RainLockGlassTint(tint: p.tone.tint(scheme), reduceTransparencyOverride: true)
+                let view = ZStack { base; glass(scheme); layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
+                let key = "\(stateName)-transparenz-reduziert-\(baseName)"
+                let scanned = try scan(image(view, scheme: scheme, name: "lock-bg-opak-\(key)"))
+                let lightness = Self.lightness(scanned.mean)
+                lightnessByBase.append(lightness)
+                report[key] = ["Y": scanned.mean, "Lstar": lightness]
+                if !(34...42).contains(lightness) { failures.append("\(key): L* \(lightness) outside 34...42") }
+            }
+            if let lo = lightnessByBase.min(), let hi = lightnessByBase.max(), hi - lo > 0.5 {
+                failures.append("\(stateName): card depends on the system background (L* \(lo) to \(hi))")
             }
         }
-        writeJSON(report, name: "lock-bg-absolut.json")
+        writeJSON(report, name: "lock-bg-opak.json")
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
+    }
+
+    /// Target of Lino 24.11.2026 (TestFlight Build 58, "Die LA ist zu deckend. ... so wie die LA von T3 durchsichtig ... nur halt etwas
+    /// getoent"): the dark lock screen card lets the background show through and is only lightly tinted in every state.
+    /// Measured on the card layer alone over a black, a white and a gray ground (compositing is affine, so the difference white - black of
+    /// the mean encoded channel values is exactly 1 - mean coverage):
+    ///  - mean coverage of the tint layer <= 0.35 (and >= 0.10, so there is still a tint), Build 58: 1.0 (opaque black base);
+    ///  - the card over white is at least 50 L* lighter than over black (the ground really shows through; Build 58: 0);
+    ///  - the tint stays recognisable over mid gray: chroma (max - min of the encoded mean channels) 0.04 to 0.20, and the three tones
+    ///    (rain, dry, stale) differ pairwise by at least 0.05 (Euclid, encoded mean RGB).
+    /// Red against Build 58 (opaque base). The opaque variant with reduce transparency is covered by the test above.
+    func testLockBackdropIsTranslucentAndOnlyLightlyTinted() throws {
+        var failures: [String] = []
+        var report: [String: [String: Double]] = [:]
+        let scheme = ColorScheme.dark
+        var grayMeans: [String: [Double]] = [:]
+        for (stateName, p) in lockStates() {
+            func scanned(over base: Color, name: String) throws -> Scan {
+                let layer = RainLockGlassTint(tint: p.tone.tint(scheme), reduceTransparencyOverride: false)
+                let view = ZStack { base; layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
+                return try scan(image(view, scheme: scheme, name: "lock-bg-durchscheinend-\(stateName)-\(name)"))
+            }
+            let black = try scanned(over: .black, name: "schwarz"), white = try scanned(over: .white, name: "weiss")
+            let gray = try scanned(over: Color(white: 0.5), name: "grau")
+            let coverage = 1 - (0..<3).map { white.meanRGB[$0] - black.meanRGB[$0] }.reduce(0, +) / 3
+            let gap = Self.lightness(white.mean) - Self.lightness(black.mean)
+            let chroma = (gray.meanRGB.max() ?? 0) - (gray.meanRGB.min() ?? 0)
+            grayMeans[stateName] = gray.meanRGB
+            report[stateName] = ["Deckung": coverage, "LstarWeissMinusSchwarz": gap, "Chroma-grau": chroma]
+            if !(0.10...0.35).contains(coverage) { failures.append("\(stateName): coverage \(coverage) outside 0.10...0.35") }
+            if gap < 50 { failures.append("\(stateName): card over white only \(gap) L* lighter than over black (< 50)") }
+            if !(0.04...0.20).contains(chroma) { failures.append("\(stateName): tint chroma \(chroma) outside 0.04...0.20") }
+        }
+        let byTone: [(String, String)] = [("rain", "dry"), ("rain", "stale"), ("dry", "stale")]
+        for (a, b) in byTone {
+            guard let x = grayMeans[a], let y = grayMeans[b] else { continue }
+            let distance = sqrt((0..<3).map { pow(x[$0] - y[$0], 2) }.reduce(0, +))
+            report["ton-\(a)-\(b)"] = ["Abstand": distance]
+            if distance < 0.05 { failures.append("tones \(a)/\(b) hardly differ: \(distance) < 0.05") }
+        }
+        writeJSON(report, name: "lock-bg-durchscheinend.json")
         XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
     }
 
@@ -337,8 +383,12 @@ final class LiveActivityImageTests: XCTestCase {
                 for (toneName, tone) in Self.allTones {
                     let tint = tone.tint(scheme)
                     let key = "\(schemeName(scheme))-\(reduced ? "transparenz-reduziert" : "normal")-\(toneName)"
-                    let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme), scheme: scheme))
-                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme), scheme: scheme))
+                    // Dark translucent card (Build 59): no system material, so the worst case is a mid-bright wallpaper behind it.
+                    let translucent = scheme == .dark && !reduced
+                    let ground: Color? = translucent ? Self.midGround : nil
+                    let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme, ground: ground), scheme: scheme))
+                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme,
+                                                   systemGlass: !translucent, ground: ground), scheme: scheme))
                     func measure(_ scan: Scan, secondaryOverride: Color?, tintColor: Color) -> (primary: Double, tint: Double, secondary: Double) {
                         let bg = scheme == .dark ? scan.brightest : scan.darkest
                         let bgY = Self.luminance(bg)
