@@ -195,35 +195,25 @@ struct InformationSheet: View {
 
     private var pastSection: some View {
         Section {
-            Button {
-                store.usePastDefault()
-            } label: {
-                HStack {
-                    Text(String(format: NSLocalizedString("INFO_PAST_DEFAULT", value: "Standard (%@)", comment: "Info: the maps' own window, no explicit choice"),
-                                RadarPastWindow.label(store.shownPastHours)))
-                    Spacer()
-                    if store.pastChoice == nil { Image(systemName: "checkmark").accessibilityHidden(true) }
-                }
-                .contentShape(Rectangle())
-            }
-            .foregroundStyle(.primary)
-            .accessibilityAddTraits(store.pastChoice == nil ? .isSelected : [])
-            .accessibilityIdentifier("past-hours-default")
+            // The "Standard" mark sits on the fixed standard step (the map's own window), the check mark on the shown step;
+            // picking the standard step forgets the choice (every map shows its own window again).
+            let standard = store.standardPastHours
             ForEach(RadarPastWindow.options, id: \.self) { hours in
                 let unavailable = isUnavailable(hours)
+                let selected = store.shownPastHours == hours
                 Button {
-                    store.setPastHours(hours)
+                    if hours == standard { store.usePastDefault() } else { store.setPastHours(hours) }
                 } label: {
                     HStack {
-                        Text(RadarPastWindow.label(hours))
+                        Text(RadarPastWindow.optionLabel(hours, standard: standard))
                         Spacer()
-                        if store.pastChoice == hours { Image(systemName: "checkmark").accessibilityHidden(true) }
+                        if selected { Image(systemName: "checkmark").accessibilityHidden(true) }
                     }
                     .contentShape(Rectangle())
                 }
                 .foregroundStyle(unavailable ? .secondary : .primary)
                 .disabled(unavailable)
-                .accessibilityAddTraits(store.pastChoice == hours ? .isSelected : [])
+                .accessibilityAddTraits(selected ? .isSelected : [])
                 .accessibilityHint(unavailable ? NSLocalizedString("INFO_PAST_UNAVAILABLE_HINT", value: "Derzeit nicht verfügbar", comment: "Info") : "")
                 .accessibilityIdentifier("past-hours-\(hours)")
             }

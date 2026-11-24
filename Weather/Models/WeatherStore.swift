@@ -62,11 +62,16 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     private(set) var pastHours = RadarPastWindow.defaultHours
     /// The user's explicit choice; `nil` = never chosen (each map's own server window applies).
     private(set) var pastChoice: Int?
-    /// The step shown as selected: the choice, else the active map's window (largest step not above it).
-    var shownPastHours: Int {
-        if let pastChoice { return pastChoice }
-        guard layers.active != .radar, let offered = layers.offeredHistoryHours(layers.active) else { return pastHours }
-        return RadarPastWindow.options.filter { $0 <= max(offered, RadarPastWindow.directHours) }.max() ?? RadarPastWindow.defaultHours
+    /// The step shown as selected (check mark): the choice, else the standard step.
+    var shownPastHours: Int { pastChoice ?? standardPastHours }
+    /// The step the setting marks as "Standard": the active map's own window (largest step not above it), independent of the
+    /// choice. Radar Germany: `history.json`'s window, else the fixed default (nothing is guessed).
+    var standardPastHours: Int {
+        if layers.active != .radar, let offered = layers.offeredHistoryHours(layers.active) {
+            return RadarPastWindow.options.filter { $0 <= max(offered, RadarPastWindow.directHours) }.max() ?? RadarPastWindow.defaultHours
+        }
+        return RadarPastWindow.standardHours(history: latestManifest.flatMap { latest in
+            history.flatMap { RadarTimelineComposer.isCompatible($0, with: latest) ? $0 : nil } })
     }
     /// Past used for the play window: the choice, else the fixed default (the window never grows with the backend's 72 h).
     var playbackPastHours: Int { pastChoice ?? RadarPastWindow.defaultHours }

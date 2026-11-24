@@ -462,7 +462,7 @@
 "INFO_PAST_FOOTER_UNAVAILABLE" = "History unavailable: the timeline currently only shows about the last hour.";
 "INFO_PAST_FOOTER_SERVER_MAX" = "The server currently provides at most %@.";
 "INFO_PAST_FOOTER_ALL" = "Applies to all maps. If a map has less history, its oldest image says “No data before this”.";
-"INFO_PAST_DEFAULT" = "Default (%@)";
+"INFO_PAST_OPTION_DEFAULT" = "%@ (default)";
 "INFO_PAST_FOOTER_LAYER" = "This map currently reaches back at most %@.";
 "INFO_MODEL_ICON" = "Temperature, dew point and humidity maps: DWD ICON-D2/ICON-EU model data (CC BY 4.0, Source: Deutscher Wetterdienst), rendered as images and processed (modified). Model forecasts, not measurements.";
 "INFO_MODEL_FOREST" = "Optional forest cover: %1$@ (CC BY 4.0); %2$@.";

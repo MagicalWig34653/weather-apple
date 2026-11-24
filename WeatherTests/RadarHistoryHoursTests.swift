@@ -986,3 +986,42 @@ extension RadarHistoryHoursTests {
         XCTAssertNil(store.shortHistoryHours, "Europe with the full 72 h")
     }
 }
+
+// MARK: "Standard" mark of the setting hangs on the fixed standard step, not on the chosen one (TestFlight build 57/58)
+
+extension RadarHistoryHoursTests {
+    /// Marked steps of the setting rows, as the sheet builds them.
+    private func marked(_ standard: Int) -> [Int] {
+        RadarPastWindow.options.filter { RadarPastWindow.optionLabel($0, standard: standard).contains("(Standard)") }
+    }
+
+    func testOptionLabelsCarryTheStandardMarkOnlyOnTheStandardStep() {
+        XCTAssertEqual(RadarPastWindow.optionLabel(6, standard: 6), "6 Stunden (Standard)")
+        XCTAssertEqual(RadarPastWindow.optionLabel(1, standard: 1), "1 Stunde (Standard)")
+        XCTAssertEqual(RadarPastWindow.optionLabel(12, standard: 6), "12 Stunden")
+        for standard in RadarPastWindow.options { XCTAssertEqual(marked(standard), [standard], "standard \(standard)") }
+    }
+
+    @MainActor func testStandardStepDoesNotFollowTheChoice() async throws {
+        let (store, _, _) = try radarStore(storedChoice: 6, historyHours: 72)
+        await store.refresh()
+        XCTAssertEqual(store.pastChoice, 6)
+        XCTAssertEqual(store.shownPastHours, 6, "the check mark follows the choice")
+        XCTAssertEqual(store.standardPastHours, 72, "the standard is the backend's window, not the choice")
+        XCTAssertEqual(marked(store.standardPastHours), [72])
+        store.setPastHours(24)
+        XCTAssertEqual(store.standardPastHours, 72, "another choice, same standard")
+        XCTAssertEqual(marked(store.standardPastHours), [72])
+        store.usePastDefault()
+        await settle(store) { store.pastHours == 72 }
+        XCTAssertEqual(store.standardPastHours, 72)
+        XCTAssertEqual(store.shownPastHours, 72, "no choice: the check mark sits on the standard step itself")
+    }
+
+    @MainActor func testStandardStepWithoutBackendWindowIsTheFixedDefault() async throws {
+        let (store, _, _) = try radarStore(storedChoice: 12, historyHours: nil)
+        await store.refresh()
+        XCTAssertEqual(store.standardPastHours, RadarPastWindow.defaultHours, "no window reported: nothing is guessed")
+        XCTAssertEqual(store.shownPastHours, 12)
+    }
+}
