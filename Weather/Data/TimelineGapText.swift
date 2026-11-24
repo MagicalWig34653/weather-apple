@@ -15,6 +15,9 @@ enum TimelineGapText {
         return result
     }
 
+    /// Legend for the red marks on the timeline. Placeholder: the behaviour follows with the fix.
+    static func legend(gaps: RadarTimelineGaps, adjacentLines: [String], isPlaying: Bool) -> String? { nil }
+
     /// "20:20–20:45" within one day; with the weekday on both ends across midnight ("Mi 22:00–Do 04:40").
     static func range(_ gap: TimelineGap, calendar: Calendar = .current, locale: Locale = .current) -> String {
         let time = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).hour().minute()

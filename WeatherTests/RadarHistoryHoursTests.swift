@@ -396,6 +396,26 @@ final class RadarHistoryHoursTests: XCTestCase {
         XCTAssertEqual(TimelineGapText.lines(for: 3, gaps: .empty, calendar: berlin, locale: de), [])
     }
 
+    /// The short red mark on the timeline needs a plain explanation whenever the slider is NOT next to the hole (there the note names it).
+    func testLegendExplainsTheRedMarkOnlyWhenHolesExistAndNoNoteStandsAndNothingPlays() throws {
+        let withHole = try parse(observationObject(hours: 72, missing: Set(400...405))).timeline(at: reference).gaps
+        XCTAssertFalse(withHole.isEmpty)
+        // Holes on the timeline, slider far from them, not playing: the legend.
+        XCTAssertEqual(TimelineGapText.legend(gaps: withHole, adjacentLines: [], isPlaying: false), "Roter Strich: Hier fehlen Daten.")
+        // Next to the hole the note itself names it: no second line.
+        XCTAssertNil(TimelineGapText.legend(gaps: withHole, adjacentLines: ["Davor fehlen Daten: 20:20\u{2013}20:45"], isPlaying: false))
+        // While playing no notes are shown at all.
+        XCTAssertNil(TimelineGapText.legend(gaps: withHole, adjacentLines: [], isPlaying: true))
+        // Without any hole there is no red mark to explain.
+        XCTAssertNil(TimelineGapText.legend(gaps: .empty, adjacentLines: [], isPlaying: false))
+        // Legend only where the slider is far from the hole, derived from the real lines.
+        let timeline = try parse(observationObject(hours: 72, missing: Set(400...405))).timeline(at: reference)
+        let near = TimelineGapText.lines(for: try XCTUnwrap(timeline.gaps.inner.first).afterIndex, gaps: timeline.gaps, calendar: berlin, locale: Locale(identifier: "de_DE"))
+        XCTAssertNil(TimelineGapText.legend(gaps: timeline.gaps, adjacentLines: near, isPlaying: false))
+        let far = TimelineGapText.lines(for: 0, gaps: timeline.gaps, calendar: berlin, locale: Locale(identifier: "de_DE"))
+        XCTAssertNotNil(TimelineGapText.legend(gaps: timeline.gaps, adjacentLines: far, isPlaying: false))
+    }
+
     func testAccessibilityValueAppendsTheGapLines() {
         let value = TimelineAccessibility.value(date: reference, isForecast: false, reference: reference, calendar: berlin,
                                                 locale: Locale(identifier: "de_DE"), caption: "Messung", gapLines: ["Davor fehlen Daten: 20:20\u{2013}20:45"])

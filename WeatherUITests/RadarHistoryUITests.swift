@@ -127,6 +127,8 @@ final class RadarHistoryUITests: XCTestCase {
 
     private func gapNote(_ app: XCUIApplication) -> XCUIElement { app.descendants(matching: .any).matching(identifier: "radar-gap-note").firstMatch }
 
+    private func gapLegend(_ app: XCUIApplication) -> XCUIElement { app.descendants(matching: .any).matching(identifier: "radar-gap-legend").firstMatch }
+
     // MARK: Radar Deutschland, 72 hours
 
     func testRadarSeventyTwoHoursOldestSlotHoleAndWayBack() throws {
@@ -136,11 +138,15 @@ final class RadarHistoryUITests: XCTestCase {
         let nowValue = value(slider)
         XCTAssertFalse(gapNote(app).exists, "no hole next to now")
         shot(app, "radar72-1-jetzt")
+        // The timeline carries a red mark for the hole far back: with no note next to now, a legend says what it is.
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "legend for the red mark at now")
+        XCTAssertTrue(gapLegend(app).label.contains("Roter Strich"), "legend text: \(gapLegend(app).label)")
 
         // Oldest slot: reference 2026-11-18 08:40 UTC minus 72 h = Sunday 15 Nov, 09:40 in Berlin.
         jump(slider, fraction: 0)
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:40, Messung") }, "oldest slot: \(value(slider))")
         XCTAssertFalse(gapNote(app).exists, "the source reaches back the full 72 h: no note at the oldest slot")
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "legend at the oldest slot (no hole next to it)")
         shot(app, "radar72-2-aeltester-slot")
 
         // The hole of 6 times: slot before (index 424) or after (index 425) it names it. 882 slots in total (845 + 37).
@@ -148,6 +154,7 @@ final class RadarHistoryUITests: XCTestCase {
         XCTAssertTrue(seek(slider, near: 0.48, slots: 876) { value(slider).contains("fehlen Daten") }, "a slot next to a hole: \(value(slider))")
         XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "note next to the hole: \(value(slider))")
         XCTAssertTrue(gapNote(app).label.contains("fehlen Daten"), "note text: \(gapNote(app).label)")
+        XCTAssertTrue(gapLegend(app).waitForNonExistence(timeout: 10), "next to the hole the note replaces the legend")
         XCTAssertTrue(value(slider).contains("fehlen Daten"), "VoiceOver value names the hole: \(value(slider))")
         shot(app, "radar72-3-luecke")
 
@@ -155,7 +162,14 @@ final class RadarHistoryUITests: XCTestCase {
         app.buttons["radar-frame-label"].press(forDuration: 0.8)
         XCTAssertTrue(waitValue(slider) { $0 == nowValue }, "back at now: \(value(slider)) vs \(nowValue)")
         XCTAssertTrue(gapNote(app).waitForNonExistence(timeout: 10))
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "legend is back at now")
         shot(app, "radar72-4-zurueck")
+
+        // While playing no notes stand above the map; the legend goes too and returns when playing stops.
+        app.buttons["radar-frame-label"].tap()
+        XCTAssertTrue(gapLegend(app).waitForNonExistence(timeout: 10), "no legend while playing")
+        app.buttons["radar-frame-label"].tap()
+        XCTAssertTrue(gapLegend(app).waitForExistence(timeout: 10), "legend after playing")
         app.terminate()
     }
 
