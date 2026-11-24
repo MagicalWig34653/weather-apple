@@ -692,7 +692,7 @@ final class RadarHistoryUITests: XCTestCase {
         jump(slider, fraction: 0)
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix("07:50, Messung") }, "stored 2 h wins over the 72 h window: \(value(slider))")
         shot(app, "neustart-2-gespeichert-2h")
-        pickStep(app, "past-hours-default")
+        pickStep(app, "past-hours-72")   // the standard step (72 h here) forgets the choice
         app.terminate()
 
         app = launchLayers(setting: nil, server: 72, keepStored: true)

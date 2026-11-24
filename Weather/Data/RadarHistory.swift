@@ -59,8 +59,12 @@ enum RadarPastWindow {
     }
 
     /// Row text of one step in the setting: the step that is the standard carries the mark "(Standard)", always the same step
-    /// whatever the user chose (placeholder: the mark is not set yet).
-    static func optionLabel(_ hours: Int, standard: Int) -> String { label(hours) }
+    /// whatever the user chose; the check mark is separate and follows the choice.
+    static func optionLabel(_ hours: Int, standard: Int) -> String {
+        hours == standard
+            ? String(format: NSLocalizedString("INFO_PAST_OPTION_DEFAULT", value: "%@ (Standard)", comment: "Info: the step that is the standard window"), label(hours))
+            : label(hours)
+    }
 
     static func label(_ hours: Int) -> String {
         hours == 1 ? NSLocalizedString("RADAR_PAST_WINDOW_ONE", value: "1 Stunde", comment: "History window")
