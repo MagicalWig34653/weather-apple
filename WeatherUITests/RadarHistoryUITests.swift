@@ -606,6 +606,72 @@ final class RadarHistoryUITests: XCTestCase {
         sleep(1)
     }
 
+    // MARK: "Standard" mark of the setting (TestFlight build 57/58: it hung on the chosen value, plus a doubled row)
+
+    private func openPastSetting(_ app: XCUIApplication) {
+        openInfoSheet(app)
+        let entry = app.buttons["Maximale Vergangenheit"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        entry.tap()
+        XCTAssertTrue(pastRow(app, 72).waitForExistence(timeout: 10), "rows of the setting")
+    }
+
+    private func pastRow(_ app: XCUIApplication, _ hours: Int) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "past-hours-\(hours)").firstMatch
+    }
+
+    /// Rows are in the normal order, only the `standard` row carries "(Standard)" (and no extra "Standard" row exists), only the
+    /// `checked` row is selected.
+    private func assertPastRows(_ app: XCUIApplication, standard: Int, checked: Int, _ context: String) {
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "past-hours-default").firstMatch.exists, "no doubled Standard row: \(context)")
+        var marked: [Int] = [], selected: [Int] = []
+        for hours in [1, 2, 6, 12, 24, 48, 72] {
+            let row = pastRow(app, hours)
+            XCTAssertTrue(row.exists, "row \(hours) h: \(context)")
+            if row.label.contains("(Standard)") { marked.append(hours) }
+            if row.isSelected { selected.append(hours) }
+            XCTAssertTrue(row.label.hasPrefix(hours == 1 ? "1 Stunde" : "\(hours) Stunden"), "\(row.label): \(context)")
+        }
+        XCTAssertEqual(marked, [standard], "the Standard mark hangs on the fixed standard step only: \(context)")
+        XCTAssertEqual(selected, [checked], "the check mark follows the choice: \(context)")
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Standard'")).count, 0, "no row starts with Standard: \(context)")
+    }
+
+    /// Radar Germany, the backend window is 72 h: Standard sits on "72 Stunden (Standard)" whichever step is chosen (also the standard itself).
+    func testStandardMarkStaysOnTheStandardStepWhateverIsChosenRadar() throws {
+        let app = launchRadar(hours: 72, setting: 6)
+        XCTAssertTrue(waitValue(slider(app)) { $0.contains("Messung") })
+        openPastSetting(app)
+        assertPastRows(app, standard: 72, checked: 6, "stored choice 6 h")
+        shot(app, "standard-radar-1-gewaehlt-6h", enforceDark: false)
+        pastRow(app, 24).tap(); sleep(1)
+        assertPastRows(app, standard: 72, checked: 24, "24 h picked")
+        pastRow(app, 1).tap(); sleep(1)
+        assertPastRows(app, standard: 72, checked: 1, "1 h picked")
+        pastRow(app, 72).tap(); sleep(1)
+        assertPastRows(app, standard: 72, checked: 72, "the standard step itself picked")
+        shot(app, "standard-radar-2-standardwert-72h", enforceDark: false)
+        pastRow(app, 12).tap(); sleep(1)
+        assertPastRows(app, standard: 72, checked: 12, "12 h picked after the standard")
+        app.terminate()
+    }
+
+    /// A layer with 48 h of past: Standard sits on "48 Stunden (Standard)" (its own window), the choice moves the check mark only.
+    func testStandardMarkStaysOnTheStandardStepWhateverIsChosenEurope() throws {
+        let app = launchLayers(setting: 6, server: 48)
+        try Pick.rain("Europa (OPERA)").select(app, self)
+        XCTAssertTrue(waitValue(slider(app)) { $0.hasPrefix("09:50, Messung") })
+        openPastSetting(app)
+        assertPastRows(app, standard: 48, checked: 6, "Europe, stored choice 6 h")
+        shot(app, "standard-europa-1-gewaehlt-6h", enforceDark: false)
+        pastRow(app, 2).tap(); sleep(1)
+        assertPastRows(app, standard: 48, checked: 2, "Europe, 2 h picked")
+        pastRow(app, 48).tap(); sleep(1)
+        assertPastRows(app, standard: 48, checked: 48, "Europe, the standard step picked")
+        shot(app, "standard-europa-2-standardwert-48h", enforceDark: false)
+        app.terminate()
+    }
+
     /// Restart: a chosen "2 h" survives the restart and wins over the 72 h window; "Standard" clears it again (the 72 h are back).
     func testStoredTwoHoursWinsAfterRestartAndStandardBringsTheBackendWindowBack() throws {
         var app = launchLayers(setting: nil, server: 72)

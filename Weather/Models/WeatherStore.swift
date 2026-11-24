@@ -68,6 +68,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         guard layers.active != .radar, let offered = layers.offeredHistoryHours(layers.active) else { return pastHours }
         return RadarPastWindow.options.filter { $0 <= max(offered, RadarPastWindow.directHours) }.max() ?? RadarPastWindow.defaultHours
     }
+    /// The step the setting marks as "Standard" (placeholder: still follows the choice).
+    var standardPastHours: Int { shownPastHours }
     /// Past used for the play window: the choice, else the fixed default (the window never grows with the backend's 72 h).
     var playbackPastHours: Int { pastChoice ?? RadarPastWindow.defaultHours }
     private(set) var historyStatus = RadarHistoryStatus.notNeeded
