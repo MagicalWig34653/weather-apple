@@ -154,7 +154,9 @@ final class UpdateProgressBarUITests: XCTestCase {
 
     private func barValue(_ app: XCUIApplication, timeout: TimeInterval = 30) -> String? {
         let element = bar(app)
-        if element.waitForExistence(timeout: timeout) { return element.value as? String }
+        // `snapshot()` instead of `value`: the bar may end between the existence check and the read (a plain `value` read fails the
+        // test with "no matches found"); a bar that is gone still fails the caller's assertion (nil is not the expected value).
+        if element.waitForExistence(timeout: timeout) { return (try? element.snapshot().value) as? String }
         add(XCTAttachment(screenshot: app.screenshot()))   // no bar: keep the screen for the failure report
         return nil
     }
@@ -842,9 +844,9 @@ final class UpdateProgressBarUITests: XCTestCase {
         request.usesLanguageCorrection = false
         try? VNImageRequestHandler(cgImage: cg).perform([request])
         let items = (request.results ?? []).compactMap { observation in observation.topCandidates(1).first.map { (observation.boundingBox.midY, $0.string) } }
-        // Lines without a letter are the pill's symbols read as text (the chevron ">" or the info "i" circle beside the first line, dark
-        // "Forecast details", Build 58 dark run), not text lines of the pill.
-        return items.sorted { $0.0 > $1.0 }.map { $0.1.trimmingCharacters(in: .whitespaces) }.filter { $0.contains(where: \.isLetter) && $0.count > 1 }
+        // Lines with fewer than two letters are the pill's symbols read as text (the chevron ">", the info "i" circle: "i >" beside the first line of
+        // "Forecast details", Build 58 runs), not text lines of the pill.
+        return items.sorted { $0.0 > $1.0 }.map { $0.1.trimmingCharacters(in: .whitespaces) }.filter { $0.filter(\.isLetter).count >= 2 }
     }
 
     /// Largest accessibility size, light/dark (`SHOT_SUFFIX`) x German/English x two pill states (warning symbol "server behind" and
