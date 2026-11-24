@@ -411,3 +411,7 @@ Grundlage: Entscheidungen Lino 17.11.2026 (Backend `docs/decisions.md`, Ebene `r
 
 - **Entscheidung:** Der sichtbare Ruhetext der Prognose-Pille im Zustand "Server hinterher" wird "Noch kein neuerer Stand" / "No newer data yet" (einzeilig bei Schrift L, auch SE 3). Der volle Satz bleibt gesprochene Beschriftung und Text im Detailblatt. Grund: der 8-pt-Innenabstand machte den bisherigen zweizeiligen Text 54 pt hoch und die Pille sprang beim Laden um 6 pt; die Zusage "keine Höhenänderung" gilt damit bei L wieder ohne Ausnahme. Bei Accessibility-Größen bleibt der Text "Prognosedetails", dort ist die Pillenhöhe in allen Zuständen gleich gemessen.
 
+## 24.11.2026: Roter Strich der Zeitleiste bleibt, Legendenzeile statt Entfernen (Karte 49689DCF, TestFlight-Rueckmeldung "Was ist das fuer ein Strich?")
+
+- **Entscheidung (Lino):** Der rote Strich ist eine echte Datenluecke und bleibt; nichts wird versteckt oder erfunden. Wo keine Luecke am angezeigten Slot anliegt (dort nennt `radar-gap-note` sie schon) und nicht abgespielt wird, erklaert eine Zeile im oberen Hinweisstapel den Strich: `radar-gap-legend`, de "Roter Strich: Hier fehlen Daten." / en "Red mark: data is missing here." (ein neutraler Text fuer alle Ebenen). Bei Accessibility-Schriftgroessen steht sie wie die anderen Hinweise im Prognose-Detailblatt. Die Marke bleibt `accessibilityHidden`, VoiceOver-Wert des Reglers unveraendert.
+
