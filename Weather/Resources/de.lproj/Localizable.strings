@@ -197,6 +197,9 @@
 "TIMELINE_SCRUB_FINE" = "Feinsteuerung";
 "TIMELINE_UNKNOWN" = "Unbekannt";
 "TIMELINE_SLIDER_HINT" = "Von %1$@ bis %2$@. Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.";
+"TIMELINE_GAP_BEFORE" = "Davor fehlen Daten: %@";
+"TIMELINE_GAP_AFTER" = "Danach fehlen Daten: %@";
+"RADAR_HISTORY_SHORT" = "Diese Karte reicht nur %1$@ zurück – gewählt sind %2$@.";
 "TIMELINE_PAUSE" = "Animation pausieren";
 "TIMELINE_PLAY" = "Animation abspielen";
 "TIMELINE_PILL_HINT" = "Tippen: abspielen oder pausieren. Gedrückt halten: zur aktuellen Zeit springen";
@@ -228,7 +231,9 @@
 "RADAR_SLOT_FAILED" = "%1$@ für %2$@ nicht geladen";
 "RADAR_LAYER_UNAVAILABLE" = "%@ derzeit nicht verfügbar";
 "RADAR_FORECAST_DETAILS" = "Prognosedetails";
+"RADAR_FORECAST_DETAILS_PILL" = "Prognose-\ndetails";
 "RADAR_FORECAST_DETAILS_HINT" = "Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise";
+"RADAR_DETAIL_NOTES_VALUE" = "Hinweise: %d";
 "RADAR_SAVE_PLACE_BUTTON" = "Ausgewählten Ort speichern oder umbenennen";
 "RADAR_FORECAST_LOADING" = "Regenprognose wird geladen …";
 "RADAR_FORECAST_UNAVAILABLE" = "Prognose nicht verfügbar";
@@ -455,6 +460,9 @@
 "INFO_PAST_FOOTER_DIRECT" = "Beim Abruf direkt vom DWD ist nur 1 Stunde Vergangenheit verfügbar.";
 "INFO_PAST_FOOTER_UNAVAILABLE" = "Historie nicht verfügbar: Die Zeitleiste zeigt derzeit nur etwa die letzte Stunde.";
 "INFO_PAST_FOOTER_SERVER_MAX" = "Der Server liefert derzeit höchstens %@.";
+"INFO_PAST_FOOTER_ALL" = "Gilt für alle Karten. Hat eine Karte weniger Vergangenheit, steht an ihrem ältesten Bild „Davor fehlen Daten“.";
+"INFO_PAST_DEFAULT" = "Standard (%@)";
+"INFO_PAST_FOOTER_LAYER" = "Diese Karte reicht derzeit höchstens %@ zurück.";
 "INFO_MODEL_ICON" = "Temperatur-, Taupunkt- und Feuchtekarten: DWD ICON-D2/ICON-EU Modelldaten (CC BY 4.0, Quelle: Deutscher Wetterdienst), bildlich wiedergegeben und aufbereitet (verändert). Modellprognosen, keine Messwerte.";
 "INFO_MODEL_FOREST" = "Optionale Waldfläche: %1$@ (CC BY 4.0); %2$@.";
 "SITE_PRIVACY_TITLE" = "Datenschutzerklärung";
@@ -483,7 +491,9 @@
 "OUTLOOK_STALE" = "Prognosedaten sind veraltet";
 "OUTLOOK_RAIN_AT_PLACE" = "Regen am ausgewählten Ort";
 "OUTLOOK_RAIN_IN_MINUTES" = "Regen voraussichtlich in etwa %d Min.";
+"OUTLOOK_RAIN_IN_MINUTES_SHORT" = "Regen in etwa %d Min.";
 "OUTLOOK_DRY" = "Vorerst kein messbarer Regen erwartet";
+"OUTLOOK_DRY_SHORT" = "Kein Regen erwartet";
 "OUTLOOK_POSSIBLE_RAIN" = "Regen möglich · Daten teilweise unvollständig";
 "OUTLOOK_UNRELIABLE" = "Keine verlässliche Regenaussage verfügbar";
 "OUTLOOK_NO_FORECAST" = "Keine aktuelle Prognose verfügbar";
@@ -562,6 +572,17 @@
 "RADAR_MENU_GROUP_RAIN" = "Regen";
 "LEGEND_RADAR_EU_HINT" = "Niederschlag in Europa aus dem OPERA-Radarverbund von EUMETNET, alle 5 Minuten. Die Daten sind umprojiziert und eingefärbt.";
 "LEGEND_RADAR_WORLD_HINT" = "Niederschlag weltweit von NOAA, aus Satellitendaten geschätzt und deshalb ungenauer als Radarmessungen. Es gibt Lücken, und Stärke und Ort können abweichen.";
+"RADAR_WORLD_ESTIMATE_NOTE" = "Schätzung aus Satellitendaten, ungenauer als Radar. Keine Vorhersage.";
+"RADAR_WORLD_DEGRADED_NOTE" = "Nördlich von 60° N sind die Schätzwerte eingeschränkt und blasser dargestellt.";
+"RADAR_WORLD_OUTSIDE_NOTE" = "Hier gibt es keine Werte: Die Weltkarte reicht nur von 60° S bis 70° N.";
+"RADAR_WORLD_STALE_NOTE" = "Regenradar Welt: keine aktuellen Daten. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_WORLD_UNREACHABLE_NOTE" = "Regenradar Welt: Server nicht erreichbar. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_WORLD_INVALID_NOTE" = "Regenradar Welt: Daten nicht lesbar. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_WORLD_UNAVAILABLE_NOTE" = "Regenradar Welt ist derzeit nicht verfügbar. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_EU_STALE_NOTE" = "Regenradar Europa: keine aktuellen Daten. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_EU_UNREACHABLE_NOTE" = "Regenradar Europa: Server nicht erreichbar. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_EU_INVALID_NOTE" = "Regenradar Europa: Daten nicht lesbar. Die Karte zeigt deshalb keinen Regen.";
+"RADAR_EU_UNAVAILABLE_NOTE" = "Regenradar Europa ist derzeit nicht verfügbar. Die Karte zeigt deshalb keinen Regen.";
 "LEGEND_TITLE_RADAR_EU" = "Niederschlag Europa";
 "LEGEND_TITLE_RADAR_WORLD" = "Niederschlag Welt (Schätzung)";
 "RADAR_MENU_GROUP_PRESSURE" = "Luftdruck";
@@ -574,4 +595,5 @@
 "RADAR_FORECAST_CAPTION_REFRESHING" = "Aktualisiere …";
 "RADAR_FORECAST_CAPTION_FAILED" = "Aktualisierung fehlgeschlagen";
 "RADAR_FORECAST_CAPTION_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand";
+"RADAR_FORECAST_CAPTION_BEHIND_SHORT" = "Noch kein neuerer Stand";
 "RADAR_DETAILS_SERVER_BEHIND" = "Der Wetterdienst hat noch keinen neueren Stand als diese Prognose, %@. Die App fragt weiter nach.";

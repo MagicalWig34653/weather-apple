@@ -4,6 +4,8 @@
 "REGION_ACTIVITY_RADIUS" = "Umkreis %d km";
 "REGION_ACTIVITY_SHARE_NOW" = "%d %% der Fläche nass";
 "REGION_ACTIVITY_SHARE_PEAK" = "bis zu %d %% der Fläche nass";
+"REGION_ACTIVITY_SHARE_NOW_SHORT" = "%d %% nass";
+"REGION_ACTIVITY_SHARE_PEAK_SHORT" = "bis zu %d %% nass";
 "REGION_ACTIVITY_SHARE_COMPACT" = "%d %%";
 "REGION_ACTIVITY_INTENSITY" = "Stärkste Stufe %1$d (%2$@)";
 "REGION_ACTIVITY_WORD_VERY_LIGHT" = "sehr leicht";

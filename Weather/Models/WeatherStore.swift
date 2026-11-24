@@ -34,7 +34,12 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     var timeline: RadarTimeline?
     var selectedFrame = 0
     var isRadarLoading = false
-    var isForecastLoading = false
+    var isForecastLoading = false {
+        didSet { if isForecastLoading, !oldValue { startProgressPolling() } }
+    }
+    /// Last reading of the running forecast load. Polled: the transport reports from background threads, which must not write observable state.
+    private(set) var forecastReading = LoadProgress.Reading.indeterminate
+    @ObservationIgnored private var progressPoll: Task<Void, Never>?
     var isLoading: Bool { isRadarLoading || isForecastLoading }
     var radarNotice: String?
     var forecastError: String?
@@ -52,11 +57,33 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// Where the currently shown radar images come from (honest source display).
     var radarSource: RadarSource = .cache
     var radarAttribution = RadarAttribution.default
-    /// Chosen maximum past of the timeline (hours); only the cache backend can deliver more than one hour.
+    /// Effective maximum past of the radar timeline (hours): the user's choice, else the backend's window; only the cache
+    /// backend can deliver more than one hour.
     private(set) var pastHours = RadarPastWindow.defaultHours
+    /// The user's explicit choice; `nil` = never chosen (each map's own server window applies).
+    private(set) var pastChoice: Int?
+    /// The step shown as selected: the choice, else the active map's window (largest step not above it).
+    var shownPastHours: Int {
+        if let pastChoice { return pastChoice }
+        guard layers.active != .radar, let offered = layers.offeredHistoryHours(layers.active) else { return pastHours }
+        return RadarPastWindow.options.filter { $0 <= max(offered, RadarPastWindow.directHours) }.max() ?? RadarPastWindow.defaultHours
+    }
+    /// Past used for the play window: the choice, else the fixed default (the window never grows with the backend's 72 h).
+    var playbackPastHours: Int { pastChoice ?? RadarPastWindow.defaultHours }
     private(set) var historyStatus = RadarHistoryStatus.notNeeded
     /// Longest past the server currently offers (`history_hours`), if known.
     var serverHistoryHours: Int? { if case .loaded(let hours) = historyStatus { hours } else { nil } }
+    /// Longest past the ACTIVE map offers: the radar's `history.json`, else the layer's own manifest.
+    /// What the server offers for the map in view: the radar's `history.json`, else the layer's own manifest.
+    var activeServerHistoryHours: Int? { layers.active == .radar ? serverHistoryHours : layers.offeredHistoryHours(layers.active) }
+
+    /// Hours the shown map really reaches back when that is clearly less than the user's chosen past (for the hint); `nil` without a
+    /// choice, without a timeline, on the direct DWD path, and while the radar's own timeline is still being composed for a new choice.
+    var shortHistoryHours: Int? {
+        guard let choice = pastChoice, layers.active != .radar || composedHours == choice,
+              let timeline = displayTimeline, let step = timeline.backend?.stepMinutes, let oldest = timeline.dates.first else { return nil }
+        return RadarPastWindow.shortfallHours(chosen: choice, span: timeline.referenceTime.timeIntervalSince(oldest), stepMinutes: step)
+    }
 
     @ObservationIgnored private let reloadWidgets: () -> Void
     @ObservationIgnored private let client: DWDClient
@@ -67,8 +94,16 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     @ObservationIgnored private lazy var pathGate = RadarPathGate()
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var generation = UUID()
-    /// Token of the running point-forecast load (a forecast-only reload does not touch the radar generation).
-    @ObservationIgnored private var forecastToken = UUID()
+    /// IDs of the running point-forecast loads of the selected place (a forecast-only reload does not touch the radar generation).
+    /// `isForecastLoading` (and with it the bar) holds while any of them runs; a place change empties the set, which drops
+    /// the answers of the old loads. Overlapping loads (start-up: `refresh()` and the visible-app loop) no longer replace each other.
+    @ObservationIgnored private var forecastLoads: Set<UUID> = []
+    /// Counts successful answers; a load that was overtaken by another answer while it ran must not step back to an older run.
+    @ObservationIgnored private var forecastDeliveries = 0
+    /// Counts answers that reached the store (success or failure); tells a joining `refresh()` whether the load it waited for answered.
+    @ObservationIgnored private var forecastAnswers = 0
+    /// `refresh()` calls waiting for the running forecast load instead of asking a second time.
+    @ObservationIgnored private var forecastLoadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
     /// Shared by polls, manual reloads and timeline composition across suspension points.
     @ObservationIgnored private var radarGeneration = UUID()
     /// Refresh started by the last `select`; tests await it to order requests deterministically.
@@ -107,7 +142,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
         #if DEBUG
         if layers == nil, let mode = RadarLayerStore.uiTestMode {
             self.layers = RadarLayerStore(radarBaseURL: backend.baseURL,
-                                          client: RadarLayerStore.uiTestClient(mode: mode, radarBaseURL: backend.baseURL))
+                                          client: RadarLayerStore.uiTestClient(mode: mode, radarBaseURL: backend.baseURL),
+                                          clock: { RadarLayerStore.frozenNow ?? Date() })
         } else {
             self.layers = layers ?? RadarLayerStore(radarBaseURL: backend.baseURL)
         }
@@ -116,14 +152,23 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
 #endif
         self.defaults = defaults
         super.init()
-        pastHours = RadarPastWindow.load(defaults)
+        #if DEBUG
+        if CommandLine.arguments.contains("-UITestResetPastChoice") { RadarPastWindow.clear(defaults) }   // UI tests: a fresh install
+        #endif
+        pastChoice = RadarPastWindow.choice(defaults)
+        pastHours = pastChoice ?? RadarPastWindow.defaultHours
         composedHours = pastHours
+        self.layers.setPastHours(pastChoice)
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         do {
             let store = try placeStore ?? PlaceStore()
             self.placeStore = store
             self.forecastCache = try forecastCache ?? ForecastCache()
+            #if DEBUG
+            // UI tests: start without a stored forecast (an earlier test's newer run would end every load before it starts).
+            if CommandLine.arguments.contains("-UITestResetForecast") { try? self.forecastCache?.retain(placeIDs: []) }
+            #endif
             let snapshot = try store.load()
             places = snapshot.places
             if let selected = places.first(where: { $0.id == snapshot.selectedPlaceID }) ?? places.first {
@@ -165,6 +210,25 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// Loading circle at the right edge of the forecast pill: exactly while a forecast request runs, also the first one.
     var showsForecastSpinner: Bool { isForecastLoading }
 
+    /// Bar on the bottom edge of the forecast header: with a measured fill only where every request reports a total.
+    var updateProgressDisplay: UpdateProgressDisplay {
+        UpdateProgressDisplay.make(isForecastLoading: isForecastLoading, isRadarLoading: isRadarLoading, reading: forecastReading)
+    }
+
+    private func startProgressPolling() {
+        progressPoll?.cancel()
+        forecastReading = .indeterminate
+        progressPoll = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, self.isForecastLoading else { break }
+                let reading = self.client.progress.reading
+                if reading != self.forecastReading { self.forecastReading = reading }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            if !Task.isCancelled { self?.forecastReading = .indeterminate }
+        }
+    }
+
     /// Visible-app loop: load when due (also right after returning), then wait as `ForecastRefreshSchedule` says.
     func runForecastRefresh(schedule: ForecastRefreshSchedule = ForecastRefreshSchedule(),
                             restricted: (() -> Bool)? = nil,
@@ -178,7 +242,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             // The cause of the one-off test-runner restart in ForecastRefreshUITests is not proven (Backlog card).
             if ForecastUITestStub.mode != nil { limited = false }
             #endif
-            let delay = schedule.nextDelay(now: clock(),shown: forecast?.referenceTime, failures: forecastFailures, restricted: limited)
+            var delay = schedule.nextDelay(now: clock(),shown: forecast?.referenceTime, failures: forecastFailures, restricted: limited)
+            #if DEBUG
+            // Stub `measured` only: the next load starts 3 s after the first one (no wait for the 20 s pause, no background trip).
+            if ForecastUITestStub.mode == "measured" { delay = min(delay, 3) }
+            #endif
             do { try await sleep(delay) } catch { return }
         }
     }
@@ -210,7 +278,8 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func select(_ place: SavedPlace) {
         // Invalidate the old request before the replacement refresh task can start.
         generation = UUID()
-        forecastToken = UUID()
+        forecastLoads.removeAll()
+        releaseForecastWaiters()
         radarGeneration = UUID()
         selectedPlace = place
         if places.contains(where: { $0.id == place.id }) { persistPlaces() }
@@ -266,26 +335,25 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func refresh() async {
         let requestID = UUID()
         generation = requestID
-        forecastToken = requestID
         radarGeneration = requestID
         let place = selectedPlace
         isRadarLoading = true
-        isForecastLoading = true
+        // A forecast load of this place already runs (start-up: the loop was first): join it, ask the service only once.
+        let joining = !forecastLoads.isEmpty
+        if !joining { beginForecastLoad(requestID) }
         radarNotice = nil
         attemptedRadarFallback = false
         // A retry must also reload missing tiles when the data run is unchanged.
         radarReloadRevision += 1
         defer {
-            if generation == requestID {
-                isRadarLoading = false
-                isForecastLoading = false
-            }
+            if generation == requestID { isRadarLoading = false }
+            endForecastLoad(requestID)
         }
         forecastError = nil
         radarError = nil
         // Each source can fail independently: a point error must not disable the map.
         async let mapUpdate: Void = refreshTimeline(requestID: requestID, placeID: place.id)
-        async let pointUpdate: Void = refreshForecast(requestID: requestID, place: place)
+        async let pointUpdate: Bool = joining ? joinForecastLoad(requestID: requestID, place: place) : refreshForecast(requestID: requestID, place: place)
         _ = await (mapUpdate, pointUpdate)
         guard generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
         lastRefresh = Date()
@@ -382,32 +450,90 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     func reloadForecast() async {
         guard !isForecastLoading else { return }
         let token = UUID()
-        forecastToken = token
         let place = selectedPlace
-        isForecastLoading = true
+        beginForecastLoad(token)
         forecastError = nil
-        defer { if forecastToken == token { isForecastLoading = false } }
-        await refreshForecast(requestID: token, place: place)
-        if forecastToken == token, selectedPlace.id == place.id, !Task.isCancelled { lastRefresh = clock() }
+        defer { endForecastLoad(token) }
+        if await refreshForecast(requestID: token, place: place) { lastRefresh = clock() }
     }
 
-    private func refreshForecast(requestID: UUID, place: SavedPlace) async {
-        let result = await loadForecast(at: place.coordinate)
-        guard forecastToken == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return }
+    private func beginForecastLoad(_ id: UUID) {
+        forecastLoads.insert(id)
+        isForecastLoading = true
+    }
+
+    /// Ends one load; the bar goes only when no other load of this place still runs. Loads dropped by a place change are ignored.
+    private func endForecastLoad(_ id: UUID) {
+        guard forecastLoads.remove(id) != nil, forecastLoads.isEmpty else { return }
         isForecastLoading = false
+        releaseForecastWaiters()
+    }
+
+    private func releaseForecastWaiters() {
+        let waiting = forecastLoadWaiters
+        forecastLoadWaiters = [:]
+        waiting.values.forEach { $0.resume() }
+    }
+
+    /// Returns when no forecast load runs any more (or a place change dropped them); returns at once when cancelled.
+    private func waitForForecastLoads() async {
+        let id = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                if forecastLoads.isEmpty || Task.isCancelled { continuation.resume() } else { forecastLoadWaiters[id] = continuation }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.forecastLoadWaiters.removeValue(forKey: id)?.resume() }
+        }
+    }
+
+    /// The forecast part of a `refresh()` that found a load running: the running load shows the answer. Only when that load
+    /// ended without any answer (its task was cancelled, e.g. the loop on leaving the app) does this refresh ask once itself.
+    private func joinForecastLoad(requestID: UUID, place: SavedPlace) async -> Bool {
+        let answersBefore = forecastAnswers
+        await waitForForecastLoads()
+        guard forecastAnswers == answersBefore, generation == requestID, selectedPlace.id == place.id, !Task.isCancelled else { return true }
+        beginForecastLoad(requestID)
+        return await refreshForecast(requestID: requestID, place: place)
+    }
+
+    /// `true` when the answer belongs to the selected place and was not cancelled.
+    @discardableResult
+    private func refreshForecast(requestID: UUID, place: SavedPlace) async -> Bool {
+        let deliveriesAtStart = forecastDeliveries
+        let result = await loadForecast(at: place.coordinate)
+        guard forecastLoads.contains(requestID), selectedPlace.id == place.id, !Task.isCancelled else { return false }
+        endForecastLoad(requestID)
+        forecastAnswers += 1
+        // Another load answered while this one ran: an older run must not replace what that one delivered.
+        let overtaken = forecastDeliveries != deliveriesAtStart
         switch result {
         case .success(let value):
-            forecast = value
+            forecastDeliveries += 1
             forecastFailures = 0
             forecastCheckedAt = clock()
+            if overtaken, let shown = forecast, value.referenceTime < shown.referenceTime { break }
+            forecast = value
             rememberForecast(value, for: place.id)
             reloadWidgets()
+        case .failure(let error) where isRunNotReady(error):
+            // The index lists a new run, but the service still answers "not available" for it (measured 10 to 30 s,
+            // 20.11.2026): the shown forecast is valid and nothing failed. The loop asks again within seconds.
+            forecastCheckedAt = clock()
+        case .failure where overtaken:
+            break // a newer answer arrived meanwhile: this failure is moot
         case .failure(let error):
             forecastFailures += 1
             // Keep (or restore) this place's last valid forecast; the view marks it as not confirmed.
             forecast = lastValidForecast(for: place.id)
             forecastError = error.localizedDescription
         }
+        return true
+    }
+
+    private func isRunNotReady(_ error: Error) -> Bool {
+        guard (error as? DWDDataError) == .runUnavailable, let forecast else { return false }
+        return !forecast.isStale(at: clock())
     }
 
     func lastValidForecast(for placeID: UUID) -> RainForecast? {
@@ -487,8 +613,9 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
     /// choice exceeds what latest covers, and only for a new run (or when a manual refresh retries a miss).
     private func resolveBackendTimeline(_ latest: RadarManifest, retryHistory: Bool, requestID: UUID) async -> RadarManifest? {
         guard radarGeneration == requestID, !Task.isCancelled else { return nil }
-        let hours = pastHours
-        if RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
+        var hours = pastChoice ?? RadarPastWindow.defaultHours
+        // Without a choice the backend's window decides, so `history.json` is read once per run to learn it.
+        if pastChoice == nil || RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
             if latest.run != historyCheckedRun || (retryHistory && history == nil) {
                 let result = await backend.history()
                 guard radarGeneration == requestID, !Task.isCancelled else { return nil }
@@ -502,6 +629,11 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
                     historyCheckedRun = latest.run
                 }
             }
+        }
+        if pastChoice == nil {
+            hours = RadarPastWindow.standardHours(history: history.flatMap { RadarTimelineComposer.isCompatible($0, with: latest) ? $0 : nil })
+        }
+        if RadarTimelineComposer.needsHistory(latest: latest, hours: hours) {
             if let history, RadarTimelineComposer.isCompatible(history, with: latest) {
                 historyStatus = .loaded(hours: history.historyHours)
             } else { historyStatus = .unavailable }
@@ -509,26 +641,39 @@ final class WeatherStore: NSObject, @MainActor CLLocationManagerDelegate {
             historyStatus = .notNeeded
         }
         latestManifest = latest
+        pastHours = hours
         composedHours = hours
         return RadarTimelineComposer.compose(latest: latest, history: history, hours: hours)
     }
 
     /// Changes the maximum past and persists it. The current instant stays selected where possible.
     func setPastHours(_ hours: Int) {
-        guard RadarPastWindow.options.contains(hours), hours != pastHours else { return }
+        guard RadarPastWindow.options.contains(hours), hours != pastChoice else { return }
+        pastChoice = hours
         pastHours = hours
+        layers.setPastHours(hours)
         RadarPastWindow.save(hours, to: defaults)
+        guard radarSource == .cache, latestManifest != nil, !isRadarLoading else { return }
+        Task { await recomposeTimeline() }
+    }
+
+    /// Forgets the choice: every map shows its own server window again (nothing stored).
+    func usePastDefault() {
+        guard pastChoice != nil else { return }
+        pastChoice = nil
+        RadarPastWindow.clear(defaults)
+        layers.setPastHours(nil)
         guard radarSource == .cache, latestManifest != nil, !isRadarLoading else { return }
         Task { await recomposeTimeline() }
     }
 
     private func recomposeTimeline() async {
         guard radarSource == .cache, !isRadarLoading, let latest = latestManifest else { return }
-        let hours = pastHours
+        let choice = pastChoice
         let requestID = UUID()
         radarGeneration = requestID
         guard let merged = await resolveBackendTimeline(latest, retryHistory: true, requestID: requestID) else { return }
-        guard radarGeneration == requestID, hours == pastHours, !isRadarLoading, !Task.isCancelled, radarSource == .cache else { return }
+        guard radarGeneration == requestID, choice == pastChoice, !isRadarLoading, !Task.isCancelled, radarSource == .cache else { return }
         apply(merged.timeline, source: .cache, attribution: RadarAttribution(latest), keepSelection: true)
     }
 

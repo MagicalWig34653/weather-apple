@@ -221,7 +221,7 @@ extension RadarBackendTests {
 
     func testPastSettingDefaultsPersistsAndRejectsInvalidValues() {
         let defaults = isolatedDefaults()
-        XCTAssertEqual(RadarPastWindow.options, [1, 2, 6, 12, 24, 48])
+        XCTAssertEqual(RadarPastWindow.options, [1, 2, 6, 12, 24, 48, 72], "72 h added with backend PR #4")
         XCTAssertEqual(RadarPastWindow.load(defaults), 2, "default is 2 h")
         RadarPastWindow.save(24, to: defaults)
         XCTAssertEqual(RadarPastWindow.load(defaults), 24)

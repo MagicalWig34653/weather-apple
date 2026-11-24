@@ -18,7 +18,7 @@ struct WidgetForecastLoader: Sendable {
     let saveCached: @Sendable (RainForecast, UUID) throws -> Void
     let fetch: @Sendable (WeatherCoordinate) async throws -> RainForecast
 
-    static func live(client: DWDClient = DWDClient()) -> Self {
+    static func live(client: DWDClient = DWDClient(timeouts: .background)) -> Self {
         Self(loadPlaces: { try PlaceStore().load() },
              loadCached: { try ForecastCache().load(for: $0) },
              saveCached: { try ForecastCache().save($0, for: $1) },

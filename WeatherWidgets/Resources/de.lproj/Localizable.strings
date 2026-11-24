@@ -31,6 +31,8 @@
 "ACTIVITY_RAIN_IMMINENT" = "Regen gleich";
 "ACTIVITY_ENDS_IN" = "Endet in";
 "ACTIVITY_ENDS_IMMINENT" = "Endet gleich";
+"ACTIVITY_RAIN_AT" = "Regen ab";
+"ACTIVITY_ENDS_AT" = "Endet um";
 "WIDGET_ENTITY_TYPE" = "Gespeicherter Ort";
 "WIDGET_INTENT_TITLE" = "Regenprognose";
 "WIDGET_INTENT_DESCRIPTION" = "Zeigt die Prognose für einen in Showers gespeicherten Ort.";

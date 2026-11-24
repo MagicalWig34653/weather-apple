@@ -15,6 +15,8 @@ struct RadarScreen: View {
     /// Local value readout of the tapped point (2 m fields) and the "read centre value" request counter.
     @State private var readout: ReadoutState?
     @State private var readoutRevision = 0
+    /// Latitude of the map centre (world rain map coverage note only).
+    @State private var mapCenterLatitude: Double?
     @State private var placeName = ""
     @State private var radarLoadState: RadarLoadState?
     /// Calms the per-slot loading hint (see `SlotFeedbackGate`); `heldFeedback` is what is currently shown.
@@ -25,6 +27,8 @@ struct RadarScreen: View {
     @State private var scrubIndex: Int?
     /// Fine-scrubbing stage while the finger is down (`nil` when not dragging).
     @State private var scrubStage: ScrubStage?
+    /// Build 53: controls above the map are hidden while the slider is dragged (map, slider, time value and credit stay).
+    @State private var chrome = MapChromeVisibility()
     @State private var mapBottomInset: CGFloat = 70
     @State private var screenWidth: CGFloat?
     /// Legend space: top of the legend row and top of the time pill block, in the screen's own coordinate space.
@@ -62,6 +66,11 @@ struct RadarScreen: View {
                          if let state, state.announce { UIAccessibility.post(notification: .announcement, argument: state.spoken) }
                      },
                      onSelect: { store.selectMapPoint(latitude: $0.latitude, longitude: $0.longitude) },
+                     onCenterLatitude: { latitude in
+                         // Only the world map uses it; rounded so that panning does not redraw the screen continuously.
+                         let rounded = (latitude * 10).rounded() / 10
+                         if mapCenterLatitude != rounded { mapCenterLatitude = rounded }
+                     },
                      onBackendFailure: { loaded in
                          // Optional layers have no fallback: a failed layer image never switches the radar source.
                          if loaded == 0, store.activeLayer == .radar { store.backendImagesUnavailable() }
@@ -85,14 +94,14 @@ struct RadarScreen: View {
                         Label(label, systemImage: "slider.horizontal.3")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .accessibilityHidden(true)
                     }
                     if let slot = heldFeedback {
                         Label(slot.text, systemImage: slot.failed ? "exclamationmark.triangle.fill" : "clock.arrow.circlepath")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .transition(.opacity)
                             .accessibilityIdentifier("radar-slot-status")
                     }
@@ -100,14 +109,15 @@ struct RadarScreen: View {
                         Label(readout.text, systemImage: "scope")
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .glassEffect(.regular, in: Capsule())
+                            .readableGlass(Capsule())
                             .accessibilityLabel(readout.spoken)
                             .accessibilityIdentifier("radar-readout")
                     }
                 }
                 .allowsHitTesting(false)
                 VStack(spacing: 6) {
-                timePill
+                // Same side margin as the slider card below (12 pt); the wide content at the large sizes left only 6 pt.
+                timePill.padding(.horizontal, 12)
                 // Home-button devices: the credit stays above the slider. Otherwise it is drawn below the slider (see `timeline`).
                 if !hasStripBelowSlider { creditLine(sizeLimit: .xxxLarge) }
                 }
@@ -123,8 +133,38 @@ struct RadarScreen: View {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).fixedSize(horizontal: false, vertical: true).padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
                         .accessibilityAddTraits(.updatesFrequently)
+                }
+                ForEach(inlineRainLayerNotices) { notice in
+                    Label(notice.text, systemImage: notice.kind == .estimate ? "info.circle" : "exclamationmark.triangle.fill")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, notice.kind == .estimate ? 8 : 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier(notice.identifier)
+                }
+                // A hole in the data next to the shown slot: said plainly, never filled with a picture. In the top stack (like the
+                // other notes), so the lower strip with Apple's legal link stays free.
+                if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, !displayedGapLines.isEmpty {
+                    Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("radar-gap-note")
+                }
+                // The chosen past is longer than the map delivers: said once and plainly (the choice and the data stay as they are).
+                if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
+                    Label(RadarPastWindow.shortHistoryText(available: available, chosen: chosen), systemImage: "info.circle")
+                        .font(.caption).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("radar-history-short-note")
                 }
                 HStack(alignment: .top, spacing: 10) {
                     Spacer()
@@ -134,7 +174,8 @@ struct RadarScreen: View {
                         if showLegend {
                             Group {
                                 if store.activeLayer == .radar {
-                                    RadarLegendPanel(legend: .precipitationRadar)
+                                    RadarLegendPanel(legend: .precipitationRadar,
+                                                     maxHeight: pillBlockTop.map { max(0, $0 - legendTop - 8) })
                                 } else {
                                     RadarLayerLegendPanel(
                                         layer: store.activeLayer, manifest: store.layers.activeManifest,
@@ -190,6 +231,13 @@ struct RadarScreen: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
+            // While the slider is dragged the whole top block (header, forecast, notices, legend, map buttons) fades out. Only
+            // opacity changes, so no layout moves and the finger on the slider is never disturbed; hidden controls can neither be
+            // tapped nor reached by VoiceOver. Reduce Motion: switches instantly.
+            .opacity(chrome.isChromeHidden ? 0 : 1)
+            .allowsHitTesting(!chrome.isChromeHidden)
+            .accessibilityHidden(chrome.isChromeHidden)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: chrome.isChromeHidden)
         }
         .coordinateSpace(name: "radarScreen")
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
@@ -205,11 +253,12 @@ struct RadarScreen: View {
         .sheet(item: $sheet) { item in
             switch item {
             case .places: PlacesSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
-            case .details: ForecastDetails(store: store)
+            case .details: ForecastDetails(store: store, notes: detailNotes)
             case .information: InformationSheet(store: store).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             case .warnings: WarningsListView(feed: warnFeed).navigationTransition(.zoom(sourceID: item.rawValue, in: glassNamespace))
             }
         }
+        .environment(\.glassScrim, colorScheme == .dark && store.activeLayer.coversMapBrightly ? RadarLayer.brightLayerScrim : 0)
         .alert(NSLocalizedString("RADAR_SAVE_PLACE_TITLE", value: "Ort speichern", comment: "Radar"), isPresented: $showSave) {
             TextField(NSLocalizedString("COMMON_NAME", value: "Name", comment: "Text field"), text: $placeName)
             Button(NSLocalizedString("COMMON_SAVE", value: "Speichern", comment: "Common")) { store.saveSelection(name: placeName) }
@@ -219,7 +268,7 @@ struct RadarScreen: View {
             guard store.isPlaying else { return }
             // Playback covers only a window (at most 3 h of past); start there if the slider is further back.
             if let timeline = store.displayTimeline {
-                let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.pastHours)
+                let start = PlaybackWindow.startIndex(dates: timeline.dates, reference: timeline.referenceTime, pastHours: store.playbackPastHours)
                 if store.displayFrameIndex < start { store.displayFrameIndex = start }
             }
             var waitingFrame = store.displayFrameDate
@@ -240,7 +289,7 @@ struct RadarScreen: View {
                 let frameFinished = currentRadarLoadState.map { $0.requested > 0 && $0.pending == 0 } ?? false
                 guard frameFinished || Date().timeIntervalSince(waitingSince) >= 12 else { continue }
                 store.displayFrameIndex = PlaybackWindow.nextIndex(after: store.displayFrameIndex, dates: timeline.dates,
-                                                                   reference: timeline.referenceTime, pastHours: store.pastHours)
+                                                                   reference: timeline.referenceTime, pastHours: store.playbackPastHours)
                 waitingFrame = store.displayFrameDate
                 waitingSince = Date()
             }
@@ -275,13 +324,15 @@ struct RadarScreen: View {
             store.isPlaying = false
             radarLoadState = nil
             scrubIndex = nil
+            chrome.dragEnded()
         }
         .onChange(of: sheet) { _, value in
-            if value != nil { store.isPlaying = false }
+            if value != nil { store.isPlaying = false; chrome.dragEnded() }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { store.isPlaying = false }
+            if phase != .active { store.isPlaying = false; scrubIndex = nil; chrome.dragEnded() }
         }
+        .onDisappear { chrome.dragEnded() }
     }
 
     private struct LayerPollKey: Equatable { let layer: RadarLayer; let active: Bool }
@@ -364,7 +415,9 @@ struct RadarScreen: View {
                 .accessibilityIdentifier("radar-refresh")
             }
         } label: {
-            HStack(spacing: 6) {
+            // Compact chrome (padding 10, spacing 4 instead of 14/6, 19.11.): on the iPhone SE (375 pt) "Regenradar Welt" was cut to
+            // "Regenradar W…"; the 12 pt gained let the title fit at about 0.8 of its size.
+            HStack(spacing: 4) {
                 if store.isRadarLoading || store.layers.isLoading {
                     ProgressView().controlSize(.small)
                 } else {
@@ -376,9 +429,9 @@ struct RadarScreen: View {
                 }
                 Image(systemName: "chevron.down").font(.caption.bold())
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 10)
             .frame(minHeight: 44)
-            .glassControl(Capsule())
+            .glassControl(Capsule(), floor: darkGlassFloor)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(NSLocalizedString("RADAR_LAYER_MENU_LABEL", value: "Kartenebene wählen", comment: "Radar"))
@@ -426,13 +479,13 @@ struct RadarScreen: View {
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .fixedSize(horizontal: false, vertical: true)
                         if !dynamicTypeSize.isAccessibilitySize {
-                            Text(NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Radar")).font(.caption).foregroundStyle(.secondary)
+                            Text(NSLocalizedString("LAYER_RADAR_TITLE", value: "Regenradar", comment: "Radar")).font(.caption).foregroundStyle(.primary.opacity(0.85))   // .secondary measured 2.3 to 3.6 : 1
                         }
                     }
                     Image(systemName: "chevron.down").font(.caption.bold())
                 }
                 .padding(.horizontal, 16).padding(.vertical, 11)
-                .glassControl(Capsule())
+                .glassControl(Capsule(), floor: darkGlassFloor)
             }
             .glassSheetSource(.places, in: glassNamespace)
             .layoutPriority(1) // place name wins over the layer capsule, which shrinks/truncates instead
@@ -441,6 +494,8 @@ struct RadarScreen: View {
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             layerMenu
         }
+        // The stacked layout (accessibility sizes) is narrower than the screen: leading like the cards below, not centred.
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var currentRadarLoadState: RadarLoadState? {
@@ -459,12 +514,20 @@ struct RadarScreen: View {
         return dates[displayedIndex]
     }
 
+    /// Holes in the data directly before and after the shown slot (empty without holes).
+    private var displayedGapLines: [String] {
+        guard let timeline = store.displayTimeline, !timeline.gaps.isEmpty else { return [] }
+        return TimelineGapText.lines(for: displayedIndex, gaps: timeline.gaps)
+    }
+
     /// Honest per-slot hint: the map never shows another slot's image as this slot's state.
     private var slotFeedback: (text: String, failed: Bool)? {
         let layer = store.activeLayer
         if layer != .radar, store.displayTimeline == nil {
             // No data for the chosen layer (outage): a quiet hint instead of an error banner.
             if store.layers.isLoading { return (String(format: NSLocalizedString("TIMELINE_LOADING_LAYER", value: "%@ lädt …", comment: "Radar"), layer.title), false) }
+            // World and Europe already say why in their own note at the top (`RainLayerNotice`): no second pill for the same state.
+            if layer.staysActiveWhenUnavailable { return nil }
             return (String(format: NSLocalizedString("RADAR_LAYER_UNAVAILABLE", value: "%@ derzeit nicht verfügbar", comment: "Radar"), layer.title), true)
         }
         guard store.displayTimeline != nil, !store.isPlaying, let date = displayedDate else { return nil }
@@ -516,7 +579,7 @@ struct RadarScreen: View {
                 .shadow(color: Color(.systemBackground).opacity(0.7), radius: 3)
                 .padding(.horizontal, 8)
                 // Rendering only (no layout space): a faint backdrop behind the text keeps it readable on any map colour.
-                .background { Capsule().fill(Color(.systemBackground).opacity(0.35)).blur(radius: 2) }
+                .background { Capsule().fill(Color(.systemBackground).opacity(colorScheme == .dark ? (store.activeLayer.coversMapBrightly ? 0.75 : 0.6) : 0.35)).blur(radius: 2) }
                 .allowsHitTesting(false)
                 .accessibilityLabel(line)
                 .accessibilityHint(NSLocalizedString("RADAR_CREDIT_HINT", value: "Vollständige Quellenangaben unter Datenquellen und Datenschutz", comment: "Radar"))
@@ -538,7 +601,7 @@ struct RadarScreen: View {
         timeSlider
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
+            .readableGlass(RoundedRectangle(cornerRadius: 26), floor: darkGlassFloor)
             .accessibilityIdentifier("radar-timeline")
             // The credit hangs below the card without taking layout space: the slider keeps its position. It sits in the
             // free strip between the card and the home indicator (card bottom + 20 pt = text bottom, about 3 pt below the card).
@@ -572,10 +635,14 @@ struct RadarScreen: View {
                 // scrubbing; another day's label makes it wider. At the largest sizes two lines keep the height stable.
                 ZStack {
                     // Largest sizes: the former wide template keeps the two-line pill as it was; otherwise only the time's width.
-                    Text(stacked ? "Mo., 88. Okt. \u{00B7} 88:88 AM" : Self.widestTimeTemplate).font(.title3.weight(.semibold)).monospacedDigit().hidden()
+                    // Only this hidden text reserves the two lines; the visible one is centred in them (a reserving visible text
+                    // sat at the top while the play symbol stayed in the middle).
+                    Text(stacked ? "Mo., 88. Okt. \u{00B7} 88:88 AM" : Self.widestTimeTemplate).font(.title3.weight(.semibold)).monospacedDigit()
+                        .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).hidden()
                     Group { if let day { Text("\(day) \u{00B7} \(time)") } else { time } }
+                        .lineLimit(stacked ? 2 : 1)
                 }
-                .lineLimit(stacked ? 2 : 1, reservesSpace: stacked).minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.7)
                 .multilineTextAlignment(.center)
             }
             .foregroundStyle(.primary)
@@ -627,7 +694,8 @@ struct RadarScreen: View {
                 store.isPlaying = false
                 if scrubIndex != index { scrubIndex = index }
                 if store.displayFrameIndex != index { store.displayFrameIndex = index }
-            }, onEnd: { scrubIndex = nil }, stage: $scrubStage)
+            }, onEnd: { scrubIndex = nil; chrome.dragEnded() },
+               onTravel: { chrome.dragMoved(distance: $0) }, stage: $scrubStage)
             .onChange(of: scrubGlowState) { _, state in
                 if let state { ScreenGlowPresenter.updateScrub(isForecast: state, reduceMotion: reduceMotion) }
                 else { ScreenGlowPresenter.endScrub() }
@@ -651,13 +719,30 @@ struct RadarScreen: View {
                 GeometryReader { geometry in
                     let boundary = Double(timeline.dates.firstIndex(of: timeline.referenceTime) ?? 0) / Double(timeline.dates.count - 1)
                     HStack(spacing: 0) {
-                        ScreenGlow.pastColor.frame(width: geometry.size.width * boundary)
-                        ScreenGlow.futureColor
+                        ScreenGlow.lineColor(forecast: false, dark: colorScheme == .dark).frame(width: geometry.size.width * boundary)
+                        ScreenGlow.lineColor(forecast: true, dark: colorScheme == .dark)
                     }
                     .clipShape(Capsule())
                     .frame(height: 2)
                     Rectangle().fill(.primary).frame(width: 2, height: 6)
                         .offset(x: max(0, geometry.size.width * boundary - 1), y: -2)
+                    // Holes in the data: a short red mark between the two slots around the hole (one Canvas, whatever the count).
+                    if !timeline.gaps.isEmpty {
+                        let count = timeline.dates.count
+                        let gaps = timeline.gaps.gaps
+                        Canvas { context, size in
+                            for gap in gaps {
+                                let fraction = gap.afterIndex < 0 ? 0 : (Double(gap.afterIndex) + 0.5) / Double(max(count - 1, 1))
+                                let x = size.width * fraction
+                                context.fill(Path(CGRect(x: min(max(x - 1.5, 0), size.width - 3), y: 0, width: 3, height: size.height)),
+                                             with: .color(Color(.systemRed).opacity(0.9)))
+                            }
+                        }
+                        .frame(width: geometry.size.width, height: 12)
+                        .position(x: geometry.size.width / 2, y: 1)
+                        .accessibilityHidden(true)
+                        .accessibilityIdentifier("radar-timeline-gap-marks")
+                    }
                 }
                 .frame(height: 2)
                 .offset(y: 7)
@@ -680,7 +765,8 @@ struct RadarScreen: View {
                     if store.displayFrameIndex != index { store.displayFrameIndex = index }
                 }
                 .accessibilityValue(TimelineAccessibility.value(date: displayedDate, isForecast: displayedIsForecast, reference: timeline.referenceTime,
-                                                                caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast)))
+                                                                caption: store.activeLayer.frameCaption(isForecast: displayedIsForecast),
+                                                                gapLines: displayedGapLines))
                 .accessibilityHint(String(format: NSLocalizedString("TIMELINE_SLIDER_HINT", value: "Von %1$@ bis %2$@. Beim Ziehen mit dem Finger nach oben vom Regler weg wird die Steuerung feiner.", comment: "Radar"), timeline.dates.first!.formatted(date: .abbreviated, time: .shortened), timeline.dates.last!.formatted(date: .omitted, time: .shortened)))
             }
         } else {
@@ -702,10 +788,25 @@ struct RadarScreen: View {
                         forecastTrailing
                     }
                     .padding(.horizontal, 14)
+                    // 8 pt above and below the text: with ONE line the minimum height (48) wins, so the pill keeps its height through
+                    // rest, loading and done; with TWO lines (long status text, large type) the pill grows instead of the text touching its edge.
+                    .padding(.vertical, 8)
                     .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                    .glassControl(RoundedRectangle(cornerRadius: 24))
+                    .overlay {
+                        // Whole width of the bottom edge, same height as before (overlay), clipped to the pill's corners.
+                        // Inside the glass (before glassControl): an overlay after the glass effect was not drawn.
+                        if store.updateProgressDisplay != .hidden {
+                            UpdateProgressBar(display: store.updateProgressDisplay)
+                                .frame(maxHeight: .infinity, alignment: .bottom)
+                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                        }
+                    }
+                    .glassControl(RoundedRectangle(cornerRadius: 24), floor: darkGlassFloor)
                 }
                 .buttonStyle(.plain)
+                .accessibilityValue([measuredUpdateFraction.map { UpdateProgressDisplay.percentText($0) },
+                                     detailNotes.isEmpty ? nil : String(format: NSLocalizedString("RADAR_DETAIL_NOTES_VALUE", value: "Hinweise: %d", comment: "Radar: number of notes moved into the details sheet"), detailNotes.count)]
+                    .compactMap { $0 }.joined(separator: ", "))
                 .accessibilityIdentifier("forecast-details")
                 .accessibilityHint(NSLocalizedString("RADAR_FORECAST_DETAILS_HINT", value: "Öffnet Niederschlagsverlauf, Datenalter und Prognosehinweise", comment: "Radar"))
                 Button {
@@ -734,6 +835,14 @@ struct RadarScreen: View {
         }
     }
 
+    /// What the pill SHOWS for a status. "Server behind" has a short text of its own: the full sentence (still spoken, see
+    /// `forecastStatusText`) had two lines at standard size, so the pill (8 pt padding, one line = 48 pt) jumped 54 <-> 48 pt when a
+    /// load started and ended. The other statuses already fit one line.
+    private func forecastStatusShownText(_ status: WeatherStore.ForecastStatus) -> String {
+        if status == .serverBehind { return NSLocalizedString("RADAR_FORECAST_CAPTION_BEHIND_SHORT", value: "Noch kein neuerer Stand", comment: "Radar: pill text, the weather service has nothing newer yet (short, one line)") }
+        return forecastStatusText(status)
+    }
+
     /// UI tests with the forecast stub query the spinner's frame; for real users it stays hidden from VoiceOver.
     private static var exposeSpinnerForUITests: Bool {
         #if DEBUG
@@ -745,14 +854,56 @@ struct RadarScreen: View {
 
     private var isRefreshingForecast: Bool { store.showsForecastSpinner }
 
+    /// Share of the running update where every request reports its size; `nil` when it cannot be measured.
+    private var measuredUpdateFraction: Double? {
+        if case .measured(let value) = store.updateProgressDisplay { value } else { nil }
+    }
+
     /// Chevron where it always was (right behind the text), plus the refreshing spinner at the RIGHT EDGE of the pill.
     /// No second line, no age text.
     @ViewBuilder private var forecastTrailing: some View {
+        if !detailNotes.isEmpty {
+            Image(systemName: "info.circle").font(.system(size: 14, weight: .semibold)).accessibilityHidden(true)
+        }
         Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
         if isRefreshingForecast {
-            Spacer(minLength: 8)
-            forecastStatusIcon(.refreshing)
+            // Measured: the percent takes the spinner's place (bar and number show the progress; a second indicator would only
+            // take width and make the hint text wrap). At accessibility sizes the percent is not drawn at all: it would add a line
+            // and make the pill taller; the fill stays visible and the percent is still spoken as the header's value.
+            if let fraction = measuredUpdateFraction, !dynamicTypeSize.isAccessibilitySize {
+                Spacer(minLength: 4)
+                Text(UpdateProgressDisplay.percentText(fraction))
+                    .font(.caption2.weight(.semibold)).monospacedDigit()
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .lineLimit(1).fixedSize()
+                    .accessibilityHidden(!Self.exposeSpinnerForUITests)   // spoken as the header's value instead
+                    .accessibilityIdentifier("update-progress-percent")
+            } else {
+                Spacer(minLength: 8)
+                forecastStatusIcon(.refreshing)
+            }
         }
+    }
+
+    /// What the pill SHOWS at the accessibility sizes: "Prognose-" / "details" with the line break set by hand. The automatic
+    /// hyphenation broke "Progno-sedetails" in dark mode at AXXXL (the glyph widths differ a little between the appearances, so the
+    /// first line took a different number of letters). Spoken stays the unbroken `RADAR_FORECAST_DETAILS`.
+    private static var forecastDetailsPillText: String {
+        NSLocalizedString("RADAR_FORECAST_DETAILS_PILL", value: "Prognose-\ndetails", comment: "Radar: pill text at accessibility sizes, the line break is part of the string (never inside a syllable); spoken text is RADAR_FORECAST_DETAILS")
+    }
+
+    /// What the pill SHOWS for the rain summary (rain soon and dry in short form). "Regen voraussichtlich in etwa 15 Min." had two lines at standard size as soon as the
+    /// spinner took width, so the pill jumped 48 -> 54 -> 48 pt when a load started and ended (Build 57 frames). "Regen in etwa 15 Min." fits
+    /// one line with the spinner. The full sentence stays the spoken label (`forecast.summary`) and the details sheet.
+    private func forecastSummaryShownText(_ forecast: RainForecast) -> String {
+        let outlook = RainOutlook.evaluate(forecast, at: displayNow)
+        // Dry (the normal case): "Vorerst kein messbarer Regen erwartet" had two lines at standard size L (54 pt) while the loading hint and
+        // the refreshing state have one (48 pt): the pill jumped when the forecast arrived and when a load began (Build 58 gate finding).
+        if outlook.state == .dry {
+            return NSLocalizedString("OUTLOOK_DRY_SHORT", value: "Kein Regen erwartet", comment: "Radar: pill text, no rain expected (short, one line with the spinner at size L); spoken text is OUTLOOK_DRY")
+        }
+        guard outlook.state == .startsIn else { return forecast.summary(at: displayNow) }
+        return String(format: NSLocalizedString("OUTLOOK_RAIN_IN_MINUTES_SHORT", value: "Regen in etwa %d Min.", comment: "Radar: pill text, rain starts in N minutes (short, one line with the spinner); spoken text is OUTLOOK_RAIN_IN_MINUTES"), outlook.minutes ?? 0)
     }
 
     @ViewBuilder private var forecastLabel: some View {
@@ -762,10 +913,11 @@ struct RadarScreen: View {
             let statusReplacesSummary = status != nil && status != .refreshing
             HStack(spacing: 6) {
                 if statusReplacesSummary, let status { forecastStatusIcon(status) }
-                Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                     : (statusReplacesSummary && status != nil ? forecastStatusText(status!) : forecast.summary(at: displayNow)))
+                Text(dynamicTypeSize.isAccessibilitySize ? Self.forecastDetailsPillText
+                     : (statusReplacesSummary && status != nil ? forecastStatusShownText(status!) : forecastSummaryShownText(forecast)))
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
+                    .detailsPillBreak(dynamicTypeSize.isAccessibilitySize)
                     // The spoken label adds "Aktualisiere …" (no age); it is not shown as text.
                     .accessibilityLabel(status == .refreshing
                         ? "\(forecast.summary(at: displayNow)). \(forecastStatusText(.refreshing))"
@@ -774,10 +926,13 @@ struct RadarScreen: View {
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier(status == .refreshing ? "forecast-refreshing" : status == .failed ? "forecast-update-failed" : status == .serverBehind ? "forecast-server-behind" : "forecast-headline")
         } else {
-            Text(dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
-                 : (store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar")))
+            let spoken = dynamicTypeSize.isAccessibilitySize ? NSLocalizedString("RADAR_FORECAST_DETAILS", value: "Prognosedetails", comment: "Radar")
+                : (store.isForecastLoading ? NSLocalizedString("RADAR_FORECAST_LOADING", value: "Regenprognose wird geladen …", comment: "Radar") : NSLocalizedString("RADAR_FORECAST_UNAVAILABLE", value: "Prognose nicht verfügbar", comment: "Radar"))
+            Text(dynamicTypeSize.isAccessibilitySize ? Self.forecastDetailsPillText : spoken)
                 .font(.subheadline.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
+                .detailsPillBreak(dynamicTypeSize.isAccessibilitySize)
+                .accessibilityLabel(spoken)
         }
     }
 
@@ -794,6 +949,34 @@ struct RadarScreen: View {
         } else {
             Image(systemName: "exclamationmark.triangle").font(.caption.weight(.semibold)).foregroundStyle(.orange).accessibilityHidden(true)
         }
+    }
+
+    /// At the accessibility sizes the informational notes (gap, short history, world estimate) do not fit above the map: the stack
+    /// grew taller than the screen and pushed slider, info button and play pill out of reach. There they stand in the details sheet
+    /// (the pill carries an info symbol and says how many). Warnings and errors stay on the map.
+    private var inlineRainLayerNotices: [RainLayerNotice.Notice] {
+        dynamicTypeSize.isAccessibilitySize ? rainLayerNotices.filter { $0.kind != .estimate } : rainLayerNotices
+    }
+
+    private var detailNotes: [ForecastDetails.Note] {
+        guard dynamicTypeSize.isAccessibilitySize else { return [] }
+        var notes: [ForecastDetails.Note] = []
+        for notice in rainLayerNotices where notice.kind == .estimate {
+            notes.append(.init(id: notice.identifier, symbol: "info.circle", text: notice.text))
+        }
+        if !store.isPlaying, !displayedGapLines.isEmpty {
+            notes.append(.init(id: "radar-gap-note", symbol: "clock.badge.questionmark", text: displayedGapLines.joined(separator: "\n")))
+        }
+        if !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
+            notes.append(.init(id: "radar-history-short-note", symbol: "info.circle", text: RadarPastWindow.shortHistoryText(available: available, chosen: chosen)))
+        }
+        return notes
+    }
+
+    /// Rain maps beyond Germany: world estimate/coverage notes and the one missing-data note (world and Europe).
+    private var rainLayerNotices: [RainLayerNotice.Notice] {
+        RainLayerNotice.notices(active: store.activeLayer, availability: store.layers.availability(store.activeLayer),
+                                centerLatitude: mapCenterLatitude)
     }
 
     /// Notices under the header (up to two): a forecast failure and a radar image problem are shown together.
@@ -867,7 +1050,11 @@ struct RainChart: View {
 }
 
 struct ForecastDetails: View {
+    struct Note: Identifiable { let id: String; let symbol: String; let text: String }
+
     @Bindable var store: WeatherStore
+    /// Notes the map screen moved here at accessibility sizes (empty otherwise).
+    var notes: [Note] = []
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -875,6 +1062,12 @@ struct ForecastDetails: View {
             TimelineView(.periodic(from: .now, by: 30)) { context in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    ForEach(notes) { note in
+                        Label(note.text, systemImage: note.symbol)
+                            .font(.callout).fixedSize(horizontal: false, vertical: true)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier(note.id)
+                    }
                     if let forecast = store.forecast {
                         Text(forecast.summary(at: context.date)).font(.title2.bold())
                         RainChart(forecast: forecast).frame(height: 220)
@@ -967,8 +1160,8 @@ extension View {
     }
 
     /// Interactive Liquid Glass for a touchable control (press and bounce feedback); the whole shape is the touch target.
-    func glassControl<S: Shape>(_ shape: S) -> some View {
-        contentShape(shape).glassEffect(.regular.interactive(), in: shape)
+    func glassControl<S: Shape>(_ shape: S, floor: Double = 0) -> some View {
+        contentShape(shape).readableGlass(shape, interactive: true, floor: floor)
     }
 }
 
@@ -991,5 +1184,13 @@ enum TimelineNowCrossing: Equatable {
     static func side(index: Int, nowIndex: Int?) -> TimelineNowCrossing {
         guard let nowIndex else { return .past }
         return index < nowIndex ? .past : .future
+    }
+}
+
+private extension View {
+    /// Pill text at accessibility sizes: two lines at most, the string's own break stays; a narrow pill shrinks the type a little
+    /// instead of breaking inside a word.
+    @ViewBuilder func detailsPillBreak(_ active: Bool) -> some View {
+        if active { lineLimit(2).minimumScaleFactor(0.7) } else { self }
     }
 }

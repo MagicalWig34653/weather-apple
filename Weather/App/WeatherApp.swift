@@ -18,6 +18,9 @@ struct WeatherApp: App {
         let warnManager = WarnManager.live(push: manager)
         _warn = State(initialValue: warnManager)
         _warnFeed = State(initialValue: WarnFeedStore.live(warn: warnManager))
+        #if DEBUG
+        LiveActivityUITestStub.startIfRequested()
+        #endif
     }
 
     var body: some Scene {

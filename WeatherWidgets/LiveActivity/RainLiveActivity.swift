@@ -5,51 +5,37 @@ import WidgetKit
 struct RainLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RainActivityAttributes.self) { context in
-            RainActivityTimeline(context: context) { p, title in
-                RainLockScreenView(p: p, title: title)
-            }
-            .widgetURL(RainActivityPlace.resolve(context.attributes).url)
+            RainActivityContent(context: context)
+                .activityBackgroundTint(nil)
+                .widgetURL(RainActivityPlace.resolve(context.attributes).url)
         } dynamicIsland: { context in
             let link = RainActivityPlace.resolve(context.attributes).url
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     RainActivityTimeline(context: context) { p, _ in
-                        Image(systemName: p.symbol).font(.title2).foregroundStyle(p.color)
+                        // One text run (symbol glyph + place) in the same font as "Stand": both top regions then have the same line
+                        // height and share one baseline (Lino 20.11.: "Stand" stood higher than the place).
+                        let title = p.watchTitle(name: RainActivityPlace.resolve(context.attributes).name)
+                        (Text(Image(systemName: p.symbol)).foregroundColor(p.color)
+                            + Text(title.map { "  " + $0 } ?? "").foregroundColor(.secondary))
+                            .font(.subheadline).lineLimit(1)
+                            .padding(.leading, 8)
                     }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     RainActivityTimeline(context: context) { p, _ in
-                        RainCountdown(p: p, context: context).font(.title2.bold()).foregroundStyle(p.color)
-                    }
-                }
-                DynamicIslandExpandedRegion(.center) {
-                    RainActivityTimeline(context: context) { p, title in
-                        VStack(spacing: 2) {
-                            Text(p.headline).font(.headline)
-                            if p.countdownTarget == nil, let d = p.detail {
-                                Text(d).font(.caption).foregroundStyle(.secondary)
-                            }
-                            if let title { Text(title).font(.caption2).foregroundStyle(.secondary) }
-                        }
+                        Text(WidgetAsOfText.string(for: p.referenceTime)).font(.subheadline).foregroundStyle(.secondary)
+                            .lineLimit(1).padding(.trailing, 8)   // the island corner clipped the last digit
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     RainActivityTimeline(context: context) { p, _ in
-                        if let region = p.region, region.shareText != nil || region.intensityText != nil {
-                            VStack(spacing: 2) {
-                                if let share = region.shareText { Text(share).font(.subheadline.weight(.semibold)) }
-                                if let fraction = region.barFraction {
-                                    ProgressView(value: fraction).tint(p.color).accessibilityHidden(true)
-                                }
-                                if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
-                            }
-                            .accessibilityElement(children: .combine)
-                        }
+                        RainIslandBottom(p: p).padding(.leading, 8).accessibilityElement(children: .combine)
                     }
                 }
             } compactLeading: {
                 RainActivityTimeline(context: context) { p, _ in
-                    Image(systemName: p.symbol).foregroundStyle(p.color)
+                    Image(systemName: p.symbol).foregroundStyle(p.color).accessibilityHidden(true)
                 }
             } compactTrailing: {
                 RainActivityTimeline(context: context) { p, _ in
@@ -62,11 +48,29 @@ struct RainLiveActivity: Widget {
                 }
             } minimal: {
                 RainActivityTimeline(context: context) { p, _ in
-                    Image(systemName: p.symbol).foregroundStyle(p.color)
+                    Image(systemName: p.symbol).foregroundStyle(p.color).accessibilityHidden(true)
                 }
             }
             .widgetURL(link)
             .keylineTint(.cyan)
+        }
+        // Apple: ActivityFamily.small is the watchOS Smart Stack family; without this opt-in watchOS renders its own default.
+        .supplementalActivityFamilies([.small])
+    }
+}
+
+/// Lock screen / iPad (family `.medium`) or, with the opt-in above, the compact Smart Stack card (`.small`).
+struct RainActivityContent: View {
+    let context: ActivityViewContext<RainActivityAttributes>
+    @Environment(\.activityFamily) private var family
+
+    var body: some View {
+        RainActivityTimeline(context: context) { p, title in
+            if family == .small {
+                RainWatchCardView(p: p, title: p.watchTitle(name: RainActivityPlace.resolve(context.attributes).name))
+            } else {
+                RainLockScreenView(p: p, title: title)
+            }
         }
     }
 }
@@ -97,46 +101,6 @@ struct RainCountdown: View {
         } else {
             EmptyView()
         }
-    }
-}
-
-struct RainLockScreenView: View {
-    let p: RainActivityPresentation
-    let title: String?
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: p.symbol).font(.largeTitle).foregroundStyle(p.color)
-            VStack(alignment: .leading, spacing: 2) {
-                if let title { Text(title).font(.caption).foregroundStyle(.secondary) }
-                HStack(spacing: 6) {
-                    Text(p.headline).font(.headline)
-                    if let target = p.countdownTarget {
-                        Text(timerInterval: RainActivityTiming.countdownInterval(now: .now, target: target), countsDown: true, showsHours: false)
-                            .font(.headline.monospacedDigit()).foregroundStyle(p.color)
-                    }
-                }
-                if p.countdownTarget == nil, let d = p.detail {
-                    Text(d).font(.subheadline).foregroundStyle(.secondary)
-                } else if p.phase == .endsIn, !p.isStale {
-                    Text(RainActivityPresentation.endsInLabel).font(.subheadline).foregroundStyle(.secondary)
-                }
-                if let region = p.region {
-                    if let share = region.shareText { Text(share).font(.subheadline.weight(.semibold)) }
-                    if let fraction = region.barFraction {
-                        ProgressView(value: fraction).tint(p.color).accessibilityHidden(true)
-                    }
-                    if let level = region.intensityText { Text(level).font(.caption).foregroundStyle(.secondary) }
-                }
-                Text(WidgetAsOfText.string(for: p.referenceTime))
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding()
-        .activityBackgroundTint(Color.black.opacity(0.55))
-        .activitySystemActionForegroundColor(.cyan)
-        .accessibilityElement(children: .combine)
     }
 }
 

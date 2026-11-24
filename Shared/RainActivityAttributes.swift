@@ -75,13 +75,43 @@ public struct RainActivityAttributes: Codable, Hashable, Sendable {
         /// A region payload carries at least one of the area fields; `intensityClass` is then the maximum class in the area.
         public var isRegion: Bool { wetSharePercent != nil || peakSharePercent != nil || regionRadiusKm != nil }
 
-        /// Also guards older payloads without staleDate. Stale must never be presented as dry.
-        public func isStale(at date: Date) -> Bool {
-            date >= min(staleDate ?? referenceTime.addingTimeInterval(1_200), referenceTime.addingTimeInterval(1_200))
+        /// True when the content itself declares that the system re-renders the activity at the event time: `staleDate` equals the event
+        /// time of a running countdown (set by the app when it starts an activity locally; a server doing the same for `stale-date` is
+        /// option D in docs/live-activity-a.md). Only then may the card show a ticking countdown: `Text(timerInterval:)` freezes at
+        /// "0:00" and the view is not re-run at the event time (measured 20.11.2026), it is only re-run when the activity turns stale.
+        public var staleAtEvent: Bool {
+            guard phase == .startsIn || phase == .endsIn, let event = eventDate, let stale = staleDate else { return false }
+            return abs(stale.timeIntervalSince(event)) < 1
         }
 
+        /// Also guards older payloads without staleDate. Stale must never be presented as dry.
+        public func isStale(at date: Date) -> Bool {
+            date >= effectiveStaleDate
+        }
+
+        /// Age limit of the data: 20 minutes after the reference time, or an earlier server `staleDate`. A `staleDate` that only marks
+        /// the event time (`staleAtEvent`) is no age limit.
         public var effectiveStaleDate: Date {
-            min(staleDate ?? referenceTime.addingTimeInterval(1_200), referenceTime.addingTimeInterval(1_200))
+            let age = referenceTime.addingTimeInterval(1_200)
+            return staleAtEvent ? age : min(staleDate ?? age, age)
+        }
+
+        /// Stale date to hand to ActivityKit (`ActivityContent.staleDate`; for pushes the `stale-date` key): the event time while a
+        /// countdown runs (and the event lies within the 20 minute freshness window), otherwise `effectiveStaleDate`. The system does not
+        /// re-render a Live Activity at the event time (measured 20.11.: "0:00" stayed 107 s), but it does when the activity turns stale;
+        /// the card then reads "Endet gleich"/"Regen gleich" (see `RainActivityPresentation`).
+        public func activityStaleDate(now: Date) -> Date {
+            guard phase == .startsIn || phase == .endsIn, let event = eventDate, event > now, event < effectiveStaleDate else { return effectiveStaleDate }
+            return event
+        }
+
+        /// This state as the app hands it to ActivityKit: while a countdown runs, `staleDate` becomes the event time so that the card
+        /// knows (`staleAtEvent`) the system re-renders at the event and may count down.
+        public func markingStaleAtEvent(now: Date) -> ContentState {
+            var copy = self
+            let stale = activityStaleDate(now: now)
+            if let event = eventDate, stale == event { copy.staleDate = event }
+            return copy
         }
     }
 }

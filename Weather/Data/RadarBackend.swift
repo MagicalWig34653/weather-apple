@@ -82,6 +82,10 @@ struct RadarManifest: Equatable, Sendable {
     let slots: [Slot]
     let attribution: String
     let modificationNotice: String
+    /// Additive `history` block of the backend (PR #4); `nil` for older backends or a malformed block.
+    var history: RadarHistoryInfo? = nil
+    /// Start of the user's chosen past, when the slots were cut to it: a shortfall of the source is only named from here on.
+    var windowStart: Date? = nil
 
     /// Data age is measured from the nominal run time (as for the direct DWD path);
     /// `generated_at` is only a plausibility bound.
@@ -93,8 +97,18 @@ struct RadarManifest: Equatable, Sendable {
 
     func slot(at date: Date) -> Slot? { slots.first { $0.time == date } }
 
+    /// The same manifest with only the slots from `start` on (the chosen past); all else, history block included, unchanged.
+    func cut(from start: Date) -> RadarManifest {
+        RadarManifest(run: run, referenceTime: referenceTime, generatedAt: generatedAt, stepMinutes: stepMinutes,
+                      imageWidth: imageWidth, imageHeight: imageHeight, bounds: bounds,
+                      slots: slots.filter { $0.time >= start }, attribution: attribution,
+                      modificationNotice: modificationNotice, history: history, windowStart: start)
+    }
+
     var timeline: RadarTimeline {
-        RadarTimeline(referenceTime: referenceTime, dates: slots.map(\.time), backend: self)
+        let dates = slots.map(\.time)
+        return RadarTimeline(referenceTime: referenceTime, dates: dates, backend: self,
+                             gaps: RadarTimelineGaps(dates: dates, stepMinutes: stepMinutes, history: history, windowStart: windowStart))
     }
 
     // MARK: Parsing

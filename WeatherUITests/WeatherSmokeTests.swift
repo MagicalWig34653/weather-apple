@@ -169,9 +169,15 @@ final class WeatherSmokeTests: XCTestCase {
         print("TIMELINE_NORMAL slider=\(slider.frame) pill=\(pill.frame) screen=\(app.frame)")
     }
 
+    /// Stubbed forecast (`current`) and radar (`fixture`) instead of the live services: with the live DWD forecast down (Build 57 full run:
+    /// header "Prognosedetails" without a forecast, error notices) the stack above grows at this size, the slider can sit below the screen
+    /// edge and the drag then hits the system's bottom-edge gesture (app switcher, Settings in the screenshot). The requirement checked
+    /// here (pill above the slider, below the header, controls hittable, drag to the end names the forecast, long press returns to the
+    /// measurement) does not depend on live data, so the data is fixed; every assertion stays as it was.
     func testTimelineAtMaximumDynamicTypeKeepsControlsSeparate() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL",
+                               "-UITestForecast", "current", "-UITestRadar", "fixture"]
         app.launch()
         let slider = app.sliders["Radarzeitpunkt"]
         guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
@@ -182,8 +188,33 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertLessThanOrEqual(pill.frame.maxY, slider.frame.minY, "Die Zeit-Pille liegt über dem Regler.")
         XCTAssertGreaterThan(pill.frame.minY, app.buttons["forecast-details"].frame.maxY, "Die Pille liegt nicht über dem Header.")
         XCTAssertTrue(app.buttons["forecast-details"].isHittable)
+        let valueBeforeDrag = slider.value as? String ?? "nil"
+        // The drag starts INSIDE the slider's frame. A slider pushed below the screen edge (frame beyond `app.frame`) turns the drag into the
+        // system's bottom-edge swipe (app switcher), so the value never changes: say that, with the screen state, before it happens.
+        if !slider.isHittable || slider.frame.maxY > app.frame.maxY {
+            let state = XCTAttachment(screenshot: app.screenshot())
+            state.name = "timeline-maximum-dynamic-type-slider-off-screen"
+            state.lifetime = .keepAlways
+            add(state)
+            let tree = XCTAttachment(string: app.debugDescription)
+            tree.name = "timeline-maximum-dynamic-type-hierarchy"
+            tree.lifetime = .keepAlways
+            add(tree)
+            print("TIMELINE_AXMAX_OFFSCREEN slider \(slider.frame) hittable \(slider.isHittable) screen \(app.frame) texts \(app.staticTexts.allElementsBoundByIndex.map { "\($0.label)@\($0.frame.minY)" })")
+            XCTFail("slider not reachable before the drag: frame \(slider.frame), hittable \(slider.isHittable), screen \(app.frame)")
+        }
         dragSlider(slider, to: 1)
-        XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
+        let reachedForecast = waitForValue(slider, containing: "Vorhersage")
+        // Diagnosis for a failure (values were printed only on success before): value, frames and a screenshot of the failing state.
+        let afterDrag = "slider value before '\(valueBeforeDrag)', after '\(slider.value as? String ?? "nil")', slider \(slider.frame), pill \(pill.frame), header \(app.buttons["forecast-details"].frame) value '\(app.buttons["forecast-details"].value as? String ?? "nil")' label '\(app.buttons["forecast-details"].label)', screen \(app.frame)"
+        print("TIMELINE_AXMAX_DRAG reached=\(reachedForecast) \(afterDrag)")
+        if !reachedForecast {
+            let failed = XCTAttachment(screenshot: app.screenshot())
+            failed.name = "timeline-maximum-dynamic-type-no-forecast"
+            failed.lifetime = .keepAlways
+            add(failed)
+        }
+        XCTAssertTrue(reachedForecast, "after dragging to the end the slider value must name the forecast: \(afterDrag)")
         pill.press(forDuration: 0.8)
         XCTAssertTrue(waitForValue(slider, containing: "Messung"))
         let screenshot = XCTAttachment(screenshot: app.screenshot())
@@ -197,8 +228,10 @@ final class WeatherSmokeTests: XCTestCase {
     func testTimeShownOnceAsStandingPill() throws {
         for large in [false, true] {
             let app = XCUIApplication()
+            // Fixed data (like the stable-timeline test below): the live radar query hung for 4.2 s without a stub (Build 57, accessibility snapshot).
             app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
                 + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+                + timelineStubArguments
             app.launch()
             let slider = app.sliders["Radarzeitpunkt"]
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
@@ -220,7 +253,13 @@ final class WeatherSmokeTests: XCTestCase {
             add(shot)
             writeShot(app, "pill-future-\(large ? "xxxl" : "normal")")
             dragSlider(slider, to: 0.0)
-            XCTAssertTrue(waitForValue(slider, containing: "Messung"))
+            let reachedPast = waitForValue(slider, containing: "Messung")
+            if !reachedPast {   // state for the failure: value, frames, header, screenshot and hierarchy (the live run gave no value at all)
+                print("PILL_STANDING not reached (large=\(large)): slider value '\(slider.value as? String ?? "nil")' frame \(slider.frame), pill \(timePill(app).frame), header \(app.buttons["forecast-details"].frame)")
+                let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "pill-standing-not-reached-large-\(large)"; shot.lifetime = .keepAlways; add(shot)
+                let tree = XCTAttachment(string: app.debugDescription); tree.name = "pill-standing-hierarchy-large-\(large)"; tree.lifetime = .keepAlways; add(tree)
+            }
+            XCTAssertTrue(reachedPast)
             let past = XCTAttachment(screenshot: app.screenshot())
             past.name = large ? "timeline-past-maximum-type" : "timeline-past-normal"
             past.lifetime = .keepAlways
@@ -268,23 +307,50 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(waitForValue(slider, containing: "Messung"), "Gedrückt halten springt auf Jetzt.")
     }
 
+    /// Stubbed forecast (`current`) and radar (`fixture`) for the stability test: the checked requirement (slider and pill keep their frame
+    /// between measurement and forecast) does not depend on live data, and with live data the test failed in the Build 57 full run and in
+    /// repeat runs (forecast missing at the largest size: slider below the screen edge, drag becomes the system edge gesture; reference frame
+    /// read while the slider still animates in). Every assertion stays as it was.
+    private let timelineStubArguments = ["-UITestForecast", "current", "-UITestRadar", "fixture"]
+
     func testTimelineLayoutStaysStableBetweenMeasurementAndForecast() throws {
         for large in [false, true] {
             let app = XCUIApplication()
             app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
                 + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : [])
+                + timelineStubArguments
             app.launch()
             let slider = app.sliders["Radarzeitpunkt"]
             guard slider.waitForExistence(timeout: 25) else { throw XCTSkip("Keine Live-Radarzeiten verfügbar") }
             let pill = timePill(app)
             XCTAssertTrue(pill.waitForExistence(timeout: 5))
             func frames() -> [CGRect] { [slider.frame, pill.frame] }
+            // State for a failing drag (values were not printed before): slider value, frames, header, screen, screenshot and hierarchy.
+            func state(_ step: String) -> String {
+                "\(step) (large=\(large)): slider value '\(slider.value as? String ?? "nil")' frame \(slider.frame) hittable \(slider.isHittable), pill \(pill.frame), header \(app.buttons["forecast-details"].frame), screen \(app.frame)"
+            }
+            func reach(_ text: String, _ step: String) {
+                let reached = waitForValue(slider, containing: text)
+                print("TIMELINE_STABLE reached=\(reached) \(state(step))")
+                if !reached {
+                    let shot = XCTAttachment(screenshot: app.screenshot())
+                    shot.name = "timeline-stable-\(step)-large-\(large)"
+                    shot.lifetime = .keepAlways
+                    add(shot)
+                    let tree = XCTAttachment(string: app.debugDescription)
+                    tree.name = "timeline-stable-hierarchy-\(step)-large-\(large)"
+                    tree.lifetime = .keepAlways
+                    add(tree)
+                }
+                XCTAssertTrue(reached, "slider value must contain '\(text)': \(state(step))")
+            }
             let reference = frames()
+            print("TIMELINE_STABLE \(state("start"))")
             dragSlider(slider, to: 1)
-            XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
+            reach("Vorhersage", "drag-to-forecast")
             let forecast = frames()
             dragSlider(slider, to: 0)
-            XCTAssertTrue(waitForValue(slider, containing: "Messung"))
+            reach("Messung", "drag-to-measurement")
             let past = frames()
             // Vertical position and the slider never move; the centred pill keeps its centre (its width may follow the text by a few points).
             for (name, frame) in [("Vorhersage", forecast), ("Messung", past)] {

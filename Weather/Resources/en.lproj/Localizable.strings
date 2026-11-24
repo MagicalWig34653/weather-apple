@@ -197,6 +197,9 @@
 "TIMELINE_SCRUB_FINE" = "Fine control";
 "TIMELINE_UNKNOWN" = "Unknown";
 "TIMELINE_SLIDER_HINT" = "From %1$@ to %2$@. Dragging your finger up and away from the slider gives finer control.";
+"TIMELINE_GAP_BEFORE" = "No data before this: %@";
+"TIMELINE_GAP_AFTER" = "No data after this: %@";
+"RADAR_HISTORY_SHORT" = "This map only reaches back %1$@ – %2$@ selected.";
 "TIMELINE_PAUSE" = "Pause animation";
 "TIMELINE_PLAY" = "Play animation";
 "TIMELINE_PILL_HINT" = "Tap to play or pause. Press and hold to jump to the current time";
@@ -228,7 +231,9 @@
 "RADAR_SLOT_FAILED" = "%1$@ for %2$@ not loaded";
 "RADAR_LAYER_UNAVAILABLE" = "%@ currently unavailable";
 "RADAR_FORECAST_DETAILS" = "Forecast details";
+"RADAR_FORECAST_DETAILS_PILL" = "Forecast\ndetails";
 "RADAR_FORECAST_DETAILS_HINT" = "Opens the precipitation outlook, data age and forecast notes";
+"RADAR_DETAIL_NOTES_VALUE" = "Notes: %d";
 "RADAR_SAVE_PLACE_BUTTON" = "Save or rename the selected place";
 "RADAR_FORECAST_LOADING" = "Loading rain forecast …";
 "RADAR_FORECAST_UNAVAILABLE" = "Forecast unavailable";
@@ -455,6 +460,9 @@
 "INFO_PAST_FOOTER_DIRECT" = "When fetching directly from the DWD, only 1 hour of history is available.";
 "INFO_PAST_FOOTER_UNAVAILABLE" = "History unavailable: the timeline currently only shows about the last hour.";
 "INFO_PAST_FOOTER_SERVER_MAX" = "The server currently provides at most %@.";
+"INFO_PAST_FOOTER_ALL" = "Applies to all maps. If a map has less history, its oldest image says “No data before this”.";
+"INFO_PAST_DEFAULT" = "Default (%@)";
+"INFO_PAST_FOOTER_LAYER" = "This map currently reaches back at most %@.";
 "INFO_MODEL_ICON" = "Temperature, dew point and humidity maps: DWD ICON-D2/ICON-EU model data (CC BY 4.0, Source: Deutscher Wetterdienst), rendered as images and processed (modified). Model forecasts, not measurements.";
 "INFO_MODEL_FOREST" = "Optional forest cover: %1$@ (CC BY 4.0); %2$@.";
 "SITE_PRIVACY_TITLE" = "Privacy Policy";
@@ -483,7 +491,9 @@
 "OUTLOOK_STALE" = "Forecast data is out of date";
 "OUTLOOK_RAIN_AT_PLACE" = "Rain at the selected place";
 "OUTLOOK_RAIN_IN_MINUTES" = "Rain expected in about %d min";
+"OUTLOOK_RAIN_IN_MINUTES_SHORT" = "Rain in about %d min";
 "OUTLOOK_DRY" = "No measurable rain expected for now";
+"OUTLOOK_DRY_SHORT" = "No rain expected";
 "OUTLOOK_POSSIBLE_RAIN" = "Rain possible · data partly incomplete";
 "OUTLOOK_UNRELIABLE" = "No reliable rain forecast available";
 "OUTLOOK_NO_FORECAST" = "No current forecast available";
@@ -562,6 +572,17 @@
 "RADAR_MENU_GROUP_RAIN" = "Rain";
 "LEGEND_RADAR_EU_HINT" = "Precipitation across Europe from the EUMETNET OPERA radar network, every 5 minutes. The data is re-projected and coloured.";
 "LEGEND_RADAR_WORLD_HINT" = "Worldwide precipitation from NOAA, estimated from satellite data and therefore less accurate than radar measurements. There are gaps, and intensity and position can be off.";
+"RADAR_WORLD_ESTIMATE_NOTE" = "Estimated from satellite data, less accurate than radar. No forecast.";
+"RADAR_WORLD_DEGRADED_NOTE" = "North of 60° N the estimates are limited and drawn paler.";
+"RADAR_WORLD_OUTSIDE_NOTE" = "No values here: the world map only covers 60° S to 70° N.";
+"RADAR_WORLD_STALE_NOTE" = "Rain radar world: no current data, so the map shows no rain.";
+"RADAR_WORLD_UNREACHABLE_NOTE" = "Rain radar world: server not reachable, so the map shows no rain.";
+"RADAR_WORLD_INVALID_NOTE" = "Rain radar world: data not readable, so the map shows no rain.";
+"RADAR_WORLD_UNAVAILABLE_NOTE" = "Rain radar world is currently unavailable, so the map shows no rain.";
+"RADAR_EU_STALE_NOTE" = "Rain radar Europe: no current data, so the map shows no rain.";
+"RADAR_EU_UNREACHABLE_NOTE" = "Rain radar Europe: server not reachable, so the map shows no rain.";
+"RADAR_EU_INVALID_NOTE" = "Rain radar Europe: data not readable, so the map shows no rain.";
+"RADAR_EU_UNAVAILABLE_NOTE" = "Rain radar Europe is currently unavailable, so the map shows no rain.";
 "LEGEND_TITLE_RADAR_EU" = "Precipitation Europe";
 "LEGEND_TITLE_RADAR_WORLD" = "Precipitation world (estimate)";
 "RADAR_MENU_GROUP_PRESSURE" = "Pressure";
@@ -574,4 +595,5 @@
 "RADAR_FORECAST_CAPTION_REFRESHING" = "Updating …";
 "RADAR_FORECAST_CAPTION_FAILED" = "Update failed";
 "RADAR_FORECAST_CAPTION_BEHIND" = "The weather service has no newer data yet";
+"RADAR_FORECAST_CAPTION_BEHIND_SHORT" = "No newer data yet";
 "RADAR_DETAILS_SERVER_BEHIND" = "The weather service has no newer data than this forecast yet, %@. The app keeps checking.";

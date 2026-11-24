@@ -76,6 +76,38 @@ final class ForecastRefreshUITests: XCTestCase {
         return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: element)], timeout: timeout) == .completed
     }
 
+    /// Cold start with the precondition "start settled": the forecast is shown and NO load runs (no spinner, no bar, no "Aktualisiere").
+    /// Why a helper: the stub's clock is frozen (08:50, shown run 08:40), so a newer run is always "expected" and in about 25 to 35 %
+    /// of the cold starts the loop starts a real reload right after the start-up load (loop round 1: `needsRefresh` -> index query no. 2
+    /// -> stub `delayed` 40 s / `slowfailed` / `slowbehind` 6 s). Before the Build 56 fix `refresh()` switched `isForecastLoading` off
+    /// unconditionally in its `defer`, which hid that running reload by chance; now the spinner correctly stays while a request runs.
+    /// Trace: forecast shown at about 2.6 to 3.0 s, the loop's first round starts at 3.2 s at the latest, so 4 s after the forecast
+    /// the early reload is either running (restart, up to `attempts`, each logged as `SETTLE`) or did not happen. No assertion, wait or
+    /// tolerance of the tests is changed; a start that never settles fails with the list of attempts. Returns nil after the failure.
+    private func launchSettled(_ mode: String, attempts: Int = 4, file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication? {
+        var notes: [String] = []
+        for attempt in 1...attempts {
+            let app = launch(mode)
+            let header = app.buttons["forecast-details"]
+            guard header.waitForExistence(timeout: 30) else { app.terminate(); notes.append("\(attempt): no header"); continue }
+            waitForForecast(header)
+            sleep(4)
+            // One snapshot per element (a spinner that ends in between must not fail the query).
+            let spinnerRunning = (try? app.descendants(matching: .any)["forecast-refresh-spinner"].snapshot()) != nil
+            let barRunning = (try? app.descendants(matching: .any)["update-progress-bar"].snapshot()) != nil
+            let hintRefreshing = ((try? header.snapshot())?.label ?? "").contains("Aktualisiere")
+            if !spinnerRunning && !barRunning && !hintRefreshing {
+                NSLog("SETTLE \(mode) attempt \(attempt) of \(attempts) ok")
+                return app
+            }
+            notes.append("\(attempt): early startup reload running (spinner \(spinnerRunning), bar \(barRunning), hint \(hintRefreshing))")
+            NSLog("SETTLE \(mode) attempt \(attempt): early startup reload running")
+            app.terminate()
+        }
+        XCTFail("stub '\(mode)': start did not settle in \(attempts) cold starts: \(notes)", file: file, line: line)
+        return nil
+    }
+
     /// Waits until the first forecast is shown (not the loading or unavailable text).
     private func waitForForecast(_ header: XCUIElement) {
         let predicate = NSPredicate(format: "NOT (label CONTAINS[c] 'geladen') AND NOT (label CONTAINS[c] 'loading') AND NOT (label CONTAINS[c] 'nicht verf') AND NOT (label CONTAINS[c] 'unavailable')")
@@ -135,13 +167,14 @@ final class ForecastRefreshUITests: XCTestCase {
 
     /// Spinner at the right edge of the pill, chevron stays: screenshot, several spinner phases for the contrast
     /// measurement, and the position check.
+    /// Stub `delayedreturn` (not `delayed`): the start-up reload of the loop (frozen clock, see `launchSettled`) is answered at once, so
+    /// "start settled" holds in every cold start, not only in about half of them (Build 57 measurement: 9 of 17 starts early with `delayed`,
+    /// four in a row in the full runs). The load that stalls is still the one this test triggers by going to the background and back;
+    /// all assertions (no spinner before, label, spinner at the right edge, right half) are unchanged.
     func testRefreshingSpinnerPlacement() throws {
         do {
-            let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: ["-UITestForecast", "delayed", "-UITestRadar", "fixture"]))
-            app.launch()
+            guard let app = launchSettled("delayedreturn") else { return }
             let header = app.buttons["forecast-details"]
-            XCTAssertTrue(header.waitForExistence(timeout: 30))
-            waitForForecast(header)
             XCTAssertFalse(app.descendants(matching: .any)["forecast-refresh-spinner"].exists, "no spinner while the forecast is current")
             backgroundAndReturn(app)
             XCTAssertTrue(waitForLabel(header, containing: "Aktualisiere", timeout: 30), "\(header.label)")
@@ -229,10 +262,8 @@ final class ForecastRefreshUITests: XCTestCase {
 
     /// The load on return brings no newer run (stub `slowbehind`, 6 s): spinner while it runs, gone afterwards.
     func testSpinnerEndsWhenLoadBringsNothingNewer() throws {
-        let app = launch("slowbehind")
+        guard let app = launchSettled("slowbehind") else { return }
         let header = app.buttons["forecast-details"]
-        XCTAssertTrue(header.waitForExistence(timeout: 30))
-        waitForForecast(header)
         let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
         XCTAssertFalse(spinner.exists, "no spinner before the load")
         assertNoAge(header)
@@ -250,13 +281,11 @@ final class ForecastRefreshUITests: XCTestCase {
         app.terminate()
     }
 
-    /// The load on return fails (stub `slowfailed`, about 13 s with the client's repeats): the spinner ends with the
+    /// The load on return fails (stub `slowfailedreturn` = `slowfailed` from the first trip to the background on, about 13 s with the client's repeats): the spinner ends with the
     /// failed load and stays away while the app waits for the repeat; the failure text comes after the repeat as before.
     func testSpinnerEndsWhenLoadFails() throws {
-        let app = launch("slowfailed")
+        guard let app = launchSettled("slowfailedreturn") else { return }
         let header = app.buttons["forecast-details"]
-        XCTAssertTrue(header.waitForExistence(timeout: 30))
-        waitForForecast(header)
         let spinner = app.descendants(matching: .any)["forecast-refresh-spinner"]
         XCTAssertFalse(spinner.exists, "no spinner before the load")
         assertNoAge(header)
@@ -276,6 +305,87 @@ final class ForecastRefreshUITests: XCTestCase {
         assertNoAge(header)
         fixShot(app, "failed-4-after-confirmed-failure")
         app.terminate()
+    }
+
+    // MARK: Build 53: not ready run is no failure, real failure shows and recovers (fix 5d0c741)
+
+    /// Before / during / after pictures of the refresh fix (`B53_SHOT_DIR`, default `/private/tmp/claude-501/b53-refresh-shots`).
+    private func refreshShot(_ app: XCUIApplication, _ name: String) {
+        let dir = ProcessInfo.processInfo.environment["B53_SHOT_DIR"] ?? "/private/tmp/claude-501/b53-refresh-shots"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let screenshot = app.screenshot()
+        let luminance = UITestLaunch.meanLuminance(screenshot.image)
+        print("LUMA b53-refresh-\(name)-\(suffix)=\(luminance)")
+        if suffix == "dark" { XCTAssertLessThan(luminance, 0.45, "dark screenshot expected, luminance \(luminance)") }
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("b53-refresh-\(name)-\(suffix).png"))
+    }
+
+    /// Case 1 (stub `rununavailable`): the index lists a newer run, its first two loads answer "InvalidDimensionValue" (HTTP 200,
+    /// run not ready), the third delivers it. With the fix no failure text may appear at any time; the header recovers to the
+    /// normal state. On Build 52 code the second load confirms a failure and "Aktualisierung fehlgeschlagen" appears.
+    func testNotReadyRunShowsNoFailureAndRecoversToNewRun() throws {
+        executionTimeAllowance = 180
+        let app = launch("rununavailable")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        refreshShot(app, "nicht-bereit-1-vorher")
+        backgroundAndReturn(app)
+        var history: [String] = []
+        var failureSeen: String?
+        var shotDuring = false
+        let start = Date()
+        while Date().timeIntervalSince(start) < 80 {
+            let label = header.label
+            if history.last != label { history.append(label) }
+            if label.contains("fehlgeschlagen") || label.contains("Ältere Prognose") { failureSeen = label }
+            // 35 s after the return: on old code the confirmed failure is on screen, with the fix the quiet state.
+            if !shotDuring, Date().timeIntervalSince(start) >= 35 { shotDuring = true; refreshShot(app, "nicht-bereit-2-waehrend") }
+            sleep(1)
+        }
+        print("HEADER-HISTORY nicht-bereit: \(history)")
+        XCTAssertNil(failureSeen, "no failure text for a not ready run, labels seen: \(history)")
+        XCTAssertFalse(header.label.contains("fehlgeschlagen") || header.label.contains("keinen neueren Stand") || header.label.contains("Aktualisiere"),
+                       "recovered to the new run: \(header.label), labels seen: \(history)")
+        assertNoAge(header)
+        refreshShot(app, "nicht-bereit-3-nachher")
+        app.terminate()
+    }
+
+    /// Case 2 (stub `failrecover`): two failing loads confirm the failure ("Aktualisierung fehlgeschlagen"); the third load
+    /// succeeds with the newer run and the failure text is gone again.
+    func testConfirmedFailureShowsMessageThenRecoveryClearsIt() throws {
+        executionTimeAllowance = 180
+        let app = launch("failrecover")
+        let header = app.buttons["forecast-details"]
+        XCTAssertTrue(header.waitForExistence(timeout: 30))
+        waitForForecast(header)
+        refreshShot(app, "fehler-1-vorher")
+        backgroundAndReturn(app)
+        var history: [String] = []
+        var found = false
+        for _ in 0..<90 {
+            let label = header.label
+            if history.last != label { history.append(label) }
+            if label.contains("fehlgeschlagen") { found = true; break }
+            sleep(1)
+        }
+        XCTAssertTrue(found, "failure after the repeat, labels seen: \(history)")
+        refreshShot(app, "fehler-2-waehrend")
+        assertNoAge(header)
+        // Recovery: the next load succeeds, the failure text goes away.
+        XCTAssertTrue(waitForLabelWithout(header, "fehlgeschlagen", timeout: 90), "failure text must go after recovery: \(header.label)")
+        sleep(2)
+        XCTAssertFalse(header.label.contains("fehlgeschlagen") || header.label.contains("keinen neueren Stand") || header.label.contains("Aktualisiere"), header.label)
+        assertNoAge(header)
+        refreshShot(app, "fehler-3-nachher")
+        print("HEADER-HISTORY fehler: \(history)")
+        app.terminate()
+    }
+
+    private func waitForLabelWithout(_ element: XCUIElement, _ text: String, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "NOT (label CONTAINS %@)", text)
+        return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: element)], timeout: timeout) == .completed
     }
 
     func testServerBehindScreenshot() throws {

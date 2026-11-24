@@ -177,6 +177,32 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertThrowsError(try parse(modified("layer-pressure") { var image = $0["image"] as! [String: Any]; image["projection"] = "EPSG:4326"; $0["image"] = image }))
     }
 
+    /// Production serves the full 72 h for Europe since the 72 h deploy: 865 slots at 5 minutes (20.11.2026). Build 53 (limit 600)
+    /// rejected that manifest and Europe could not be selected ("Europa (OPERA) ließ sich nicht wählen").
+    private func manifestWithSlots(_ count: Int) throws -> Data {
+        try modified("layer-radar_world") {
+            let start = DWDRequest.date("2026-11-17T15:35:00Z")!
+            let format = ISO8601DateFormatter()
+            $0["slots"] = (0..<count).map { index -> [String: Any] in
+                let time = start.addingTimeInterval(Double(index) * 300)
+                return ["time": format.string(from: time), "kind": "observation", "path": "run/slot\(index).webp"]
+            }
+        }
+    }
+
+    func testAcceptsFullSeventyTwoHourEuropeManifestUpToTheLimit() throws {
+        for count in [865, RadarLayerManifest.maximumSlots] {
+            let value = try RadarLayerManifest.parse(manifestWithSlots(count), expected: .radarWorld, layersBaseURL: base(.radarWorld))
+            XCTAssertEqual(value.slots.count, count)
+        }
+        XCTAssertEqual(RadarLayerManifest.maximumSlots, 1000)
+    }
+
+    func testRejectsManifestAboveTheSlotLimit() throws {
+        XCTAssertThrowsError(try RadarLayerManifest.parse(manifestWithSlots(RadarLayerManifest.maximumSlots + 1),
+                                                          expected: .radarWorld, layersBaseURL: base(.radarWorld)))
+    }
+
     func testLegendFromForeignHostIsDroppedButLayerStaysUsable() throws {
         let data = try modified("layer-lightning") {
             $0["legend"] = ["url": "https://evil.example.invalid/l.png", "width": 119, "height": 344]
@@ -705,5 +731,239 @@ final class RadarLayerTests: XCTestCase {
         let layers = store(responder)
         await layers.refresh(.pressure)
         XCTAssertFalse(responder.paths.contains { $0.contains("cloudmask_vis") })
+    }
+
+    // MARK: Cancelled and unchanged fetches of the world and Europe rain maps (Build 51 status notices)
+
+    /// Manifest of the real world fixture; Europe reuses it with the layer name swapped.
+    private func rainManifest(_ layer: RadarLayer) throws -> RadarLayerManifest {
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture("layer-radar_world")) as? [String: Any])
+        object["layer"] = layer.rawValue
+        return try RadarLayerManifest.parse(JSONSerialization.data(withJSONObject: object), expected: layer,
+                                            layersBaseURL: base(layer))
+    }
+
+    private func rainBody(_ layer: RadarLayer) throws -> Data {
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture("layer-radar_world")) as? [String: Any])
+        object["layer"] = layer.rawValue
+        return try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+    }
+
+    private func rainNow(_ layer: RadarLayer) throws -> Date {
+        try rainManifest(layer).generatedAt.addingTimeInterval(60)
+    }
+
+    @MainActor
+    private func notices(_ layer: RadarLayer, _ store: RadarLayerStore) -> [RainLayerNotice.Notice] {
+        RainLayerNotice.notices(active: layer, availability: store.availability(layer), centerLatitude: 50)
+    }
+
+    @MainActor
+    private func unavailableNotices(_ layer: RadarLayer, _ store: RadarLayerStore) -> [RainLayerNotice.Notice] {
+        notices(layer, store).filter { $0.kind == .unavailable }
+    }
+
+    /// `select` starts its own refresh task; let it finish so later steps do not race with it.
+    @MainActor
+    private func selectAndSettle(_ layers: RadarLayerStore, _ layer: RadarLayer, file: StaticString = #filePath, line: UInt = #line) async {
+        XCTAssertTrue(layers.select(layer), file: file, line: line)
+        try? await Task.sleep(for: .milliseconds(50))   // let the select task start its request
+        for _ in 0..<300 where layers.loading.contains(layer) { try? await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertFalse(layers.loading.contains(layer), "select refresh settled", file: file, line: line)
+    }
+
+    private static let rainLayers: [RadarLayer] = [.radarWorld, .radarEU]
+    private static let cancelErrors: [(String, @Sendable () -> Error)] = [
+        ("CancellationError", { CancellationError() }), ("URLError.cancelled", { URLError(.cancelled) })]
+
+    /// a) A cancelled fetch without any earlier manifest is not "server unreachable": no state change, no note.
+    @MainActor
+    func testCancelledFetchWithoutManifestIsNoUnreachableNotice() async throws {
+        for layer in Self.rainLayers {
+            for (name, error) in Self.cancelErrors {
+                let layers = store(Responder { _ in throw error() }, now: "2026-11-19T00:00:00Z")
+                let before = layers.snapshots
+                await layers.refresh(layer)
+                XCTAssertEqual(layers.snapshots, before, "\(layer) \(name): state untouched")
+                XCTAssertNotEqual(layers.availability(layer), .unreachable, "\(layer) \(name)")
+                XCTAssertEqual(layers.availability(layer), .unknown, "\(layer) \(name)")
+                XCTAssertEqual(unavailableNotices(layer, layers), [], "\(layer) \(name): no unavailable note")
+                XCTAssertFalse(layers.loading.contains(layer), "\(layer) \(name): loading flag released")
+            }
+        }
+    }
+
+    /// a) The layer stays chosen (also after a stale/empty state) and the map does not fall back to the radar.
+    @MainActor
+    func testCancelledFetchKeepsSelectionAndDoesNotSwitchToRadar() async throws {
+        for layer in Self.rainLayers {
+            for (name, error) in Self.cancelErrors {
+                let now = try rainNow(layer)
+                let flag = ResponseFlag()
+                let body = try rainBody(layer)
+                let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(
+                    radarBaseURL: radarBase,
+                    transport: Responder { _ in
+                        if flag.is404 { throw error() }
+                        return (200, body, [:])
+                    }.transport(), clock: { now }), clock: { now })
+                await layers.refresh(layer)
+                await selectAndSettle(layers, layer)
+                layers.apply(.stale, to: layer, now: now)   // empty, but chosen
+                XCTAssertEqual(layers.availability(layer), .stale)
+                let before = layers.snapshots
+                flag.is404 = true   // from now on every fetch is cancelled
+                await layers.refresh(layer)
+                XCTAssertEqual(layers.active, layer, "\(layer) \(name): selection kept, no switch to radar")
+                XCTAssertEqual(layers.snapshots, before, "\(layer) \(name): state untouched")
+                XCTAssertEqual(layers.availability(layer), .stale, "\(layer) \(name): not turned into unreachable")
+                XCTAssertEqual(unavailableNotices(layer, layers).count, 1, "\(layer) \(name): the existing note stays single")
+            }
+        }
+    }
+
+    /// a) A real network failure still produces exactly one unreachable note.
+    @MainActor
+    func testRealNetworkFailureStillShowsExactlyOneUnreachableNotice() async throws {
+        for layer in Self.rainLayers {
+            let layers = store(Responder { _ in throw URLError(.notConnectedToInternet) }, now: "2026-11-19T00:00:00Z")
+            await layers.refresh(layer)
+            XCTAssertEqual(layers.availability(layer), .unreachable, "\(layer)")
+            let list = unavailableNotices(layer, layers)
+            XCTAssertEqual(list.count, 1, "\(layer)")
+            XCTAssertTrue(list.first?.text.contains("Server nicht erreichbar") == true, "\(layer)")
+            await layers.refresh(layer)
+            XCTAssertEqual(unavailableNotices(layer, layers).count, 1, "\(layer): no doubling on the second failure")
+        }
+    }
+
+    /// b) A cancelled fetch with a still fresh manifest leaves state, timeline and frame as they were.
+    @MainActor
+    func testCancelledFetchWithFreshManifestKeepsStateAndTimeline() async throws {
+        for layer in Self.rainLayers {
+            for (name, error) in Self.cancelErrors {
+                let now = try rainNow(layer)
+                let flag = ResponseFlag()
+                let body = try rainBody(layer)
+                let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(
+                    radarBaseURL: radarBase,
+                    transport: Responder { _ in
+                        if flag.is404 { throw error() }
+                        return (200, body, [:])
+                    }.transport(), clock: { now }), clock: { now })
+                await layers.refresh(layer)
+                await selectAndSettle(layers, layer)
+                layers.setFrame(1, for: layer)
+                let before = layers.snapshots
+                let timeline = layers.activeTimeline
+                XCTAssertNotNil(timeline)
+                flag.is404 = true
+                await layers.refresh(layer)
+                XCTAssertEqual(layers.snapshots, before, "\(layer) \(name)")
+                XCTAssertEqual(layers.activeTimeline, timeline, "\(layer) \(name)")
+                XCTAssertEqual(layers.snapshot(layer).selectedFrame, 1, "\(layer) \(name)")
+                XCTAssertEqual(layers.availability(layer), .available, "\(layer) \(name)")
+                XCTAssertEqual(layers.active, layer)
+            }
+        }
+    }
+
+    /// a) A real task cancellation while the request is in flight (layer switch, scene change) changes nothing.
+    @MainActor
+    func testTaskCancelledWhileRequestIsInFlightChangesNothing() async throws {
+        for layer in Self.rainLayers {
+            let started = ResponseFlag()
+            let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(
+                radarBaseURL: radarBase,
+                transport: { _ in
+                    started.is404 = true
+                    try await Task.sleep(for: .seconds(60))
+                    throw URLError(.timedOut)
+                }, clock: { Date() }), clock: { Date() })
+            let before = layers.snapshots
+            let task = Task { @MainActor in await layers.refresh(layer) }
+            var spins = 0
+            while !started.is404, spins < 5000 { await Task.yield(); spins += 1 }
+            XCTAssertTrue(started.is404, "request started")
+            task.cancel()
+            await task.value
+            XCTAssertEqual(layers.snapshots, before, "\(layer)")
+            XCTAssertEqual(layers.availability(layer), .unknown, "\(layer)")
+            XCTAssertEqual(unavailableNotices(layer, layers), [], "\(layer)")
+            XCTAssertFalse(layers.loading.contains(layer), "\(layer)")
+        }
+    }
+
+    /// c) Unchanged answer (304 on the ETag, or an identical 200 body): state, chosen frame and notes stay,
+    /// `snapshots` is not written again.
+    @MainActor
+    func testUnchangedFetchKeepsStateFrameAndNoticeAndDoesNotRewriteSnapshots() async throws {
+        for layer in Self.rainLayers {
+            for useETag in [true, false] {
+                let now = try rainNow(layer)
+                let body = try rainBody(layer)
+                let responder = Responder { request in
+                    if useETag, request.value(forHTTPHeaderField: "If-None-Match") == "\"w1\"" { return (304, Data(), [:]) }
+                    return (200, body, useETag ? ["ETag": "\"w1\""] : [:])
+                }
+                let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(
+                    radarBaseURL: radarBase, transport: responder.transport(), clock: { now }), clock: { now })
+                await layers.refresh(layer)
+                await selectAndSettle(layers, layer)
+                layers.setFrame(1, for: layer)
+                let before = layers.snapshots
+                let noticesBefore = notices(layer, layers)
+                let rewrittenFlag = ResponseFlag()
+                withObservationTracking { _ = layers.snapshots } onChange: { rewrittenFlag.is404 = true }
+                await layers.refresh(layer)
+                let label = "\(layer) etag=\(useETag)"
+                XCTAssertEqual(responder.requests.count, 3, "\(label): select + refresh + refresh each ask once")
+                if useETag { XCTAssertEqual(responder.requests.last?.value(forHTTPHeaderField: "If-None-Match"), "\"w1\"") }
+                XCTAssertFalse(rewrittenFlag.is404, "\(label): snapshots not rewritten")
+                XCTAssertEqual(layers.snapshots, before, "\(label)")
+                XCTAssertEqual(layers.snapshot(layer).selectedFrame, 1, "\(label): chosen frame stays")
+                XCTAssertEqual(layers.availability(layer), .available, "\(label)")
+                XCTAssertEqual(notices(layer, layers), noticesBefore, "\(label): note list identical")
+                XCTAssertEqual(unavailableNotices(layer, layers), [], "\(label)")
+                if layer == .radarWorld {
+                    XCTAssertEqual(notices(layer, layers).filter { $0.kind == .estimate }.count, 1, "\(label): estimate note exactly once")
+                }
+            }
+        }
+    }
+
+    /// d) The note disappears after a successful follow-up fetch that comes after a cancelled one.
+    @MainActor
+    func testNoticeDisappearsAfterSuccessfulFetchFollowingACancelledOne() async throws {
+        for layer in Self.rainLayers {
+            let now = try rainNow(layer)
+            let body = try rainBody(layer)
+            let mode = ResponseMode()
+            let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(
+                radarBaseURL: radarBase,
+                transport: Responder { _ in
+                    switch mode.value {
+                    case 0: throw URLError(.notConnectedToInternet)
+                    case 1: throw CancellationError()
+                    default: return (200, body, [:])
+                    }
+                }.transport(), clock: { now }), clock: { now })
+            await layers.refresh(layer)                      // offline: note appears
+            XCTAssertEqual(unavailableNotices(layer, layers).count, 1, "\(layer)")
+            mode.value = 1
+            await layers.refresh(layer)                      // cancelled: unchanged, still exactly one note
+            XCTAssertEqual(unavailableNotices(layer, layers).count, 1, "\(layer)")
+            XCTAssertEqual(layers.availability(layer), .unreachable, "\(layer)")
+            mode.value = 2
+            await layers.refresh(layer)                      // recovery
+            XCTAssertEqual(layers.availability(layer), .available, "\(layer)")
+            XCTAssertEqual(unavailableNotices(layer, layers), [], "\(layer): note gone")
+            XCTAssertNotNil(layers.snapshot(layer).manifest)
+        }
+    }
+
+    private final class ResponseMode: @unchecked Sendable {
+        private let lock = NSLock(); private var mode = 0
+        var value: Int { get { lock.withLock { mode } } set { lock.withLock { mode = newValue } } }
     }
 }

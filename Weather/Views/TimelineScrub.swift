@@ -115,9 +115,9 @@ enum PlaybackWindow {
 
 /// VoiceOver text for the timeline slider (value, step and move logic), free of UI so it is unit-testable.
 enum TimelineAccessibility {
-    /// "HH:mm, Messung" / "Vorhersage"; names the day (e.g. "Fr., 30. Okt., 23:55, Messung") when it is not the reference day.
+    /// "HH:mm, Messung" / "Vorhersage" (plus the hole lines next to this slot, if any); names the day (e.g. "Fr., 30. Okt., 23:55, Messung") when it is not the reference day.
     static func value(date: Date?, isForecast: Bool, reference: Date?, calendar: Calendar = .current,
-                      locale: Locale = .current, caption: String? = nil) -> String {
+                      locale: Locale = .current, caption: String? = nil, gapLines: [String] = []) -> String {
         guard let date else { return NSLocalizedString("TIMELINE_UNKNOWN", value: "Unbekannt", comment: "Timeline value") }
         var text = date.formatted(.dateTime.hour().minute().locale(locale))
         if let reference, !calendar.isDate(date, inSameDayAs: reference) {
@@ -125,7 +125,8 @@ enum TimelineAccessibility {
         }
         let word = caption ?? (isForecast ? NSLocalizedString("LAYER_CAPTION_FORECAST", value: "Vorhersage", comment: "Layer name or caption")
                                           : NSLocalizedString("LAYER_CAPTION_MEASUREMENT", value: "Messung", comment: "Layer name or caption"))
-        return "\(text), \(word)"
+        let base = "\(text), \(word)"
+        return gapLines.isEmpty ? base : base + ". " + gapLines.joined(separator: ". ")
     }
 
     /// Index after a VoiceOver increment (+1) or decrement (-1); stays within the slots.
@@ -164,11 +165,17 @@ struct TimelineScrubSlider: View {
     let displayedIndex: Int
     let onScrub: (Int) -> Void
     let onEnd: () -> Void
+    /// Total finger travel since touch-down (points), for every drag event; drives hiding the controls above the map.
+    var onTravel: (CGFloat) -> Void = { _ in }
     @Binding var stage: ScrubStage?
     @State private var session: ScrubSession?
+    /// True exactly while a touch is on the slider. A `GestureState` resets itself when the system cancels the touch
+    /// (interruption, app to the background), where `onEnded` is never called.
+    @GestureState private var touching = false
     @ScaledMetric(relativeTo: .body) private var distanceScale: CGFloat = 1
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     /// Pill thumb: wide enough to read as a pill, the touch target is the whole 44 pt high slider area.
     static let thumbWidth: CGFloat = 40
@@ -181,11 +188,11 @@ struct TimelineScrubSlider: View {
             let trackWidth = max(geometry.size.width - thumb, 1)
             let fraction = count > 1 ? CGFloat(min(max(displayedIndex, 0), count - 1)) / CGFloat(count - 1) : 0
             ZStack(alignment: .leading) {
-                Capsule().fill(.secondary.opacity(0.3)).frame(height: 4).padding(.horizontal, thumb / 2)
+                Capsule().fill(colorScheme == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.6)).frame(height: 4).padding(.horizontal, thumb / 2)   // .secondary 0.3 measured 1.1 : 1 to the glass
                 Capsule().fill(Color.accentColor).frame(width: trackWidth * fraction, height: 4).padding(.leading, thumb / 2)
                 Capsule().fill(.clear)
                     .frame(width: thumb, height: thumbHeight)
-                    .glassEffect(.regular.interactive(), in: Capsule())
+                    .readableGlass(Capsule(), interactive: true)
                     .shadow(color: .black.opacity(0.18), radius: session == nil ? 3 : 6, y: 1)
                     .scaleEffect(session == nil ? 1 : 1.2)
                     .animation(reduceMotion ? nil : .bouncy(duration: 0.35), value: session == nil)
@@ -194,6 +201,7 @@ struct TimelineScrubSlider: View {
             .frame(width: geometry.size.width, height: height)
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                .updating($touching) { _, state, _ in state = true }
                 .onChanged { value in
                     if session == nil {
                         session = ScrubSession(touchX: value.startLocation.x, currentIndex: displayedIndex,
@@ -203,15 +211,21 @@ struct TimelineScrubSlider: View {
                     let index = session?.update(x: value.location.x, verticalDistance: distance,
                                                 trackWidth: trackWidth, scale: distanceScale) ?? displayedIndex
                     stage = session?.stage
+                    onTravel(hypot(value.translation.width, value.translation.height))
                     onScrub(index)
                 }
-                .onEnded { _ in
-                    session = nil
-                    stage = nil
-                    onEnd()
-                })
+                .onEnded { _ in finish() })
+            .onChange(of: touching) { _, isTouching in if !isTouching { finish() } }
         }
         .frame(minWidth: 50, minHeight: height, maxHeight: height)
+        .onDisappear { finish() }
+    }
+
+    /// Every end of a touch (lift, system cancel, slider leaves the screen) ends here; harmless when nothing is running.
+    private func finish() {
+        session = nil
+        stage = nil
+        onEnd()
     }
 }
 

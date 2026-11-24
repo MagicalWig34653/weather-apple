@@ -4,6 +4,8 @@
 "REGION_ACTIVITY_RADIUS" = "%d km radius";
 "REGION_ACTIVITY_SHARE_NOW" = "%d%% of the area wet";
 "REGION_ACTIVITY_SHARE_PEAK" = "up to %d%% of the area wet";
+"REGION_ACTIVITY_SHARE_NOW_SHORT" = "%d%% wet";
+"REGION_ACTIVITY_SHARE_PEAK_SHORT" = "up to %d%% wet";
 "REGION_ACTIVITY_SHARE_COMPACT" = "%d%%";
 "REGION_ACTIVITY_INTENSITY" = "Strongest level %1$d (%2$@)";
 "REGION_ACTIVITY_WORD_VERY_LIGHT" = "very light";

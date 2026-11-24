@@ -1,11 +1,23 @@
+#if WIDGET_LOGIC_TESTS
+@testable import Weather
+#endif
 import SwiftUI
 
 /// UI interpretation of one Live-Activity state. Stale data never reads as dry and never shows a countdown.
 struct RainActivityPresentation: Equatable {
     let phase: RainActivityAttributes.Phase
     let isStale: Bool
-    /// Countdown target; nil when stale, absent, or already in the past.
+    /// Remaining time below which no countdown is shown (seconds). The system marks an activity stale (the only re-render at the event
+    /// time) at the earliest about 117 to 120 s after the update (measured 20.11.2026), so a countdown of less than that would stand at
+    /// "0:00"; 150 s adds a reserve.
+    static let minimumCountdown: TimeInterval = 150
+
+    /// Countdown target. Only while the system is guaranteed to re-render at the event (`ContentState.staleAtEvent`) and at least
+    /// `minimumCountdown` remain; nil when stale, absent, imminent, in the past, or when the stale date is not the event time.
     let countdownTarget: Date?
+    /// Event time shown as a clock time instead of a countdown: the event is far enough away but nothing re-renders the card at the
+    /// event (remote update with `stale-date` = reference + 20 min), so a ticking timer would stand at "0:00". A clock time never stands.
+    let clockTarget: Date?
     let referenceTime: Date
     /// Set for region payloads (area share, maximum class, radius); nil for places.
     let region: RainActivityRegionPresentation?
@@ -13,15 +25,77 @@ struct RainActivityPresentation: Equatable {
     init(state: RainActivityAttributes.ContentState, contextIsStale: Bool, now: Date, localRadiusKm: Int? = nil) {
         phase = state.phase
         referenceTime = state.referenceTime
-        isStale = contextIsStale || state.isStale(at: now)
+        // The activity's stale date may be the event time (`activityStaleDate`): a context flag that arrives with a reached event of a
+        // running countdown while the data is still fresh is "event reached" ("Endet gleich"), not "outdated".
+        let eventReached = (state.phase == .startsIn || state.phase == .endsIn) && state.eventDate.map { $0 <= now } == true
+        isStale = state.isStale(at: now) || (contextIsStale && !eventReached)
         region = state.isRegion ? RainActivityRegionPresentation(state: state, isStale: isStale, localRadiusKm: localRadiusKm) : nil
         if !isStale, state.phase == .startsIn || state.phase == .endsIn,
-           let date = state.eventDate, date > now {
-            countdownTarget = date
+           let date = state.eventDate, date.timeIntervalSince(now) >= Self.minimumCountdown {
+            countdownTarget = state.staleAtEvent ? date : nil
+            clockTarget = state.staleAtEvent ? nil : date
         } else {
             countdownTarget = nil
+            clockTarget = nil
         }
     }
+
+
+    // MARK: Design A (tinted glass): one large element, tone, short Watch texts
+
+    enum Tone: Equatable { case rain, dry, stale }
+
+    /// Large element of the card: a countdown with a small label, or one statement.
+    enum Hero: Equatable {
+        case countdown(label: String, target: Date)
+        case clock(label: String, date: Date)
+        case statement(String)
+    }
+
+    var tone: Tone {
+        if isStale { return .stale }
+        return phase == .dry ? .dry : .rain
+    }
+
+    /// Place and area cards share the labels; the area is named by the card title (name, radius), not by the label.
+    var hero: Hero {
+        if isStale { return .statement(NSLocalizedString("WIDGET_STALE", value: "Daten veraltet", comment: "Live Activity")) }
+        switch phase {
+        case .startsIn:
+            if let target = countdownTarget {
+                return .countdown(label: NSLocalizedString("ACTIVITY_RAIN_IN", value: "Regen in", comment: "Live Activity, followed by a countdown"),
+                                  target: target)
+            }
+            if let date = clockTarget {
+                return .clock(label: NSLocalizedString("ACTIVITY_RAIN_AT", value: "Regen ab", comment: "Live Activity, followed by a clock time"), date: date)
+            }
+            return .statement(NSLocalizedString("ACTIVITY_RAIN_IMMINENT", value: "Regen gleich", comment: "Live Activity"))
+        case .endsIn:
+            if let target = countdownTarget { return .countdown(label: Self.endsInLabel, target: target) }
+            if let date = clockTarget {
+                return .clock(label: NSLocalizedString("ACTIVITY_ENDS_AT", value: "Endet um", comment: "Live Activity, followed by a clock time"), date: date)
+            }
+            return .statement(NSLocalizedString("ACTIVITY_ENDS_IMMINENT", value: "Endet gleich", comment: "Live Activity"))
+        case .raining: return .statement(NSLocalizedString("WIDGET_RAINING", value: "Es regnet", comment: "Live Activity"))
+        case .dry: return .statement(NSLocalizedString("WIDGET_DRY", value: "Trocken", comment: "Live Activity"))
+        }
+    }
+
+    /// Small line under a statement; countdowns and the "imminent" statements have none.
+    var heroDetail: String? {
+        if isStale { return NSLocalizedString("WIDGET_NO_RELIABLE", value: "Keine verlässliche Aussage", comment: "Live Activity") }
+        switch phase {
+        case .raining: return NSLocalizedString("WIDGET_NO_END", value: "Ende nicht absehbar", comment: "Live Activity")
+        case .dry: return NSLocalizedString("WIDGET_NO_RAIN_EXPECTED", value: "Vorerst kein Regen erwartet", comment: "Live Activity")
+        case .startsIn, .endsIn: return nil
+        }
+    }
+
+    /// Watch card title: the name only (the area radius would not fit), the radius alone when there is no name.
+    func watchTitle(name: String?) -> String? { region?.watchTitle(name: name) ?? name }
+
+    /// Short area share for the Watch card; nil for places, stale and dry.
+    var watchShareText: String? { region?.shortShareText }
 
     var symbol: String {
         if isStale { return "clock.badge.exclamationmark" }

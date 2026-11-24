@@ -101,6 +101,7 @@ targets:
         excludes: ['**/*.md']
       - Weather/Data/RadarBackend.swift
       - Weather/Data/RadarHistory.swift
+      - Weather/Data/RadarTimelineGaps.swift
       - Weather/Data/DWDRadarTimeline+App.swift
       - path: Weather/Resources/Icon/AppIcon.icon
         type: file
@@ -154,6 +155,8 @@ targets:
         buildPhase: resources
         type: folder
       - path: WeatherWidgets/Logic
+      - path: WeatherWidgets/LiveActivity
+        excludes: [RainLiveActivity.swift]
     dependencies:
       - target: Weather
     settings:
