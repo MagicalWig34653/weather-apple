@@ -949,10 +949,11 @@ extension RadarHistoryUITests {
         closeSheet(app)
         XCTAssertTrue(hintNote(app).waitForNonExistence(timeout: 10), "48 h are all there: no hint: \(hintNote(app).label)")
         hintShot(app, "temperatur-wahl-auf-48")
+        // 72 h is this layer's own window (the "Standard" step): picking it forgets the choice, so the hint for a CHOSEN past is gone too.
         pickStep(app, "past-hours-72")
         closeSheet(app)
-        expectHint(app, available: 61, chosen: 72, "temperature 72 h again")
-        hintShot(app, "temperatur-wahl-wieder-72")
+        XCTAssertTrue(hintNote(app).waitForNonExistence(timeout: 10), "standard step picked: no choice, no hint: \(hintNote(app).label)")
+        hintShot(app, "temperatur-wahl-standard-72")
         app.terminate()
     }
 
