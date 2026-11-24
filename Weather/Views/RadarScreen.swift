@@ -145,58 +145,65 @@ struct RadarScreen: View {
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier(notice.identifier)
                 }
-                // A hole in the data next to the shown slot: said plainly, never filled with a picture. In the top stack (like the
-                // other notes), so the lower strip with Apple's legal link stays free.
-                if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, !displayedGapLines.isEmpty {
-                    Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
-                        .font(.caption).fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityIdentifier("radar-gap-note")
-                }
-                // The red mark on the timeline is a real hole in the data: where no note names it, one line says what the mark is.
-                if !dynamicTypeSize.isAccessibilitySize, let legend = displayedGapLegend {
-                    Label(legend, systemImage: "clock.badge.questionmark")
-                        .font(.caption).fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityIdentifier("radar-gap-legend")
-                }
-                // The chosen past is longer than the map delivers: said once and plainly (the choice and the data stay as they are).
-                if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
-                    Label(RadarPastWindow.shortHistoryText(available: available, chosen: chosen), systemImage: "info.circle")
-                        .font(.caption).fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityIdentifier("radar-history-short-note")
-                }
+                // The hints that come and go with playing and position (hole note, legend of the red mark, short-history note) stand
+                // LEFT of the button column, in the same row: the column starts at the same y whether they are there or not (before,
+                // they sat above the row and pushed the column down by their height at every play/pause or step next to a hole).
                 HStack(alignment: .top, spacing: 10) {
-                    Spacer()
-                    // The container only morphs the legend panel. The round buttons stay OUTSIDE it: inside a
-                    // GlassEffectContainer their glass lives in the shared container layer, which made the zoom source unreliable.
-                    GlassEffectContainer(spacing: 8) {
-                        if showLegend {
-                            Group {
-                                if store.activeLayer == .radar {
-                                    RadarLegendPanel(legend: .precipitationRadar,
-                                                     maxHeight: pillBlockTop.map { max(0, $0 - legendTop - 8) })
-                                } else {
-                                    RadarLayerLegendPanel(
-                                        layer: store.activeLayer, manifest: store.layers.activeManifest,
-                                        humidityChoices: [RadarLayer.dewpoint, .humidity].filter { store.layers.availability($0) == .available },
-                                        onSelectLayer: { store.layers.select($0) },
-                                        maxHeight: pillBlockTop.map { max(0, $0 - legendTop - 8) })
-                                }
-                            }
-                            .glassEffectID("legend-panel", in: glassNamespace)
+                    VStack(alignment: .trailing, spacing: 10) {
+                        // A hole in the data next to the shown slot: said plainly, never filled with a picture. In the top stack (like the
+                        // other notes), so the lower strip with Apple's legal link stays free.
+                        if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, !displayedGapLines.isEmpty {
+                            Label(displayedGapLines.joined(separator: "\n"), systemImage: "clock.badge.questionmark")
+                                .font(.caption).fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityIdentifier("radar-gap-note")
                         }
+                        // The red mark on the timeline is a real hole in the data: where no note names it, one line says what the mark is.
+                        if !dynamicTypeSize.isAccessibilitySize, let legend = displayedGapLegend {
+                            Label(legend, systemImage: "clock.badge.questionmark")
+                                .font(.caption).fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityIdentifier("radar-gap-legend")
+                        }
+                        // The chosen past is longer than the map delivers: said once and plainly (the choice and the data stay as they are).
+                        if !dynamicTypeSize.isAccessibilitySize, !store.isPlaying, let available = store.shortHistoryHours, let chosen = store.pastChoice {
+                            Label(RadarPastWindow.shortHistoryText(available: available, chosen: chosen), systemImage: "info.circle")
+                                .font(.caption).fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .readableGlass(RoundedRectangle(cornerRadius: 16), floor: darkGlassFloor)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityIdentifier("radar-history-short-note")
+                        }
+                        // The container only morphs the legend panel. The round buttons stay OUTSIDE it: inside a
+                        // GlassEffectContainer their glass lives in the shared container layer, which made the zoom source unreliable.
+                        GlassEffectContainer(spacing: 8) {
+                            if showLegend {
+                                Group {
+                                    if store.activeLayer == .radar {
+                                        RadarLegendPanel(legend: .precipitationRadar,
+                                                         maxHeight: pillBlockTop.map { max(0, $0 - legendTop - 8) })
+                                    } else {
+                                        RadarLayerLegendPanel(
+                                            layer: store.activeLayer, manifest: store.layers.activeManifest,
+                                            humidityChoices: [RadarLayer.dewpoint, .humidity].filter { store.layers.availability($0) == .available },
+                                            onSelectLayer: { store.layers.select($0) },
+                                            maxHeight: pillBlockTop.map { max(0, $0 - legendTop - 8) })
+                                    }
+                                }
+                                .glassEffectID("legend-panel", in: glassNamespace)
+                            }
+                        }
+                        // The panel's top (below the hints), not the row's: the legend must end above the play pill.
+                        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { legendTop = $0 }
                     }
+                    .frame(maxWidth: .infinity, alignment: .topTrailing)
                     VStack(spacing: 10) {
                         Button { store.requestLocation() } label: {
                             Image(systemName: "location.fill").font(.system(size: 20)).frame(width: 46, height: 46)
@@ -237,7 +244,6 @@ struct RadarScreen: View {
                     .buttonStyle(.plain)
                     .font(.title3)
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("radarScreen")).minY } action: { legendTop = $0 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
