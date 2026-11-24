@@ -6,7 +6,9 @@ struct RainLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RainActivityAttributes.self) { context in
             RainActivityContent(context: context)
-                .activityBackgroundTint(nil)
+                // Build 59: no system material behind the card (Lino 24.11.: too opaque, should be see-through like T3); the card draws
+                // its own light scrim and tone wash (`RainLockGlassStyle`).
+                .activityBackgroundTint(.clear)
                 .widgetURL(RainActivityPlace.resolve(context.attributes).url)
         } dynamicIsland: { context in
             let link = RainActivityPlace.resolve(context.attributes).url

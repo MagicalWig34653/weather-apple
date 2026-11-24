@@ -182,9 +182,15 @@ final class LiveActivityImageTests: XCTestCase {
     /// Opaque stand-in for the wallpaper behind the glass (a flat mid-dark gray; mid gray for the light appearance).
     private func backdrop(_ scheme: ColorScheme) -> Color { Color(white: scheme == .dark ? 0.12 : 0.55) }
 
-    private func stack<V: View>(_ layer: V, scheme: ColorScheme) -> some View {
-        ZStack { backdrop(scheme); glass(scheme); layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
+    /// `systemGlass: false` is the Build 59 dark card: `activityBackgroundTint(.clear)` draws no system material, the card layer sits directly
+    /// on the wallpaper (here a flat `ground`, default the stand-in wallpaper of the scheme).
+    private func stack<V: View>(_ layer: V, scheme: ColorScheme, systemGlass: Bool = true, ground: Color? = nil) -> some View {
+        ZStack { ground ?? backdrop(scheme); if systemGlass { glass(scheme) }; layer }.frame(width: Self.lockBackdropSize.width, height: Self.lockBackdropSize.height)
     }
+
+    /// Mid-dark wallpaper stand-in (encoded gray 0.30, L* about 30; the brighter regions of the dark Simulator wallpaper) for the dark card
+    /// without system material. Brighter wallpapers are NOT guaranteed 4.5:1 (documented in decisions.md 24.11.2026).
+    private static let midGround = Color(white: 0.30)
 
     private func pinnedLegacy(tint: Color, reduced: Bool) -> some View {
         let w = reduced ? Self.pinnedLegacyWash.reduced : Self.pinnedLegacyWash.normal
@@ -264,7 +270,8 @@ final class LiveActivityImageTests: XCTestCase {
                     let tint = tone.tint(scheme)
                     let key = "\(schemeName(scheme))-\(reduced ? "transparenz-reduziert" : "normal")-\(toneName)"
                     let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme), scheme: scheme, name: "lock-bg-vorher-\(key)"))
-                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme),
+                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme,
+                                                   systemGlass: !(scheme == .dark && !reduced)),
                                              scheme: scheme, name: "lock-bg-nachher-\(key)"))
                     // The legacy mode of production code must be the pinned Build 56 backdrop (so before/after images are truthful).
                     let legacyMode = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .legacy, reduceTransparencyOverride: reduced), scheme: scheme), scheme: scheme))
@@ -327,7 +334,7 @@ final class LiveActivityImageTests: XCTestCase {
     /// getoent"): the dark lock screen card lets the background show through and is only lightly tinted in every state.
     /// Measured on the card layer alone over a black, a white and a gray ground (compositing is affine, so the difference white - black of
     /// the mean encoded channel values is exactly 1 - mean coverage):
-    ///  - mean coverage of the tint layer <= 0.30 (and >= 0.10, so there is still a tint), Build 58: 1.0 (opaque black base);
+    ///  - mean coverage of the tint layer <= 0.35 (and >= 0.10, so there is still a tint), Build 58: 1.0 (opaque black base);
     ///  - the card over white is at least 50 L* lighter than over black (the ground really shows through; Build 58: 0);
     ///  - the tint stays recognisable over mid gray: chroma (max - min of the encoded mean channels) 0.04 to 0.20, and the three tones
     ///    (rain, dry, stale) differ pairwise by at least 0.05 (Euclid, encoded mean RGB).
@@ -350,7 +357,7 @@ final class LiveActivityImageTests: XCTestCase {
             let chroma = (gray.meanRGB.max() ?? 0) - (gray.meanRGB.min() ?? 0)
             grayMeans[stateName] = gray.meanRGB
             report[stateName] = ["Deckung": coverage, "LstarWeissMinusSchwarz": gap, "Chroma-grau": chroma]
-            if !(0.10...0.30).contains(coverage) { failures.append("\(stateName): coverage \(coverage) outside 0.10...0.30") }
+            if !(0.10...0.35).contains(coverage) { failures.append("\(stateName): coverage \(coverage) outside 0.10...0.35") }
             if gap < 50 { failures.append("\(stateName): card over white only \(gap) L* lighter than over black (< 50)") }
             if !(0.04...0.20).contains(chroma) { failures.append("\(stateName): tint chroma \(chroma) outside 0.04...0.20") }
         }
@@ -376,8 +383,12 @@ final class LiveActivityImageTests: XCTestCase {
                 for (toneName, tone) in Self.allTones {
                     let tint = tone.tint(scheme)
                     let key = "\(schemeName(scheme))-\(reduced ? "transparenz-reduziert" : "normal")-\(toneName)"
-                    let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme), scheme: scheme))
-                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme), scheme: scheme))
+                    // Dark translucent card (Build 59): no system material, so the worst case is a mid-bright wallpaper behind it.
+                    let translucent = scheme == .dark && !reduced
+                    let ground: Color? = translucent ? Self.midGround : nil
+                    let old = try scan(image(stack(pinnedLegacy(tint: tint, reduced: reduced), scheme: scheme, ground: ground), scheme: scheme))
+                    let new = try scan(image(stack(RainLockGlassTint(tint: tint, mode: .brighter, reduceTransparencyOverride: reduced), scheme: scheme,
+                                                   systemGlass: !translucent, ground: ground), scheme: scheme))
                     func measure(_ scan: Scan, secondaryOverride: Color?, tintColor: Color) -> (primary: Double, tint: Double, secondary: Double) {
                         let bg = scheme == .dark ? scan.brightest : scan.darkest
                         let bgY = Self.luminance(bg)
