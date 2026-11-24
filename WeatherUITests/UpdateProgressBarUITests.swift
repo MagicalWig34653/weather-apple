@@ -877,9 +877,22 @@ final class UpdateProgressBarUITests: XCTestCase {
     /// at standard size L: the pill is one line = 48 pt before (resting state), during (refreshing: real text plus spinner) and
     /// after the load (real text, new data), no tolerance beyond 0.5 pt (card 205C818F "no height change"). Light/dark via `SHOT_SUFFIX`.
     func testPillHeightWithRealRainTextIsExactlyOneLineBeforeDuringAndAfterTheLoad() throws {
-        let cases: [(UITestLaunch.Language, String, String, String)] = [
+        try assertPillHeightStaysOneLineAtL(stubMode: "slowfreshrain", shotTag: "regen", cases: [
             (.german, "de", "Regen voraussichtlich in etwa", "Aktualisiere"),
-            (.english, "en", "Rain expected in about", "Updating")]
+            (.english, "en", "Rain expected in about", "Updating")])
+    }
+
+    /// Build 58 fix: the DRY text ("Vorerst kein messbarer Regen erwartet", the normal case on most days) had two lines at standard size L
+    /// (54 pt) while the loading hint and the spinner state had one (48 pt): the pill jumped when the forecast arrived and when a load
+    /// began (real-service run on 01f973c: min 48, max 54). Stub `slowfresh` = dry forecast, same sequence as the rain test: the pill is
+    /// one line = 48 pt before, during and after the load. Spoken text stays the full sentence.
+    func testPillHeightWithDryTextIsExactlyOneLineBeforeDuringAndAfterTheLoad() throws {
+        try assertPillHeightStaysOneLineAtL(stubMode: "slowfresh", shotTag: "trocken", cases: [
+            (.german, "de", "Vorerst kein messbarer Regen erwartet", "Aktualisiere"),
+            (.english, "en", "No measurable rain expected for now", "Updating")])
+    }
+
+        private func assertPillHeightStaysOneLineAtL(stubMode: String, shotTag: String, cases: [(UITestLaunch.Language, String, String, String)]) throws {
         for (language, tag, rain, loading) in cases {
             // The start of the stub races with the start load of the loop: in some cold starts the newer run is shown at once, then the
             // return from the background starts no load. Same rule as `launchUntilStubBar`: start again (up to 4 times), never heal silently.
@@ -887,13 +900,13 @@ final class UpdateProgressBarUITests: XCTestCase {
             var before: CGFloat = 0, beforeLabel = ""
             for attempt in 1...4 {
                 app?.terminate()
-                app = launchSized("slowfreshrain", language: language, category: "UICTContentSizeCategoryL")
+                app = launchSized(stubMode, language: language, category: "UICTContentSizeCategoryL")
                 XCTAssertTrue(header(app).waitForExistence(timeout: 30), tag)
                 XCTAssertTrue(forecastShown(header(app), timeout: 60), "\(tag): forecast shown after the cold start: \(header(app).label)")
                 XCTAssertTrue(pollBarGone(app, timeout: 30), "\(tag): start bar ends")
                 before = header(app).frame.height
                 beforeLabel = header(app).label
-                shot(app, "pille-\(tag)-L-regen-1-vorher")
+                shot(app, "pille-\(tag)-L-\(shotTag)-1-vorher")
                 startUpdate(app)
                 if bar(app).waitForExistence(timeout: 8) { break }
                 NSLog("RAINSTART \(tag) attempt \(attempt): no load after the return (newer run shown at once), start again")
@@ -902,15 +915,15 @@ final class UpdateProgressBarUITests: XCTestCase {
             XCTAssertEqual(barValue(app), "running", tag)
             let during = pill.frame.height
             let duringLabel = pill.label
-            shot(app, "pille-\(tag)-L-regen-2-waehrend")
+            shot(app, "pille-\(tag)-L-\(shotTag)-2-waehrend")
             let gone = NSPredicate(format: "exists == false")
             XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: gone, evaluatedWith: bar(app))], timeout: 40), .completed, "\(tag): bar gone")
             let showsRain = NSPredicate(format: "label CONTAINS %@ AND NOT (label CONTAINS %@)", rain, loading)
             XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: showsRain, evaluatedWith: pill)], timeout: 10), .completed, "\(tag): real rain text after the load: \(pill.label)")
             sleep(1)
             let after = pill.frame.height
-            shot(app, "pille-\(tag)-L-regen-3-nachher")
-            NSLog("PILLHEIGHT-RAIN tag=\(tag) suffix=\(suffix) width=\(app.frame.width) before=\(before) during=\(during) after=\(after) beforeLabel=\(beforeLabel) duringLabel=\(duringLabel) afterLabel=\(pill.label)")
+            shot(app, "pille-\(tag)-L-\(shotTag)-3-nachher")
+            NSLog("PILLHEIGHT-\(shotTag.uppercased()) tag=\(tag) suffix=\(suffix) width=\(app.frame.width) before=\(before) during=\(during) after=\(after) beforeLabel=\(beforeLabel) duringLabel=\(duringLabel) afterLabel=\(pill.label)")
             XCTAssertTrue(duringLabel.contains(rain) && duringLabel.contains(loading), "\(tag): during the load the real rain text and the loading state are spoken: \(duringLabel)")
             XCTAssertEqual(before, 48, accuracy: 0.5, "\(tag): rest state, one line")
             XCTAssertEqual(during, before, accuracy: 0.5, "\(tag): no height change when the load starts (\(before) -> \(during))")
