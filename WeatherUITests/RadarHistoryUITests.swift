@@ -476,24 +476,8 @@ final class RadarHistoryUITests: XCTestCase {
 
     // MARK: Measurement: scrubbing across a full 72 h timeline
 
-    /// Default state (no stored choice): the 72 h of the backend are the window, the slider covers all of them.
+    /// Stored 72 h: the slider covers all of them (the standard without a choice is 6 h).
     func testScrubbingAcrossFullSeventyTwoHourTimelineIsMeasured() throws {
-        let app = launchRadar(hours: 72, fresh: true)
-        let slider = slider(app)
-        XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
-        let options = XCTMeasureOptions(); options.iterationCount = 5
-        measure(metrics: [XCTClockMetric(), XCTCPUMetric(application: app), XCTMemoryMetric(application: app)], options: options) {
-            slider.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5))
-                .press(forDuration: 0.05, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: 0.5)))
-            slider.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: 0.5))
-                .press(forDuration: 0.05, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)))
-        }
-        XCTAssertTrue(app.state == .runningForeground, "the app is still running after scrubbing 10 full passes")
-        app.terminate()
-    }
-
-    /// Same measurement with an explicit stored 72 h (the way of the previous review): isolates the default logic from the simulator state.
-    func testScrubbingAcrossFullSeventyTwoHourTimelineWithStoredChoiceIsMeasured() throws {
         let app = launchRadar(hours: 72)
         let slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.contains("Messung") })
@@ -557,9 +541,9 @@ final class RadarHistoryUITests: XCTestCase {
         app.terminate()
     }
 
-    // MARK: Default window from the backend (a fresh install has no stored choice)
+    // MARK: Standard window of 6 hours (a fresh install has no stored choice)
 
-    /// Fresh install: nothing stored. The first open reaches the oldest slot the backend window offers, without touching the setting.
+    /// Fresh install: nothing stored. The first open reaches 6 hours back, whatever the backend offers, without touching the setting.
     private func freshCase(_ name: String, layers: Pick?, server: Int, now: String, oldest: String, note: String?) throws {
         let app = layers == nil ? launchRadar(hours: server, fresh: true) : launchLayers(setting: nil, server: server)
         try layers?.select(app, self)
@@ -567,7 +551,7 @@ final class RadarHistoryUITests: XCTestCase {
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix(now) }, "starts at now (\(now)): \(value(slider))")
         shot(app, "frisch-\(name)\(server)-1-jetzt")
         jump(slider, fraction: 0)
-        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(oldest) }, "fresh install, \(server) h backend: oldest slot \(oldest): \(value(slider))")
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix(oldest) }, "fresh install, \(server) h backend: 6 h back to \(oldest): \(value(slider))")
         if let note {
             XCTAssertTrue(gapNote(app).waitForExistence(timeout: 10), "shortfall named: \(value(slider))")
             XCTAssertTrue(gapNote(app).label.hasPrefix(note), gapNote(app).label)
@@ -580,19 +564,19 @@ final class RadarHistoryUITests: XCTestCase {
     }
 
     func testFreshInstallEurope48() throws {
-        try freshCase("europa", layers: .rain("Europa (OPERA)"), server: 48, now: "09:50, Messung", oldest: "Mo. 16. Nov., 09:50, Messung", note: nil)
+        try freshCase("europa", layers: .rain("Europa (OPERA)"), server: 48, now: "09:50, Messung", oldest: "03:50, Messung", note: nil)
     }
     func testFreshInstallEurope72() throws {
-        try freshCase("europa", layers: .rain("Europa (OPERA)"), server: 72, now: "09:50, Messung", oldest: "So. 15. Nov., 09:50, Messung", note: nil)
+        try freshCase("europa", layers: .rain("Europa (OPERA)"), server: 72, now: "09:50, Messung", oldest: "03:50, Messung", note: nil)
     }
     func testFreshInstallTemperature72() throws {
-        try freshCase("temperatur", layers: .entry(group: nil, "Temperatur"), server: 72, now: "09:00, Modell", oldest: "So. 15. Nov., 20:00, Modell", note: "Davor fehlen Daten: 08:00")
+        try freshCase("temperatur", layers: .entry(group: nil, "Temperatur"), server: 72, now: "09:00, Modell", oldest: "03:00, Modell", note: nil)
     }
     func testFreshInstallRadarGermany48() throws {
-        try freshCase("radar", layers: nil, server: 48, now: "09:40, Messung", oldest: "Mo. 16. Nov., 09:40, Messung", note: nil)
+        try freshCase("radar", layers: nil, server: 48, now: "09:40, Messung", oldest: "03:40, Messung", note: nil)
     }
     func testFreshInstallRadarGermany72() throws {
-        try freshCase("radar", layers: nil, server: 72, now: "09:40, Messung", oldest: "So. 15. Nov., 09:40, Messung", note: nil)
+        try freshCase("radar", layers: nil, server: 72, now: "09:40, Messung", oldest: "03:40, Messung", note: nil)
     }
 
     private func pickStep(_ app: XCUIApplication, _ identifier: String) {
@@ -637,62 +621,76 @@ final class RadarHistoryUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Standard'")).count, 0, "no row starts with Standard: \(context)")
     }
 
-    /// Radar Germany, the backend window is 72 h: Standard sits on "72 Stunden (Standard)" whichever step is chosen (also the standard itself).
-    func testStandardMarkStaysOnTheStandardStepWhateverIsChosenRadar() throws {
-        let app = launchRadar(hours: 72, setting: 6)
-        XCTAssertTrue(waitValue(slider(app)) { $0.contains("Messung") })
+    /// Fresh install, the backend offers 72 h: "6 Stunden (Standard)" is checked and the slider starts 6 h back; picking another
+    /// step moves the check mark only.
+    func testPastSettingOfAFreshInstallHasSixHoursAsStandard() throws {
+        let app = launchRadar(hours: 72, fresh: true)
+        let slider = slider(app)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:40, Messung") }, value(slider))
         openPastSetting(app)
-        assertPastRows(app, standard: 72, checked: 6, "stored choice 6 h")
-        shot(app, "standard-radar-1-gewaehlt-6h", enforceDark: false)
-        pastRow(app, 24).tap(); sleep(1)
-        assertPastRows(app, standard: 72, checked: 24, "24 h picked")
-        pastRow(app, 1).tap(); sleep(1)
-        assertPastRows(app, standard: 72, checked: 1, "1 h picked")
-        pastRow(app, 72).tap(); sleep(1)
-        assertPastRows(app, standard: 72, checked: 72, "the standard step itself picked")
-        shot(app, "standard-radar-2-standardwert-72h", enforceDark: false)
-        pastRow(app, 12).tap(); sleep(1)
-        assertPastRows(app, standard: 72, checked: 12, "12 h picked after the standard")
+        shot(app, "standard-frisch-einstellung", enforceDark: false)
+        assertPastRows(app, standard: 6, checked: 6, "fresh install")
+        closeSheet(app)
+        jump(slider, fraction: 0)
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("03:40, Messung") }, "6 h back: \(value(slider))")
         app.terminate()
     }
 
-    /// A layer with 48 h of past: Standard sits on "48 Stunden (Standard)" (its own window), the choice moves the check mark only.
-    func testStandardMarkStaysOnTheStandardStepWhateverIsChosenEurope() throws {
-        let app = launchLayers(setting: 6, server: 48)
+    /// Radar Germany, a stored choice from an earlier build (72 h): it stays checked, the mark stays on 6 h whatever is chosen.
+    func testStandardMarkStaysOnSixHoursWhateverIsChosenRadar() throws {
+        let app = launchRadar(hours: 72, setting: 72)
+        XCTAssertTrue(waitValue(slider(app)) { $0.contains("Messung") })
+        openPastSetting(app)
+        shot(app, "standard-radar-1-gewaehlt-72h", enforceDark: false)
+        assertPastRows(app, standard: 6, checked: 72, "stored choice 72 h")
+        pastRow(app, 24).tap(); sleep(1)
+        assertPastRows(app, standard: 6, checked: 24, "24 h picked")
+        shot(app, "standard-radar-2-gewaehlt-24h", enforceDark: false)
+        pastRow(app, 1).tap(); sleep(1)
+        assertPastRows(app, standard: 6, checked: 1, "1 h picked")
+        pastRow(app, 6).tap(); sleep(1)
+        assertPastRows(app, standard: 6, checked: 6, "the standard step itself picked")
+        pastRow(app, 12).tap(); sleep(1)
+        assertPastRows(app, standard: 6, checked: 12, "12 h picked after the standard")
+        app.terminate()
+    }
+
+    /// A layer with 48 h of past: the mark is on 6 h too, the choice moves the check mark only.
+    func testStandardMarkStaysOnSixHoursWhateverIsChosenEurope() throws {
+        let app = launchLayers(setting: 24, server: 48)
         try Pick.rain("Europa (OPERA)").select(app, self)
         XCTAssertTrue(waitValue(slider(app)) { $0.hasPrefix("09:50, Messung") })
         openPastSetting(app)
-        assertPastRows(app, standard: 48, checked: 6, "Europe, stored choice 6 h")
-        shot(app, "standard-europa-1-gewaehlt-6h", enforceDark: false)
+        assertPastRows(app, standard: 6, checked: 24, "Europe, stored choice 24 h")
+        shot(app, "standard-europa-1-gewaehlt-24h", enforceDark: false)
         pastRow(app, 2).tap(); sleep(1)
-        assertPastRows(app, standard: 48, checked: 2, "Europe, 2 h picked")
-        pastRow(app, 48).tap(); sleep(1)
-        assertPastRows(app, standard: 48, checked: 48, "Europe, the standard step picked")
-        shot(app, "standard-europa-2-standardwert-48h", enforceDark: false)
+        assertPastRows(app, standard: 6, checked: 2, "Europe, 2 h picked")
+        pastRow(app, 6).tap(); sleep(1)
+        assertPastRows(app, standard: 6, checked: 6, "Europe, the standard step picked")
         app.terminate()
     }
 
-    /// Restart: a chosen "2 h" survives the restart and wins over the 72 h window; "Standard" clears it again (the 72 h are back).
-    func testStoredTwoHoursWinsAfterRestartAndStandardBringsTheBackendWindowBack() throws {
+    /// Restart: a chosen "72 h" survives the restart and wins over the 6 h standard; picking "6 h (Standard)" clears it again.
+    func testStoredChoiceWinsAfterRestartAndStandardBringsSixHoursBack() throws {
         var app = launchLayers(setting: nil, server: 72)
         try Pick.rain("Europa (OPERA)").select(app, self)
         var slider = slider(app)
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") })
         jump(slider, fraction: 0)
-        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:50") }, "fresh: 72 h: \(value(slider))")
-        shot(app, "neustart-1-frisch-72")
-        pickStep(app, "past-hours-2")
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("03:50, Messung") }, "fresh: 6 h: \(value(slider))")
+        shot(app, "neustart-1-frisch-6")
+        pickStep(app, "past-hours-72")
         app.terminate()
 
-        // Restart without any argument for the setting: the stored 2 h (an explicit choice) decide.
+        // Restart without any argument for the setting: the stored 72 h (an explicit choice) decide.
         app = launchLayers(setting: nil, server: 72, keepStored: true)
         try Pick.rain("Europa (OPERA)").select(app, self)
         slider = self.slider(app)
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") })
         jump(slider, fraction: 0)
-        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("07:50, Messung") }, "stored 2 h wins over the 72 h window: \(value(slider))")
-        shot(app, "neustart-2-gespeichert-2h")
-        pickStep(app, "past-hours-72")   // the standard step (72 h here) forgets the choice
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:50") }, "stored 72 h wins over the standard: \(value(slider))")
+        shot(app, "neustart-2-gespeichert-72h")
+        pickStep(app, "past-hours-6")   // the standard step forgets the choice
         app.terminate()
 
         app = launchLayers(setting: nil, server: 72, keepStored: true)
@@ -700,8 +698,8 @@ final class RadarHistoryUITests: XCTestCase {
         slider = self.slider(app)
         XCTAssertTrue(waitValue(slider) { $0.hasPrefix("09:50, Messung") })
         jump(slider, fraction: 0)
-        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("So. 15. Nov., 09:50") }, "Standard: the backend's 72 h are back: \(value(slider))")
-        shot(app, "neustart-3-standard-72")
+        XCTAssertTrue(waitValue(slider) { $0.hasPrefix("03:50, Messung") }, "Standard: 6 h again: \(value(slider))")
+        shot(app, "neustart-3-standard-6")
         app.terminate()
     }
 
@@ -949,11 +947,11 @@ extension RadarHistoryUITests {
         closeSheet(app)
         XCTAssertTrue(hintNote(app).waitForNonExistence(timeout: 10), "48 h are all there: no hint: \(hintNote(app).label)")
         hintShot(app, "temperatur-wahl-auf-48")
-        // 72 h is this layer's own window (the "Standard" step): picking it forgets the choice, so the hint for a CHOSEN past is gone too.
-        pickStep(app, "past-hours-72")
+        // 6 h is the "Standard" step: picking it forgets the choice, so there is no hint for a CHOSEN past.
+        pickStep(app, "past-hours-6")
         closeSheet(app)
         XCTAssertTrue(hintNote(app).waitForNonExistence(timeout: 10), "standard step picked: no choice, no hint: \(hintNote(app).label)")
-        hintShot(app, "temperatur-wahl-standard-72")
+        hintShot(app, "temperatur-wahl-standard-6")
         app.terminate()
     }
 

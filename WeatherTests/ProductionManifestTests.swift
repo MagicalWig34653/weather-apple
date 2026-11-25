@@ -125,13 +125,12 @@ final class ProductionManifestTests: XCTestCase {
         XCTAssertEqual(store.snapshots.mapValues { $0.timeline?.gaps }, before.mapValues { $0.timeline?.gaps })
     }
 
-    func testRadarGermanyHistoryJsonOfSeventyTwoHoursIsCompleteAndTheStandardIsSeventyTwo() throws {
+    func testRadarGermanyHistoryJsonOfSeventyTwoHoursIsComplete() throws {
         let history = try RadarHistory.parse(fixture("history-radar"), baseURL: radarBase, now: Self.queried)
         XCTAssertEqual(history.slots.count, 864)
         XCTAssertEqual(history.info?.hours, 72)
         XCTAssertEqual(history.info?.complete, true)
         XCTAssertEqual(history.info?.gaps.count, 0)
-        XCTAssertEqual(RadarPastWindow.standardHours(history: history), 72, "no stored choice: the backend's 72 h")
         let reference = try XCTUnwrap(DWDRequest.date("2026-11-20T09:45:00Z"))
         let slots = (0...12).map { index -> [String: Any] in
             let time = reference.addingTimeInterval(Double(index - 11) * 300)
@@ -144,7 +143,7 @@ final class ProductionManifestTests: XCTestCase {
                                            "image": image, "slots": slots, "attribution": "Quelle: Deutscher Wetterdienst",
                                            "modification_notice": "Datenbasis: Deutscher Wetterdienst"]
         let latest = try RadarManifest.parse(JSONSerialization.data(withJSONObject: latestObject), baseURL: radarBase)
-        let composed = RadarTimelineComposer.compose(latest: latest, history: history, hours: RadarPastWindow.standardHours(history: history)).timeline
+        let composed = RadarTimelineComposer.compose(latest: latest, history: history, hours: 72).timeline
         XCTAssertEqual(composed.dates.first, history.slots.first?.time, "the oldest history slot is reachable")
         XCTAssertTrue(composed.gaps.isEmpty, "864 of 864: no note")
         XCTAssertGreaterThan(composed.dates.count, 860)

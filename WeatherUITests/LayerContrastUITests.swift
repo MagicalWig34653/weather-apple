@@ -137,7 +137,7 @@ final class LayerContrastUITests: XCTestCase {
     private func measureLayer(_ name: String, group: String?, entry prefix: String?) throws {
         let app = UITestLaunch.app(extra: UITestLaunch.setAppearance(suffix == "dark" ? .dark : .light, extra: [
             "-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestRadarHistoryHours", "72", "-UITestLayers", "all",
-            "-UITestHistoryHours", "72", "-UITestResetPastChoice"]))
+            "-UITestHistoryHours", "72", "-radarPastHours", "72"]))
         app.launch()
         let menu = app.buttons["radar-layer-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 30))
