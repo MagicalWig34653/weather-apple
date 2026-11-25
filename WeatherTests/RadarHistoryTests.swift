@@ -438,11 +438,17 @@ extension RadarBackendTests {
         let merged = RadarTimelineComposer.compose(latest: try manifest(), history: try bigHistory(slots: 576), hours: 48)
         let cache = TileMemoryCache(limit: 10_000)
         let probe = FetchProbe()
+        let selected = 300
+        let selectedURL = merged.slots[selected].url
         let loader = BackendRadarLoader(manifest: merged, cache: cache, prefetchCeiling: 2_000, fetch: { url in
             probe.begin(url); defer { probe.end() }
+            // A starved request: the selected slot answers only well after the other workers filled the ceiling.
+            if url == selectedURL {
+                while cache.byteCount < 2_000 { try await Task.sleep(for: .milliseconds(10)) }
+                try await Task.sleep(for: .seconds(3))
+            }
             return Data(count: 100)
         }, decode: { _ in Self.historyPixel })
-        let selected = 300
         loader.prefetch(selected: selected) { true }
         for _ in 0..<200 where cache.byteCount < 2_000 { try await Task.sleep(for: .milliseconds(10)) }
         try await Task.sleep(for: .milliseconds(150))
