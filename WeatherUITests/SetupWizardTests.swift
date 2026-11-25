@@ -173,6 +173,29 @@ class SetupWizardTests: XCTestCase {
         XCTAssertFalse(app.buttons["setup-skip-all"].waitForExistence(timeout: 2))
     }
 
+    /// "Einrichtung erneut starten" in the information sheet: the sheet closes and the wizard comes back.
+    func testRestartFromInformationSheet() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["setup-skip-all"].waitForExistence(timeout: 30))
+        app.buttons["setup-skip-all"].tap()
+        XCTAssertTrue(app.buttons["setup-skip-all"].waitForNonExistence(timeout: 5))
+        let info = app.buttons["Datenquellen und Datenschutz"]
+        XCTAssertTrue(info.waitForExistence(timeout: 15))
+        info.tap()
+        XCTAssertTrue(app.navigationBars["Über Showers"].waitForExistence(timeout: 8))
+        let restart = app.buttons["setup-restart"]
+        for _ in 0..<5 where !restart.isHittable { app.swipeUp() }
+        XCTAssertTrue(restart.isHittable, "restart row in the information sheet")
+        shot(app, "10a-info-einrichtung")
+        restart.tap()
+        XCTAssertTrue(app.staticTexts["Willkommen bei Showers"].waitForExistence(timeout: 8), "wizard shown again")
+        XCTAssertTrue(app.buttons["setup-skip-all"].isHittable)
+        XCTAssertFalse(app.navigationBars["Über Showers"].exists, "information sheet closed")
+        shot(app, "10b-neustart-willkommen")
+        app.buttons["setup-skip-all"].tap()
+        XCTAssertTrue(app.buttons["radar-layer-menu"].waitForExistence(timeout: 8), "back on the radar")
+    }
+
     func testEnglishWelcome() {
         let app = launch(language: .english)
         XCTAssertTrue(app.staticTexts["Welcome to Showers"].waitForExistence(timeout: 30))
