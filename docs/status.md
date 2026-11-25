@@ -1,5 +1,31 @@
 # Fortsetzbarer Arbeitsstand
 
+**25.11.2026, Worktrees aufgeraeumt (Karte 11626AEC, Worker A; Auftrag Lino: nicht mehr gebrauchte Worktrees sofort entfernen).** 15 sekundaere Worktrees geprueft und entfernt; keine Branches geloescht. Branches mit Remote waren SHA-gleich auf origin; die HEADs ohne eigenen Remote-Branch liegen in `main`. "t/…" = Ordner im Temp-Verzeichnis, "a/…" = `.claude/worktrees/…`.
+
+| Worktree | Branch | HEAD | Entscheidung | Begruendung | entfernt |
+|---|---|---|---|---|---|
+| t/b58p | `fix/b58-pill` | `799d04e` | bereits in `main` | `bbf1e79`, `269b511`, `eccda8a`, `e5a611a`, `9673985`; spaeter weiterentwickelt | ja |
+| t/g55 | `test/build-55-gap-note` | `3dcaf32` | gemergt (lokal) | 5 UI-Tests zum Lueckenhinweis fehlten: `f3d993d`, `202e71c` (1 Konflikt additiv) | ja |
+| t/integ-wizard | `integration/wizard-build52` | `26c0385` | Worktree verworfen, Funktion nicht gemergt | Ordner enthielt keine Datei mehr, Index = HEAD; Setup-Wizard bleibt auf dem Branch (siehe Offen) | ja (`prune`) |
+| t/la57 | `feature/la-lock-brighter` | `4a09750` | bereits in `main`, ueberholt | `7a4576f`, `10c8627`; Optik inzwischen durch `1cc5db3` ersetzt | ja |
+| t/la58b | `feature/la-lock-b58` | `a42ebb3` | bereits in `main` | `4057c1a`, `ea2ae5a`, `d082024` | ja |
+| t/loadseq | `evidence/loading-sequence` | `6e78f87` | gemergt (lokal, Doku) | Test seit `2e55b09` in `main`; nur der Status-Eintrag fehlte: `0ce3a87` | ja |
+| t/p56 | `test/build-56-prod-sequence` | `b8b0489` | bereits in `main` | in `b001cfc` enthalten (Vorstufe von bar-stable) | ja |
+| t/q56 | `test/build-56-race-fix` | `d3247d3` | bereits in `main` | in `b001cfc` enthalten (Vorstufe von bar-stable) | ja |
+| t/r55 | `test/build-55-pwlimit-ref` | `fcda994` | bereits in `main` | Testdatei ueber `b001cfc` blobgleich | ja |
+| t/r56 | `test/build-56-regression` | `5880cb5` | bereits in `main` | Testdatei ueber `b001cfc` blobgleich | ja |
+| t/rd56 | losgeloest | `0f101ae` | verworfen | offene Aenderung (`ForecastRefreshTests.swift`) bytegleich mit `3e1405a`; Patch gesichert | ja |
+| t/wt-bar-stable | `test/build-56-bar-stable` | `2757daf` | bereits in `main` | `b001cfc`: UI-Tests ohne Unterschied | ja |
+| a/agent-a09d4ad3ed5f4c920 | `worktree-agent-a09d4ad3ed5f4c920` | `6c4cbc3` | entsperrt, entfernt | HEAD in `main`, sauber, Agent zuletzt 20.11. aktiv | ja |
+| a/agent-a614577264eee150b | `worktree-agent-a614577264eee150b` | `54b6a64` | entsperrt, entfernt | HEAD in `main`, sauber, Agent zuletzt 18.11. aktiv | ja |
+| a/agent-aeff805ab23027e32 | `fix/orte-rand` | `fa02c51` | entsperrt, entfernt | HEAD in `main`, sauber, Agent zuletzt 21.11. aktiv | ja |
+
+- **Sperren:** vor dem Entsperren geprueft: kein Prozess mit Arbeitsverzeichnis oder offener Datei darin, keine Datei in den letzten 24 h geaendert, kein Werkzeugaufruf darauf in den letzten 24 h. Kein Prozess beendet.
+- **Behalten:** `showers-flake` (`fix/prefetch-flake`, waehrend des Laufs angelegt; Worker B arbeitet dort).
+- **Gesichert:** `rd56`-Patch im Orchestrator unter `runtime/nachweise/showers-worktrees/`.
+- **Nicht geprueft:** kein Build, kein Testlauf durch Worker A; `RadarHistoryUITests.swift` nur `swiftc -parse`. Die 5 `testGapNote*` (zuletzt gruen am 21.11. auf Build-55-Stand) und der Push liegen bei Worker B.
+- **Offen:** Setup-Wizard (Karten FC7E2B77, 16B17FF7 erledigt, Review angenommen) ist nicht in `main` und in keinem spaeteren Build. Probemerge: Konflikte nur `project.pbxproj` und `docs/status.md`; Merge-Zeitpunkt und Buildnummer entscheidet Brain/Lino. Die ungetrackte `docs/onboarding-konzept.md` im Haupt-Checkout ist aelter als die Branch-Fassung (unangetastet; blockiert beim Merge das Auschecken).
+
 **25.11.2026, Build 60 hochgeladen (Karte 8FFEAA1B; Quelle `976147d`, Tag `testflight-0.1.1-60`).**
 - **Freigabe:** Brain-Validierung `97e8976` 858/859 (einziger Fehler Lastflake `LiveActivityImageTests/testLockScreenCardBeforeAfterImagesAndWiring`, Wiederholung 11/11), Bilder gesichtet; `upload-tor.py gueltig showers 60` unmittelbar vor dem Upload Exit 0; Build 60 fehlte vorher in ASC.
 - **Upload:** nur ueber das Upload-Tor, ein Versuch 25.11. 12:08 bis 12:10, Exit 0, „Upload succeeded“, „EXPORT SUCCEEDED“ (Exportoptionen wie Build 59).
@@ -109,6 +135,12 @@
 - **Bekannte Abweichung (ehrlich; am 23.11. behoben, siehe Eintrag oben: Kurztext, bei L jetzt 48/48/48 pt):** Die Prognose-Pille sprang beim Laden aus "Server hinterher" bei Schrift L um 6 pt (54 pt zweizeiliger Ruhetext <-> 48 pt einzeilige Zusammenfassung im Ladezustand). Die Kartenzusage "keine Höhenänderung" (205C818F) gilt für diesen Fall nicht mehr voll; `UpdateProgressBarUITests` vergleicht seit `7d59a96` nach Zeilenzahl (`assertPillHeight`, Entscheidung Lino 22.11.). Gleiche Höhe weiter verlangt, wenn beide Zustände einzeilig sind (48 pt) bzw. gleich hoch; ein Balken, der die Höhe sonst ändert, fällt durch. Einzelheiten und Bewertung kleinster Vermeidung: `runtime/nachweise/showers-57/README-kandidat.md`.
 - **Test-Hinweise:** `SpacingAuditUITests` (Messläufe ohne Asserts, schreiben Bilder/JSON nach `SPACING_OUT`) und `testRealServicesLoadingSequenceForRecording` (Echtnetz, nicht per Umgebungsvariable gesperrt; Laufzeit im README-kandidat) laufen im regulären UI-Lauf mit. Produktionsfälle nur mit `TEST_RUNNER_PWLIMIT_PROD`, `HIST_PROD`, `HIST_PROD_LAYER`, `CLOUDREST_PROD` (Lesen). Regressionsergebnisse und Logs (SHA im Kopf): `runtime/nachweise/showers-57/`.
 - **Offen für den Kandidaten:** Ladeanzeige-Bildfolge gegen den echten Server, Archiv und Tor-Manifest (Schritt 2), Gerät/TestFlight.
+
+**22.11.2026, Branch `evidence/loading-sequence` (ab `8858a30`, nur Testcode; Todolino 205C818F, Uploadtor-Nachweis Ladeanzeige):** Nachgetragen am 25.11. beim Worktree-Aufraeumen (aus `6e78f87`; der Test ist seit `2e55b09` in `main`).
+- **Neu:** `UpdateProgressBarUITests/testRealServicesLoadingSequenceForRecording` (Echtbetrieb, lesende GETs, keine Stubs) als Treiber einer parallelen Bildschirmaufnahme: Kaltstart frisch, zweiter Kaltstart, manueller Reload "Daten neu laden". Asserts: Balken `running` ohne Prozentzahl, Hinweis "Regenprognose wird geladen", Balken endet, Pillenhoehe 48 pt unveraendert.
+- **Befund:** der Startbalken laeuft ab dem ersten gezeichneten App-Frame (kein Frame der App-Oberflaeche ohne Balken davor). Der manuelle Reload wird aus Caches beantwortet, der Balken ist nur 0,07 bis 0,5 s sichtbar. Ein Reload derselben Sitzung nach Minuten Ruhe (automatischer Lauf) zeigt Vorher/Waehrend/Nachher (5,6 bis 6,7 s).
+- **Geprueft:** 4 Aufnahmelaeufe (hell/dunkel, mit und ohne 310 s Pause) und 2 Laeufe `testRealServicesStartBarImageSequence`, alle gruen. Bilder, Aufnahmen, Logs und Manifest-Vorschlag liegen ausserhalb des Repos im Orchestrator (`runtime/nachweise/showers-ladeanzeige-folge/README.md`).
+- **Nicht geprueft:** Geraet, VoiceOver, Reduce Motion, Prozent-Variante (echte Dienste melden keine Gesamtgroesse), langer manueller Reload mit Netzabfrage (ohne App-Hook nicht erzeugbar). App-Code unveraendert gegenueber 8858a30.
 
 **22.11.2026, Branch `fix/spacing-pill-stack` (ab `8858a30` = `fix/clouds-radar-remnant`; nicht gemergt; Todolino D5875BAA, Befund 3 und 4 der Abstandsprüfung, Entscheidung Lino 22.11. 20:33):**
 - **Befund 3 (Prognose-Pille zweizeilig):** `forecastCard`: `.padding(.vertical, 8)` vor `frame(minHeight: 48)`. Einzeilig bleibt die Pille 48 pt (Mindesthöhe gewinnt), zweizeilig wächst sie (L 54 pt, XXL 63 pt, AXXXL 133 pt) mit 8 pt Luft oben/unten (vorher 5 / 0,5 / 0 pt). Folge, sichtbar: der Ruhetext "Der Wetterdienst hat noch keinen neueren Stand" ist bei L zweizeilig (54 pt), der Ladezustand zeigt wieder die einzeilige Zusammenfassung (48 pt): beim Laden aus "Server hinterher" springt die Pille um 6 pt. Der Test "keine Höhenänderung" (`UpdateProgressBarUITests`) wurde nur dafür angepasst (`assertPillHeight`: gleich ODER einzeilig 48 pt <-> zweizeilig 48,5 bis 60 pt; getrennter Commit); ein Balken, der die Höhe sonst ändert, fällt weiter durch.
