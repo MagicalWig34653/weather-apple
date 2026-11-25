@@ -1,5 +1,31 @@
 # Fortsetzbarer Arbeitsstand
 
+**25.11.2026, Worktrees aufgeraeumt (Karte 11626AEC, Worker A; Auftrag Lino: nicht mehr gebrauchte Worktrees sofort entfernen).** 15 sekundaere Worktrees geprueft und entfernt; keine Branches geloescht. Branches mit Remote waren SHA-gleich auf origin; die HEADs ohne eigenen Remote-Branch liegen in `main`. "t/…" = Ordner im Temp-Verzeichnis, "a/…" = `.claude/worktrees/…`.
+
+| Worktree | Branch | HEAD | Entscheidung | Begruendung | entfernt |
+|---|---|---|---|---|---|
+| t/b58p | `fix/b58-pill` | `799d04e` | bereits in `main` | `bbf1e79`, `269b511`, `eccda8a`, `e5a611a`, `9673985`; spaeter weiterentwickelt | ja |
+| t/g55 | `test/build-55-gap-note` | `3dcaf32` | gemergt (lokal) | 5 UI-Tests zum Lueckenhinweis fehlten: `f3d993d`, `202e71c` (1 Konflikt additiv) | ja |
+| t/integ-wizard | `integration/wizard-build52` | `26c0385` | Worktree verworfen, Funktion nicht gemergt | Ordner enthielt keine Datei mehr, Index = HEAD; Setup-Wizard bleibt auf dem Branch (siehe Offen) | ja (`prune`) |
+| t/la57 | `feature/la-lock-brighter` | `4a09750` | bereits in `main`, ueberholt | `7a4576f`, `10c8627`; Optik inzwischen durch `1cc5db3` ersetzt | ja |
+| t/la58b | `feature/la-lock-b58` | `a42ebb3` | bereits in `main` | `4057c1a`, `ea2ae5a`, `d082024` | ja |
+| t/loadseq | `evidence/loading-sequence` | `6e78f87` | gemergt (lokal, Doku) | Test seit `2e55b09` in `main`; nur der Status-Eintrag fehlte: `0ce3a87` | ja |
+| t/p56 | `test/build-56-prod-sequence` | `b8b0489` | bereits in `main` | in `b001cfc` enthalten (Vorstufe von bar-stable) | ja |
+| t/q56 | `test/build-56-race-fix` | `d3247d3` | bereits in `main` | in `b001cfc` enthalten (Vorstufe von bar-stable) | ja |
+| t/r55 | `test/build-55-pwlimit-ref` | `fcda994` | bereits in `main` | Testdatei ueber `b001cfc` blobgleich | ja |
+| t/r56 | `test/build-56-regression` | `5880cb5` | bereits in `main` | Testdatei ueber `b001cfc` blobgleich | ja |
+| t/rd56 | losgeloest | `0f101ae` | verworfen | offene Aenderung (`ForecastRefreshTests.swift`) bytegleich mit `3e1405a`; Patch gesichert | ja |
+| t/wt-bar-stable | `test/build-56-bar-stable` | `2757daf` | bereits in `main` | `b001cfc`: UI-Tests ohne Unterschied | ja |
+| a/agent-a09d4ad3ed5f4c920 | `worktree-agent-a09d4ad3ed5f4c920` | `6c4cbc3` | entsperrt, entfernt | HEAD in `main`, sauber, Agent zuletzt 20.11. aktiv | ja |
+| a/agent-a614577264eee150b | `worktree-agent-a614577264eee150b` | `54b6a64` | entsperrt, entfernt | HEAD in `main`, sauber, Agent zuletzt 18.11. aktiv | ja |
+| a/agent-aeff805ab23027e32 | `fix/orte-rand` | `fa02c51` | entsperrt, entfernt | HEAD in `main`, sauber, Agent zuletzt 21.11. aktiv | ja |
+
+- **Sperren:** vor dem Entsperren geprueft: kein Prozess mit Arbeitsverzeichnis oder offener Datei darin, keine Datei in den letzten 24 h geaendert, kein Werkzeugaufruf darauf in den letzten 24 h. Kein Prozess beendet.
+- **Behalten:** `showers-flake` (`fix/prefetch-flake`, waehrend des Laufs angelegt; Worker B arbeitet dort).
+- **Gesichert:** `rd56`-Patch im Orchestrator unter `runtime/nachweise/showers-worktrees/`.
+- **Nicht geprueft:** kein Build, kein Testlauf durch Worker A; `RadarHistoryUITests.swift` nur `swiftc -parse`. Die 5 `testGapNote*` (zuletzt gruen am 21.11. auf Build-55-Stand) und der Push liegen bei Worker B.
+- **Offen:** Setup-Wizard (Karten FC7E2B77, 16B17FF7 erledigt, Review angenommen) ist nicht in `main` und in keinem spaeteren Build. Probemerge: Konflikte nur `project.pbxproj` und `docs/status.md`; Merge-Zeitpunkt und Buildnummer entscheidet Brain/Lino. Die ungetrackte `docs/onboarding-konzept.md` im Haupt-Checkout ist aelter als die Branch-Fassung (unangetastet; blockiert beim Merge das Auschecken).
+
 **25.11.2026, Build 60 hochgeladen (Karte 8FFEAA1B; Quelle `976147d`, Tag `testflight-0.1.1-60`).**
 - **Freigabe:** Brain-Validierung `97e8976` 858/859 (einziger Fehler Lastflake `LiveActivityImageTests/testLockScreenCardBeforeAfterImagesAndWiring`, Wiederholung 11/11), Bilder gesichtet; `upload-tor.py gueltig showers 60` unmittelbar vor dem Upload Exit 0; Build 60 fehlte vorher in ASC.
 - **Upload:** nur ueber das Upload-Tor, ein Versuch 25.11. 12:08 bis 12:10, Exit 0, „Upload succeeded“, „EXPORT SUCCEEDED“ (Exportoptionen wie Build 59).
