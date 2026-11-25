@@ -3,12 +3,13 @@ import Foundation
 /// User setting: how far back the radar timeline reaches. Local only (UserDefaults).
 enum RadarPastWindow {
     static let options = [1, 2, 6, 12, 24, 48, 72]
-    static let defaultHours = 2
+    /// The standard window of every map without a choice (the step marked "(Standard)"), whatever the server offers.
+    static let defaultHours = 6
     static let defaultsKey = "radarPastHours"
     /// Past covered by the direct DWD path (12 analyses, about one hour), whatever the setting says.
     static let directHours = 1
 
-    /// Effective hours of a stored choice, else the fixed default (kept for callers without a backend window).
+    /// Effective hours: the stored choice, else the standard.
     static func load(_ defaults: UserDefaults) -> Int { choice(defaults) ?? defaultHours }
 
     /// The user's explicit choice; `nil` = never chosen. Builds 50 and 52 write `radarPastHours` only when the user picks a
@@ -26,12 +27,6 @@ enum RadarPastWindow {
         return stored
     }
     static func clear(_ defaults: UserDefaults) { defaults.removeObject(forKey: defaultsKey) }
-    /// Window of the radar without a choice: what the backend's `history.json` reports (`history.hours`, PR #4), else the
-    /// fixed default (today's backend has no block: nothing is guessed). Only the steps of the setting count.
-    static func standardHours(history: RadarHistory?) -> Int {
-        guard let hours = history?.info?.hours else { return defaultHours }
-        return options.contains(hours) ? hours : (options.filter { $0 <= hours }.max() ?? defaultHours)
-    }
 
     static func save(_ hours: Int, to defaults: UserDefaults) {
         guard options.contains(hours) else { return }

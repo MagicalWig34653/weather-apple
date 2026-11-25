@@ -195,8 +195,8 @@ struct InformationSheet: View {
 
     private var pastSection: some View {
         Section {
-            // The "Standard" mark sits on the fixed standard step (the map's own window), the check mark on the shown step;
-            // picking the standard step forgets the choice (every map shows its own window again).
+            // The "Standard" mark sits on the fixed standard step (6 h), the check mark on the shown step; picking the
+            // standard step forgets the choice.
             let standard = store.standardPastHours
             ForEach(RadarPastWindow.options, id: \.self) { hours in
                 let unavailable = isUnavailable(hours)

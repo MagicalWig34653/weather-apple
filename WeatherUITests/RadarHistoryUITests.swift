@@ -732,10 +732,20 @@ final class RadarHistoryUITests: XCTestCase {
         print("HISTPROD layer=\(layer) jetzt=\(now) | aeltester=\(oldest) | hinweis=\(note)")
         XCTAssertNotEqual(oldest, now, "the slider reaches back")
         shot(app, "prod-\(layer)-2-aeltester-slot", enforceDark: false)
+        let reference = Date()
+        let newer = try XCTUnwrap(PastWindowLimitUITests.date(of: now, reference: reference), now)
+        let older = try XCTUnwrap(PastWindowLimitUITests.date(of: oldest, reference: reference), oldest)
+        let span = newer.timeIntervalSince(older) / 3600
+        print(String(format: "HISTPROD layer=%@ stunden=%.2f", layer, span))
+        XCTAssertLessThanOrEqual(span, 6.01, "fresh install: not more than the standard 6 h: \(oldest) ... \(now)")
+        XCTAssertGreaterThan(span, 5.0, "fresh install: the standard reaches about 6 h back: \(oldest) ... \(now)")
         jump(slider, fraction: 1)
         sleep(3)
         shot(app, "prod-\(layer)-3-zurueck", enforceDark: false)
         print("HISTPROD layer=\(layer) zurueck=\(value(slider)) hinweis_am_ende=\(gapNote(app).exists)")
+        openPastSetting(app)
+        shot(app, "prod-\(layer)-4-einstellung", enforceDark: false)
+        assertPastRows(app, standard: 6, checked: 6, "production \(layer), fresh install")
         app.terminate()
     }
 

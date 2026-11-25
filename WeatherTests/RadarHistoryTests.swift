@@ -222,13 +222,13 @@ extension RadarBackendTests {
     func testPastSettingDefaultsPersistsAndRejectsInvalidValues() {
         let defaults = isolatedDefaults()
         XCTAssertEqual(RadarPastWindow.options, [1, 2, 6, 12, 24, 48, 72], "72 h added with backend PR #4")
-        XCTAssertEqual(RadarPastWindow.load(defaults), 2, "default is 2 h")
+        XCTAssertEqual(RadarPastWindow.load(defaults), 6, "default is 6 h")
         RadarPastWindow.save(24, to: defaults)
         XCTAssertEqual(RadarPastWindow.load(defaults), 24)
         RadarPastWindow.save(5, to: defaults)
         XCTAssertEqual(RadarPastWindow.load(defaults), 24, "invalid values are not stored")
         defaults.set(999, forKey: RadarPastWindow.defaultsKey)
-        XCTAssertEqual(RadarPastWindow.load(defaults), 2, "a corrupt stored value falls back to the default")
+        XCTAssertEqual(RadarPastWindow.load(defaults), 6, "a corrupt stored value falls back to the default")
         XCTAssertEqual(RadarPastWindow.label(1), "1 Stunde")
         XCTAssertEqual(RadarPastWindow.label(48), "48 Stunden")
     }
@@ -236,7 +236,7 @@ extension RadarBackendTests {
     @MainActor func testStorePersistsAndRestoresPastHours() {
         let defaults = isolatedDefaults()
         let first = WeatherStore(client: failingDWD(), backend: client(Script([.init(status: 404)]), now: Date()), defaults: defaults)
-        XCTAssertEqual(first.pastHours, 2)
+        XCTAssertEqual(first.pastHours, 6)
         first.setPastHours(48)
         first.setPastHours(7) // ignored
         XCTAssertEqual(first.pastHours, 48)
