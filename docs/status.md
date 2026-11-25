@@ -1,5 +1,11 @@
 # Fortsetzbarer Arbeitsstand
 
+**25.11.2026, Standard "Maximale Vergangenheit" fest 6 Stunden (Karte 8FFEAA1B; Test rot `954df7a`, Fix `fb0c8cf`, Buildnummer 60 `976147d`; auf `main`; Build 60 archiviert, NICHT hochgeladen).**
+- **Inhalt:** `RadarPastWindow.defaultHours` = 6; ohne gespeicherte Wahl gilt 6 h auf allen Karten (Serverfenster ohne Einfluss), "(Standard)" fest an "6 Stunden", Abspielfenster ohne Wahl wie bei 6 h. Gespeicherte Wahl bleibt unveraendert (keine Migration). Entscheidung: `decisions.md` 25.11.
+- **Geprueft (Simulator iPhone, iOS 27):** Tests rot auf `954df7a` (Unit 63/24 Fehler, E2E hell/dunkel je 2/2); `WeatherTests` komplett 856/0; `RadarHistoryUITests` komplett hell 54/0 (3 uebersprungen); 11 geaenderte Tests dunkel + Echtbackend (Pille 48 pt, Produktion Welt Neuinstallation 6,00 h) 13/0, Echtbackend hell 2/0; `check_l10n --strict` Exit 0. Bilder vorher/nachher hell+dunkel und Logs im Orchestrator `runtime/nachweise/showers-6h-standard` und `showers-60`.
+- **Archiv:** `showers-60/Showers60.xcarchive` aus sauberem Worktree auf `976147d`; Tor-Nachweis `showers-60.json` meldet nur "brain_gesehen fehlt". Upload und ASC-Schritte stehen aus (Freigabe Brain).
+- **Nicht geprueft:** komplette `RadarHistoryUITests` dunkel, uebrige UI-Klassen, Archivbinary, Geraet, VoiceOver; CI nur Pages (nicht ausgeloest). `docs-site/content/funktionen.md` nennt noch "Standard: 2 Stunden" (nicht geaendert, Push dort veroeffentlicht die Seite).
+
 **25.11.2026, Build 59 hochgeladen (Karten C11CB2AF, AFF9E7DD; Quelle `bd8b9d4`, Tag `testflight-0.1.1-59`).**
 - **Freigabe:** Bildsichtung durch das Brain (`brain_gesehen`), Upload-Tor `upload-tor.py gueltig showers 59` unmittelbar vor dem Upload Exit 0; Build 59 fehlte vorher in ASC (lesend).
 - **Upload:** nur ueber das Upload-Tor, genau ein Versuch 24.11. 23:59:56 bis 25.11. 00:01:55, Exit 0, „Upload succeeded“, „EXPORT SUCCEEDED“ (`-allowProvisioningUpdates`, Export „TestFlight & App Store“, `testFlightInternalTestingOnly=false`). Xcode hat dabei wie bei frueheren Builds nur die `Info.plist` des Archivs ergaenzt; `gueltig` meldet seitdem erwartungsgemaess einen abweichenden Hash.
