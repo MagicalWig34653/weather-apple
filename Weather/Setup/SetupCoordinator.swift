@@ -41,13 +41,13 @@ final class SetupCoordinator {
         await push.refreshAuthorization(until: deadline)
         #if DEBUG
         PushUITestStub.cleanPlaces(store)
-        #endif
         if CommandLine.arguments.contains("-UITestSetup") {
             // The shared simulator keeps permission and place state; tests get the framed flow regardless.
             progress.reset()
             restart(store: store, push: push)
             return
         }
+        #endif
         switch SetupPlan.decide(completedVersion: progress.completedVersion, snapshot: Self.snapshot(store: store, push: push)) {
         case .show(let mode, let steps): present(mode: mode, steps: steps)
         case .nothingOpen: progress.markCompleted()
