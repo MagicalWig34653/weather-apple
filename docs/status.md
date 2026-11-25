@@ -1,6 +1,14 @@
 # Fortsetzbarer Arbeitsstand
 
-**25.11.2026, Standard "Maximale Vergangenheit" fest 6 Stunden (Karte 8FFEAA1B; Test rot `954df7a`, Fix `fb0c8cf`, Buildnummer 60 `976147d`; auf `main`; Build 60 archiviert, NICHT hochgeladen).**
+**25.11.2026, Build 60 hochgeladen (Karte 8FFEAA1B; Quelle `976147d`, Tag `testflight-0.1.1-60`).**
+- **Freigabe:** Brain-Validierung `97e8976` 858/859 (einziger Fehler Lastflake `LiveActivityImageTests/testLockScreenCardBeforeAfterImagesAndWiring`, Wiederholung 11/11), Bilder gesichtet; `upload-tor.py gueltig showers 60` unmittelbar vor dem Upload Exit 0; Build 60 fehlte vorher in ASC.
+- **Upload:** nur ueber das Upload-Tor, ein Versuch 25.11. 12:08 bis 12:10, Exit 0, „Upload succeeded“, „EXPORT SUCCEEDED“ (Exportoptionen wie Build 59).
+- **ASC:** Build 60 `5fc6644e-1857-4096-8d0e-53da7f232c62` VALID, `usesNonExemptEncryption=false`, intern `IN_BETA_TESTING` in „ich + papa“, extern `READY_FOR_BETA_SUBMISSION` (keine externe Gruppe, keine Einzeltester, keine Einreichung). „Was testen“ (de-DE) gesetzt und identisch zurueckgelesen.
+- **Prerelease:** github.com/MagicalWig34653/weather-apple/releases/tag/testflight-0.1.1-60.
+- **Belege:** Orchestrator `runtime/nachweise/showers-60/logs` (`upload.log`, `asc-wait.json`, `asc-build-60.json`, `asc-groups-60.json`, `asc-betadetail-60.json`, `asc-testnotes-60.json`).
+- **Nicht geprueft:** Installation auf echtem Geraet.
+
+**25.11.2026, Standard "Maximale Vergangenheit" fest 6 Stunden (Karte 8FFEAA1B; Test rot `954df7a`, Fix `fb0c8cf`, Buildnummer 60 `976147d`; auf `main`; Stand vor dem Upload, siehe oben).**
 - **Inhalt:** `RadarPastWindow.defaultHours` = 6; ohne gespeicherte Wahl gilt 6 h auf allen Karten (Serverfenster ohne Einfluss), "(Standard)" fest an "6 Stunden", Abspielfenster ohne Wahl wie bei 6 h. Gespeicherte Wahl bleibt unveraendert (keine Migration). Entscheidung: `decisions.md` 25.11.
 - **Geprueft (Simulator iPhone, iOS 27):** Tests rot auf `954df7a` (Unit 63/24 Fehler, E2E hell/dunkel je 2/2); `WeatherTests` komplett 856/0; `RadarHistoryUITests` komplett hell 54/0 (3 uebersprungen); 11 geaenderte Tests dunkel + Echtbackend (Pille 48 pt, Produktion Welt Neuinstallation 6,00 h) 13/0, Echtbackend hell 2/0; `check_l10n --strict` Exit 0. Bilder vorher/nachher hell+dunkel und Logs im Orchestrator `runtime/nachweise/showers-6h-standard` und `showers-60`.
 - **Archiv:** `showers-60/Showers60.xcarchive` aus sauberem Worktree auf `976147d`; Tor-Nachweis `showers-60.json` meldet nur "brain_gesehen fehlt". Upload und ASC-Schritte stehen aus (Freigabe Brain).
