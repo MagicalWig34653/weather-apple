@@ -449,9 +449,8 @@ extension RadarBackendTests {
             }
             return Data(count: 100)
         }, decode: { _ in Self.historyPixel })
-        loader.prefetch(selected: selected) { true }
-        for _ in 0..<200 where cache.byteCount < 2_000 { try await Task.sleep(for: .milliseconds(10)) }
-        try await Task.sleep(for: .milliseconds(150))
+        // Wait for the prefetch itself, not for a guessed time: all workers stop at the ceiling.
+        await loader.prefetch(selected: selected) { true }.value
         let fetched = Set(probe.started)
         XCTAssertGreaterThanOrEqual(fetched.count, 20)
         XCTAssertLessThanOrEqual(fetched.count, 20 + RadarBackendPolicy.prefetchParallelism, "ceiling 2000 B / 100 B plus requests in flight")
@@ -460,6 +459,5 @@ extension RadarBackendTests {
         XCTAssertTrue(fetched.isSubset(of: nearest), "only the slots nearest to the selection were loaded")
         XCTAssertTrue(cache.contains(merged.slots[selected].url))
         XCTAssertLessThanOrEqual(cache.byteCount, 10_000)
-        loader.cancelPrefetch()
     }
 }

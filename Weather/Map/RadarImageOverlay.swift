@@ -177,7 +177,9 @@ final class BackendRadarLoader: @unchecked Sendable {
 
     /// Alternating left/right from the selected slot with a few parallel requests.
     /// `limit` caps the number of slots around the selected one (large images); `nil` = all.
-    func prefetch(selected: Int, limit: Int? = nil, allowed: @escaping @Sendable () -> Bool) {
+    /// The returned task ends when every worker has stopped (window or ceiling reached, not allowed, cancelled).
+    @discardableResult
+    func prefetch(selected: Int, limit: Int? = nil, allowed: @escaping @Sendable () -> Bool) -> Task<Void, Never> {
         // Never the whole catalogue: a 72 h manifest has 865 slots, only a window around the selection is loaded.
         let window = min(max(1, limit ?? RadarBackendPolicy.maximumPrefetchSlots), RadarBackendPolicy.maximumPrefetchSlots)
         let urls = RadarPrefetchPolicy.order(selected: selected, count: manifest.slots.count, limit: window).map { manifest.slots[$0].url }
@@ -195,6 +197,7 @@ final class BackendRadarLoader: @unchecked Sendable {
             }
         }
         lock.withLock { prefetchTask?.cancel(); prefetchTask = task }
+        return task
     }
 
     func cancelPrefetch() {
