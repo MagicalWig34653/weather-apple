@@ -512,7 +512,7 @@ final class RadarBackendTests: XCTestCase {
     @MainActor func testStoreUsesBackendTimelineAndLabelsSource() async throws {
         let data = try fixtureData()
         let reference = try manifest().referenceTime
-        let store = WeatherStore(client: failingDWD(),
+        let store = WeatherStore.isolated(client: failingDWD(),
                                  backend: client(Script([.init(status: 200, body: data, etag: "\"a\"")]), now: try manifest().generatedAt.addingTimeInterval(60)))
         await store.refresh()
         XCTAssertEqual(store.radarSource, .cache)
@@ -534,7 +534,7 @@ final class RadarBackendTests: XCTestCase {
         for replies in [[Script.Reply(status: 404)], [.init(status: -1)], [.init(status: 200, body: data)]] {
             // The last variant is "stale": the backend clock is a day after its run.
             let backendNow = replies[0].status == 200 ? reference.addingTimeInterval(86_400) : reference
-            let store = WeatherStore(client: dwd, backend: client(Script(replies), now: backendNow))
+            let store = WeatherStore.isolated(client: dwd, backend: client(Script(replies), now: backendNow))
             await store.refresh()
             XCTAssertEqual(store.radarSource, .direct, "status \(replies[0].status)")
             XCTAssertNil(store.timeline?.backend)
@@ -549,7 +549,7 @@ final class RadarBackendTests: XCTestCase {
         object["generated_at"] = "2026-10-30T18:30:00Z"
         let newer = try JSONSerialization.data(withJSONObject: object)
         let script = Script([.init(status: 200, body: data, etag: "\"a\""), .init(status: 304), .init(status: 200, body: newer, etag: "\"b\"")])
-        let store = WeatherStore(client: failingDWD(), backend: client(script, now: try manifest().generatedAt.addingTimeInterval(120)))
+        let store = WeatherStore.isolated(client: failingDWD(), backend: client(script, now: try manifest().generatedAt.addingTimeInterval(120)))
         await store.refresh()
         store.selectedFrame = 4
         let selected = store.frameDate

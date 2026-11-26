@@ -162,7 +162,7 @@ final class RadarPollScheduleTests: XCTestCase {
         let calls = RequestCounter()
         let backend = RadarBackendClient(baseURL: URL(string: "https://radar.example.invalid/v1/radar/")!,
                                          transport: { _ in calls.increment(); throw URLError(.timedOut) })
-        let store = WeatherStore(client: DWDClient(), backend: backend,
+        let store = WeatherStore.isolated(client: DWDClient(), backend: backend,
                                  defaults: UserDefaults(suiteName: "poll-\(UUID().uuidString)")!)
         let delays = DelayLog()
         let task = Task { @MainActor in
@@ -247,7 +247,7 @@ final class RadarRequestGenerationTests: XCTestCase {
         let suite = "radar-generation-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
-        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
                                  backend: backend, defaults: defaults, reloadWidgets: {})
         let poll = Task { await store.pollRadar() }
         await gate.waitForFirst()

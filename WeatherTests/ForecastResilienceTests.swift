@@ -21,7 +21,7 @@ final class ForecastResilienceTests: XCTestCase {
     }
 
     private func store(_ transport: ScriptedTransport, clock: ResilienceClock) -> WeatherStore {
-        WeatherStore(client: client(transport, clock: clock), backend: DWDDataTests.unreachableBackend,
+        WeatherStore.isolated(client: client(transport, clock: clock), backend: DWDDataTests.unreachableBackend,
                      defaults: UserDefaults(suiteName: "ForecastResilienceTests-\(UUID().uuidString)")!)
     }
 
@@ -169,7 +169,7 @@ final class ForecastResilienceTests: XCTestCase {
     }
 
     func testMemoryKeepsOnlyTheLastTenPlaces() {
-        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
                                  backend: DWDDataTests.unreachableBackend,
                                  defaults: UserDefaults(suiteName: "ForecastResilienceTests-\(UUID().uuidString)")!)
         let forecast = RainForecast(referenceTime: reference, samples: [])

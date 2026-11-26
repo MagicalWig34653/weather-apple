@@ -333,7 +333,7 @@ final class SetupCoordinatorStartTests: XCTestCase {
 
     private func make() -> (SetupCoordinator, WeatherStore, PushManager, SilentAuthorizer, FakeRegistrar, FakeGateway) {
         let defaults = UserDefaults(suiteName: suite)!
-        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
                                  defaults: defaults, reloadWidgets: {})
         let authorizer = SilentAuthorizer(), registrar = FakeRegistrar(), gateway = FakeGateway()
         let push = PushManager(gateway: gateway, secrets: FakeSecrets(), authorizer: authorizer, registrar: registrar,

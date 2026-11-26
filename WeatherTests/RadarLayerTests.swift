@@ -505,7 +505,7 @@ final class RadarLayerTests: XCTestCase {
     @MainActor
     func testStoreDisplaysRadarByDefaultAndTheLayerWhenActive() async throws {
         let layers = store(try backendResponder(), now: "2026-10-31T12:40:00Z")
-        let weather = WeatherStore(client: DWDClient(), backend: DWDDataTests.unreachableBackend,
+        let weather = WeatherStore.isolated(client: DWDClient(), backend: DWDDataTests.unreachableBackend,
                                    defaults: UserDefaults(suiteName: "layers-\(UUID().uuidString)")!, layers: layers)
         let radar = RadarTimeline(referenceTime: utc("2026-10-31T12:30:00Z"),
                                   dates: [utc("2026-10-31T12:25:00Z"), utc("2026-10-31T12:30:00Z"), utc("2026-10-31T12:35:00Z")])
@@ -534,7 +534,7 @@ final class RadarLayerTests: XCTestCase {
     @MainActor
     func testLayerWithoutDataShowsNoTimelineInsteadOfRadar() async throws {
         let layers = store(Responder { _ in throw URLError(.notConnectedToInternet) })
-        let weather = WeatherStore(client: DWDClient(), backend: DWDDataTests.unreachableBackend,
+        let weather = WeatherStore.isolated(client: DWDClient(), backend: DWDDataTests.unreachableBackend,
                                    defaults: UserDefaults(suiteName: "layers-\(UUID().uuidString)")!, layers: layers)
         weather.timeline = RadarTimeline(referenceTime: utc("2026-10-31T12:30:00Z"), dates: [utc("2026-10-31T12:30:00Z")])
         XCTAssertTrue(layers.select(.pressure), "unknown/unreachable layers can be tried")

@@ -235,12 +235,12 @@ extension RadarBackendTests {
 
     @MainActor func testStorePersistsAndRestoresPastHours() {
         let defaults = isolatedDefaults()
-        let first = WeatherStore(client: failingDWD(), backend: client(Script([.init(status: 404)]), now: Date()), defaults: defaults)
+        let first = WeatherStore.isolated(client: failingDWD(), backend: client(Script([.init(status: 404)]), now: Date()), defaults: defaults)
         XCTAssertEqual(first.pastHours, 6)
         first.setPastHours(48)
         first.setPastHours(7) // ignored
         XCTAssertEqual(first.pastHours, 48)
-        let second = WeatherStore(client: failingDWD(), backend: client(Script([.init(status: 404)]), now: Date()), defaults: defaults)
+        let second = WeatherStore.isolated(client: failingDWD(), backend: client(Script([.init(status: 404)]), now: Date()), defaults: defaults)
         XCTAssertEqual(second.pastHours, 48)
     }
 
@@ -296,7 +296,7 @@ extension RadarBackendTests {
         RadarPastWindow.save(hours, to: defaults)
         let data = try latest ?? fixtureData()
         let script = Script(latestReplies ?? [.init(status: 200, body: data, etag: "\"a\"")], history: history)
-        let store = WeatherStore(client: failingDWD(), backend: client(script, now: try manifest().generatedAt.addingTimeInterval(60)),
+        let store = WeatherStore.isolated(client: failingDWD(), backend: client(script, now: try manifest().generatedAt.addingTimeInterval(60)),
                                  defaults: defaults)
         return (store, script)
     }
@@ -403,7 +403,7 @@ extension RadarBackendTests {
         let defaults = isolatedDefaults()
         RadarPastWindow.save(48, to: defaults)
         let script = Script([.init(status: 404)])
-        let store = WeatherStore(client: dwd, backend: client(script, now: now), defaults: defaults)
+        let store = WeatherStore.isolated(client: dwd, backend: client(script, now: now), defaults: defaults)
         await store.refresh()
         XCTAssertEqual(store.radarSource, .direct)
         XCTAssertNil(store.timeline?.backend)

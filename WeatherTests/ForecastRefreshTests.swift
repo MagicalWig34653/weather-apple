@@ -65,7 +65,7 @@ final class ForecastRefreshTests: XCTestCase {
 
     private func makeStore(_ transport: Transport, clock: Clock) -> WeatherStore {
         let client = DWDClient(transport: { try await transport.respond($0) }, clock: { clock.now }, retryDelay: { _ in 0 })
-        let store = WeatherStore(client: client, backend: DWDDataTests.unreachableBackend,
+        let store = WeatherStore.isolated(client: client, backend: DWDDataTests.unreachableBackend,
                                  defaults: UserDefaults(suiteName: "ForecastRefreshTests-\(UUID().uuidString)")!)
         store.clock = { clock.now }
         store.selectedPlace = SavedPlace(name: "A", coordinate: coordinate)
@@ -267,7 +267,7 @@ final class ForecastRefreshTests: XCTestCase {
 
     private func makeOverlapStore(_ transport: OverlapTransport, clock: Clock) -> WeatherStore {
         let client = DWDClient(transport: { try await transport.respond($0) }, clock: { clock.now }, retryDelay: { _ in 0 })
-        let store = WeatherStore(client: client, backend: DWDDataTests.unreachableBackend,
+        let store = WeatherStore.isolated(client: client, backend: DWDDataTests.unreachableBackend,
                                  defaults: UserDefaults(suiteName: "ForecastRefreshTests-\(UUID().uuidString)")!)
         store.clock = { clock.now }
         store.selectedPlace = SavedPlace(name: "A", coordinate: coordinate)

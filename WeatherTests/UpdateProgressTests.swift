@@ -202,7 +202,7 @@ final class UpdateProgressTests: XCTestCase {
             let (data, status) = try await point()
             return (data, HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)!)
         }, clock: { DWDRequest.date("2026-10-28T15:20:00Z")! }, retryDelay: { _ in 0 })
-        let store = WeatherStore(client: client, backend: DWDDataTests.unreachableBackend,
+        let store = WeatherStore.isolated(client: client, backend: DWDDataTests.unreachableBackend,
                                  defaults: UserDefaults(suiteName: "UpdateProgressTests-\(UUID().uuidString)")!)
         store.clock = { DWDRequest.date("2026-10-28T15:20:00Z")! }
         store.selectedPlace = SavedPlace(name: "A", coordinate: WeatherCoordinate(latitude: 53.56, longitude: 6.74))

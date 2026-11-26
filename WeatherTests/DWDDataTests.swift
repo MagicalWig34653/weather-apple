@@ -2,12 +2,47 @@ import MapKit
 import XCTest
 @testable import Weather
 
+extension WeatherStore {
+    /// Store for tests with its own empty defaults, places and forecast cache. What the app host or UI tests left on the
+    /// same simulator is neither read nor changed.
+    static func isolated(client: DWDClient, backend: RadarBackendClient = RadarBackendClient(),
+                         defaults: UserDefaults? = nil, layers: RadarLayerStore? = nil,
+                         reloadWidgets: @escaping () -> Void = {}) -> WeatherStore {
+        let name = "TestStore-\(UUID().uuidString)"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(name, isDirectory: true)
+        let places = PlaceStore(directory: root)
+        return WeatherStore(client: client, backend: backend, defaults: defaults ?? UserDefaults(suiteName: name)!, layers: layers,
+                            placeStore: places,
+                            forecastCache: ForecastCache(directory: root.appendingPathComponent("ForecastCache"), placeStore: places),
+                            reloadWidgets: reloadWidgets)
+    }
+}
+
 @MainActor
 final class DWDDataTests: XCTestCase {
     private let reference = DWDRequest.date("2026-10-28T15:15:00Z")!
 
     /// Stores in these tests must not reach the live radar cache: it counts as unreachable.
     static let unreachableBackend = RadarBackendClient(transport: { _ in throw URLError(.notConnectedToInternet) })
+
+    /// The simulator keeps the app's storage between runs: UI tests leave a place and a stub forecast dated after the
+    /// unit fixtures there (26.11.: three red tests and one hanging test on bea4f78). A test store must not see it.
+    func testTestStoreIgnoresPlacesAndForecastStoredByTheApp() throws {
+        let appPlaces = try PlaceStore()
+        let before = try appPlaces.load()
+        let place = SavedPlace(name: "Teststadt", coordinate: WeatherCoordinate(latitude: 52.52, longitude: 13.405))
+        try appPlaces.save(.init(places: [place], selectedPlaceID: place.id))
+        defer { try? appPlaces.save(before) }
+        let later = reference.addingTimeInterval(86_400)
+        try ForecastCache().save(RainForecast(referenceTime: later, samples: [RainSample(date: later, amountMM: 0)]), for: place.id)
+
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }),
+                                          backend: Self.unreachableBackend)
+
+        XCTAssertNil(store.forecast, "a forecast stored by the app reached a test store")
+        XCTAssertTrue(store.places.isEmpty, "places stored by the app reached a test store")
+        XCTAssertEqual(try appPlaces.load().places, [place], "the test store left the app's places alone")
+    }
 
     private func fixture() throws -> Data {
         let bundle = Bundle(for: DWDDataTests.self)
@@ -177,7 +212,7 @@ final class DWDDataTests: XCTestCase {
     func testRadarPublishesBeforeSuspendedPointForecast() async throws {
         let gate = SuspendedPointTransport(fixture: try fixture())
         let fixedNow = reference
-        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }), backend: Self.unreachableBackend)
+        let store = WeatherStore.isolated(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }), backend: Self.unreachableBackend)
         let refresh = Task { await store.refresh() }
         await gate.waitForPoint()
         for _ in 0..<100 where store.timeline == nil { await Task.yield() }
@@ -195,7 +230,7 @@ final class DWDDataTests: XCTestCase {
     func testCancelledRefreshDoesNotPublishDelayedPointResult() async throws {
         let gate = SuspendedPointTransport(fixture: try fixture())
         let fixedNow = reference
-        let store = WeatherStore(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }), backend: Self.unreachableBackend)
+        let store = WeatherStore.isolated(client: DWDClient(transport: { try await gate.respond(to: $0) }, clock: { fixedNow }), backend: Self.unreachableBackend)
         let refresh = Task { await store.refresh() }
         await gate.waitForPoint()
         refresh.cancel()
@@ -313,7 +348,7 @@ final class DWDDataTests: XCTestCase {
     func testStoreUsesAtMostOneCorrectlyLabelledRadarFallbackPerRefresh() async throws {
         let counter = RequestCounter(fixture: try fixture())
         let now = reference
-        let store = WeatherStore(client: DWDClient(transport: { try await counter.respond(to: $0) }, clock: { now }), backend: Self.unreachableBackend)
+        let store = WeatherStore.isolated(client: DWDClient(transport: { try await counter.respond(to: $0) }, clock: { now }), backend: Self.unreachableBackend)
         await store.refresh()
         var failed = RadarLoadState(contextID: UUID(), frameDate: reference, referenceTime: reference,
                                     reloadRevision: store.radarReloadRevision)

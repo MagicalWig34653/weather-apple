@@ -21,7 +21,7 @@ final class ForecastLatencyTests: XCTestCase {
     private func makeStore(_ transport: LatencyTransport) -> WeatherStore {
         let now = n0.addingTimeInterval(240)
         let client = DWDClient(transport: { try await transport.respond($0) }, clock: { now }, retryDelay: { _ in 0 })
-        let store = WeatherStore(client: client, backend: DWDDataTests.unreachableBackend,
+        let store = WeatherStore.isolated(client: client, backend: DWDDataTests.unreachableBackend,
                                  defaults: UserDefaults(suiteName: "ForecastLatencyTests-\(UUID().uuidString)")!)
         store.clock = { now }
         store.selectedPlace = SavedPlace(name: "A", coordinate: coordinate)

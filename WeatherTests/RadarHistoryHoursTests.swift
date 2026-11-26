@@ -748,7 +748,7 @@ final class RadarHistoryHoursTests: XCTestCase {
         let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
         let defaults = UserDefaults(suiteName: "ShowerNowTests-\(UUID().uuidString)")!
         defaults.set(48, forKey: RadarPastWindow.defaultsKey)
-        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
         XCTAssertEqual(layers.pastHours, 48, "the stored choice reaches the layers at start")
         store.setPastHours(72)
         XCTAssertEqual(layers.pastHours, 72)
@@ -818,7 +818,7 @@ final class RadarHistoryHoursTests: XCTestCase {
         } ?? .init(status: 404)
         let script = RadarBackendTests.Script([.init(status: 200, body: try data(latestRadarObject()), etag: "\"a\"")], history: [history])
         let backend = RadarBackendClient(baseURL: radarBase, transport: { try script.next($0) }, clock: { [reference] in reference.addingTimeInterval(300) })
-        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), backend: backend, defaults: defaults)
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), backend: backend, defaults: defaults)
         return (store, script, defaults)
     }
 
@@ -963,7 +963,7 @@ extension RadarHistoryHoursTests {
     @MainActor func testLayerHintNamesTheRealSpanAndFollowsTheChoice() throws {
         let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
         let defaults = UserDefaults(suiteName: "ShowerNowTests-\(UUID().uuidString)")!
-        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
         layers.apply(.fresh(try parse(modelObject(pastHours: 61, layer: "temperature"), layer: .temperature)), to: .temperature, now: reference.addingTimeInterval(1800))
         layers.apply(.fresh(try parse(observationObject(hours: 24, layer: "lightning"), layer: .lightning)), to: .lightning, now: reference.addingTimeInterval(100))
         layers.apply(.fresh(try parse(observationObject(hours: 72, layer: "radar_eu"), layer: .radarEU)), to: .radarEU, now: reference.addingTimeInterval(100))
@@ -1026,7 +1026,7 @@ extension RadarHistoryHoursTests {
     @MainActor func testStandardStepStaysSixOnEveryMapAndTheMapsShowSixHours() throws {
         let layers = RadarLayerStore(radarBaseURL: radarBase, client: RadarLayerClient(radarBaseURL: radarBase, transport: { _ in throw URLError(.cancelled) }))
         let defaults = UserDefaults(suiteName: "ShowerNowTests-\(UUID().uuidString)")!
-        let store = WeatherStore(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
+        let store = WeatherStore.isolated(client: DWDClient(transport: { _ in throw URLError(.notConnectedToInternet) }), defaults: defaults, layers: layers)
         layers.apply(.fresh(try parse(observationObject(hours: 48, layer: "lightning"), layer: .lightning)), to: .lightning, now: reference.addingTimeInterval(100))
         XCTAssertTrue(layers.select(.lightning))
         XCTAssertEqual(store.standardPastHours, 6, "the layer offers 48 h, the standard stays 6")
