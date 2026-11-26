@@ -439,6 +439,14 @@ Kurzfassung: **Build 24** (`0.1.1 (24)`, Quelle `bd3199f`, 6.11. 18:28 bis 18:30
 
 **Store-Assets nach Umbenennung (4.11.2026, nicht committet):** Alle Bilder per Texterkennung auf "ShowerNow" geprüft; neu mit Build 17 erzeugt: iPhone 1206x2622 und 1320x2868 (01, 03, 04, je roh und Kopfzeile), iPad 2064x2752 (01 bis 04, roh und Kopfzeile), Watch 01-ortsliste, 3 Creatives, Mockup, App-Vorschau (13,6 s) samt Poster-Frame. Unverändert (kein Name sichtbar): iPhone 02-orte, 05-orte-dunkel, 07-ortsprognose, Watch 02-ortsprognose. Regen weiter aus dem Archiv (aktuell kein Regen). Textvorschläge auf "Showers" umgestellt, Längen belegt. Nicht geprüft: Upload in Connect. Details: [appstore-screenshots.md](appstore-screenshots.md).
 
+## Setup-Wizard-Merge: rot, nicht gepusht (26.11.2026, Karte 11626AEC)
+
+- Branch `merge/setup-wizard`: Merge `cff4960` (in main `33c25ac`), Debug-Guard `6f0eda9`, UI-Test `bea4f78`. Lokal, ungepusht; main unveraendert.
+- Gruen auf `cff4960` (25.11.): Unit-Lauf 887 XCTest + 3 Swift-Testing, 0 Fehler (`01-unit.log`). Wizard-UI hell 13/0, check_l10n strict OK.
+- Rot auf `bea4f78` (`17-unit-final.log`): bis zum Abbruch 106 bestanden, 3 fehlgeschlagen (`DWDDataTests` testCancelledRefreshDoesNotPublishDelayedPointResult, testRadarPublishesBeforeSuspendedPointForecast; `ForecastRefreshTests` testLoopRepeatsWithBackoffAfterFailureAndDoesNotFireContinuously); testOverlappingLoadsKeepTheBarUntilBothEndAndNeverStepBack meldete "not reached" und hing seit 03:29, um 03:50 abgebrochen. Alle vier waren im Lauf vom 25.11. gruen. Ursache nicht untersucht.
+- Logs: `orchestrator/runtime/nachweise/showers-wizard-merge/logs/`.
+- Nachtruhe bis 26.11. 08:00. Offen: Unit-Lauf klaeren/wiederholen, Wizard dunkel pruefen, eigene Simulatoren (`showers-wizard-sim`, `Wizard-Shots`) und Merge-Worktree entfernen, Push.
+
 ## Builds
 
 | Build | Quelle | Upload (MEZ) | Inhalt / Hinweise |
