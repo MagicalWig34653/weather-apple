@@ -1,5 +1,13 @@
 # Fortsetzbarer Arbeitsstand
 
+**27.11.2026, Build 61 hochgeladen (Karte A04BDA96; Quelle `3f27303`, Tag `testflight-0.1.1-61`).**
+- **Freigabe:** Bilder vom Brain gesichtet und Commit selbst validiert (Auftrag f-6652c50a: 891 Tests, 0 rot); `upload-tor.py gueltig showers 61` unmittelbar vor dem Upload Exit 0; Build 61 fehlte vorher in ASC.
+- **Upload:** nur ueber das Upload-Tor, ein Versuch 27.11. 05:48 bis 05:50, Exit 0, „Upload succeeded“, „EXPORT SUCCEEDED“.
+- **ASC:** `d209013b-f04c-4f6e-b8b2-ba542f3e17e6` VALID, `usesNonExemptEncryption=false`, intern `IN_BETA_TESTING` in „ich + papa“, extern `READY_FOR_BETA_SUBMISSION` (nichts zugewiesen oder eingereicht). „Was testen“ (de-DE) gesetzt und identisch zurueckgelesen.
+- **Prerelease:** github.com/MagicalWig34653/weather-apple/releases/tag/testflight-0.1.1-61.
+- **Belege:** Orchestrator `runtime/nachweise/showers-61/` (`upload-61.log`, `asc-wait-61.log`, `asc-61.log`, `asc-*-61.json`).
+- **Nicht geprueft:** Installation ueber TestFlight, echtes Geraet; keine neuen Testlaeufe beim Upload (Stand: Eintrag darunter, dessen „nicht hochgeladen“ damit ueberholt ist).
+
 **27.11.2026, Build 61 (0.1.1) mit Setup-Wizard bis zum Upload-Tor (Karte A04BDA96; Auftrag Brain f-afe8af61, lautete „Build 59“; Quelle `3f27303` auf `main`; nicht hochgeladen).**
 - **Buildnummer:** ASC hat 59 und 60 schon (VALID, Prereleases `testflight-0.1.1-59/-60`), deshalb 61 (`3f27303`, nur `Base.xcconfig`). Entscheidung an der Karte protokolliert.
 - **Geprueft auf `3f27303` (eigener Simulator iPhone 18 Pro, iOS 27.0, `-collect-test-diagnostics never`):** `WeatherTests` 888 XCTest + 3 Swift-Testing, 0 Fehler; `SetupWizardDarkTests` 13/13; `SetupWizardTests` 13/13 (darin `testScreenshotsAllSteps` erst einzeln gruen, siehe unten); Produktion nur GET hell/dunkel je 2/2 (Pille 48,0 pt, aeltester Slot/Hinweis); echter Erststart per `simctl` ohne Testargumente: Build 61 zeigt den Wizard, Build 60 das Radar; `check_l10n --strict` Exit 0.

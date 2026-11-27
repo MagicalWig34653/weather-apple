@@ -652,3 +652,7 @@ Stand 21.11.2026: Kandidat auf `integration/build-55` (Build-54-Stand `ae34ebc` 
 ## Build 60 (0.1.1): Standard 6 Stunden, hochgeladen (25.11.2026)
 
 Archivcommit `976147d`, Archiv `runtime/nachweise/showers-60/Showers60.xcarchive`. Genau ein Upload ueber `tools/testflight-upload.sh` am 25.11.2026, 12:08 bis 12:10 Uhr MEZ, Exportoptionen wie Build 59, Exit 0, `Upload succeeded`, `EXPORT SUCCEEDED`. ASC: `VALID`, `usesNonExemptEncryption=false`, intern `IN_BETA_TESTING` („ich + papa“), nichts extern zugewiesen oder eingereicht, „Was testen“ de-DE gesetzt. GitHub-Prerelease: https://github.com/MagicalWig34653/weather-apple/releases/tag/testflight-0.1.1-60
+
+## Build 61 (0.1.1): Setup-Wizard, hochgeladen (27.11.2026)
+
+Archivcommit `3f27303`, Archiv `runtime/nachweise/showers-61/Showers61.xcarchive`. Genau ein Upload ueber `tools/testflight-upload.sh` am 27.11.2026, 05:48 bis 05:50 Uhr MEZ (`-allowProvisioningUpdates`, Exportoptionen wie Build 60), Exit 0, `Upload succeeded`, `EXPORT SUCCEEDED`. ASC: `d209013b-f04c-4f6e-b8b2-ba542f3e17e6` `VALID`, `usesNonExemptEncryption=false`, intern `IN_BETA_TESTING` („ich + papa“), extern `READY_FOR_BETA_SUBMISSION` (keine externe Gruppe, keine Einzeltester, keine Einreichung), „Was testen“ de-DE gesetzt und identisch zurueckgelesen. GitHub-Prerelease: https://github.com/MagicalWig34653/weather-apple/releases/tag/testflight-0.1.1-61
