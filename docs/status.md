@@ -1,5 +1,12 @@
 # Fortsetzbarer Arbeitsstand
 
+**27.11.2026, Warnungstexte und Satelliten-Quellzeile umgesetzt (Karte 31A623B9; Frage 9B360945 beantwortet „alle drei“; auf `main`, kein neuer Build, kommt mit dem naechsten).**
+- **Umgesetzt (App):** `WARN_CONFIRM_MESSAGE`, `WARN_FOOTER`, `INFO_PRIVACY_1` (de/en) mit allen gesendeten Daten, Einwilligung und Widerruf; Quellzeile unter dem Slider fuer Wolken/Sonne ist die Manifestzeile „Contains modified EUMETSAT Meteosat data 2026“ (Art. 6.3). `INFO_PRIVACY_3` unveraendert. Stand je Vorschlag V1–V9: [release-attribution-pruefung.md](release-attribution-pruefung.md).
+- **Rot zuerst:** `WarnPrivacyTextTests` (Unit, 9 Fehlschlaege), `WarnPrivacyTextUITests` (UI, 7 Fehlschlaege), danach gruen.
+- **Geprueft (eigener Simulator iPhone 18 Pro, iOS 27.0, `-collect-test-diagnostics never`):** `WeatherTests` 896 Tests, 0 Fehler; `WarnPrivacyTextUITests` 7/7 (hell/dunkel, Bilder angesehen); `CreditLineLayoutTests` 3/3, `WarningsEnglishTests` 2/2, `WarningsUITests` 8/8, `WarnSettingsUITests` 2/2 (beim ersten Lauf `testNoWarningsSectionWithoutCapability` rot, Zeile `info-row-alerts` erschien nicht in 5 s; einzeln 3/3 gruen, bekanntes Muster der Info-Zeile, nicht untersucht), `CloudRemnantUITests` 1 uebersprungen; `check_l10n --strict` Exit 0.
+- **Offen:** V2, V4, V6, V7 und Kleinkram V8 (Liste im Bericht); Backend-Seiten (V5, Backend-Repo); Deploy bleibt beim Betreiber.
+- **Nicht geprueft:** uebrige UI-Klassen, Geraet, iPad, VoiceOver, echter Push-Server.
+
 **27.11.2026, Berechtigungstexte, Attribution und Push-Entitlement geprueft (Karte 31A623B9; nur Doku; kein Build, kein Deploy, keine Textaenderung).**
 - **Bericht:** [release-attribution-pruefung.md](release-attribution-pruefung.md) (Pruefstaende App `08b657c`, Backend `0dc62ff`, Live nur GET).
 - **Ergebnis:** Build 61 im Signaturprotokoll des Distributions-Exports `aps-environment=production` (IPA selbst nicht vorhanden). Standort- und Regenhinweistexte ok; `INFO_PRIVACY_3` passt zur Live-Datenschutzseite. Offen: Warnungstexte (Warn-Push ist live), Quellzeile „© EUMETSAT“, Jahr/OPERA/NOAA auf den Backend-Seiten.

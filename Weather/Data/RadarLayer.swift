@@ -203,7 +203,16 @@ enum RadarLayer: String, CaseIterable, Identifiable, Sendable {
 
     var backendPathComponent: String { rawValue }
 
+    /// Satellite layers of EUMETSAT (Meteosat); their credit under the slider is the manifest line with the year.
+    var isEUMETSATSatellite: Bool {
+        switch self {
+        case .clouds, .cloudmask, .cloudmaskVis: true
+        default: false
+        }
+    }
+
     /// Short credit on the map (licence-relevant name stays visible, the full text is in the information screen).
+    /// The EUMETSAT layers show the manifest line instead (`displayShortAttribution`); this is only the fallback name.
     var shortAttribution: String {
         switch self {
         case .radar, .pressure, .pressureEU, .lightning, .temperature, .dewpoint, .humidity: "\u{00A9} DWD"
@@ -764,7 +773,9 @@ extension WeatherStore {
                 + (historyStatus == .unavailable && radarSource == .cache
                    ? NSLocalizedString("RADAR_HISTORY_UNAVAILABLE_SUFFIX", value: " · Historie nicht verfügbar", comment: "Source line suffix") : "")
         }
-        guard layers.activeManifest != nil else { return nil }
+        guard let manifest = layers.activeManifest else { return nil }
+        // EUMETSAT Data Policy Art. 6.3: the credit under the slider is the server's line with the year of publication.
+        if layers.active.isEUMETSATSatellite { return manifest.attribution }
         return layers.active.shortAttribution
     }
 }

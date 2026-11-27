@@ -271,6 +271,7 @@
 		D796AB46FE8AEC07189CE063 /* DWDRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E506014F74FCB1F262D83D /* DWDRequest.swift */; };
 		D81AC4B5F584FCBCE81CF6CB /* WidgetDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDD96871F9C93A57ADE2B19 /* WidgetDiagnostics.swift */; };
 		D8C6A4CDF87E67D3A6869D63 /* TimelineGapText.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4F22199B894615F5E2527F /* TimelineGapText.swift */; };
+		D9337CD169B13880EAD291DE /* WarnPrivacyTextUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B4A59C965621D15D6EA09 /* WarnPrivacyTextUITests.swift */; };
 		D959D7488A64E82EC8BD6EA3 /* WarnFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C09774B45584DA22F1B0323 /* WarnFeed.swift */; };
 		D96D87F150B51A0FD853996B /* TimelineSlotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953B8A41AB3F49C0D79D4F21 /* TimelineSlotTests.swift */; };
 		D9A6E8F097571B10B778C72B /* ForecastInterpretationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56D03B775D93E7BE66F6824 /* ForecastInterpretationTests.swift */; };
@@ -281,6 +282,7 @@
 		E058F91E5B482512A65A7616 /* WatchWidgetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4DA5579F371ACDCFC86F08 /* WatchWidgetPresentation.swift */; };
 		E08333E7E8F375FE86667FD3 /* WatchWidgetLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225B8B8A0A3CA0869C5D08D /* WatchWidgetLogicTests.swift */; };
 		E1F7F6059A197EBB4D5B8495 /* RainOutlook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C6686DCED4967C0E75DA64 /* RainOutlook.swift */; };
+		E2E7A14CCE3D2511E71EEB17 /* WarnPrivacyTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 918FBC7B40DE480EB82D26F4 /* WarnPrivacyTextTests.swift */; };
 		E4007F40DC546D65A93406DE /* WatchSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597F930CC0F3908291E0BD3C /* WatchSession.swift */; };
 		E50E7A2A80BD7F9443747142 /* UpdateProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F064CF54647F20E9CBAA55 /* UpdateProgressBar.swift */; };
 		E568B96A170F5AEE5C3E0866 /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCB2C1112479F903D8978745 /* PushManager.swift */; };
@@ -471,6 +473,7 @@
 		387DC205590611D60B236F76 /* WarningNotificationTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningNotificationTextTests.swift; sourceTree = "<group>"; };
 		3893D0782052979F4991487D /* WatchRadarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRadarTests.swift; sourceTree = "<group>"; };
 		3A067B6211EEF84BB5529FD9 /* ExtensionLocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionLocalizationTests.swift; sourceTree = "<group>"; };
+		3A2B4A59C965621D15D6EA09 /* WarnPrivacyTextUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnPrivacyTextUITests.swift; sourceTree = "<group>"; };
 		3B01B3F12274A8B6A7652EA2 /* WeatherUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WeatherUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B5C3EE7EFF1059C786B657F /* CreditLineLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditLineLayoutTests.swift; sourceTree = "<group>"; };
 		3C0837691387B39C17CB0727 /* ForestOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForestOverlay.swift; sourceTree = "<group>"; };
@@ -546,6 +549,7 @@
 		89E7BD6E7A6DC9EB1DDAE5AF /* WatchWidgetPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWidgetPreviews.swift; sourceTree = "<group>"; };
 		8C273FD109B5F5625046559A /* RadarHistoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarHistoryUITests.swift; sourceTree = "<group>"; };
 		8F27F89DDD1461C52CB7D8C3 /* SharedDWDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDWDTests.swift; sourceTree = "<group>"; };
+		918FBC7B40DE480EB82D26F4 /* WarnPrivacyTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarnPrivacyTextTests.swift; sourceTree = "<group>"; };
 		9215A2DF2F8F4720E6E8DA68 /* WatchMapBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMapBackdrop.swift; sourceTree = "<group>"; };
 		929791C7C2AE64A582DDE099 /* LoadProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadProgress.swift; sourceTree = "<group>"; };
 		93CC3534C43A60FAD5186B36 /* SharedDeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDeepLinkTests.swift; sourceTree = "<group>"; };
@@ -699,6 +703,7 @@
 				8937CBAA8908C4993B3CCFC4 /* UITestLaunch.swift */,
 				2A431F0EB73E93D9F4B66FA2 /* UpdateProgressBarUITests.swift */,
 				6A4AB32A1782B11780DAA6D6 /* WarningsEnglishTests.swift */,
+				3A2B4A59C965621D15D6EA09 /* WarnPrivacyTextUITests.swift */,
 				D0979F155ABE4372932741C1 /* WeatherSmokeTests.swift */,
 				C9D7942367221007F0BBCF59 /* Fixtures */,
 			);
@@ -795,6 +800,7 @@
 				6422AD7A28B3F83EBA931E76 /* WarningPresentationTests.swift */,
 				C737158FA928F11B3B7ED32B /* WarnManagerTests.swift */,
 				873A780A50546A006B5A3A7A /* WarnMatcherTests.swift */,
+				918FBC7B40DE480EB82D26F4 /* WarnPrivacyTextTests.swift */,
 				124CCDCE0B21615F50207858 /* WarnSettingsPresentationTests.swift */,
 				1C2F29E88F8B83E418F3C275 /* WatchLogicTests.swift */,
 				3893D0782052979F4991487D /* WatchRadarTests.swift */,
@@ -1646,6 +1652,7 @@
 				DFD6E2BDFF74ECDF3C580E47 /* WarnGeometryTests.swift in Sources */,
 				95BB0D086F44B65DB0D59CD6 /* WarnManagerTests.swift in Sources */,
 				2100862AEF3148BE10E666A3 /* WarnMatcherTests.swift in Sources */,
+				E2E7A14CCE3D2511E71EEB17 /* WarnPrivacyTextTests.swift in Sources */,
 				70FF79B2CB31B33CF6409053 /* WarnSettingsPresentationTests.swift in Sources */,
 				6F388385AF5E580BA25062E1 /* WarningNotificationTextTests.swift in Sources */,
 				00F7288D09F459E4A4493F96 /* WarningPresentationTests.swift in Sources */,
@@ -1772,6 +1779,7 @@
 				0181D951115E24F6649D31ED /* SpacingUITests.swift in Sources */,
 				6CA759BB4928578FA47BBF7C /* UITestLaunch.swift in Sources */,
 				619C2A71A21D529D0EE96441 /* UpdateProgressBarUITests.swift in Sources */,
+				D9337CD169B13880EAD291DE /* WarnPrivacyTextUITests.swift in Sources */,
 				9396602B4BEF8DB7F75351F8 /* WarningsEnglishTests.swift in Sources */,
 				86B36E4BDF49626AAF532EB6 /* WeatherSmokeTests.swift in Sources */,
 			);

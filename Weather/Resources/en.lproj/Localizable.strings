@@ -43,7 +43,7 @@
 "WARN_TOGGLE" = "Warnings as notifications";
 "WARN_DISCLAIMER" = "Not a replacement for official warning channels (WarnWetter app, NINA).";
 "WARN_CONFIRM_TITLE" = "Turn on warnings?";
-"WARN_CONFIRM_MESSAGE" = "You get warnings from the German Weather Service (DWD) for your saved places and regions. Not a replacement for official warning channels (WarnWetter app, NINA). iOS then asks whether Showers may send notifications.";
+"WARN_CONFIRM_MESSAGE" = "You get warnings from the German Weather Service (DWD) for your saved places and regions. The following is sent to the Showers server: the device token, a random installation ID, the IDs of the warning areas (districts), warning types, minimum level and the time-sensitive setting; no coordinates, no place names, no account. By tapping “Turn on” you consent. Turning it off withdraws consent at any time and deletes the warning data on the server. Not a replacement for official warning channels (WarnWetter app, NINA). iOS then asks whether Showers may send notifications.";
 "WARN_CONFIRM_ACTION" = "Turn on";
 "WARN_CANCEL" = "Cancel";
 "WARN_TYPE_SEVERE" = "Severe weather";
@@ -58,7 +58,7 @@
 "WARN_LEVEL_WORD_4" = "Extreme weather warning";
 "WARN_TIME_SENSITIVE" = "Time sensitive";
 "WARN_TIME_SENSITIVE_HINT" = "Level 4 is always delivered as time sensitive, lower levels only if this is on. Time sensitive breaks through Focus and the notification summary, but not the silent switch.";
-"WARN_FOOTER" = "The server only receives identifiers of the affected districts, no coordinates and no place names. Names stay on the device.";
+"WARN_FOOTER" = "The server receives warning area IDs, warning types, minimum level, device token and installation ID; no coordinates, no place names. Names stay on the device.";
 "WARN_NOTICE_LIMIT" = "No further warnings are possible for some of your places (maximum reached).";
 "WARN_NOTICE_GEOMETRY" = "Warning areas outdated, please update the app.";
 "WARN_NOTICE_OFFLINE" = "No connection. Warnings will be set up later.";
@@ -447,7 +447,7 @@
 "INFO_LINK_DWD_TERMS" = "DWD · Terms of Use";
 "INFO_SOURCES_MAPKIT" = "Map and place search: Apple MapKit. The map's attribution notices stay visible.";
 "INFO_SOURCES_WARN_AREAS" = "Warning areas (districts and independent cities): Source: Deutscher Wetterdienst, © GeoBasis-DE / BKG 2021 (data modified).";
-"INFO_PRIVACY_1" = "No account and no analytics or advertising SDKs. Saved places, their names and your settings stay on your device and your paired Apple Watch. Only if you turn on rain alerts is a coarser location sent to the radar service (see below).";
+"INFO_PRIVACY_1" = "No account and no analytics or advertising SDKs. Saved places, their names and your settings stay on your device and your paired Apple Watch. Only if you turn on rain alerts or warnings is a coarser location sent to the radar service (rain alerts: see below; warnings: warning area IDs).";
 "INFO_PRIVACY_2" = "Widgets and Apple Watch use saved places only and fetch their forecasts directly from the DWD. Pairing only transfers the current list of places, no location history. The most recent valid forecast for each place is stored locally for widgets.";
 "INFO_PRIVACY_3" = "The app loads radar images from the Showers radar service. The radar service itself keeps no access logs and stores no IP addresses or request details. A reverse proxy sits in front of it; it technically sees the IP address of every request and logs it for a limited time. Radar requests contain no location, no cookies and no identifier. In case of errors or outdated data, the app fetches the radar images directly from the DWD. Images of the additional layers come only from the radar service. If you show the lightning legend, the app loads the legend image directly from the DWD (for clouds, possibly from EUMETSAT); the respective provider technically sees your IP address but no location.";
 "INFO_PRIVACY_4" = "The app requests the forecast for a place directly from the DWD; the requested point and, as with any internet connection, your IP address are visible to the DWD. Maps and search requests are processed by Apple: for place search, the search text and a fixed search area (Germany, not your location) go to Apple, never to the radar service or the DWD; Apple technically sees the IP address. Apple's privacy policy applies.";

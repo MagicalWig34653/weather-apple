@@ -43,7 +43,7 @@
 "WARN_TOGGLE" = "Warnungen als Mitteilung";
 "WARN_DISCLAIMER" = "Kein Ersatz für amtliche Warnkanäle (WarnWetter-App, NINA).";
 "WARN_CONFIRM_TITLE" = "Warnungen einschalten?";
-"WARN_CONFIRM_MESSAGE" = "Du bekommst Warnungen des Deutschen Wetterdienstes für deine gespeicherten Orte und Regionen. Kein Ersatz für amtliche Warnkanäle (WarnWetter-App, NINA). Danach fragt iOS, ob Showers Mitteilungen senden darf.";
+"WARN_CONFIRM_MESSAGE" = "Du bekommst Warnungen des Deutschen Wetterdienstes für deine gespeicherten Orte und Regionen. Dafür gehen an den Showers-Server: das Gerätetoken, eine zufällige Installationskennung, die Kennungen der Warngebiete (Kreise), Warnarten, Mindeststufe und die Einstellung für zeitkritische Mitteilungen; keine Koordinaten, keine Ortsnamen, kein Konto. Mit „Einschalten“ willigst du ein. Ausschalten widerruft das jederzeit und löscht die Warndaten auf dem Server. Kein Ersatz für amtliche Warnkanäle (WarnWetter-App, NINA). Danach fragt iOS, ob Showers Mitteilungen senden darf.";
 "WARN_CONFIRM_ACTION" = "Einschalten";
 "WARN_CANCEL" = "Abbrechen";
 "WARN_TYPE_SEVERE" = "Unwetter";
@@ -58,7 +58,7 @@
 "WARN_LEVEL_WORD_4" = "Extreme Unwetterwarnung";
 "WARN_TIME_SENSITIVE" = "Zeitkritisch";
 "WARN_TIME_SENSITIVE_HINT" = "Stufe 4 kommt immer zeitkritisch, niedrigere Stufen nur wenn eingeschaltet. Zeitkritisch durchbricht Fokus und Mitteilungszusammenfassung, aber nicht den Stummschalter.";
-"WARN_FOOTER" = "Der Server erhält nur Kennungen der betroffenen Landkreise, keine Koordinaten und keine Ortsnamen. Namen bleiben auf dem Gerät.";
+"WARN_FOOTER" = "Der Server erhält Kennungen der Warngebiete, Warnarten, Mindeststufe, Gerätetoken und Installationskennung; keine Koordinaten, keine Ortsnamen. Namen bleiben auf dem Gerät.";
 "WARN_NOTICE_LIMIT" = "Für einen Teil deiner Orte sind keine weiteren Warnungen möglich (Höchstzahl erreicht).";
 "WARN_NOTICE_GEOMETRY" = "Warngebiete veraltet, bitte App aktualisieren.";
 "WARN_NOTICE_OFFLINE" = "Keine Verbindung. Die Warnungen werden später eingerichtet.";
@@ -447,7 +447,7 @@
 "INFO_LINK_DWD_TERMS" = "DWD · Nutzungsbedingungen";
 "INFO_SOURCES_MAPKIT" = "Karte und Ortssuche: Apple MapKit. Quellenhinweise der Karte bleiben eingeblendet.";
 "INFO_SOURCES_WARN_AREAS" = "Warngebiete (Landkreise und kreisfreie Städte): Quelle: Deutscher Wetterdienst, © GeoBasis-DE / BKG 2021 (Daten modifiziert).";
-"INFO_PRIVACY_1" = "Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte, ihre Namen und deine Einstellungen bleiben auf deinem Gerät und deiner gekoppelten Apple Watch. Nur wenn du Regenhinweise einschaltest, geht eine gröbere Ortsangabe an den Radar-Dienst (siehe unten).";
+"INFO_PRIVACY_1" = "Kein Konto und keine Analyse- oder Werbe-SDKs. Gespeicherte Orte, ihre Namen und deine Einstellungen bleiben auf deinem Gerät und deiner gekoppelten Apple Watch. Nur wenn du Regenhinweise oder Warnungen einschaltest, geht eine gröbere Ortsangabe an den Radar-Dienst (Regenhinweise: siehe unten; Warnungen: Kennungen der Warngebiete).";
 "INFO_PRIVACY_2" = "Widgets und Apple Watch verwenden ausschließlich gespeicherte Orte und rufen deren Prognosen direkt beim DWD ab. Die Kopplung überträgt nur die aktuelle Ortsliste, keinen Standortverlauf. Die zuletzt gültige Prognose je Ort wird lokal für Widgets gespeichert.";
 "INFO_PRIVACY_3" = "Radarbilder lädt die App vom Showers-Radar-Dienst. Der Radar-Dienst selbst führt keine Zugriffsprotokolle und speichert keine IP-Adressen oder Abfragedetails. Ihm ist ein Reverse Proxy vorgeschaltet, der technisch bedingt die IP-Adresse jedes Abrufs sieht und sie befristet protokolliert; die Radar-Anfragen enthalten keinen Ort, keine Cookies und keine Kennung. Bei Fehlern oder veralteten Daten ruft die App die Radarbilder direkt beim DWD ab. Bilder der Zusatzebenen kommen nur vom Radar-Dienst. Blendest du die Legende der Blitze ein, lädt die App das Legendenbild direkt vom DWD (bei Wolken ggf. von EUMETSAT); dabei sieht die jeweilige Stelle technisch bedingt deine IP-Adresse, aber keinen Ort.";
 "INFO_PRIVACY_4" = "Die Prognose für einen Ort fragt die App direkt beim DWD ab; dabei sind der abgefragte Punkt und, wie bei jeder Internetverbindung, deine IP-Adresse für den DWD sichtbar. Karten und Suchanfragen werden von Apple verarbeitet: Bei der Ortssuche gehen Suchtext und ein fester Suchbereich (Deutschland, nicht dein Standort) an Apple, nie an den Radar-Dienst oder den DWD; Apple sieht dabei technisch bedingt die IP-Adresse. Es gelten Apples Datenschutzbestimmungen.";

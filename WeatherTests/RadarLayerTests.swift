@@ -527,7 +527,8 @@ final class RadarLayerTests: XCTestCase {
         XCTAssertEqual(weather.selectedFrame, 2, "the radar selection is untouched by the layer")
         XCTAssertEqual(weather.timeline?.dates, radar.dates, "radar timeline untouched")
         XCTAssertFalse(weather.displayIsForecastFrame)
-        XCTAssertEqual(weather.displayShortAttribution, "\u{00A9} EUMETSAT")
+        // Data Policy Art. 6.3: the credit under the slider is the manifest line with the year, not "© EUMETSAT".
+        XCTAssertEqual(weather.displayShortAttribution, "Contains modified EUMETSAT Meteosat data 2026")
         XCTAssertEqual(weather.displayFrameReference, utc("2026-10-31T11:50:00Z"))
     }
 

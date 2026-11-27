@@ -70,6 +70,25 @@ Karte 31A623B9. Reine Prüfung: kein Build, keine Textänderung, kein Deploy. KI
 - **Grenze:** `destination=upload` legt keine IPA ab. Belegt ist die Signaturvorgabe des Exports, kein `codesign`-Auslesen der IPA oder des von Apple ausgelieferten TestFlight-Pakets. Die Extensions und die Watch-App haben im Archiv kein `aps-environment`.
 - **Für künftige Uploads:** dieses Protokoll direkt nach dem Upload in den Build-Nachweisordner kopieren.
 
+## Umsetzung nach Antwort auf Frage 9B360945 (27.11.2026, Lino: „Alle drei wie vorgeschlagen umsetzen“)
+
+Auftrag f-b8496a5a. Stand gegen `origin/main` `2455dd0`; Umsetzung im Commit dieses Eintrags (App-Texte kommen mit dem nächsten Build, kein Upload).
+
+| Vorschlag (Bericht 19.11.) | Stand |
+|---|---|
+| V1 Dialoge Regenhinweis/Region (Installationskennung, Widerruf) | **erledigt**: Wizard in `main` (Merge `cff4960`); `SetupPlanTests.testAllConsentTextsMentionInstallationIDAndWithdrawal` grün |
+| V2 „keine genaue Koordinate“ | **offen**: wartet auf die Rechtsprüfung (Entwurf Teil G 12), nicht Teil der Antwort |
+| V3 Quellzeile Satellit | **erledigt**: `RadarLayer.displayShortAttribution` zeigt für Wolken, Wolkenmaske und Sonne die Manifestzeile („Contains modified EUMETSAT Meteosat data 2026“, Jahr vom Server); `shortAttribution` bleibt nur Rückfallname |
+| V4 Links/Lizenz in (i) › Datenquellen | **offen**: kein Link auf CC BY 4.0, Data Policy, MeteoGate, NODD in `InformationSheet.swift`; nicht Teil der Antwort |
+| V5 Backend-Seiten (Jahr, OPERA, NOAA) | **Backend-Repo**, Stand siehe Kartennotiz (Branch/PR, kein Deploy) |
+| V6 Quellenzeilen englisch | **offen**: Layer-Manifeste ohne `Accept-Language` (nur `WarnFeedStore.swift:104` setzt ihn) |
+| V7 Standort-Zweckstring | **offen, optional**: Ist-Text korrekt, nicht gewünscht |
+| V8 Kleinkram | `WARN_CONFIRM_MESSAGE` **erledigt**; `INFO_PRIVACY_3` bleibt bis zur neuen Datenschutzseite (Frage); **offen**: `PUSH_INSTALLATION_ID_HINT` siezt, „Installations-Kennung“ (`REGION_PRIVACY_FOOTNOTE` de), „centre/center“ gemischt (en), Content-Rights-Antwort ohne OPERA/NOAA (`docs/appstore-einreichung-antworten.md:25`) |
+| V9 Entitlement des finalen Pakets | Build 61: `aps-environment=production` im Signaturprotokoll des Exports belegt (Abschnitt (e)); die IPA selbst liegt nicht vor |
+
+**Geändert (App):** `WARN_CONFIRM_MESSAGE`, `WARN_FOOTER`, `INFO_PRIVACY_1` (de/en, Wortlaut der Frage; Swift-Rückfallwert `InformationSheet.swift` mitgeführt), `RadarLayer.swift` (`isEUMETSATSatellite`, `displayShortAttribution`), UI-Test-Stub liefert für `clouds`/`cloudmask` die echte EUMETSAT-Zeile.
+**Tests:** `WarnPrivacyTextTests` (4, Unit) und `WarnPrivacyTextUITests` (7: Warnungsseite und Dialog de/en hell/dunkel, Quellzeile Wolken hell/dunkel, Sonne hell). Rot vor der Änderung (Unit 9 Fehlschläge, UI 7 Fehlschläge), danach grün; Bilder angesehen: Dialog vollständig sichtbar, Zeile 282 pt breit auf 402 pt, hell und dunkel lesbar (liegt über Kartenbeschriftung, wie die bisherigen Zeilen).
+
 ## Offene Entscheidung
 
 Eine Frage an der Karte: `9B360945-149F-44D9-8930-63C0B8A0458C`, mit Wortlaut de/en. Empfehlung: Warnungstexte, Quellzeile (Manifestzeile mit Jahr) und Backend-Seiten wie vorgeschlagen ändern; `INFO_PRIVACY_3` erst mit der neuen Datenschutzseite. Umgesetzt ist nichts.
