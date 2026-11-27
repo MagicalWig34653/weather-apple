@@ -1,5 +1,11 @@
 # Fortsetzbarer Arbeitsstand
 
+**27.11.2026, Berechtigungstexte, Attribution und Push-Entitlement geprueft (Karte 31A623B9; nur Doku; kein Build, kein Deploy, keine Textaenderung).**
+- **Bericht:** [release-attribution-pruefung.md](release-attribution-pruefung.md) (Pruefstaende App `08b657c`, Backend `0dc62ff`, Live nur GET).
+- **Ergebnis:** Build 61 im Signaturprotokoll des Distributions-Exports `aps-environment=production` (IPA selbst nicht vorhanden). Standort- und Regenhinweistexte ok; `INFO_PRIVACY_3` passt zur Live-Datenschutzseite. Offen: Warnungstexte (Warn-Push ist live), Quellzeile „© EUMETSAT“, Jahr/OPERA/NOAA auf den Backend-Seiten.
+- **Naechster Schritt:** Antwort auf Frage `9B360945-149F-44D9-8930-63C0B8A0458C`; erst danach umsetzen (App: Test zuerst rot; Backend-Deploy bleibt beim Betreiber).
+- **Prozess:** ohne Subagenten ausgefuehrt (Auftragsregel vom 26.11.: Subagenten sparsam; weicht von „Agents sind Pflicht“ in `AGENTS.md` ab). Geprueft nur `check_l10n --strict` (Exit 0).
+
 **27.11.2026, Opt-in haengt nicht mehr ohne Mitteilungsstatus; Schalter-Flake behoben (Karte 74E3E0D3; auf `main`; kein neuer Build, kommt mit dem naechsten).**
 - **Fix:** `push.enable` wartet hoechstens 2 s auf `getNotificationSettings` und fragt dann trotzdem an; kommt auch auf die Anfrage nichts, endet das Warten nach 60 s mit eigener Meldung. Warteanzeige im Hauptknopf des Wizards, „Spaeter“ im Schritt Regenhinweis solange gesperrt, Unwetterwarnungen melden ohne Systemantwort nicht mehr „ausgeschaltet“. Entscheidung: `decisions.md` 27.11.
 - **Flake:** Schalterwert kam als Zahl, `value == '1'` ist dafuer falsch; `SetupWizardTests.switchState` akzeptiert String und Zahl und nur genau an/aus.
