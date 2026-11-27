@@ -119,6 +119,9 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["Fertig"].waitForExistence(timeout: 5))
         let interpretation = app.staticTexts["Einordnung"]
         for _ in 0..<5 where !interpretation.isHittable { app.swipeUp() }
+        if !interpretation.isHittable {   // state for the failure: what the sheet shows instead (live forecast missing or late?)
+            print("DETAILS_NO_INTERPRETATION texts \(app.staticTexts.allElementsBoundByIndex.map { $0.label })")
+        }
         XCTAssertTrue(interpretation.isHittable)
         XCTAssertTrue(app.staticTexts["Einordnung vorhandener Radardaten; keine zusätzliche Vorhersage oder amtliche Warnung."].exists)
         app.buttons["Fertig"].tap()
