@@ -57,6 +57,7 @@ enum WarnSettingsPresentation {
         case .offline: text("WARN_NOTICE_OFFLINE", bundle)
         case .rateLimited: text("WARN_NOTICE_RATE", bundle)
         case .notificationsDenied: text("WARN_NOTICE_DENIED", bundle)
+        case .noSystemAnswer: text("PUSH_MSG_NO_ANSWER", bundle)
         case .failed: text("WARN_NOTICE_FAILED", bundle)
         }
     }

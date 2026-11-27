@@ -38,6 +38,7 @@ final class WarnManagerTests: XCTestCase {
     private final class FakeHost: WarnInstallationHost {
         var identity: PushIdentity?
         var allow = true
+        var authorization: PushAuthorization = .denied
         var prepared = 0, synced = 0
         func warningIdentity() -> PushIdentity? { identity }
         func prepareInstallationForWarnings() async -> Bool { prepared += 1; return allow }
@@ -295,6 +296,18 @@ final class WarnManagerTests: XCTestCase {
         await env.manager.setEnabled(true)
         XCTAssertFalse(env.manager.settings.enabled)
         XCTAssertEqual(env.manager.notice, .notificationsDenied)
+    }
+
+    /// The system never answered the permission request: nothing was refused, so no "switched off in Settings" notice.
+    func testUnansweredPermissionRequestSaysSo() async throws {
+        let env = try await make(enabled: false)
+        env.host.allow = false
+        env.host.authorization = .unknown
+        await env.manager.setEnabled(true)
+        XCTAssertFalse(env.manager.settings.enabled)
+        XCTAssertEqual(env.manager.notice, .noSystemAnswer)
+        XCTAssertEqual(WarnSettingsPresentation.noticeText(.noSystemAnswer),
+                       NSLocalizedString("PUSH_MSG_NO_ANSWER", comment: "Push"))
     }
 
     func testNoIdentityNoCallsUntilInstallationReady() async throws {

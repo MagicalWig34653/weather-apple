@@ -403,7 +403,9 @@ class SetupWizardTests: XCTestCase {
         requestConsentDialog(app).buttons["Weiter"].tap()
         let spinner = app.descendants(matching: .any)["setup-working"]
         XCTAssertTrue(spinner.waitForExistence(timeout: 2), "waiting indicator appears")
+        XCTAssertFalse(app.buttons["setup-later"].isEnabled, "no leaving the step while the opt-in is still running")
         XCTAssertTrue(spinner.waitForNonExistence(timeout: 20), "waiting indicator disappears although nothing answers")
+        XCTAssertTrue(app.buttons["setup-later"].isEnabled, "'Später' works again")
         XCTAssertTrue(app.staticTexts[Self.noAnswer].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Regenhinweis"].exists, "stays on the step")
         XCTAssertTrue(app.buttons["setup-primary"].isEnabled, "the button works again")

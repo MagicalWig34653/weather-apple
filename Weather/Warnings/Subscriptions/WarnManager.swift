@@ -7,6 +7,8 @@ import Observation
     func warningIdentity() -> PushIdentity?
     /// System permission and token registration (the caller has shown the explanation first).
     func prepareInstallationForWarnings() async -> Bool
+    /// State after `prepareInstallationForWarnings()`; `.unknown` = the system never answered (nothing was refused).
+    var authorization: PushAuthorization { get }
     func syncInstallation() async
 }
 
@@ -25,7 +27,7 @@ struct WarnTarget: Equatable, Sendable {
 }
 
 enum WarnNotice: Equatable, Sendable {
-    case limitReached, geometryOutdated, offline, rateLimited, notificationsDenied, failed
+    case limitReached, geometryOutdated, offline, rateLimited, notificationsDenied, noSystemAnswer, failed
 }
 
 @MainActor @Observable
