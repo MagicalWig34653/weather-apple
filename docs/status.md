@@ -1,5 +1,14 @@
 # Fortsetzbarer Arbeitsstand
 
+**27.11.2026, Opt-in haengt nicht mehr ohne Mitteilungsstatus; Schalter-Flake behoben (Karte 74E3E0D3; auf `main`; kein neuer Build, kommt mit dem naechsten).**
+- **Fix:** `push.enable` wartet hoechstens 2 s auf `getNotificationSettings` und fragt dann trotzdem an; kommt auch auf die Anfrage nichts, endet das Warten nach 60 s mit eigener Meldung. Warteanzeige im Hauptknopf des Wizards, „Spaeter“ im Schritt Regenhinweis solange gesperrt, Unwetterwarnungen melden ohne Systemantwort nicht mehr „ausgeschaltet“. Entscheidung: `decisions.md` 27.11.
+- **Flake:** Schalterwert kam als Zahl, `value == '1'` ist dafuer falsch; `SetupWizardTests.switchState` akzeptiert String und Zahl und nur genau an/aus.
+- **Rot zuerst:** `7be1351` (6 neue Tests rot), `f8aff3a` (2 Reviewbefunde rot); Umsetzung `b5a0430`, `300c991`, `0e5728d`, `f1f07ca`.
+- **Geprueft auf `f1f07ca` (eigener Simulator iPhone 18 Pro, iOS 27.0, `-collect-test-diagnostics never`):** `WeatherTests` 892 Tests, 0 Fehler; `SetupWizardTests` und `SetupWizardDarkTests` je 14/0 plus je Systemdialog „Erlauben“ 1/0 und „Verweigern“ 1/0 (Verweigern mit Screenshot-Test auf eingelaufenem Simulator, Systemdialog-Laeufe einzeln nach Deinstallation); `testScreenshotLaterPathEnablesNothing` (nutzt `selectTestPlace`) 10/10; Warteanzeige und Meldungen hell und dunkel angesehen. `check_l10n --strict` Exit 0. Ein unabhaengiges Gegenlesen (2 Befunde, beide behoben; Stand `b5a0430`).
+- **Simulatorverhalten:** direkt nach `erase` beantwortet iOS Status und Anfrage teils gar nicht (kein Dialog); die Systemdialog-Tests koennen dort weiterhin rot werden, die App haengt aber nicht mehr (Meldung nach 60 s). Hinter dem offenen Mitteilungsdialog bleibt die App aktiv.
+- **Belege:** Orchestrator `runtime/nachweise/showers-74e3/` (`logs/`, `bilder/`).
+- **Nicht geprueft:** uebrige UI-Klassen, Geraet, iPad, VoiceOver, echter Push-Server; die 60-s-Frist nach dem letzten Review-Stand nicht erneut gegengelesen; CI nur Pages (nicht ausgeloest).
+
 **27.11.2026, Build 61 hochgeladen (Karte A04BDA96; Quelle `3f27303`, Tag `testflight-0.1.1-61`).**
 - **Freigabe:** Bilder vom Brain gesichtet und Commit selbst validiert (Auftrag f-6652c50a: 891 Tests, 0 rot); `upload-tor.py gueltig showers 61` unmittelbar vor dem Upload Exit 0; Build 61 fehlte vorher in ASC.
 - **Upload:** nur ueber das Upload-Tor, ein Versuch 27.11. 05:48 bis 05:50, Exit 0, „Upload succeeded“, „EXPORT SUCCEEDED“.
