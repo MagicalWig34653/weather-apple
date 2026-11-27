@@ -114,6 +114,8 @@ struct SetupWizardView: View {
                 Button(later) { advance() }
                     .buttonStyle(.glass)
                     .frame(minHeight: 44)
+                    // A running opt-in ends the step itself; leaving meanwhile would advance twice. The location wait stays skippable.
+                    .disabled(working && step == .rainAlert)
                     .accessibilityIdentifier("setup-later")
             }
         }

@@ -95,7 +95,10 @@ final class WarnManager {
         if on {
             if !capabilityWarningsPush { await refreshCapabilities() }
             guard capabilityWarningsPush else { return }
-            guard await host.prepareInstallationForWarnings() else { notice = .notificationsDenied; return }
+            guard await host.prepareInstallationForWarnings() else {
+                notice = host.authorization == .unknown ? .noSystemAnswer : .notificationsDenied
+                return
+            }
         }
         settings.enabled = on
         persistSettings()
