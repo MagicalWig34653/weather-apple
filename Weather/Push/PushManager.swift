@@ -194,15 +194,10 @@ final class PushManager {
     /// for a slow cold start without letting a missing answer block the opt-in.
     static let statusDeadline: @Sendable () async -> Void = { try? await Task.sleep(for: .seconds(2)) }
 
-    /// For the permission request: returns once the app has stayed active for 5 s in a row. An open iOS dialog makes the app
-    /// inactive, so a person reading it is never timed out; staying active means no dialog came and none is being answered.
-    static let promptDeadline: @Sendable () async -> Void = {
-        var active = 0
-        while active < 10, !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(500))
-            active = await UIApplication.shared.applicationState == .active ? active + 1 : 0
-        }
-    }
+    /// For the permission request. A person may be reading the iOS dialog, and the app cannot tell whether one is shown (it
+    /// stays `.active` behind the notification prompt, iOS 27), so this is a generous fixed limit that only ends a request the
+    /// system never answers.
+    static let promptDeadline: @Sendable () async -> Void = { try? await Task.sleep(for: .seconds(60)) }
 
     init(gateway: PushGateway, secrets: PushSecretStore, authorizer: PushAuthorizing, registrar: RemoteNotificationRegistering,
          defaults: UserDefaults = .standard, environment: PushEnvironment = .current,

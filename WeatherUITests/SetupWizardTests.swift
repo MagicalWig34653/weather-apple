@@ -404,7 +404,7 @@ class SetupWizardTests: XCTestCase {
         let spinner = app.descendants(matching: .any)["setup-working"]
         XCTAssertTrue(spinner.waitForExistence(timeout: 2), "waiting indicator appears")
         XCTAssertFalse(app.buttons["setup-later"].isEnabled, "no leaving the step while the opt-in is still running")
-        XCTAssertTrue(spinner.waitForNonExistence(timeout: 20), "waiting indicator disappears although nothing answers")
+        XCTAssertTrue(spinner.waitForNonExistence(timeout: 80), "waiting indicator disappears although nothing answers (2 s status + 60 s request)")
         XCTAssertTrue(app.buttons["setup-later"].isEnabled, "'Später' works again")
         XCTAssertTrue(app.staticTexts[Self.noAnswer].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Regenhinweis"].exists, "stays on the step")
@@ -500,7 +500,8 @@ class SetupWizardTests: XCTestCase {
         addTestPlaceAndContinue(app)
         selectTestPlace(app)
         requestConsentDialog(app).buttons["Weiter"].tap()
-        // An open system dialog is never timed out: leave it longer than the 5 s limit for a missing answer.
+        // Someone reading the dialog must not be timed out. A first version gave up after 5 s of "app active" and failed here:
+        // the app stays active behind this dialog.
         XCTAssertTrue(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch.waitForExistence(timeout: 15), "system dialog")
         Thread.sleep(forTimeInterval: 9)
         XCTAssertTrue(app.descendants(matching: .any)["setup-working"].exists, "still waiting while the dialog is open")
