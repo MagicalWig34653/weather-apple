@@ -99,14 +99,24 @@ final class WeatherSmokeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Betreiber-Diagnose"].exists)
     }
 
+    /// Fixed forecast and radar like the other timeline tests: with the live services the radar service sometimes reports the announced DWD run as
+    /// not yet available (2 of 18 runs on c0386e1), the details sheet then shows "Keine Ortsprognose" and no "Einordnung". Assertions unchanged.
     func testRadarControlsOpenDetailsAndReturnToCurrentFrame() throws {
-        let app = launchApp()
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"] + timelineStubArguments
+        app.launch()
         let slider = app.sliders["Radarzeitpunkt"]
         guard slider.waitForExistence(timeout: 25) else {
             throw XCTSkip("Der Live-Kartendienst hat keine Radarzeitpunkte geliefert.")
         }
+        let valueBeforeDrag = slider.value as? String ?? "nil"
         dragSlider(slider, to: 1)
-        XCTAssertTrue(waitForValue(slider, containing: "Vorhersage"))
+        let reachedForecast = waitForValue(slider, containing: "Vorhersage")
+        if !reachedForecast {   // state for the failure: value before/after, frames, screenshot (1 of 12 runs with fixed data on a57385a)
+            print("DETAILS_DRAG not reached: value before '\(valueBeforeDrag)', after '\(slider.value as? String ?? "nil")', slider \(slider.frame) hittable \(slider.isHittable), pill '\(timePill(app).label)' \(timePill(app).frame), screen \(app.frame)")
+            let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "details-drag-not-reached"; shot.lifetime = .keepAlways; add(shot)
+        }
+        XCTAssertTrue(reachedForecast)
         timePill(app).press(forDuration: 0.8)
         XCTAssertTrue(waitForValue(slider, containing: "Messung"))
         timePill(app).tap()
