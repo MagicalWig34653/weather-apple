@@ -111,9 +111,10 @@ final class PseudoLocalizationTests: XCTestCase {
         }
     }
 
-    /// Normal English run (no pseudo-localisation): forecast details sheet.
+    /// Normal English run (no pseudo-localisation): forecast details sheet. Fixed forecast and radar: with the live services the sheet is
+    /// sometimes empty (2 of 12 runs on a57385a, caption never shown). Assertions unchanged.
     func testForecastDetailsAreEnglish() throws {
-        let app = UITestLaunch.app(language: .english)
+        let app = UITestLaunch.app(language: .english, extra: ["-UITestForecast", "current", "-UITestRadar", "fixture"])
         app.launch()
         let details = app.buttons["forecast-details"]
         XCTAssertTrue(details.waitForExistence(timeout: 20))
