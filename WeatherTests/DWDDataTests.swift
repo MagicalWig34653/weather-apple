@@ -21,6 +21,10 @@ extension WeatherStore {
 @MainActor
 final class DWDDataTests: XCTestCase {
     private let reference = DWDRequest.date("2026-10-28T15:15:00Z")!
+    /// Tile tests: the overlay's memory cache, failure memory and retry budget are static and keyed by tile URL or reference time, so a
+    /// fixed reference made every repeat (`-test-iterations`) see the first run's tile or failure (5 tests red in runs 2-5). Each test
+    /// instance gets its own run.
+    private let tileRun = DWDRequest.date("2026-10-28T15:15:00Z")!.addingTimeInterval(TimeInterval(UInt32.random(in: 1...UInt32.max)) * 300)
 
     /// Stores in these tests must not reach the live radar cache: it counts as unreachable.
     static let unreachableBackend = RadarBackendClient(transport: { _ in throw URLError(.notConnectedToInternet) })
@@ -317,7 +321,7 @@ final class DWDDataTests: XCTestCase {
         defer { session.invalidateAndCancel() }
         let png = Self.validRadarPNG
         RadarTestURLProtocol.responses.configure(png: png, leadingFailures: 2)
-        let overlay = RadarTileOverlay(date: reference.addingTimeInterval(125), referenceTime: reference, reloadRevision: 125,
+        let overlay = RadarTileOverlay(date: tileRun.addingTimeInterval(125), referenceTime: tileRun, reloadRevision: 125,
                                        session: session, retryDelay: { _ in 0 }, onLoadState: { _ in })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         let done = expectation(description: "Third attempt succeeds")
@@ -376,7 +380,7 @@ final class DWDDataTests: XCTestCase {
         defer { session.invalidateAndCancel() }
         let png = Self.validRadarPNG
         RadarTestURLProtocol.responses.configure(png: png, alwaysUnavailable: true)
-        let overlay = RadarTileOverlay(date: reference.addingTimeInterval(124), referenceTime: reference, reloadRevision: 124,
+        let overlay = RadarTileOverlay(date: tileRun.addingTimeInterval(124), referenceTime: tileRun, reloadRevision: 124,
                                        session: session, retryDelay: { _ in 0.01 }, onLoadState: { _ in })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         let unavailable = expectation(description: "Persistent XML ends after two retries")
@@ -406,13 +410,13 @@ final class DWDDataTests: XCTestCase {
         defer { session.invalidateAndCancel() }
         RadarTestURLProtocol.responses.configure(png: Self.validRadarPNG, alwaysUnavailable: true)
         let trackerStates = LockedRadarStates()
-        var overlay = RadarTileOverlay(date: reference.addingTimeInterval(812), referenceTime: reference,
+        var overlay = RadarTileOverlay(date: tileRun.addingTimeInterval(812), referenceTime: tileRun,
                                        reloadRevision: 812, session: session, retryDelay: { _ in 0.01 }, onLoadState: { trackerStates.append($0) })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         for index in 0..<8 {
             if index == 4 { _ = overlay.beginViewport(reloadRevision: 812) }
             if index == 6 {
-                overlay = RadarTileOverlay(date: reference.addingTimeInterval(812), referenceTime: reference,
+                overlay = RadarTileOverlay(date: tileRun.addingTimeInterval(812), referenceTime: tileRun,
                                            reloadRevision: 812, session: session, retryDelay: { _ in 0.01 }, onLoadState: { trackerStates.append($0) })
             }
             let finished = expectation(description: "Bounded repeat \(index)")
@@ -488,7 +492,7 @@ final class DWDDataTests: XCTestCase {
         let session = URLSession(configuration: configuration)
         defer { session.invalidateAndCancel() }
         RadarTestURLProtocol.responses.configure(png: Data([137, 80, 78, 71, 13, 10, 26, 10, 0]))
-        let overlay = RadarTileOverlay(date: reference.addingTimeInterval(129), referenceTime: reference, reloadRevision: 129,
+        let overlay = RadarTileOverlay(date: tileRun.addingTimeInterval(129), referenceTime: tileRun, reloadRevision: 129,
                                        session: session, retryDelay: { _ in 0.01 }, onLoadState: { _ in })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         let invalid = expectation(description: "Pseudo PNG rejected")
@@ -598,7 +602,7 @@ final class DWDDataTests: XCTestCase {
         defer { session.invalidateAndCancel() }
         let png = Self.validRadarPNG
         RadarTestURLProtocol.responses.configure(png: png)
-        let overlay = RadarTileOverlay(date: reference.addingTimeInterval(123), referenceTime: reference, reloadRevision: 123,
+        let overlay = RadarTileOverlay(date: tileRun.addingTimeInterval(123), referenceTime: tileRun, reloadRevision: 123,
                                        session: session, retryDelay: { _ in 0.01 }, onLoadState: { _ in })
         let path = MKTileOverlayPath(x: 137, y: 83, z: 8, contentScaleFactor: 1)
         let first = expectation(description: "XML then valid PNG")

@@ -1,5 +1,14 @@
 # Fortsetzbarer Arbeitsstand
 
+**28.11.2026, Testhygiene (Karte 3D11C774; mitgeprueft B2467B69, 48D6EE30, 24876FCC, 8C36F303; nur Testcode, kein Build).**
+- **DWDDataTests nicht wiederholbar (belegt, behoben):** mit `-test-iterations 5` 116 Fehler bei 180 Laeufen auf `1d476eb`; fuenf Kachel-Tests im 1. Durchgang gruen, ab dem 2. rot. Ursache: `RadarTileOverlay.cache`, `RadarTileFailures` und das Retry-Budget sind statisch und an Kachel-URL bzw. Referenzzeit gebunden; die Tests nutzten feste Zeiten und sahen ab dem 2. Durchgang Kachel oder Fehler des 1. Fix: eigene Kachel-Referenzzeit je Testinstanz (`tileRun`), Produktcode unveraendert.
+- **`testRadarControlsOpenDetailsAndReturnToCurrentFrame` flaky (belegt, behoben):** live 2 von 18 rot; die Zustandsausgabe (`a57385a`) zeigte „Der angekuendigte DWD-Datenlauf ist am Radardienst noch nicht verfuegbar“, das Detailblatt hat dann keine „Einordnung“. Jetzt mit festen Daten wie die uebrigen Zeitleistentests (`1d476eb`), 35 von 36 gruen. Der eine rote Lauf: Ziehen ans Ende ergab kein „Vorhersage“, obwohl die Aufnahme den Regler am Ende zeigt; die App lief laut Systemprotokoll weiter (kein Absturz). Ursache nicht belegt; der Test gibt dafuer jetzt Wert und Rahmen aus.
+- **`PseudoLocalizationTests.testForecastDetailsAreEnglish` (24876FCC):** live 2 von 12 rot, mit festen Daten 12 von 12 gruen (`544b350`).
+- **Prognose-Cache aus UI-Laeufen (B2467B69) und die zwei DWDDataTests auf `main` (48D6EE30):** schon mit `806c9f2` (26.11., Test-Stores mit eigenem Speicher) behoben; `ForecastRefreshTests` 5 Iterationen 100/100.
+- **Parallelitaets-Crashes:** Ursache am 25.11. belegt (zwei Laeufe auf demselben Simulator, Eintrag unten); seitdem maschinenweite Sperre `sim-sperre.py` (Orchestrator) und Sperre in `validiere.py`. Hier nicht erneut aufgetreten.
+- **Nicht untersucht:** Banner „Einige Radarkacheln fehlen“ im DWD-Fallback; 8C36F303 (Test-Runner-Neustart) trat nicht auf.
+- **Belege:** Orchestrator `runtime/nachweise/showers-3d11/logs/` (01–03 rot, 04–05 fest, 06 DWD rot, 07 ff. gruen).
+
 **27.11.2026, Warnungstexte und Satelliten-Quellzeile umgesetzt (Karte 31A623B9; Frage 9B360945 beantwortet „alle drei“; auf `main`, kein neuer Build, kommt mit dem naechsten).**
 - **Umgesetzt (App):** `WARN_CONFIRM_MESSAGE`, `WARN_FOOTER`, `INFO_PRIVACY_1` (de/en) mit allen gesendeten Daten, Einwilligung und Widerruf; Quellzeile unter dem Slider fuer Wolken/Sonne ist die Manifestzeile „Contains modified EUMETSAT Meteosat data 2026“ (Art. 6.3). `INFO_PRIVACY_3` unveraendert. Stand je Vorschlag V1–V9: [release-attribution-pruefung.md](release-attribution-pruefung.md).
 - **Rot zuerst:** `WarnPrivacyTextTests` (Unit, 9 Fehlschlaege), `WarnPrivacyTextUITests` (UI, 7 Fehlschlaege), danach gruen.
@@ -573,7 +582,7 @@ Nicht geprüft: echte Zustellung echter Regenmeldungen und Anzeige der Texte, Re
 4. Druck-Farbfläche als Option: nur über GRIB-Rohdaten (libaec) im Backend, 3 bis 5 Tage ([research/druck-farboverlay.md](research/druck-farboverlay.md)); Nutzer hat nicht entschieden.
 5. Live Activities später; Critical Alerts nicht beantragen (Empfehlung, [research/live-activities-und-kritische-mitteilungen.md](research/live-activities-und-kritische-mitteilungen.md)).
 6. Push: `env` je Build-Konfiguration (`sandbox` Debug, `production` Release), Backend hat nur eine `APNS_ENV` je Betrieb; systemseitig abgeschaltete Mitteilungen löschen Abos nicht; Ort ohne Radarabdeckung nicht aktivierbar.
-7. Tests: UI-Test `testRadarControlsOpenDetailsAndReturnToCurrentFrame` flaky; Parallelitäts-Crashes („signal kill before establishing connection“) bei gleichzeitigen Läufen; `DWDDataTests` bei `-test-iterations` nicht wiederholbar; Banner „Einige Radarkacheln fehlen“ im DWD-Fallback möglich.
+7. Tests: Banner „Einige Radarkacheln fehlen“ im DWD-Fallback möglich (nicht untersucht). Flaky Radar-Details-Test, Parallelitäts-Crashes und `DWDDataTests` bei `-test-iterations`: siehe Eintrag 28.11. (Karte 3D11C774).
 8. Widgets, Watch, iPad-/Mac-Oberflächen folgen laut [plan.md](plan.md). Umsetzungsplan für Widgets, Watch und Live Activity (Targets, Pakete, Nutzerentscheidungen E1 bis E4): [research/widgets-watch-plan.md](research/widgets-watch-plan.md).
 
 ## Nutzeraufgaben (Checkliste)
