@@ -726,3 +726,83 @@ final class HTTPPushGatewayTests: XCTestCase {
                        "https://showers.linolaske.de/v1/push/")
     }
 }
+
+// MARK: Opt-in while the notification status never answers (fresh install in the simulator, Build 61)
+
+/// `status()` never calls back (the continuation is kept, never resumed); the prompt answers with `grants`.
+final class HangingStatusAuthorizer: PushAuthorizing, @unchecked Sendable {
+    private let lock = NSLock()
+    private var parked: [CheckedContinuation<PushAuthorization, Never>] = []
+    private var parkedPrompts: [CheckedContinuation<Bool, Never>] = []
+    private let grants: Bool?
+    private(set) var prompts = 0
+    /// `grants == nil`: the prompt never calls back either (cold simulator: the request reaches the system, nothing returns).
+    init(grants: Bool?) { self.grants = grants }
+    func status() async -> PushAuthorization { await withCheckedContinuation { c in lock.withLock { parked.append(c) } } }
+    func requestAuthorization() async -> Bool {
+        lock.withLock { prompts += 1 }
+        if let grants { return grants }
+        return await withCheckedContinuation { c in lock.withLock { parkedPrompts.append(c) } }
+    }
+}
+
+@MainActor
+final class PushEnableStatusDeadlineTests: XCTestCase {
+    private let berlin = (lat: 52.52, lon: 13.405)
+
+    private func make(grants: Bool?) -> (PushManager, HangingStatusAuthorizer, FakeRegistrar) {
+        let authorizer = HangingStatusAuthorizer(grants: grants), registrar = FakeRegistrar()
+        let manager = PushManager(gateway: FakeGateway(), secrets: FakeSecrets(), authorizer: authorizer, registrar: registrar,
+                                  defaults: UserDefaults(suiteName: "push-deadline-\(UUID().uuidString)")!, environment: .sandbox,
+                                  locale: "de", statusDeadline: { try? await Task.sleep(for: .milliseconds(50)) },
+                                  promptDeadline: { try? await Task.sleep(for: .milliseconds(200)) })
+        return (manager, authorizer, registrar)
+    }
+
+    /// Result of `enable`, or nil if it is still waiting after `seconds` (the hang of Build 61).
+    private func enableResult(_ manager: PushManager, seconds: Double = 3) async -> Bool? {
+        let (stream, done) = AsyncStream<Bool?>.makeStream()
+        let place = UUID(), lat = berlin.lat, lon = berlin.lon
+        Task { @MainActor in done.yield(await manager.enable(placeID: place, latitude: lat, longitude: lon)) }
+        let timer = Task { try? await Task.sleep(for: .seconds(seconds)); done.yield(nil) }
+        var result: Bool?
+        for await value in stream { result = value; break }
+        timer.cancel()
+        return result
+    }
+
+    /// No status answer: after the deadline the system prompt is asked anyway, and its "allowed" enables the place.
+    func testEnableAsksSystemAfterStatusDeadlineAndEnables() async {
+        let (manager, authorizer, registrar) = make(grants: true)
+        let result = await enableResult(manager)
+        XCTAssertEqual(result, true, "enable must finish after the status deadline instead of waiting forever")
+        XCTAssertEqual(authorizer.prompts, 1, "requestAuthorization is asked although the status never answered")
+        XCTAssertEqual(manager.authorization, .authorized)
+        XCTAssertEqual(manager.enabledCount, 1)
+        XCTAssertEqual(registrar.registered, 1)
+    }
+
+    /// No status answer and the prompt is refused (or fails): enable ends with the denial message, nothing registered.
+    func testEnableEndsWithMessageWhenStatusHangsAndPromptRefused() async {
+        let (manager, authorizer, registrar) = make(grants: false)
+        let result = await enableResult(manager)
+        XCTAssertEqual(result, false, "enable must finish after the status deadline instead of waiting forever")
+        XCTAssertEqual(authorizer.prompts, 1)
+        XCTAssertNotEqual(manager.authorization, .authorized, "a refused prompt is never consent")
+        XCTAssertEqual(manager.enabledCount, 0)
+        XCTAssertEqual(registrar.registered, 0)
+        XCTAssertEqual(manager.messages.values.first, "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.")
+    }
+
+    /// Neither status nor prompt answers: enable ends with its own message (not "switched off in Settings"), nothing registered.
+    func testEnableEndsWhenPromptNeverAnswers() async {
+        let (manager, authorizer, registrar) = make(grants: nil)
+        let result = await enableResult(manager)
+        XCTAssertEqual(result, false, "enable must finish although the prompt never calls back")
+        XCTAssertEqual(authorizer.prompts, 1)
+        XCTAssertNotEqual(manager.authorization, .authorized)
+        XCTAssertEqual(manager.enabledCount, 0)
+        XCTAssertEqual(registrar.registered, 0)
+        XCTAssertEqual(manager.messages.values.first, "iOS hat nicht auf die Anfrage nach Mitteilungen geantwortet. Bitte versuche es gleich noch einmal.")
+    }
+}

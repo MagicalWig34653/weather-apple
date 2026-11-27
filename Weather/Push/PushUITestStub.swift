@@ -9,6 +9,7 @@ import MapKit
 /// - `fakedeny`: the permission prompt is replaced by an automatic "not allowed".
 /// - `system`: the real iOS permission prompt is shown (answered by the test); everything else stays fake.
 /// - `fakehang`: the permission status never answers (as seen on a freshly erased simulator); nothing is ever allowed.
+/// - `fakestuck`: like `fakehang`, and the permission prompt never returns either.
 /// - `fakelate`: the permission status answers "allowed" only after 6 s (late system answer; must not enable anything).
 /// `-UITestSetupClean` deletes all saved places before the wizard starts (so the places step is open); typing "Teststadt" into
 /// the wizard's search then offers one fixed result (Berlin) without MapKit or network.
@@ -28,6 +29,7 @@ enum PushUITestStub {
         let authorizer: PushAuthorizing = switch mode {
         case "system": SystemPushAuthorizing()
         case "fakehang": SilentAuthorizer(answer: nil)
+        case "fakestuck": SilentAuthorizer(answer: nil, promptAnswers: false)
         case "fakelate": SilentAuthorizer(answer: .authorized)
         default: FakeAuthorizer(allow: mode != "fakedeny")
         }
@@ -81,6 +83,7 @@ private final class FakeAuthorizer: PushAuthorizing, @unchecked Sendable {
 /// Status answers never (`answer == nil`) or only after 6 s; a prompt is never shown and never counts as allowed.
 private struct SilentAuthorizer: PushAuthorizing {
     let answer: PushAuthorization?
+    var promptAnswers = true
     func status() async -> PushAuthorization {
         guard let answer else {
             try? await Task.sleep(for: .seconds(86_400))
@@ -89,7 +92,11 @@ private struct SilentAuthorizer: PushAuthorizing {
         try? await Task.sleep(for: .seconds(6))
         return answer
     }
-    func requestAuthorization() async -> Bool { PushStubLog.shared.bump("authRequest"); return false }
+    func requestAuthorization() async -> Bool {
+        PushStubLog.shared.bump("authRequest")
+        if !promptAnswers { try? await Task.sleep(for: .seconds(86_400)) }
+        return false
+    }
 }
 
 @MainActor private final class FakeRegistrar: RemoteNotificationRegistering {

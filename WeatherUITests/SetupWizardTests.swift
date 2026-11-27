@@ -101,14 +101,40 @@ class SetupWizardTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Regenhinweis"].waitForExistence(timeout: 5))
     }
 
+    /// Switch value as XCUITest reports it: "1"/"0" as String, on some runs as a number (Build 61 log: `Optional(1)`).
+    /// Only exactly on/off counts; anything else is nil (fails the caller).
+    nonisolated static func switchState(_ value: Any?) -> Bool? {
+        NSPredicate(format: "value == '1'").evaluate(with: ["value": value as Any]) ? true : nil
+    }
+
+    /// Waits until the switch reports exactly `on` (String or number); fails with the last raw value and its type.
+    private func waitForSwitch(_ toggle: XCUIElement, on: Bool, timeout: TimeInterval = 5, _ context: String) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Self.switchState(toggle.value) != on, Date() < deadline { Thread.sleep(forTimeInterval: 0.2) }
+        let raw = toggle.value
+        XCTAssertEqual(Self.switchState(raw), on, "\(context): \(String(describing: raw)) (\(raw.map { "\(type(of: $0))" } ?? "nil"))")
+    }
+
+    func testSwitchStateAcceptsStringAndNumber() {
+        XCTAssertEqual(Self.switchState("1"), true)
+        XCTAssertEqual(Self.switchState("0"), false)
+        XCTAssertEqual(Self.switchState(NSNumber(value: 1)), true, "number 1 (Build 61) is on")
+        XCTAssertEqual(Self.switchState(NSNumber(value: 0)), false)
+        XCTAssertEqual(Self.switchState(1), true)
+        XCTAssertEqual(Self.switchState(true), true)
+        XCTAssertNil(Self.switchState(nil))
+        XCTAssertNil(Self.switchState("2"))
+        XCTAssertNil(Self.switchState(""))
+        XCTAssertNil(Self.switchState(NSNumber(value: 2)))
+    }
+
     private func selectTestPlace(_ app: XCUIApplication) {
         let toggle = app.switches.matching(identifier: "setup-alert-place").firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 5), "place toggle")
-        XCTAssertEqual(toggle.value as? String, "0", "nothing preselected")
+        waitForSwitch(toggle, on: false, timeout: 0, "nothing preselected")
         // The row is a labelled toggle: tap the switch itself (right edge of the row), not the label.
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        let on = NSPredicate(format: "value == '1'")
-        XCTAssertEqual(XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: on, object: toggle)], timeout: 5), .completed, "toggle on: \(String(describing: toggle.value))")
+        waitForSwitch(toggle, on: true, "toggle on")
     }
 
     /// "Nichts ist vorgewählt" only before a choice; with a place ticked the note is about the pending confirmation.
@@ -308,6 +334,8 @@ class SetupWizardTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet."].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Regenhinweis"].exists, "denied: stays on the step")
         assertOnlyDeniedMessage(app)
+        XCTAssertFalse(app.descendants(matching: .any)["setup-working"].exists, "denied: the waiting indicator is gone")
+        XCTAssertTrue(app.buttons["setup-primary"].isEnabled, "denied: the button works again")
         shot(app, "04e-verweigert")
         let c = counters(app)
         XCTAssertEqual(c["enable"], 1)
@@ -330,13 +358,58 @@ class SetupWizardTests: XCTestCase {
         XCTAssertEqual(authState(app), "unknown")
         toPlaces(app)
         addTestPlaceAndContinue(app)
-        XCTAssertEqual(app.switches.matching(identifier: "setup-alert-place").firstMatch.value as? String, "0", "nothing preselected")
+        waitForSwitch(app.switches.matching(identifier: "setup-alert-place").firstMatch, on: false, timeout: 0, "nothing preselected")
         XCTAssertFalse(app.buttons["setup-primary"].isEnabled)
         assertNote(app, selected: false)
         shot(app, "09b-regenhinweis-ohne-systemantwort")
         XCTAssertEqual(authState(app), "unknown")
         assertNothingRegistered(app, "no system answer")
     }
+
+    /// Build 61: the status never answered, so `push.enable` waited forever (no iOS dialog, button stuck). After the 2 s
+    /// deadline the system prompt is asked anyway; the waiting indicator appears and disappears again, the step ends with the
+    /// denial message (the fake prompt refuses), nothing is registered.
+    func testEnableWithoutSystemStatusAnswerAsksAndStopsWaiting() {
+        let app = launch(push: "fakehang")
+        toPlaces(app)
+        addTestPlaceAndContinue(app)
+        selectTestPlace(app)
+        requestConsentDialog(app).buttons["Weiter"].tap()
+        let spinner = app.descendants(matching: .any)["setup-working"]
+        XCTAssertTrue(spinner.waitForExistence(timeout: 2), "waiting indicator appears while the status is awaited")
+        shot(app, "10a-warten-ohne-systemantwort")
+        XCTAssertTrue(spinner.waitForNonExistence(timeout: 12), "waiting indicator disappears after the deadline")
+        XCTAssertTrue(app.staticTexts["Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Regenhinweis"].exists, "stays on the step")
+        XCTAssertTrue(app.buttons["setup-primary"].isEnabled, "the button works again")
+        shot(app, "10b-nach-frist-ohne-systemantwort")
+        let c = counters(app)
+        XCTAssertEqual(c["enable"], 1)
+        XCTAssertEqual(c["authRequests"], 1, "system prompt asked after the deadline: \(c)")
+        for key in ["enabled", "registers", "installs", "subs"] { XCTAssertEqual(c[key], 0, "\(key): \(c)") }
+    }
+
+    /// Neither the status nor the permission request answers (cold simulator, see Build 61): the indicator still goes away,
+    /// the step says that iOS did not answer, nothing is registered.
+    func testEnableWhenSystemNeverAnswersEndsWithMessage() {
+        let app = launch(push: "fakestuck")
+        toPlaces(app)
+        addTestPlaceAndContinue(app)
+        selectTestPlace(app)
+        requestConsentDialog(app).buttons["Weiter"].tap()
+        let spinner = app.descendants(matching: .any)["setup-working"]
+        XCTAssertTrue(spinner.waitForExistence(timeout: 2), "waiting indicator appears")
+        XCTAssertTrue(spinner.waitForNonExistence(timeout: 20), "waiting indicator disappears although nothing answers")
+        XCTAssertTrue(app.staticTexts[Self.noAnswer].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Regenhinweis"].exists, "stays on the step")
+        XCTAssertTrue(app.buttons["setup-primary"].isEnabled, "the button works again")
+        shot(app, "11-ios-antwortet-nicht")
+        let c = counters(app)
+        XCTAssertEqual(c["authRequests"], 1, "\(c)")
+        for key in ["enabled", "registers", "installs", "subs"] { XCTAssertEqual(c[key], 0, "\(key): \(c)") }
+    }
+
+    private static let noAnswer = "iOS hat nicht auf die Anfrage nach Mitteilungen geantwortet. Bitte versuche es gleich noch einmal."
 
     /// The status answers "allowed" only after 6 s (after the deadline): the state updates, but nothing is ticked or enabled.
     func testLateSystemAnswerKeepsNoConsent() {
@@ -348,7 +421,7 @@ class SetupWizardTests: XCTestCase {
         while authState(app) != "authorized", Date() < deadline { Thread.sleep(forTimeInterval: 0.5) }
         XCTAssertEqual(authState(app), "authorized", "late answer arrived")
         XCTAssertTrue(app.staticTexts["Regenhinweis"].exists)
-        XCTAssertEqual(app.switches.matching(identifier: "setup-alert-place").firstMatch.value as? String, "0", "late answer ticks nothing")
+        waitForSwitch(app.switches.matching(identifier: "setup-alert-place").firstMatch, on: false, timeout: 0, "late answer ticks nothing")
         XCTAssertFalse(app.buttons["setup-primary"].isEnabled)
         assertNote(app, selected: false)
         assertNothingRegistered(app, "late answer")
@@ -421,6 +494,11 @@ class SetupWizardTests: XCTestCase {
         addTestPlaceAndContinue(app)
         selectTestPlace(app)
         requestConsentDialog(app).buttons["Weiter"].tap()
+        // An open system dialog is never timed out: leave it longer than the 5 s limit for a missing answer.
+        XCTAssertTrue(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch.waitForExistence(timeout: 15), "system dialog")
+        Thread.sleep(forTimeInterval: 9)
+        XCTAssertTrue(app.descendants(matching: .any)["setup-working"].exists, "still waiting while the dialog is open")
+        XCTAssertFalse(app.staticTexts[Self.noAnswer].exists, "no give-up behind an open dialog")
         answerSystemAlert(preferring: ["Don’t Allow", "Don't Allow", "Nicht erlauben"], exact: true, name: "08a-system-mitteilungen-nein")
         XCTAssertTrue(app.staticTexts["Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet."].waitForExistence(timeout: 10))
         assertOnlyDeniedMessage(app)

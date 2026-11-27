@@ -191,7 +191,8 @@ final class PushManager {
     init(gateway: PushGateway, secrets: PushSecretStore, authorizer: PushAuthorizing, registrar: RemoteNotificationRegistering,
          defaults: UserDefaults = .standard, environment: PushEnvironment = .current,
          locale: String = PushManager.currentLocale(), activityManager: RainActivityManaging? = nil,
-         activityDefaults: UserDefaults? = nil) {
+         activityDefaults: UserDefaults? = nil, statusDeadline: @escaping @Sendable () async -> Void = {},
+         promptDeadline: @escaping @Sendable () async -> Void = {}) {
         self.gateway = gateway; self.secrets = secrets; self.authorizer = authorizer; self.registrar = registrar
         self.defaults = defaults; self.environment = environment; self.locale = locale
         self.activityManager = activityManager; self.activityDefaults = activityDefaults
