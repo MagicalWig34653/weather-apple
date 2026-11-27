@@ -441,3 +441,9 @@ Grundlage: Entscheidungen Lino 17.11.2026 (Backend `docs/decisions.md`, Ebene `r
 - **Abspielfenster (Entscheidung des Agents, zur Bestaetigung):** ohne Wahl wie bei gewaehlten 6 Stunden, also hoechstens 3 Stunden Vergangenheit (`PlaybackWindow.maximumPast`; vorher ohne Wahl 2 Stunden).
 - **Grenze (unveraendert):** Liefert die Quelle weniger als 6 Stunden (Direktabruf beim DWD, Server ohne laengere Historie), ist auch die Standardstufe ausgegraut; eine abweichende Wahl laesst sich dann dort erst zuruecksetzen, wenn die Quelle wieder 6 Stunden liefert.
 - **Offen:** `docs-site/content/funktionen.md` nennt noch "Standard: 2 Stunden"; nicht geaendert, weil ein Push dort die Pages-Seite veroeffentlicht.
+
+## 27.11.2026: Mitteilungs-Opt-in wartet nie endlos auf iOS (Karte 74E3E0D3; Entscheidungen des Agents, zur Bestaetigung)
+
+- **Status:** `getNotificationSettings` wird wie beim Start hoechstens 2 s abgewartet; ohne Antwort wird die Erlaubnis trotzdem angefragt (Vorgabe Brain). Eingeschaltet wird nur bei „erlaubt“ vom System (Status oder Ergebnis der Anfrage).
+- **Anfrage ohne Antwort:** Auf einem frisch geloeschten Simulator kam auch auf `requestAuthorization` kein Dialog (Anfrage laut Systemprotokoll weitergereicht). Deshalb endet das Warten, wenn die App 5 s am Stueck aktiv blieb. Ein offener iOS-Dialog macht die App inaktiv und wird nie abgebrochen. Meldung dann „iOS hat nicht auf die Anfrage nach Mitteilungen geantwortet …“ statt „ausgeschaltet“, auch bei Regionen und Unwetterwarnungen. Eine spaete Antwort schaltet nichts ein.
+- **Oberflaeche:** Warteanzeige im Hauptknopf des Wizards, solange gewartet wird. Im Schritt Regenhinweis ist „Spaeter“ solange gesperrt (sonst wuerde der Schritt zweimal weitergeschaltet).

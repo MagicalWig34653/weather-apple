@@ -94,7 +94,8 @@ private struct SilentAuthorizer: PushAuthorizing {
     }
     func requestAuthorization() async -> Bool {
         PushStubLog.shared.bump("authRequest")
-        if !promptAnswers { try? await Task.sleep(for: .seconds(86_400)) }
+        // The refusal takes 3 s, like a short look at a prompt: the waiting indicator stays long enough to be observed under load.
+        try? await Task.sleep(for: .seconds(promptAnswers ? 3 : 86_400))
         return false
     }
 }
