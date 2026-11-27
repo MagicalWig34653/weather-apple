@@ -187,14 +187,31 @@ final class PushManager {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let environment: PushEnvironment
     @ObservationIgnored private let locale: String
+    @ObservationIgnored private let statusDeadline: @Sendable () async -> Void
+    @ObservationIgnored private let promptDeadline: @Sendable () async -> Void
+
+    /// Like the launch (`SetupCoordinator.authorizationDeadline`): the status query normally answers at once; 2 s leave room
+    /// for a slow cold start without letting a missing answer block the opt-in.
+    static let statusDeadline: @Sendable () async -> Void = { try? await Task.sleep(for: .seconds(2)) }
+
+    /// For the permission request: returns once the app has stayed active for 5 s in a row. An open iOS dialog makes the app
+    /// inactive, so a person reading it is never timed out; staying active means no dialog came and none is being answered.
+    static let promptDeadline: @Sendable () async -> Void = {
+        var active = 0
+        while active < 10, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(500))
+            active = await UIApplication.shared.applicationState == .active ? active + 1 : 0
+        }
+    }
 
     init(gateway: PushGateway, secrets: PushSecretStore, authorizer: PushAuthorizing, registrar: RemoteNotificationRegistering,
          defaults: UserDefaults = .standard, environment: PushEnvironment = .current,
          locale: String = PushManager.currentLocale(), activityManager: RainActivityManaging? = nil,
-         activityDefaults: UserDefaults? = nil, statusDeadline: @escaping @Sendable () async -> Void = {},
-         promptDeadline: @escaping @Sendable () async -> Void = {}) {
+         activityDefaults: UserDefaults? = nil, statusDeadline: @escaping @Sendable () async -> Void = PushManager.statusDeadline,
+         promptDeadline: @escaping @Sendable () async -> Void = PushManager.promptDeadline) {
         self.gateway = gateway; self.secrets = secrets; self.authorizer = authorizer; self.registrar = registrar
         self.defaults = defaults; self.environment = environment; self.locale = locale
+        self.statusDeadline = statusDeadline; self.promptDeadline = promptDeadline
         self.activityManager = activityManager; self.activityDefaults = activityDefaults
         if let data = defaults.data(forKey: Self.stateKey), let decoded = try? JSONDecoder().decode(PushState.self, from: data) {
             state = decoded
@@ -322,7 +339,7 @@ final class PushManager {
             return false
         }
         guard await ensureAuthorized() else {
-            messages[placeID] = NSLocalizedString("PUSH_MSG_DENIED", value: "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.", comment: "Push")
+            messages[placeID] = authorizationProblem
             return false
         }
         if state.places[placeID] == nil { state.places[placeID] = PlacePushSettings(cell: cell) }
@@ -333,14 +350,41 @@ final class PushManager {
         return true
     }
 
+    /// Why `ensureAuthorized()` said no: refused, or the system never answered the request.
+    private var authorizationProblem: String {
+        authorization == .unknown
+            ? NSLocalizedString("PUSH_MSG_NO_ANSWER", value: "iOS hat nicht auf die Anfrage nach Mitteilungen geantwortet. Bitte versuche es gleich noch einmal.", comment: "Push")
+            : NSLocalizedString("PUSH_MSG_DENIED", value: "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.", comment: "Push")
+    }
+
+    /// The status is awaited at most `statusDeadline` (Build 61: on a freshly erased simulator it never answered and the opt-in
+    /// waited forever, without an iOS dialog). Without an answer the system prompt is asked anyway: iOS shows it only while
+    /// undecided and otherwise just returns the stored decision. Only the prompt's own "allowed" counts as consent.
     private func ensureAuthorized() async -> Bool {
-        var current = await authorizer.status()
-        if current == .notDetermined {
-            _ = await authorizer.requestAuthorization()
-            current = await authorizer.status()
+        let authorizer = authorizer
+        var current = await answer(within: statusDeadline) { await authorizer.status() } ?? .unknown
+        if current == .notDetermined || current == .unknown {
+            if let granted = await answer(within: promptDeadline, { await authorizer.requestAuthorization() }) {
+                current = await answer(within: statusDeadline) { await authorizer.status() } ?? (granted ? .authorized : .denied)
+            } else {
+                current = .unknown
+            }
         }
         authorization = current
         return current == .authorized
+    }
+
+    /// Result of `query`, or nil if `deadline` passes first. The query keeps running; its late result is dropped.
+    private func answer<T: Sendable>(within deadline: @escaping @Sendable () async -> Void,
+                                     _ query: @escaping @Sendable () async -> T) async -> T? {
+        let (answers, continuation) = AsyncStream<T?>.makeStream()
+        Task { continuation.yield(await query()) }
+        let timer = Task { await deadline(); continuation.yield(nil) }
+        var result: T?
+        for await value in answers { result = value; break }
+        continuation.finish()
+        timer.cancel()
+        return result
     }
 
     // MARK: Regions
@@ -365,7 +409,7 @@ final class PushManager {
             return .failed(NSLocalizedString("PUSH_MSG_REGION_INVALID", value: "Ungültiger Radius oder Auslöseanteil.", comment: "Push"))
         }
         guard await ensureAuthorized() else {
-            return .failed(NSLocalizedString("PUSH_MSG_DENIED", value: "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.", comment: "Push"))
+            return .failed(authorizationProblem)
         }
         let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
         let id = UUID()

@@ -402,6 +402,7 @@
 "PUSH_MSG_OUT_OF_COVERAGE" = "Dieser Ort liegt außerhalb des Radargebiets; Regenhinweise sind hier nicht möglich.";
 "PUSH_MSG_PLACE_LIMIT" = "Höchstens %lld Orte können Hinweise senden.";
 "PUSH_MSG_DENIED" = "Mitteilungen sind für Showers in den Systemeinstellungen ausgeschaltet.";
+"PUSH_MSG_NO_ANSWER" = "iOS hat nicht auf die Anfrage nach Mitteilungen geantwortet. Bitte versuche es gleich noch einmal.";
 "PUSH_MSG_REGIONS_UNSUPPORTED" = "Regionen sind derzeit nicht verfügbar.";
 "PUSH_MSG_REGIONS_UNKNOWN" = "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Bitte später erneut versuchen.";
 "PUSH_MSG_REGIONS_UNKNOWN_AUTO" = "Ob der Server Regionen unterstützt, konnte nicht geprüft werden. Es wird später erneut versucht.";
@@ -601,6 +602,7 @@
 "SETUP_ALERT_BODY" = "Wir melden dir, wenn an deinem Ort Regen beginnt. Dafür gehen an den Showers-Server das Gerätetoken, eine zufällige Installationskennung, die Rasterzelle des Radarbildes (etwa 0,7 km Kantenlänge) sowie Schwelle und Vorlaufzeit. Kein genauer Standort, kein Ortsname, kein Konto. Du kannst das jederzeit ausschalten; dann werden die Daten auf dem Server gelöscht.";
 "SETUP_ALERT_CONFIRM_MESSAGE" = "Showers meldet dir per Mitteilung, wenn es bei %@ bald zu regnen beginnt. Dafür gehen an den Showers-Server: das Gerätetoken, eine zufällige Installationskennung, die Rasterzelle des Radarbildes (Kantenlänge etwa 0,7 km, keine Koordinaten), Schwelle und Vorlaufzeit; kein Konto. Mit „Weiter“ willigst du ein. Ausschalten widerruft das jederzeit und löscht die Daten auf dem Server. Danach fragt iOS, ob Mitteilungen erlaubt sind.";
 "SETUP_ALERT_ENABLE" = "Regenhinweis einschalten";
+"SETUP_WORKING" = "Bitte warten …";
 "SETUP_ALERT_CHOOSE" = "Für welche Orte?";
 "SETUP_ALERT_GERMANY" = "Bisher nur für Orte in Deutschland.";
 "SETUP_ALERT_NO_PLACES" = "Speichere zuerst einen Ort, zum Beispiel in den Orten.";

@@ -402,6 +402,7 @@
 "PUSH_MSG_OUT_OF_COVERAGE" = "This place is outside the radar coverage area; rain alerts are not possible here.";
 "PUSH_MSG_PLACE_LIMIT" = "At most %lld places can send alerts.";
 "PUSH_MSG_DENIED" = "Notifications are turned off for Showers in system settings.";
+"PUSH_MSG_NO_ANSWER" = "iOS did not answer the notification request. Please try again in a moment.";
 "PUSH_MSG_REGIONS_UNSUPPORTED" = "Regions are currently unavailable.";
 "PUSH_MSG_REGIONS_UNKNOWN" = "Could not check whether the server supports regions. Please try again later.";
 "PUSH_MSG_REGIONS_UNKNOWN_AUTO" = "Could not check whether the server supports regions. It will be retried later.";
@@ -601,6 +602,7 @@
 "SETUP_ALERT_BODY" = "We tell you when rain is about to start at your place. The device token, a random installation ID, the radar grid cell (about 0.7 km wide) and threshold and lead time go to the Showers server. No exact location, no place name, no account. You can turn this off at any time; the data on the server is then deleted.";
 "SETUP_ALERT_CONFIRM_MESSAGE" = "Showers notifies you when it is about to start raining at %@. The following is sent to the Showers server: the device token, a random installation ID, the radar grid cell (edge length about 0.7 km, no coordinates), threshold and lead time; no account. By tapping “Continue” you consent. Turning it off withdraws consent at any time and deletes the data on the server. iOS then asks whether notifications are allowed.";
 "SETUP_ALERT_ENABLE" = "Turn on rain alert";
+"SETUP_WORKING" = "Please wait …";
 "SETUP_ALERT_CHOOSE" = "For which places?";
 "SETUP_ALERT_GERMANY" = "Only for places in Germany so far.";
 "SETUP_ALERT_NO_PLACES" = "Save a place first, for example in Places.";

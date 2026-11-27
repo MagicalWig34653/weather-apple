@@ -102,6 +102,14 @@ struct SetupWizardView: View {
             .buttonStyle(.glassProminent)
             .disabled(working || (step == .rainAlert && !consent.canRequest))
             .accessibilityIdentifier("setup-primary")
+            // Waiting indicator while the system is asked (permission status, prompt, opt-in); gone on success, timeout and error.
+            .overlay(alignment: .leading) {
+                if working {
+                    ProgressView().padding(.leading, 18)
+                        .accessibilityLabel(NSLocalizedString("SETUP_WORKING", value: "Bitte warten …", comment: "Setup"))
+                        .accessibilityIdentifier("setup-working")
+                }
+            }
             if let later = laterTitle {
                 Button(later) { advance() }
                     .buttonStyle(.glass)

@@ -104,7 +104,11 @@ class SetupWizardTests: XCTestCase {
     /// Switch value as XCUITest reports it: "1"/"0" as String, on some runs as a number (Build 61 log: `Optional(1)`).
     /// Only exactly on/off counts; anything else is nil (fails the caller).
     nonisolated static func switchState(_ value: Any?) -> Bool? {
-        NSPredicate(format: "value == '1'").evaluate(with: ["value": value as Any]) ? true : nil
+        switch value {
+        case let text as String: text == "1" ? true : text == "0" ? false : nil
+        case let number as NSNumber: number == 1 ? true : number == 0 ? false : nil
+        default: nil
+        }
     }
 
     /// Waits until the switch reports exactly `on` (String or number); fails with the last raw value and its type.
