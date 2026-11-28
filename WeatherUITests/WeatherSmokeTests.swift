@@ -297,9 +297,28 @@ final class WeatherSmokeTests: XCTestCase {
         return XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
     }
 
-    private func waitForValue(_ element: XCUIElement, containing text: String, timeout: TimeInterval = 5) -> Bool {
+    /// A query that hangs past the deadline without a matching value leaves the waiter without a second try, so the value is read
+    /// once more after the deadline (like `waitForExistence`, which looks again after its own). The expected text stays required.
+    private func waitForValue(_ element: NSObject, containing text: String, timeout: TimeInterval = 5) -> Bool {
         let predicate = NSPredicate(format: "value CONTAINS %@", text)
-        return XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
+        if XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed { return true }
+        if let query = element as? XCUIElement, !query.exists { return false }
+        return predicate.evaluate(with: element)
+    }
+
+    /// One of 36 runs of `testRadarControlsOpenDetailsAndReturnToCurrentFrame` failed on "Vorhersage" after the drag although the
+    /// recording showed the slider at the end: the only query of the wait hung for 4.3 s, past the 5 s deadline (normally 0.02 to
+    /// 0.2 s), and no second one followed. XCTest accepts a late answer that matches (checked with this stand-in and 5.5 s), so
+    /// that query brought no matching value. This stand-in does the same: the first query hangs past the deadline without a value.
+    func testWaitForValueLooksOnceMoreWhenTheOnlyQueryOutlastsTheDeadline() {
+        let late = StalledElement(stall: 5.5, answer: "11:40, Vorhersage")
+        let reached = waitForValue(late, containing: "Vorhersage")
+        print("STALLED_ELEMENT reached=\(reached) queries=\(late.queries)")
+        XCTAssertTrue(reached, "the value was right all along; only the query outlasted the deadline")
+        // The late look accepts only the expected text, and no value stays no value.
+        XCTAssertFalse(waitForValue(StalledElement(stall: 5.5, answer: "09:50, Messung"), containing: "Vorhersage"))
+        XCTAssertFalse(waitForValue(StalledElement(stall: 5.5, answer: nil), containing: "Vorhersage"))
+        XCTAssertFalse(waitForValue(StalledElement(stall: 0, answer: "09:50, Messung"), containing: "Vorhersage", timeout: 2))
     }
 
     /// Tap plays/pauses; long press jumps to "Now" (Messung = reference slot or earlier, Vorhersage = later).
@@ -648,6 +667,26 @@ final class WeatherSmokeTests: XCTestCase {
                 if app.buttons["Löschen"].exists { app.buttons["Löschen"].tap() }
             }
         }
+    }
+}
+
+/// Stand-in for an element whose accessibility query hangs: the first `value` query blocks for `stall` seconds and returns
+/// nothing, every later one answers at once.
+private final class StalledElement: NSObject {
+    private let stall: TimeInterval
+    private let answer: String?
+    private(set) var queries = 0
+
+    init(stall: TimeInterval, answer: String?) {
+        self.stall = stall
+        self.answer = answer
+    }
+
+    @objc var value: String? {
+        queries += 1
+        guard queries == 1, stall > 0 else { return answer }
+        Thread.sleep(forTimeInterval: stall)
+        return nil
     }
 }
 
