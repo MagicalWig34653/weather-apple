@@ -103,9 +103,11 @@ struct WarningsListView: View {
                 if let text = P.contentText(content, scope: scope) {
                     emptyState(text)
                 } else {
-                    ForEach(P.groups(shown, scope: scope, placeNames: feed.placeNames(for:))) { group in
+                    let groups = P.groups(shown, scope: scope, placeNames: feed.placeNames(for:))
+                    ForEach(groups) { group in
                         if let title = group.title {
-                            Text(title).font(.title3.weight(.semibold)).padding(.top, 8).padding(.horizontal, 4)
+                            // Extra air only between groups; above the first one the list inset applies.
+                            Text(title).font(.title3.weight(.semibold)).padding(.top, group.id == groups.first?.id ? 0 : 8).padding(.horizontal, 4)
                                 .accessibilityAddTraits(.isHeader)
                                 .accessibilityIdentifier("warn-group-header")
                         }
@@ -124,6 +126,8 @@ struct WarningsListView: View {
                 disclaimer.padding(.top, 20).padding(.bottom, 8)
             }
             .padding(.horizontal, 16)
+            // Inset below the header (filter, data state), as wide as the gap between two cards; centered states keep their own.
+            .padding(.top, content == .list ? 12 : 0)
         }
         .background(Color(.systemGroupedBackground))
         .refreshable { await feed.refresh(force: true) }
