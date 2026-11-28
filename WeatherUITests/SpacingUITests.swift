@@ -225,6 +225,42 @@ final class SpacingUITests: XCTestCase {
     func testHintStackKeepsControlsVisibleXXXL() { hintStackScene(category: "XXXL", legend: false, "XXXL") }
     func testHintStackWithLegendAccessibilityXXXL() { hintStackScene(category: "AccessibilityXXXL", legend: true, "AXXXL") }
 
+    // MARK: Official warnings sheet: defined inset between the header (filter, data state) and the list (card E6FF22E4, TestFlight 28.11.)
+
+    /// The data state belongs to the header: 8 pt of header below it, then 12 pt list inset (the same as between two cards) before the
+    /// first card ("Alle") or the first place title ("Meine Orte"). Before: 8 pt ("Alle": card on the header edge) and 16 pt.
+    private func warningListInset(category: String, _ context: String) {
+        let app = launch(category: category, extra: ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestWarnings", "many", "-radarPastHours", "2"])
+        defer { app.terminate() }
+        for (segment, name, id) in [("Alle", "alle", "warning-row"), ("Meine Orte", "meine-orte", "warn-group-header")] {
+            // Opened anew for each segment: the list keeps its scroll position across a segment switch.
+            app.buttons["radar-warnings-button"].tap()
+            let stand = app.staticTexts["warn-stand"]
+            XCTAssertTrue(stand.waitForExistence(timeout: 10), "\(context) \(name): data state missing")
+            app.buttons[segment].tap(); sleep(2)
+            defer { app.buttons["Fertig"].tap(); sleep(2) }
+            let first = element(app, id)
+            XCTAssertTrue(first.waitForExistence(timeout: 5), "\(context) \(name): list is empty")
+            shot(app, "warnungen-\(name)-oben-\(context)")
+            // The "dark" evidence must really be dark (a fresh simulator can stay light despite the launch settings).
+            if dark { XCTAssertLessThan(UITestLaunch.meanLuminance(app.screenshot().image), 0.45, "\(context) \(name): dark run shows a light screen") }
+            let before = stand.frame, gap = first.frame.minY - before.maxY
+            print("SPACING_WARNINGS \(context) \(name) stand=\(before) first=\(first.frame) gap=\(gap)")
+            XCTAssertEqual(gap, 20, accuracy: 1, "\(context) \(name): \(gap) pt between the data state and the first list element (header 8 + list inset 12)")
+            // Scrolled: the list moves, the header with the data state stays.
+            let row = element(app, "warning-row"), rowTop = row.frame.minY
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: .slow, thenHoldForDuration: 0.3)
+            sleep(2)
+            shot(app, "warnungen-\(name)-gescrollt-\(context)")
+            XCTAssertTrue(!row.exists || row.frame.minY < rowTop - 50, "\(context) \(name): list did not scroll")
+            XCTAssertEqual(stand.frame.minY, before.minY, accuracy: 0.5, "\(context) \(name): the data state moved with the list")
+        }
+    }
+
+    func testWarningListInsetStandardSize() { warningListInset(category: "L", "L") }
+    func testWarningListInsetAccessibilityXXXL() { warningListInset(category: "AccessibilityXXXL", "AXXXL") }
+
     /// Rain radar legend (14 rows) at the largest size: between forecast pill and play pill, not over them.
     func testRadarLegendFitsBetweenPillsAccessibilityXXXL() {
         let app = launch(category: "AccessibilityXXXL", extra: ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestWarnings", "fixture", "-radarPastHours", "2"])

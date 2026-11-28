@@ -1,8 +1,9 @@
 #if DEBUG
 import Foundation
 
-/// UI tests only (Debug builds): `-UITestWarnings fixture|empty|stale|offline` simulates the feed without network.
-/// `fixture` also pretends the saved place "Berlin" lies in district 111000000.
+/// UI tests only (Debug builds): `-UITestWarnings fixture|many|empty|stale|offline` simulates the feed without network.
+/// `fixture` and `many` also pretend the saved place "Berlin" lies in district 111000000; `many` repeats the frost
+/// warning so the list scrolls at every text size.
 extension WarnFeedStore {
     static var uiTestMode: String? {
         guard let index = CommandLine.arguments.firstIndex(of: "-UITestWarnings"),
@@ -17,7 +18,7 @@ extension WarnFeedStore {
             let iso = ISO8601DateFormatter()
             func time(_ offset: TimeInterval) -> String { iso.string(from: now.addingTimeInterval(offset)) }
             let fetched = mode == "stale" ? time(-3 * 3600) : time(-120)
-            let warnings: [[String: Any]] = mode == "empty" ? [] : [
+            var warnings: [[String: Any]] = mode == "empty" ? [] : [
                 ["id": "ui.severe", "kind": "severe_weather", "severity": 3, "event": "GEWITTER", "sent": time(-2700),
                  "onset": time(-1800), "expires": time(3 * 3600), "headline": "Amtliche UNWETTERWARNUNG vor GEWITTER",
                  "text": "Es treten Gewitter auf. Dabei gibt es Windböen bis 70 km/h (Bft 8) sowie Starkregen um 25 l/qm in einer Stunde.",
@@ -33,6 +34,7 @@ extension WarnFeedStore {
                  "text": "Es tritt extremes Glatteis auf.", "instruction": "Hinweis auf mögliche Gefahren: Straßen und Wege sind spiegelglatt.",
                  "lang": "de", "warncell_ids": ["909184999"]],
             ]
+            if mode == "many" { warnings += (1...5).map { warnings[1].merging(["id": "ui.frost.\($0)"]) { _, new in new } } }
             let body: [String: Any] = ["schema": 1, "source": "dwd", "fetched_at": fetched, "warnings": warnings]
             let data = try JSONSerialization.data(withJSONObject: body)
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!

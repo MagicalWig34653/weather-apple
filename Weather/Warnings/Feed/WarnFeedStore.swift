@@ -160,7 +160,7 @@ extension WarnFeedStore {
         if let mode = uiTestMode {
             transport = uiTestTransport(mode: mode)
             cacheURL = nil
-            if mode == "fixture" { provider = { [WarnPlaceCells(name: "Berlin", cells: ["111000000"])] } }
+            if mode == "fixture" || mode == "many" { provider = { [WarnPlaceCells(name: "Berlin", cells: ["111000000"])] } }
         }
         #endif
         return WarnFeedStore(isEnabled: { [warn] in warn.capabilityWarnings }, cacheURL: cacheURL, transport: transport,
