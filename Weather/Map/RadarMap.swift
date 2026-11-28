@@ -739,7 +739,7 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
         }
         // A same-key speculative request becomes foreground demand without a
         // second transport. Detaching speculative work cannot cancel this waiter.
-        if RadarPrefetchFlight.shared.join(url: url, owner: promotedOwner, result: { [progress] response in
+        if RadarPrefetchFlight.shared.join(url: url, owner: promotedOwner, result: { [self] response in
             if let data = response.data {
                 progress.receivedOnce(data.count, for: url, contextID: contextID, transportID: response.transportID)
             }
@@ -753,6 +753,13 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
                 } catch { failure = error }
             }
             if let image { Self.cache.insert(image, for: url) }
+            // The promoted answer is attempt 1: same bounded retry as an own request, unless a newer reload replaced
+            // this revision. The scheduler which would have retried it is detached by now.
+            if RadarRetryPolicy.shouldRetry(failure, attempt: 1), progress.snapshot.reloadRevision == revision,
+               Self.availabilityRetries.claim(referenceTime: referenceTime, reloadRevision: revision) {
+                start(url: url, attempt: 2, delay: retryDelay(1), result: completion)
+                return
+            }
             if let failure { Self.failures.record(failure, for: url, reloadRevision: revision) }
             completion(image, failure)
         }) { return }
@@ -763,14 +770,20 @@ final class RadarTileOverlay: MKTileOverlay, @unchecked Sendable {
             completion(nil, error)
             return
         }
+        start(url: url, attempt: 1, delay: nil, result: completion)
+    }
+
+    private func start(url: URL, attempt: Int, delay: TimeInterval?, result: @escaping TileRequests.ResultHandler) {
         let id = UUID()
-        let task = makeTask(url: url, id: id, attempt: 1)
-        switch requests.add(task, url: url, id: id, result: completion) {
-        case .start: task.resume()
+        let task = makeTask(url: url, id: id, attempt: attempt)
+        switch requests.add(task, url: url, id: id, result: result) {
+        case .start:
+            if let delay { DispatchQueue.global().asyncAfter(deadline: .now() + delay) { task.resume() } }
+            else { task.resume() }
         case .joined: task.cancel()
         case .cancelled:
             task.cancel()
-            completion(nil, URLError(.cancelled))
+            result(nil, URLError(.cancelled))
         }
     }
 

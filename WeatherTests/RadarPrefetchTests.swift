@@ -321,6 +321,87 @@ final class RadarPrefetchTests: XCTestCase {
         XCTAssertEqual(maximumBodyBytes, Int64(expectedPNG.count), "Two subscribers share one response body")
     }
 
+    /// A visible tile that joined a running prefetch transport must get the same bounded retry as its own request: the DWD
+    /// answers some GetMap calls with `InvalidDimensionValue` also for valid runs. Without it one such answer marked the
+    /// tile as failed until a manual reload and the direct-DWD map showed "Einige Radarkacheln fehlen".
+    func testPromotedRunUnavailableAnswerIsRetriedAndShowsNoMissingTilesNotice() async throws {
+        let session = makeSession()
+        defer { session.invalidateAndCancel(); RadarPrefetchFlight.shared.cancelHandoff() }
+        let now = uniqueRun()
+        let (overlay, path, states) = try await promotedOverlay(session: session, run: now, revision: 2420)
+        let expectedPNG = png
+        let loaded = expectation(description: "Visible tile completes")
+        let result = TileResult()
+        overlay.loadTile(at: path) { data, error in result.set(data, error); loaded.fulfill() }
+        let retried = expectation(description: "Second transport for the visible tile")
+        retried.assertForOverFulfill = false
+        PrefetchGateProtocol.gate.expectFurtherStarts(retried)
+        PrefetchGateProtocol.gate.finish(data: Self.runUnavailableXML)
+        await XCTWaiter().fulfillment(of: [retried], timeout: 2)
+        PrefetchGateProtocol.gate.finish(data: expectedPNG)
+        await fulfillment(of: [loaded], timeout: 2)
+        for _ in 0..<500 where states.last?.pending != 0 { try await Task.sleep(for: .milliseconds(10)) }
+        let state = try XCTUnwrap(states.last)
+        let notices = RadarStatusMessages.messages(RadarStatusInput(radarImageMissing: state.failed > 0, radarFromCache: false))
+        print("PROMOTED_TILE starts=\(PrefetchGateProtocol.gate.starts) requested=\(state.requested) succeeded=\(state.succeeded) failed=\(state.failed) runUnavailable=\(state.runUnavailable) notices=\(notices)")
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, 2, "one retry after the promoted answer")
+        XCTAssertNil(result.error)
+        XCTAssertEqual(result.data, expectedPNG)
+        XCTAssertEqual(state.failed, 0)
+        XCTAssertEqual(notices, [], "no missing-tiles notice")
+    }
+
+    func testPromotedTileStopsAfterThreeRunUnavailableAnswers() async throws {
+        let session = makeSession()
+        defer { session.invalidateAndCancel(); RadarPrefetchFlight.shared.cancelHandoff() }
+        let now = uniqueRun()
+        let (overlay, path, _) = try await promotedOverlay(session: session, run: now, revision: 2421)
+        let loaded = expectation(description: "Visible tile completes")
+        let result = TileResult()
+        overlay.loadTile(at: path) { data, error in result.set(data, error); loaded.fulfill() }
+        for attempt in 2...RadarRetryPolicy.maxAttempts {
+            let retried = expectation(description: "Transport of attempt \(attempt)")
+            retried.assertForOverFulfill = false
+            PrefetchGateProtocol.gate.expectFurtherStarts(retried)
+            PrefetchGateProtocol.gate.finish(data: Self.runUnavailableXML)
+            await XCTWaiter().fulfillment(of: [retried], timeout: 2)
+        }
+        PrefetchGateProtocol.gate.finish(data: Self.runUnavailableXML)
+        await fulfillment(of: [loaded], timeout: 2)
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(PrefetchGateProtocol.gate.starts, RadarRetryPolicy.maxAttempts, "bounded: the promoted answer counts as attempt 1")
+        XCTAssertNil(result.data)
+        XCTAssertEqual(result.error as? DWDDataError, .runUnavailable)
+    }
+
+    private static let runUnavailableXML = Data("<ServiceExceptionReport><ServiceException code=\"InvalidDimensionValue\">not ready</ServiceException></ServiceExceptionReport>".utf8)
+
+    /// Tile cache, failure memory and retry budget are static and keyed by run: every test instance uses its own run,
+    /// so repeated iterations in one process start clean.
+    private func uniqueRun() -> Date {
+        reference.addingTimeInterval(TimeInterval(UInt32.random(in: 1...UInt32.max)) * 300)
+    }
+
+    /// A speculative transport is running for `run`; returns the overlay whose first tile demand joins it.
+    private func promotedOverlay(session: URLSession, run: Date, revision: Int) async throws
+        -> (RadarTileOverlay, MKTileOverlayPath, LoadStates) {
+        let path = MKTileOverlayPath(x: 151, y: 87, z: 8, contentScaleFactor: 1)
+        let url = DWDRequest.tileURL(x: path.x, y: path.y, z: path.z, date: run, referenceTime: run)
+        let started = expectation(description: "Speculative transport started")
+        started.assertForOverFulfill = false
+        PrefetchGateProtocol.gate.reset(started: started)
+        let speculative = Task { await RadarPrefetchFlight.shared.load(url: url, session: session, received: { _ in }) }
+        await fulfillment(of: [started], timeout: 2)
+        RadarPrefetchFlight.shared.prepareHandoff(date: run, referenceTime: run)
+        speculative.cancel()
+        _ = await speculative.value
+        let states = LoadStates()
+        let overlay = RadarTileOverlay(date: run, referenceTime: run, reloadRevision: revision, session: session,
+                                       retryDelay: { _ in 0 }, onLoadState: { states.last = $0 })
+        _ = overlay.beginViewport(reloadRevision: revision)
+        return (overlay, path, states)
+    }
+
     func testSchedulerDoesNotStartWhileInactiveOrSelectedFramePending() async {
         let session = makeSession()
         defer { session.invalidateAndCancel() }
@@ -566,6 +647,18 @@ private final class PrefetchProtocolGate: @unchecked Sendable {
         let requests = lock.withLock { let value = pending; pending = []; return value }
         requests.forEach { $0.finish(data: data) }
     }
+}
+
+@MainActor private final class LoadStates {
+    var last: RadarLoadState?
+}
+
+private final class TileResult: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: (Data?, Error?) = (nil, nil)
+    var data: Data? { lock.withLock { value.0 } }
+    var error: Error? { lock.withLock { value.1 } }
+    func set(_ data: Data?, _ error: Error?) { lock.withLock { value = (data, error) } }
 }
 
 private final class Counter: @unchecked Sendable {
