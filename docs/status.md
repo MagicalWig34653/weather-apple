@@ -1,5 +1,14 @@
 # Fortsetzbarer Arbeitsstand
 
+**28.11.2026, Build 62 hochgeladen (Karten E6FF22E4, 19F708DA; Quelle `f076d96`, Tag `testflight-0.1.1-62`; Auftrag Brain f-3fed3441).**
+- **Freigabe:** Brain hat die Bilder gesichtet und `f076d96` selbst validiert (901 Tests, 0 Fehler); `upload-tor.py gueltig showers 62` unmittelbar vor dem Upload Exit 0; Build 62 fehlte vorher in ASC.
+- **Upload:** nur ueber das Upload-Tor, ein Versuch 28.11. 14:20 bis 14:22, Exit 0, „Upload succeeded“, „EXPORT SUCCEEDED“.
+- **ASC:** `9847722a-ff94-41f4-9967-08e1e0bd01df` VALID, `usesNonExemptEncryption=false`, intern `IN_BETA_TESTING` in „ich + papa“, extern `READY_FOR_BETA_SUBMISSION` (nichts zugewiesen oder eingereicht; externe Gruppe und Betapruefung macht Lino). „Was testen“ (de-DE) gesetzt und identisch zurueckgelesen.
+- **Prerelease:** github.com/MagicalWig34653/weather-apple/releases/tag/testflight-0.1.1-62 (ohne Anhaenge).
+- **Zusaetzlich auf `f076d96` nachgeprueft (Aenderungen seit Build 61):** Opt-in ohne Systemantwort 4 hell + 4 dunkel, `WarnPrivacyTextUITests` 7, zusammen 15/15; `check_l10n --strict` Exit 0.
+- **Belege:** Orchestrator `runtime/nachweise/showers-62/` (`upload-62.log`, `asc-wait-62.log`, `asc-62.log`, `asc-*-62.json`, `github-release-62.json`), `showers-62.json`, `showers-e6ff/`.
+- **Nicht belegt:** Ursache der 3 xctest-Abstuerze im Suitenlauf; Installation ueber TestFlight, echtes Geraet, VoiceOver, iPad. Im Eintrag darunter ist „noch nicht hochgeladen“ damit ueberholt.
+
 **28.11.2026, Listenabstand „Amtliche Warnungen“, Build 62 vorbereitet (Karten E6FF22E4, 19F708DA; Auftrag Brain f-3fed3441; noch nicht hochgeladen).**
 - **Anlass:** TestFlight 28.11. „Abstand passt immer noch nicht“ (Build 61): erste Warnkarte klebte am Ende des Kopfs (Filter, „Stand der Daten“).
 - **Fix (`0adafc4`, Test zuerst rot `ecd3293`):** 12 pt oberer Listenabstand, beide Segmente 20 pt vom Datenstand bis zum ersten Element (vorher 8 „Alle“, 16 „Meine Orte“); Entscheidung `decisions.md` 28.11. Leer-/Lade-/Fehlerzustand und Karte unveraendert.
