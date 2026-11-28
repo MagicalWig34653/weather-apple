@@ -452,3 +452,9 @@ Grundlage: Entscheidungen Lino 17.11.2026 (Backend `docs/decisions.md`, Ebene `r
 
 - **Entscheidung (Lino, Board-Antwort „Alle drei wie vorgeschlagen umsetzen“):** Wortlaut der Frage 1 (Warnungen), 2 (Quellzeile) und 3 (Backend-Seiten) gilt. App: Texte wie in der Frage; Quellzeile zeigt die Manifestzeile mit Jahr vom Server statt „© EUMETSAT“. `INFO_PRIVACY_3` („befristet“) bleibt bis zur neuen Datenschutzseite.
 - **Grenzen:** App-Texte erst mit dem naechsten Build; Backend-Aenderungen nur als Branch/PR, Deploy beim Betreiber. V2, V4, V6, V7 und Kleinkram V8 sind nicht entschieden (Stand im Pruefbericht).
+
+## 28.11.2026: Listenabstand im Blatt „Amtliche Warnungen“ 12 pt (Karten E6FF22E4, 19F708DA; Entscheidung des ausfuehrenden Agents, zur Bestaetigung)
+
+- **Anlass (Lino, TestFlight 28.11., Build 61):** „Abstand passt immer noch nicht“; die erste Karte klebte unter „Stand der Daten“ am Ende des weissen Kopfs.
+- **Entscheidung:** 12 pt oberer Listenabstand (wie zwischen zwei Karten) in beiden Segmenten; unter dem Datenstand also 8 pt Kopf plus 12 pt Liste. In „Meine Orte“ entfallen dafuer die 8 pt Zusatz ueber dem ersten Ortstitel (spaetere Titel behalten sie). Leer-, Lade- und Fehlerzustand und die Kartenansicht unveraendert; keine Trennlinie, keine neuen Farben. Beim Scrollen bleibt der Kopf stehen, die Karten laufen an seiner Unterkante aus.
+- **Messbar:** `SpacingUITests/testWarningListInset…` (20 pt vom Datenstand zum ersten Listenelement, Kopf bewegt sich beim Scrollen nicht).

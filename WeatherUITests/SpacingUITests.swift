@@ -261,6 +261,33 @@ final class SpacingUITests: XCTestCase {
     func testWarningListInsetStandardSize() { warningListInset(category: "L", "L") }
     func testWarningListInsetAccessibilityXXXL() { warningListInset(category: "AccessibilityXXXL", "AXXXL") }
 
+    /// Same inset against the production server (read only: no stub, no push, nothing switched on). Opt-in with
+    /// `TEST_RUNNER_SPACING_REAL=1`; needs at least one active warning in Germany.
+    func testProductionReadOnlyWarningListInset() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["SPACING_REAL"] == "1", "production run only on request")
+        let app = launch(category: "L", extra: [])
+        defer { app.terminate() }
+        let button = app.buttons["radar-warnings-button"]
+        XCTAssertTrue(button.waitForExistence(timeout: 30), "no warnings entry: server capability missing?")
+        button.tap()
+        XCTAssertTrue(app.buttons["Alle"].waitForExistence(timeout: 10))
+        app.buttons["Alle"].tap()
+        let stand = app.staticTexts["warn-stand"], row = element(app, "warning-row")
+        XCTAssertTrue(stand.waitForExistence(timeout: 30), "data state missing")
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "no active warning in Germany right now: nothing to measure")
+        sleep(2)
+        shot(app, "warnungen-produktion-oben")
+        if dark { XCTAssertLessThan(UITestLaunch.meanLuminance(app.screenshot().image), 0.45, "dark run shows a light screen") }
+        let before = stand.frame, gap = row.frame.minY - before.maxY
+        print("SPACING_WARNINGS production alle stand=\(before) first=\(row.frame) gap=\(gap)")
+        XCTAssertEqual(gap, 20, accuracy: 1, "production: \(gap) pt between the data state and the first card")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+            .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: .slow, thenHoldForDuration: 0.3)
+        sleep(2)
+        shot(app, "warnungen-produktion-gescrollt")
+        XCTAssertEqual(stand.frame.minY, before.minY, accuracy: 0.5, "production: the data state moved with the list")
+    }
+
     /// Rain radar legend (14 rows) at the largest size: between forecast pill and play pill, not over them.
     func testRadarLegendFitsBetweenPillsAccessibilityXXXL() {
         let app = launch(category: "AccessibilityXXXL", extra: ["-UITestForecast", "current", "-UITestRadar", "fixture", "-UITestWarnings", "fixture", "-radarPastHours", "2"])
